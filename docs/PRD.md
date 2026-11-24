@@ -82,9 +82,9 @@ The player makes legal moves and receives CPU replies. The interface may show cl
 
 ### 5.3 Review the result
 
-After the result, deterministic analysis appears first. The review opens the board immediately before the most important moment. The player can replay the full game, switch between their move and Stockfish's verified alternative, and step through each line on the board. A plain-language explanation states the practical pattern. Raw notation, engine scores, and analysis versions remain collapsed under technical details.
+After the result, review opens as its own focused screen at the board position immediately before the most important moment. Stockfish remains hidden while the player first identifies the position's demand and commits a legal move directly on the board.
 
-The player sees at most three moments ordered by learning value, moves between them without leaving the board, and can start an available playbook with **Practice this pattern**.
+The tutor then scores the attempt against verified alternatives, compares the consequence on the board, and asks for a transfer attempt in another validated position when available. The completed set records first-attempt score, the hard spot, the next review date, and an exact next-game reinforcement. Full-game replay and raw engine details remain collapsed as secondary references.
 
 ### 5.4 Continue the curriculum
 
@@ -129,6 +129,7 @@ The lesson agent receives the selected playbook and verified Stockfish facts. It
 | FR-021 | Generated lesson content is constrained to playbook slots.                    | Unknown steps, unsupported facts, altered objectives, and invalid transitions are rejected and replaced with deterministic content.                                                                     |
 | FR-022 | Lessons use the player's verified positions when evidence is sufficient.      | Each personalized exercise references a legal stored position and fact packet; otherwise the playbook uses a validated canonical example.                                                               |
 | FR-023 | Post-game review is replay-first.                                             | The review auto-jumps to the position before each moment, replays the complete game, compares played and better lines on the board, explains the pattern plainly, and hides raw engine data by default. |
+| FR-024 | Review is an active teaching set on a dedicated screen.                       | Before any engine reveal, the player retrieves the position's demand and commits a legal board move; deterministic scoring, transfer, logging, and next-game reinforcement follow.                      |
 
 ## 7. Curriculum and adaptation policy
 
@@ -186,7 +187,7 @@ Longer-term product signals are repeat games per player, completion rate, return
 
 ## 11. Release acceptance
 
-The MVP is ready for submission when FR-001 through FR-023 have automated or recorded evidence, the three build gates below pass, and there are no known chess-correctness failures:
+The MVP is ready for submission when FR-001 through FR-024 have automated or recorded evidence, the three build gates below pass, and there are no known chess-correctness failures:
 
 1. A human can finish a game while the browser remains responsive.
 2. The same completed game produces a stable fact packet and learning moments.

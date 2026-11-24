@@ -1,8 +1,15 @@
 import { Chess } from "chess.js";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { CompletedGameAnalysis } from "../../application/analyze-game/analyze-completed-game";
+import type { ReviewTrainingLog } from "../../domain/analysis/review-training";
 import type { MoveAnalysisFact } from "../../domain/analysis/types";
 import {
   createGameId,
@@ -13,7 +20,7 @@ import { GameReviewExperience } from "./GameReviewExperience";
 
 afterEach(cleanup);
 
-function reviewFixture(): {
+function reviewFixture(withTransfer = true): {
   readonly game: GameRecord;
   readonly analysis: CompletedGameAnalysis;
 } {
@@ -55,6 +62,12 @@ function reviewFixture(): {
         evaluationCp: 25,
         principalVariation: ["d2d4", "e5d4", "d1d4"],
       },
+      {
+        uci: "b1c3",
+        san: "Nc3",
+        evaluationCp: 5,
+        principalVariation: ["b1c3", "g8f6"],
+      },
     ],
     analysisVersion: "stockfish-19-lite@1",
   };
@@ -67,7 +80,6 @@ function reviewFixture(): {
     evaluationBeforeCp: 30,
     evaluationAfterCp: -90,
     impactCp: 120,
-    theme: "development",
     candidates: [
       {
         uci: "f1c4",
@@ -77,7 +89,7 @@ function reviewFixture(): {
       },
     ],
   };
-  const facts = [factOne, factTwo];
+  const facts = withTransfer ? [factOne, factTwo] : [factOne];
   return {
     game: {
       schemaVersion: 1,
@@ -96,7 +108,7 @@ function reviewFixture(): {
     },
     analysis: {
       facts,
-      analyzedPlayerMoves: 2,
+      analyzedPlayerMoves: facts.length,
       moments: facts.map((fact) => ({
         id: `${fact.gameId}:${String(fact.ply)}:${fact.theme}`,
         gameId: fact.gameId,
@@ -123,87 +135,137 @@ function reviewFixture(): {
   };
 }
 
-describe("GameReviewExperience", () => {
-  it("auto-jumps to the position before the selected learner move", () => {
-    const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+const chooseCorrectTheme = (): void => {
+  fireEvent.click(
+    screen.getByLabelText("The opponent has an immediate forcing threat"),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Lock this read" }));
+};
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "After Black's move 1",
-    );
-    expect(screen.getByRole("gridcell", { name: "Empty f3" })).toBeVisible();
-    expect(screen.getByText("Moment 1 of 2")).toBeVisible();
+const playBoardMove = (fromLabel: RegExp, toLabel: RegExp): void => {
+  const board = screen.getByRole("grid", {
+    name: "Training board, White side",
   });
+  fireEvent.click(within(board).getByRole("gridcell", { name: fromLabel }));
+  fireEvent.click(within(board).getByRole("gridcell", { name: toLabel }));
+  fireEvent.click(screen.getByRole("button", { name: "Commit this move" }));
+};
 
-  it("steps through the learner line and verified better continuation", () => {
+describe("GameReviewExperience active training", () => {
+  it("requires retrieval before revealing the engine and accepts the best move", () => {
     const fixture = reviewFixture();
     render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Play next move" }));
     expect(
-      screen.getByRole("gridcell", {
-        name: /White knight on f3, last move ended here/,
+      screen.getByRole("heading", {
+        name: "What matters most before you move?",
       }),
     ).toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Comparison step 1 of 3",
-    );
+    expect(screen.queryByText("d2d4")).not.toBeInTheDocument();
+    chooseCorrectTheme();
+    playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
 
-    fireEvent.click(screen.getByRole("tab", { name: /^Better move/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Play next move" }));
     expect(
-      screen.getByRole("gridcell", {
-        name: /White pawn on d4, last move ended here/,
-      }),
+      screen.getByRole("heading", { name: "Your move holds up" }),
     ).toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Comparison step 1 of 3",
-    );
+    expect(screen.getByText(/you identified the demand/)).toBeVisible();
   });
 
-  it("scrubs the full game and navigates between moments", () => {
+  it("gives deterministic correction for an incorrect legal move", () => {
     const fixture = reviewFixture();
     render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+    chooseCorrectTheme();
+    playBoardMove(/White bishop on f1/, /Empty c4, legal destination/);
 
-    fireEvent.change(screen.getByLabelText("Replay the full game"), {
-      target: { value: "6" },
-    });
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "After Black's move 3",
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Next moment" }));
-    expect(screen.getByText("Moment 2 of 2")).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Move 3" })).toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "After Black's move 2",
-    );
+    expect(
+      screen.getByRole("heading", { name: "Resolve the demand first" }),
+    ).toBeVisible();
+    expect(screen.getByText(/does not resolve/)).toBeVisible();
   });
 
-  it("keeps engine details collapsed and emits a practice request", () => {
+  it("accepts a verified alternative move inside the 35 centipawn tolerance", () => {
     const fixture = reviewFixture();
-    const onPracticePosition = vi.fn();
+    render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+    chooseCorrectTheme();
+    playBoardMove(/White knight on b1/, /Empty c3, legal destination/);
+
+    expect(
+      screen.getByRole("heading", { name: "Your move holds up" }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByText("Technical details"));
+    expect(screen.getByText("35 centipawns")).toBeVisible();
+  });
+
+  it("runs a same-theme transfer attempt and logs the session", () => {
+    const fixture = reviewFixture();
+    const onTrainingComplete = vi.fn<(log: ReviewTrainingLog) => void>();
     render(
       <GameReviewExperience
         {...fixture}
-        onPracticePosition={onPracticePosition}
+        onPracticePosition={vi.fn()}
+        onTrainingComplete={onTrainingComplete}
+        now={() => "2026-11-24T12:00:00.000Z"}
       />,
     );
-
-    const details = screen.getByText("Technical details").closest("details");
-    expect(details).not.toHaveAttribute("open");
-    fireEvent.click(screen.getByText("Technical details"));
-    expect(screen.getByText("stockfish-19-lite@1")).toBeVisible();
-    expect(screen.getByText("25 to -135 centipawns")).toBeVisible();
-
+    chooseCorrectTheme();
+    playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
     fireEvent.click(
-      screen.getByRole("button", { name: "Practice this pattern" }),
+      screen.getByRole("button", { name: "Continue to transfer" }),
     );
-    expect(onPracticePosition).toHaveBeenCalledWith({
-      gameId: "review-fixture",
-      momentId: "review-fixture:3:one-move-threat",
-      fen: fixture.analysis.moments[0]?.fenBefore,
-      theme: "one-move-threat",
-    });
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Apply the same idea in this new position",
+      }),
+    ).toBeVisible();
+    playBoardMove(/White bishop on f1/, /Empty c4, legal destination/);
+    fireEvent.click(screen.getByRole("button", { name: "Finish this set" }));
+
+    expect(
+      screen.getByRole("heading", { name: "This set programs the next one" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Completed with another verified position"),
+    ).toBeVisible();
+    expect(screen.getByText("100%")).toBeVisible();
+    expect(onTrainingComplete).toHaveBeenCalledOnce();
+  });
+
+  it("explicitly schedules transfer for the next game when no validated fact exists", () => {
+    const fixture = reviewFixture(false);
+    render(
+      <GameReviewExperience
+        {...fixture}
+        onPracticePosition={vi.fn()}
+        now={() => "2026-11-24T12:00:00.000Z"}
+      />,
+    );
+    chooseCorrectTheme();
+    playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finish and log this set" }),
+    );
+
+    expect(
+      screen.getByText("Scheduled explicitly for the next game"),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/The next game will emphasize forcing replies/),
+    ).toBeVisible();
+  });
+
+  it("keeps replay and engine data collapsed as secondary references", () => {
+    const fixture = reviewFixture();
+    render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+
+    expect(
+      screen.getByText("Replay the full game").closest("details"),
+    ).not.toHaveAttribute("open");
+    expect(screen.queryByText("Technical details")).not.toBeInTheDocument();
+    chooseCorrectTheme();
+    playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
+    expect(
+      screen.getByText("Technical details").closest("details"),
+    ).not.toHaveAttribute("open");
   });
 });

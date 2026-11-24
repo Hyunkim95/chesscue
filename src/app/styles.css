@@ -170,8 +170,7 @@ button {
   grid-template-areas:
     "hero profile"
     "note profile"
-    "review profile"
-    "results results";
+    "review profile";
   align-content: start;
   gap: 1.25rem;
 }
@@ -239,22 +238,50 @@ button {
   color: #f1bc72;
 }
 
-.review-results {
-  grid-area: results;
+.review-page .game-review h2 {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  text-transform: none;
+}
+
+.review-page {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+}
+
+.review-page__state {
+  display: grid;
+  width: min(42rem, 100%);
+  min-height: 24rem;
+  margin: 2rem auto;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  place-content: center;
+  gap: 0.9rem;
+  border: 1px solid rgb(244 243 232 / 10%);
+  border-radius: 18px;
+  background: #17221b;
+  text-align: center;
+}
+
+.review-page__state h1,
+.review-page__state p {
+  margin: 0;
+}
+
+.review-page__state h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+}
+
+.review-page__state .review-action {
+  margin-inline: auto;
+}
+
+.review-page__experience {
   padding: 1.5rem;
-  scroll-margin-top: 5.5rem;
   border: 1px solid rgb(244 243 232 / 10%);
   border-radius: 18px;
   background: #101813;
-}
-
-.review-results .moments-review {
-  width: 100%;
-}
-
-.training-layout .game-review h2 {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
-  text-transform: none;
 }
 
 .playbook-note {
@@ -385,7 +412,6 @@ button {
       "hero"
       "note"
       "review"
-      "results"
       "profile";
   }
 }

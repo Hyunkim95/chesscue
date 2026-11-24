@@ -171,3 +171,16 @@ Each playbook must have deterministic fallback content, golden positions, transi
 - No displayed chess claim escapes fact validation.
 - No agent output directly changes mastery, difficulty, or progression.
 - Every completed run can be replayed from its stored inputs and versioned playbook.
+
+## 11. Post-game review sets
+
+Review uses the same predictable learning contract before a full lesson begins:
+
+1. Retrieve the position's demand before seeing Stockfish.
+2. Commit a legal move directly on the board.
+3. Score the attempt against verified candidates within a versioned tolerance.
+4. Compare the attempted and verified consequences.
+5. Transfer the idea to another validated same-theme position when available.
+6. Log first-attempt score, hard spot, due review, and next-game reinforcement.
+
+When no second validated position exists, transfer is scheduled for the next game. The system must never manufacture a transfer example or let generated wording determine scoring.

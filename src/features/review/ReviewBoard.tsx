@@ -25,12 +25,18 @@ export interface ReviewBoardProps {
   readonly fen: string;
   readonly orientation: PlayerColor;
   readonly lastMoveUci: string | null;
+  readonly selectedSquare?: string | null;
+  readonly legalTargets?: readonly string[];
+  readonly onSquareSelect?: ((square: string) => void) | null;
 }
 
 export function ReviewBoard({
   fen,
   orientation,
   lastMoveUci,
+  selectedSquare = null,
+  legalTargets = [],
+  onSquareSelect = null,
 }: ReviewBoardProps) {
   let chess: Chess;
   try {
@@ -50,7 +56,7 @@ export function ReviewBoard({
       <div
         className="game-review-board"
         role="grid"
-        aria-label={`Review board, ${orientation === "white" ? "White" : "Black"} side`}
+        aria-label={`${onSquareSelect === null ? "Review" : "Training"} board, ${orientation === "white" ? "White" : "Black"} side`}
       >
         {rowOrder.map((rowIndex) => (
           <div
@@ -75,13 +81,16 @@ export function ReviewBoard({
                   : `${piece.color === "w" ? "White" : "Black"} ${pieceNames[piece.type]} on ${square}${lastMoveRole}`;
               const light = (rowIndex + columnIndex) % 2 === 0;
               const lastMove = square === lastFrom || square === lastTo;
-              return (
-                <div
-                  className={`game-review-square ${light ? "game-review-square--light" : "game-review-square--dark"} ${lastMove ? "game-review-square--last" : ""}`}
-                  role="gridcell"
-                  aria-label={label}
-                  key={square}
-                >
+              const selected = square === selectedSquare;
+              const legalTarget = legalTargets.includes(square);
+              const stateLabel = selected
+                ? ", selected"
+                : legalTarget
+                  ? ", legal destination"
+                  : "";
+              const className = `game-review-square ${light ? "game-review-square--light" : "game-review-square--dark"} ${lastMove ? "game-review-square--last" : ""} ${selected ? "game-review-square--selected" : ""} ${legalTarget ? "game-review-square--target" : ""}`;
+              const contents = (
+                <>
                   {piece === null ? null : (
                     <span className="game-review-piece" aria-hidden="true">
                       {pieceSymbols[piece.color][piece.type]}
@@ -90,7 +99,39 @@ export function ReviewBoard({
                   <span className="game-review-coordinate" aria-hidden="true">
                     {square}
                   </span>
+                  {selected || legalTarget ? (
+                    <span
+                      className="game-review-square__marker"
+                      aria-hidden="true"
+                    >
+                      {selected ? "✓" : "•"}
+                    </span>
+                  ) : null}
+                </>
+              );
+              return onSquareSelect === null ? (
+                <div
+                  className={className}
+                  role="gridcell"
+                  aria-label={`${label}${stateLabel}`}
+                  key={square}
+                >
+                  {contents}
                 </div>
+              ) : (
+                <button
+                  className={className}
+                  role="gridcell"
+                  type="button"
+                  aria-label={`${label}${stateLabel}`}
+                  aria-selected={selected}
+                  onClick={() => {
+                    onSquareSelect(square);
+                  }}
+                  key={square}
+                >
+                  {contents}
+                </button>
               );
             })}
           </div>

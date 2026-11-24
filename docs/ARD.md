@@ -99,7 +99,7 @@ For each player decision, the analysis pipeline records:
 
 Learning moments are chosen deterministically. Candidate priority combines evaluation impact, recurrence in recent games, curricular relevance, and diversity. The result contains no more than three moments and avoids presenting multiple instances of the same theme unless recurrence is itself the lesson.
 
-The review projection is a pure function of the immutable game record and validated analysis. It reconstructs every saved position, auto-selects the frame before a learning moment, and builds separate legal frame sequences for the played line and the verified principal variation. Invalid saved moves or engine lines stop the affected replay rather than showing a fabricated position. Engine notation, evaluation, and version remain collapsed by default; the board, plain explanation, and one next action own the primary hierarchy.
+The review projection is a pure function of the immutable game record and validated analysis. It reconstructs every saved position and builds separate legal frame sequences for the learner attempt and verified principal variation. The review-training state machine requires theme retrieval, a direct legal board move, deterministic scoring within the configured evaluation tolerance, feedback, same-theme transfer when available, and a parseable training log. Missing transfer evidence is explicitly scheduled for the next game rather than fabricated. Invalid saved moves or engine lines stop the affected set. Full replay, notation, evaluation, and version remain collapsed; the board and current learner action own the primary hierarchy on a dedicated review screen.
 
 ### 5.4 Curriculum module
 
