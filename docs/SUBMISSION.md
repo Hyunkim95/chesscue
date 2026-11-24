@@ -3,7 +3,7 @@
 ## Required links
 
 - Live project: pending Firebase Hosting deployment
-- Public source repository: pending publication
+- Public source repository: <https://github.com/Hyunkim95/chesscue>
 - Demo video: pending public YouTube upload
 
 ## Tagline

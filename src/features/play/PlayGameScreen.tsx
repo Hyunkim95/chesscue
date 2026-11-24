@@ -10,6 +10,7 @@ import {
 import {
   acceptPlayerMove,
   requestCpuReply,
+  resumeTutorGame,
   resignTutorGame,
   startTutorGame,
   type PlaySession,
@@ -179,33 +180,93 @@ export function PlayGameScreen({
     [createGameId, focusTheme, now, repository],
   );
 
+  const requestCpu = useCallback(
+    async (current: PlaySession) => {
+      const abort = new AbortController();
+      searchAbort.current = abort;
+      setNotice("CPU thinking…");
+      const openingCandidates = focusOpeningCandidates({
+        focus: focusTheme,
+        fen: current.state.fen,
+        moves: current.state.moves.map(({ uci }) => uci),
+      });
+      const reply = await requestCpuReply({
+        session: current,
+        engine,
+        repository,
+        positionId: createPositionId(),
+        targetElo,
+        timeBudgetMs: 1200,
+        ...(openingCandidates.length === 0
+          ? {}
+          : { searchMoves: openingCandidates }),
+        now,
+        signal: abort.signal,
+        completionObserver,
+      });
+      if (searchAbort.current === abort) searchAbort.current = null;
+      if (reply.ok) {
+        setSession(reply.value);
+        setNotice(statusFor(reply.value));
+        return;
+      }
+      if (reply.error.cause.code === "cancelled") return;
+      setEngineStatus("failed");
+      setNotice("The CPU stopped unexpectedly. Your position is safe.");
+    },
+    [
+      completionObserver,
+      createPositionId,
+      engine,
+      focusTheme,
+      now,
+      repository,
+      targetElo,
+    ],
+  );
+
   useEffect(() => {
     const abort = new AbortController();
+    const isAborted = (): boolean => abort.signal.aborted;
     const bootstrap = async () => {
-      const [initialized, started] = await Promise.all([
-        engine.initialize(abort.signal),
-        startTutorGame({
-          id: createGameId(),
-          playerColor: "white",
-          curriculumVersion: "1.0.0",
-          configurationVersion: "1.0.0",
-          trainingFocus: focusTheme,
-          openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
-          now: now(),
-          repository,
-        }),
-      ]);
-      if (abort.signal.aborted) return;
-      if (started.ok) setSession(started.value);
+      const initializedPromise = engine.initialize(abort.signal);
+      const active = await repository.getLatestInProgress();
+      if (isAborted()) return;
+      if (!active.ok) {
+        setNotice("Your saved game could not be loaded. Try again.");
+        return;
+      }
+      const started =
+        active.value === null
+          ? await startTutorGame({
+              id: createGameId(),
+              playerColor: "white",
+              curriculumVersion: "1.0.0",
+              configurationVersion: "1.0.0",
+              trainingFocus: focusTheme,
+              openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
+              now: now(),
+              repository,
+            })
+          : resumeTutorGame(active.value);
+      const initialized = await initializedPromise;
+      if (isAborted()) return;
       if (!started.ok) {
         setNotice(
-          "This game could not be saved. Check browser storage and try again.",
+          active.value === null
+            ? "This game could not be saved. Check browser storage and try again."
+            : "Your saved game is invalid and could not be resumed.",
         );
         return;
       }
+      setSession(started.value);
       if (initialized.ok) {
         setEngineStatus("ready");
-        setNotice("Your move");
+        if (started.value.state.phase === "cpu-turn") {
+          await requestCpu(started.value);
+        } else {
+          setNotice("Your move");
+        }
       } else {
         setEngineStatus("failed");
         setNotice("The opponent could not start. Try again.");
@@ -216,41 +277,7 @@ export function PlayGameScreen({
       abort.abort();
       searchAbort.current?.abort();
     };
-  }, [createGameId, engine, focusTheme, now, repository]);
-
-  const requestCpu = async (current: PlaySession) => {
-    const abort = new AbortController();
-    searchAbort.current = abort;
-    setNotice("CPU thinking…");
-    const openingCandidates = focusOpeningCandidates({
-      focus: focusTheme,
-      fen: current.state.fen,
-      moves: current.state.moves.map(({ uci }) => uci),
-    });
-    const reply = await requestCpuReply({
-      session: current,
-      engine,
-      repository,
-      positionId: createPositionId(),
-      targetElo,
-      timeBudgetMs: 1200,
-      ...(openingCandidates.length === 0
-        ? {}
-        : { searchMoves: openingCandidates }),
-      now,
-      signal: abort.signal,
-      completionObserver,
-    });
-    if (searchAbort.current === abort) searchAbort.current = null;
-    if (reply.ok) {
-      setSession(reply.value);
-      setNotice(statusFor(reply.value));
-      return;
-    }
-    if (reply.error.cause.code === "cancelled") return;
-    setEngineStatus("failed");
-    setNotice("The CPU stopped unexpectedly. Your position is safe.");
-  };
+  }, [createGameId, engine, focusTheme, now, repository, requestCpu]);
 
   const chooseSquare = async (square: Square) => {
     if (

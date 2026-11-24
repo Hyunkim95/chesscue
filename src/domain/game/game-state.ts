@@ -2,7 +2,7 @@ import { Chess, type Color, type Square } from "chess.js";
 
 import type { Result } from "../../shared/result/result";
 import { err, ok } from "../../shared/result/result";
-import type { GameResult, RecordedMove } from "./types";
+import type { GameRecord, GameResult, RecordedMove } from "./types";
 
 export type GamePhase = "player-turn" | "cpu-turn" | "completed" | "resigned";
 
@@ -61,6 +61,60 @@ export function createGameState(
         cause instanceof Error
           ? cause.message
           : "The initial position is invalid",
+    });
+  }
+}
+
+export function restoreGameState(
+  record: GameRecord,
+): Result<GameState, GameRuleFailure> {
+  if (record.playerColor === null || record.result !== null) {
+    return err({
+      code: "invalid-position",
+      message:
+        "Only an unfinished tutor game with a known player color can resume.",
+    });
+  }
+  try {
+    const game = new Chess(record.initialFen);
+    for (const [index, recorded] of record.moves.entries()) {
+      const parsed = parseUciMove(recorded.uci);
+      if (!parsed.ok) return parsed;
+      const applied = game.move(parsed.value);
+      if (
+        recorded.ply !== index + 1 ||
+        applied.san !== recorded.san ||
+        game.fen() !== recorded.fenAfter
+      ) {
+        return err({
+          code: "invalid-position",
+          message: `Saved move ${String(index + 1)} does not match its recorded position.`,
+        });
+      }
+    }
+    if (game.isGameOver()) {
+      return err({
+        code: "invalid-position",
+        message: "A terminal position cannot resume as an active game.",
+      });
+    }
+    const playerColor = record.playerColor === "white" ? "w" : "b";
+    return ok({
+      initialFen: record.initialFen,
+      fen: game.fen(),
+      pgn: game.pgn(),
+      moves: [...record.moves],
+      playerColor,
+      phase: game.turn() === playerColor ? "player-turn" : "cpu-turn",
+      result: null,
+    });
+  } catch (cause: unknown) {
+    return err({
+      code: "invalid-position",
+      message:
+        cause instanceof Error
+          ? cause.message
+          : "The saved game position is invalid.",
     });
   }
 }

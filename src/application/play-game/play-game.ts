@@ -7,6 +7,7 @@ import {
   applyCpuMove,
   applyPlayerMove,
   createGameState,
+  restoreGameState,
   resignGame,
   type GameRuleFailure,
   type GameState,
@@ -96,6 +97,28 @@ export async function startTutorGame(
   return persisted.ok
     ? ok(session)
     : err({ code: "storage", cause: persisted.error, session });
+}
+
+export function resumeTutorGame(
+  record: GameRecord,
+): Result<PlaySession, PlayFailure> {
+  if (
+    record.origin.type !== "tutor" ||
+    record.completedAt !== null ||
+    record.result !== null
+  ) {
+    return err({
+      code: "rule",
+      cause: {
+        code: "invalid-position",
+        message: "Only an unfinished tutor game can resume.",
+      },
+    });
+  }
+  const restored = restoreGameState(record);
+  return restored.ok
+    ? ok({ state: restored.value, record })
+    : err({ code: "rule", cause: restored.error });
 }
 
 export async function acceptPlayerMove(input: {

@@ -31,6 +31,13 @@ class MemoryRepository implements GameRepository {
     return Promise.resolve(ok(undefined));
   }
 
+  public getLatestInProgress(): Promise<Result<GameRecord | null, never>> {
+    const record = this.records.findLast(
+      (item) => item.completedAt === null && item.result === null,
+    );
+    return Promise.resolve(ok(record ?? null));
+  }
+
   public listCompleted(): Promise<Result<readonly GameRecord[], never>> {
     return Promise.resolve(ok([]));
   }

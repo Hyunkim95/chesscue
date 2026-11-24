@@ -9,5 +9,6 @@ export type RepositoryFailure =
 export interface GameRepository {
   get(id: GameId): Promise<Result<GameRecord | null, RepositoryFailure>>;
   put(record: GameRecord): Promise<Result<void, RepositoryFailure>>;
+  getLatestInProgress(): Promise<Result<GameRecord | null, RepositoryFailure>>;
   listCompleted(): Promise<Result<readonly GameRecord[], RepositoryFailure>>;
 }

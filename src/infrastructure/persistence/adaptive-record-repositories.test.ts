@@ -146,6 +146,35 @@ const track = <
 };
 
 describe("adaptive IndexedDB records", () => {
+  it("returns only the newest unfinished tutor game for resume", async () => {
+    const repository = track(new IndexedDbGameRepository(createDatabaseName()));
+    const older: GameRecord = {
+      ...gameRecord("active-older"),
+      pgn: "",
+      result: null,
+      completedAt: null,
+      createdAt: "2026-11-24T10:00:00.000Z",
+    };
+    const newer: GameRecord = {
+      ...gameRecord("active-newer"),
+      pgn: "",
+      result: null,
+      completedAt: null,
+      createdAt: "2026-11-24T11:00:00.000Z",
+    };
+    expect(await repository.put(older)).toEqual({ ok: true, value: undefined });
+    expect(await repository.put(newer)).toEqual({ ok: true, value: undefined });
+    expect(await repository.put(gameRecord("completed"))).toEqual({
+      ok: true,
+      value: undefined,
+    });
+
+    expect(await repository.getLatestInProgress()).toEqual({
+      ok: true,
+      value: newer,
+    });
+  });
+
   it("migrates a v1 database without losing games and survives repository reload", async () => {
     const databaseName = createDatabaseName();
     const versionOne = await openDB(databaseName, 1, {

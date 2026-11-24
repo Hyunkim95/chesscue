@@ -8,11 +8,11 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 
 | Requirement                             | Current evidence                                                                                                                                                                                 | Status                                    |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| Functioning Web/Chrome project          | Production build and 11 Chromium journeys pass locally.                                                                                                                                          | Proven locally                            |
+| Functioning Web/Chrome project          | Production build and 12 Chromium journeys pass locally, including exact in-progress resume after reload.                                                                                         | Proven locally                            |
 | Firebase AI Logic used at runtime       | Live review imports the Firebase AI Logic hybrid provider, initializes the device model from a review-board gesture, calls `generateContent`, validates structured output, and shows provenance. | Code proven; hosted call pending          |
 | Gemini Nano with cloud fallback         | Provider uses `InferenceMode.PREFER_ON_DEVICE` and reports `ON_DEVICE` or `IN_CLOUD`; unit tests cover accepted on-device output and deterministic rejection.                                    | Code proven; real device pending          |
 | App Check                               | Provider is enabled only when Firebase initializes with App Check; production CSP permits reCAPTCHA; local debug mode is opt-in.                                                                 | Code proven; console enforcement pending  |
-| Public open-source repository           | Apache-2.0 and third-party notices are present. No Git remote is configured.                                                                                                                     | Blocked on publication approval           |
+| Public open-source repository           | Apache-2.0, third-party notices, and public repository URL are present.                                                                                                                          | Publication created; push pending         |
 | Source, assets, and instructions        | Source, exact Stockfish assets and checksums, setup instructions, and test commands are present.                                                                                                 | Proven locally                            |
 | Text description and value proposition  | `docs/SUBMISSION.md` contains a submission-ready draft and disclosure of submission-period work.                                                                                                 | Draft complete                            |
 | Public YouTube demo, at most 3 minutes  | Timed demo script is drafted in `docs/SUBMISSION.md`.                                                                                                                                            | Recording and upload pending              |
@@ -23,10 +23,10 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 ## Verified local gates
 
 - Formatting, lint, and strict type checks pass.
-- 160 unit tests pass.
+- 163 unit tests pass.
 - All 8 integration tests pass with the Firestore emulator.
 - Production PWA build passes.
-- All 11 Chromium end-to-end journeys pass.
+- All 12 Chromium end-to-end journeys pass.
 - Stockfish 19 Lite source, GPL license, and SHA-256 checksums are recorded.
 - Firestore rules default to deny, scope reads and creates to the authenticated owner, and prohibit updates.
 
@@ -36,7 +36,7 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 2. Enable Firebase AI Logic with the Gemini Developer API.
 3. Register the Web app and App Check provider, then enforce App Check for Firebase AI Logic.
 4. Configure the Hosting environment and verify real on-device plus cloud-fallback calls.
-5. Publish the repository publicly and add its URL to the submission draft.
+5. Push and verify the public repository contents and license detection.
 6. Deploy the hosted app and add its URL.
 7. Record, upload, and link the public demonstration video.
 8. Complete the Devpost form and have the entrant confirm eligibility, ownership, and third-party compliance.
