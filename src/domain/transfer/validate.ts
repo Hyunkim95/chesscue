@@ -29,6 +29,27 @@ const legalMove = (fen: string, uci: string): boolean => {
   }
 };
 
+const legalVariation = (fen: string, moves: readonly string[]): boolean => {
+  if (moves.length === 0 || moves.length > 20) return false;
+  try {
+    const chess = new Chess(fen);
+    for (const uci of moves) {
+      if (!UCI_PATTERN.test(uci) || chess.isGameOver()) return false;
+      const from = uci.slice(0, 2);
+      const to = uci.slice(2, 4);
+      if (!isSquare(from) || !isSquare(to)) return false;
+      chess.move({
+        from,
+        to,
+        ...(uci.length === 5 ? { promotion: uci[4] } : {}),
+      });
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const unique = (values: readonly string[]): boolean =>
   new Set(values).size === values.length;
 
@@ -90,6 +111,17 @@ export const validateCuratedTransferExercise = (
   )[0];
   if (best?.uci !== input.verification.bestMoveUci) {
     return { ok: false, reason: "Verified best move does not match scores." };
+  }
+  if (
+    input.verification.principalVariation[0] !==
+      input.verification.bestMoveUci ||
+    !legalVariation(input.fen, input.verification.principalVariation)
+  ) {
+    return {
+      ok: false,
+      reason:
+        "Verified principal variation must be legal and start with the best move.",
+    };
   }
   for (const acceptable of input.acceptableMoves) {
     const candidate = candidates.find(({ uci }) => uci === acceptable);

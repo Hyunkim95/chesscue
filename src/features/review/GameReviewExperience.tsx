@@ -249,7 +249,7 @@ export function GameReviewExperience({
           game={game}
           fen={session.closeExercise.fen}
           score={session.closeScore}
-          verifiedLine={[session.closeExercise.verification.bestMoveUci]}
+          verifiedLine={session.closeExercise.verification.principalVariation}
           line={feedbackLine}
           setLine={setFeedbackLine}
           eyebrow="Same idea, different board"
@@ -277,7 +277,9 @@ export function GameReviewExperience({
           game={game}
           fen={session.unlabeledExercise.fen}
           score={session.unlabeledScore}
-          verifiedLine={[session.unlabeledExercise.verification.bestMoveUci]}
+          verifiedLine={
+            session.unlabeledExercise.verification.principalVariation
+          }
           line={feedbackLine}
           setLine={setFeedbackLine}
           eyebrow="You played it cold"

@@ -17,4 +17,6 @@ Verified on 2026-11-24 with the shipped `stockfish-19-lite-single.js` browser wo
 
 Mate scores are stored as `99_999`, matching the product analysis adapter. Every accepted move is legal and present in the recorded MultiPV output. Accepted alternatives remain within the exercise tolerance of 35 centipawns, except that explicitly labeled exercises may intentionally accept only the verified move that satisfies the stated instructional goal.
 
+Each exercise also stores a legal principal variation beginning with the recorded best move. The original 700 ms MultiPV line supplies the continuation when available. For `a2a4` and `d2d4`, whose root MultiPV output ended after one ply, the opponent continuation was verified from the resulting position with the same engine and 700 ms move time. Checkmating moves correctly end after one ply.
+
 This pack is a manually curated prototype, not an independent chess-instruction audit. The behavioral test should measure transfer value before the registry expands or position generation is introduced.

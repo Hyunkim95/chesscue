@@ -38,6 +38,9 @@ describe("curated transfer registry", () => {
           }),
         ).not.toThrow();
       }
+      expect(exercise.verification.principalVariation[0]).toBe(
+        exercise.verification.bestMoveUci,
+      );
     }
   });
 
@@ -62,6 +65,24 @@ describe("curated transfer registry", () => {
     expect(validateCuratedTransferExercise(invalid)).toEqual({
       ok: false,
       reason: "An acceptable move lacks Stockfish verification.",
+    });
+  });
+
+  it("rejects an illegal or mismatched principal variation", () => {
+    const source = curatedTransferRegistry[0];
+    expect(source).toBeDefined();
+    if (source === undefined) return;
+    const invalid = {
+      ...source,
+      verification: {
+        ...source.verification,
+        principalVariation: ["a2a3"],
+      },
+    };
+    expect(validateCuratedTransferExercise(invalid)).toEqual({
+      ok: false,
+      reason:
+        "Verified principal variation must be legal and start with the best move.",
     });
   });
 });
