@@ -85,6 +85,61 @@
   text-align: center;
 }
 
+.import-panel__color-choice {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.import-panel__color-choice legend {
+  padding: 0;
+  color: var(--cue-ink);
+  font-weight: 800;
+}
+
+.import-panel__color-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.import-panel__color-options label {
+  position: relative;
+  display: flex;
+  min-height: 3rem;
+  padding: 0.75rem 0.9rem;
+  align-items: center;
+  cursor: pointer;
+  border: 1px solid var(--cue-line);
+  border-radius: 0.7rem;
+}
+
+.import-panel__color-options input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0 0.6rem 0 0;
+  accent-color: var(--cue-pine);
+}
+
+.import-panel__color-options label:has(input:checked) {
+  color: var(--cue-paper);
+  background: var(--cue-pine);
+  border-color: var(--cue-pine);
+  box-shadow: inset 0 0 0 2px var(--cue-paper);
+}
+
+.import-panel__color-options label:has(input:checked) span {
+  color: inherit;
+}
+
+.import-panel__color-choice p {
+  color: var(--cue-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
 .import-panel__actions {
   display: flex;
   flex-wrap: wrap;
@@ -153,5 +208,14 @@
   .import-panel__actions,
   .import-panel__actions button {
     width: 100%;
+  }
+
+  .import-panel__color-options {
+    grid-template-columns: 1fr;
+  }
+
+  .import-panel textarea {
+    min-height: 7.5rem;
+    height: 7.5rem;
   }
 }

@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameEngine } from "../../application/ports/game-engine";
 import type { GameRepository } from "../../application/ports/game-repository";
 import {
+  OneShotGameCompletionObserver,
+  type GameCompletedCallback,
+} from "../../application/play-game/game-completion";
+import {
   acceptPlayerMove,
   requestCpuReply,
   resignTutorGame,
@@ -96,6 +100,7 @@ export interface PlayGameScreenProps {
   readonly targetElo?: number;
   readonly focusTitle?: string;
   readonly focus?: string;
+  readonly onGameCompleted?: GameCompletedCallback;
 }
 
 export function PlayGameScreen({
@@ -107,6 +112,7 @@ export function PlayGameScreen({
   targetElo = 1480,
   focusTitle = "Hold the center",
   focus = "Hold the center. Keep the tension before exchanging central pawns.",
+  onGameCompleted,
 }: PlayGameScreenProps) {
   const [session, setSession] = useState<PlaySession | null>(null);
   const [engineStatus, setEngineStatus] = useState<EngineStatus>("starting");
@@ -114,6 +120,13 @@ export function PlayGameScreen({
   const [notice, setNotice] = useState("Preparing your opponent…");
   const [saving, setSaving] = useState(false);
   const searchAbort = useRef<AbortController | null>(null);
+  const [completionObserver] = useState(
+    () => new OneShotGameCompletionObserver(onGameCompleted),
+  );
+
+  useEffect(() => {
+    completionObserver.setCallback(onGameCompleted);
+  }, [completionObserver, onGameCompleted]);
 
   const initializeEngine = useCallback(
     async (signal: AbortSignal) => {
@@ -207,6 +220,7 @@ export function PlayGameScreen({
       timeBudgetMs: 1200,
       now,
       signal: abort.signal,
+      completionObserver,
     });
     if (searchAbort.current === abort) searchAbort.current = null;
     if (reply.ok) {
@@ -253,6 +267,7 @@ export function PlayGameScreen({
       },
       now: now(),
       repository,
+      completionObserver,
     });
     setSaving(false);
     setSelected(null);
@@ -282,7 +297,12 @@ export function PlayGameScreen({
       return;
     searchAbort.current?.abort();
     setSaving(true);
-    const resigned = await resignTutorGame({ session, now: now(), repository });
+    const resigned = await resignTutorGame({
+      session,
+      now: now(),
+      repository,
+      completionObserver,
+    });
     setSaving(false);
     if (resigned.ok) {
       setSession(resigned.value);

@@ -1,4 +1,4 @@
-import { deleteDB, type IDBPDatabase, type DBSchema, openDB } from "idb";
+import type { IDBPDatabase } from "idb";
 
 import type {
   GameRepository,
@@ -7,18 +7,15 @@ import type {
 import type { GameId, GameRecord } from "../../domain/game/types";
 import { err, ok, type Result } from "../../shared/result/result";
 
+import {
+  type ChessTutorDatabase,
+  GAME_STORE,
+  openChessTutorDatabase,
+} from "./chess-tutor-database";
 import { isGameRecord } from "./game-record-validation";
 import { decideGameWrite } from "./write-policy";
 
-interface ChessTutorDatabase extends DBSchema {
-  games: {
-    key: string;
-    value: GameRecord;
-  };
-}
-
-const DATABASE_VERSION = 1;
-const GAME_STORE = "games";
+export { deleteChessTutorDatabase } from "./chess-tutor-database";
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "IndexedDB operation failed.";
@@ -138,27 +135,8 @@ export class IndexedDbGameRepository implements GameRepository {
       );
     }
 
-    this.#databasePromise ??= openDB<ChessTutorDatabase>(
-      this.#databaseName,
-      DATABASE_VERSION,
-      {
-        upgrade(database) {
-          if (!database.objectStoreNames.contains(GAME_STORE)) {
-            database.createObjectStore(GAME_STORE, { keyPath: "id" });
-          }
-        },
-      },
-    );
+    this.#databasePromise ??= openChessTutorDatabase(this.#databaseName);
 
     return this.#databasePromise;
   }
 }
-
-export const deleteChessTutorDatabase = async (
-  databaseName: string,
-): Promise<void> => {
-  if (typeof indexedDB === "undefined") {
-    throw new Error("IndexedDB is unavailable in this environment.");
-  }
-  await deleteDB(databaseName);
-};

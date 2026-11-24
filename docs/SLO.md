@@ -32,6 +32,7 @@ Correctness has no error budget. A failing claim is suppressed rather than displ
 - 100% of displayed move claims reference a legal move present in the validated fact packet.
 - 100% of displayed numeric chess claims match an allowed fact value and perspective.
 - 100% of mastery updates derive from complete, validated analysis records.
+- 100% of adaptive profiles are reproducible from immutable games, analyses, and review-evidence records for the same curriculum version.
 - 100% of completed-game sync conflicts are detected by ID and content hash rather than silently overwritten.
 - 100% of accepted imported games pass legality validation and canonical-fingerprint deduplication.
 - Imported results and ratings never directly change adaptive CPU Elo.

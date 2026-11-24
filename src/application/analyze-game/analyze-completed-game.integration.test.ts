@@ -53,6 +53,7 @@ function importedFixture() {
   const result = importGames({
     text: FIXED_PGN,
     source: { type: "paste" },
+    playerColor: "white",
     existingFingerprints: new Set(),
     idFactory: () => "fixed-game" as GameId,
     now: () => "2026-11-24T12:00:00.000Z",
@@ -95,7 +96,7 @@ describe("analyzeCompletedGame fixed PGN bridge", () => {
     ).toBe(true);
   });
 
-  it("requires an explicit learner color for imported games", async () => {
+  it("uses the learner color preserved by PGN import", async () => {
     const result = await analyzeCompletedGame({
       game: importedFixture(),
       engine: new DeterministicAnalysisEngine(),
@@ -105,8 +106,8 @@ describe("analyzeCompletedGame fixed PGN bridge", () => {
     });
 
     expect(result).toMatchObject({
-      ok: false,
-      error: { code: "missing-player-color" },
+      ok: true,
+      value: { analyzedPlayerMoves: 3 },
     });
   });
 

@@ -201,6 +201,13 @@ When generation is unavailable or invalid, the runner uses the playbook's determ
 - selected learning moments
 - validation status
 
+`ReviewEvidenceRecord`
+
+- stable review ID, game ID, analysis version, and theme
+- first-attempt score and observed hard spot
+- due-review date and transfer outcome
+- exact next-game reinforcement and completion time
+
 `CoachingRecord`
 
 - game ID and learning-moment ID
@@ -227,7 +234,8 @@ When generation is unavailable or invalid, the runner uses the playbook's determ
 
 - Accepting a move and saving the new game state is one IndexedDB transaction.
 - Completion is locally durable before analysis begins.
-- Analysis and coaching append records; neither mutates the completed PGN.
+- Analysis, review evidence, and coaching append immutable records; none mutates the completed PGN.
+- IndexedDB version 2 adds analysis and review-evidence stores while preserving version 1 game records.
 - The UI shows local save confirmation separately from cloud sync status.
 
 ## 7. Synchronization

@@ -16,6 +16,7 @@ test("imports a completed PGN and rejects the duplicate", async ({ page }) => {
 
   const input = page.getByLabel("Paste completed PGN games");
   await input.fill(foolsMate);
+  await page.getByRole("radio", { name: "I played White" }).check();
   await page.getByRole("button", { name: "Import games" }).click();
 
   await expect(
@@ -31,12 +32,34 @@ test("imports a completed PGN and rejects the duplicate", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("learner-color controls stay accessible on a narrow screen", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Bring games" }).click();
+
+  const group = page.getByRole("group", {
+    name: "Which side did you play in these games?",
+  });
+  await expect(group).toBeVisible();
+  await expect(
+    group.getByRole("radio", { name: "I played White" }),
+  ).toBeVisible();
+  await expect(
+    group.getByRole("radio", { name: "I played Black" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Import mixed-color games in separate batches."),
+  ).toBeVisible();
+});
+
 test("shows the deterministic training plan", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Training plan" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "hanging piece" }),
+    page.getByRole("heading", { name: "Your Training Profile" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Predictable by playbook" }),
@@ -47,6 +70,6 @@ test("shows the deterministic training plan", async ({ page }) => {
 
   await page.getByRole("button", { name: "Analyze latest game" }).click();
   await expect(page.getByRole("alert")).toHaveText(
-    "Finish a tutor game before requesting a verified review.",
+    "Finish a tutor game or import a completed game with your color before requesting a review.",
   );
 });

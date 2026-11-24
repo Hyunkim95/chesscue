@@ -3,6 +3,10 @@ export const curriculumThemes = [
   "one-move-threat",
   "central-pawn-tension",
   "king-safety",
+  "development",
+  "calculation",
+  "endgame-technique",
+  "other",
 ] as const;
 
 export type CurriculumTheme = (typeof curriculumThemes)[number];

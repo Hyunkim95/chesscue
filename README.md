@@ -15,14 +15,15 @@ The current checkpoint supports:
 
 - complete legal games against Stockfish 19 lite in a Web Worker
 - durable local game state and offline PWA startup
-- PGN paste or file import with validation and deduplication
+- PGN paste or file import with learner color, validation, and deduplication
 - active Stockfish review with retrieval, direct board moves, verified comparison, transfer, and a training log
-- deterministic curriculum and bounded CPU difficulty policy
+- automatic post-game analysis with durable analysis and review evidence
+- a real profile recomputed from game history, with bounded three-game CPU difficulty changes
 - an interactive versioned playbook lesson with validated deterministic fallback
 - a Firebase hybrid provider that prefers on-device inference and falls back to cloud when configured
 - optional Firebase persistence and deployment adapters
 
-Real Firebase project configuration, App Check, authentication, and live Gemini inference remain environment work. Imported-game analysis also needs the learner's color selection before it can feed personalized lessons. No deployment has been performed.
+Real Firebase project configuration, App Check, authentication, cloud synchronization for adaptive evidence, and live Gemini inference remain environment work. No deployment has been performed.
 
 ## Verify
 

@@ -53,7 +53,7 @@ test("replays and compares a verified learning moment", async ({ page }) => {
   const record = buildCompletedTutorGame();
   await page.evaluate(async (game) => {
     await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open("adaptive-chess-tutor", 1);
+      const request = indexedDB.open("adaptive-chess-tutor");
       request.onerror = () => {
         reject(request.error ?? new Error("Could not open IndexedDB"));
       };
@@ -121,4 +121,36 @@ test("replays and compares a verified learning moment", async ({ page }) => {
 
   await page.getByText("Technical details").click();
   await expect(page.getByText("Analysis version")).toBeVisible();
+
+  const continueToTransfer = page.getByRole("button", {
+    name: "Continue to transfer",
+  });
+  if ((await continueToTransfer.count()) > 0) {
+    await continueToTransfer.click();
+    await expect(
+      page.getByRole("heading", {
+        name: "Apply the same idea in this new position",
+      }),
+    ).toBeVisible();
+    const transferBoard = page.getByRole("grid", { name: /Training board/ });
+    await transferBoard
+      .getByRole("gridcell", { name: /White pawn on a2/ })
+      .click();
+    await transferBoard
+      .getByRole("gridcell", { name: /Empty a3, legal destination/ })
+      .click();
+    await page.getByRole("button", { name: "Commit this move" }).click();
+    await page.getByRole("button", { name: "Finish this set" }).click();
+  } else {
+    await page.getByRole("button", { name: "Finish and log this set" }).click();
+  }
+
+  await expect(
+    page.getByRole("heading", { name: "This set programs the next one" }),
+  ).toBeVisible();
+  await expect(page.getByText("First-attempt score")).toBeVisible();
+
+  await page.getByRole("button", { name: "Back to training plan" }).click();
+  await expect(page.getByText("Evidence from 1 tutor games.")).toBeVisible();
+  await expect(page.getByText(/% mastery/).first()).toBeVisible();
 });

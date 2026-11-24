@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { EngineMoveRequest, GameEngine } from "../ports/game-engine";
-import type { GameRepository } from "../ports/game-repository";
+import type {
+  GameRepository,
+  RepositoryFailure,
+} from "../ports/game-repository";
 import type { GameId, GameRecord, PositionId } from "../../domain/game/types";
 import type { Result } from "../../shared/result/result";
-import { ok } from "../../shared/result/result";
+import { err, ok } from "../../shared/result/result";
+import { OneShotGameCompletionObserver } from "./game-completion";
 import {
   acceptPlayerMove,
   requestCpuReply,
@@ -15,16 +19,37 @@ import {
 class RecordingRepository implements GameRepository {
   public readonly writes: GameRecord[] = [];
 
+  public constructor(private readonly events: string[] = []) {}
+
   public async get(): Promise<Result<GameRecord | null, never>> {
     return Promise.resolve(ok(null));
   }
 
   public async put(record: GameRecord): Promise<Result<void, never>> {
     this.writes.push(record);
+    this.events.push(`put:${record.result ?? "active"}`);
     return Promise.resolve(ok(undefined));
   }
 
   public async listCompleted(): Promise<Result<readonly GameRecord[], never>> {
+    return Promise.resolve(ok([]));
+  }
+}
+
+class FailOnTerminalRepository implements GameRepository {
+  public get(): Promise<Result<GameRecord | null, never>> {
+    return Promise.resolve(ok(null));
+  }
+
+  public put(record: GameRecord): Promise<Result<void, RepositoryFailure>> {
+    return record.completedAt === null
+      ? Promise.resolve(ok(undefined))
+      : Promise.resolve(
+          err({ code: "unavailable", message: "terminal write failed" }),
+        );
+  }
+
+  public listCompleted(): Promise<Result<readonly GameRecord[], never>> {
     return Promise.resolve(ok([]));
   }
 }
@@ -117,7 +142,12 @@ describe("play game application", () => {
   });
 
   it("persists resignation as a completed loss", async () => {
-    const repository = new RecordingRepository();
+    const events: string[] = [];
+    const repository = new RecordingRepository(events);
+    const callback = vi.fn((record: GameRecord) => {
+      events.push(`callback:${record.result ?? "active"}`);
+    });
+    const completionObserver = new OneShotGameCompletionObserver(callback);
     const started = await startTutorGame({
       id: gameId("game-3"),
       playerColor: "white",
@@ -132,12 +162,84 @@ describe("play game application", () => {
       session: started.value,
       now: "2026-11-24T12:00:03Z",
       repository,
+      completionObserver,
     });
 
     expect(resigned.ok).toBe(true);
     if (resigned.ok) {
       expect(resigned.value.record.result).toBe("black-win");
       expect(resigned.value.record.completedAt).toBe("2026-11-24T12:00:03Z");
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(events.slice(-2)).toEqual(["put:black-win", "callback:black-win"]);
     }
+  });
+
+  it.each([
+    {
+      label: "checkmate",
+      fen: "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1",
+      move: { from: "f7", to: "g7" } as const,
+      result: "white-win",
+    },
+    {
+      label: "draw",
+      fen: "7k/8/8/8/8/8/1n6/K1B5 w - - 0 1",
+      move: { from: "c1", to: "b2" } as const,
+      result: "draw",
+    },
+  ] as const)(
+    "notifies after a locally durable $label",
+    async ({ fen, move, result }) => {
+      const repository = new RecordingRepository();
+      const callback = vi.fn();
+      const completionObserver = new OneShotGameCompletionObserver(callback);
+      const started = await startTutorGame({
+        id: gameId(`game-${result}`),
+        playerColor: "white",
+        curriculumVersion: "1.0.0",
+        configurationVersion: "1.0.0",
+        now: "2026-11-24T12:00:00Z",
+        repository,
+        initialFen: fen,
+      });
+      if (!started.ok) throw new Error("Expected the game to start");
+
+      const completed = await acceptPlayerMove({
+        session: started.value,
+        move,
+        now: "2026-11-24T12:00:01Z",
+        repository,
+        completionObserver,
+      });
+
+      expect(completed.ok).toBe(true);
+      expect(repository.writes.at(-1)?.result).toBe(result);
+      expect(callback).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("does not notify when the terminal record fails to persist", async () => {
+    const repository = new FailOnTerminalRepository();
+    const callback = vi.fn();
+    const completionObserver = new OneShotGameCompletionObserver(callback);
+    const started = await startTutorGame({
+      id: gameId("game-write-failure"),
+      playerColor: "white",
+      curriculumVersion: "1.0.0",
+      configurationVersion: "1.0.0",
+      now: "2026-11-24T12:00:00Z",
+      repository,
+    });
+    if (!started.ok) throw new Error("Expected the game to start");
+
+    const resigned = await resignTutorGame({
+      session: started.value,
+      now: "2026-11-24T12:00:01Z",
+      repository,
+      completionObserver,
+    });
+
+    expect(resigned.ok).toBe(false);
+    expect(callback).not.toHaveBeenCalled();
   });
 });

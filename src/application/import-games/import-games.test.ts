@@ -18,6 +18,7 @@ describe("importGames", () => {
     const result = importGames({
       text: GAME,
       source: { type: "upload", fileName: "practice.pgn" },
+      playerColor: "white",
       existingFingerprints: new Set(),
       idFactory: gameIdFactory(),
       now: () => "2026-11-24T12:00:00.000Z",
@@ -37,7 +38,7 @@ describe("importGames", () => {
       origin: { type: "pgn-upload", sourceName: "practice.pgn" },
       result: "white-win",
       completedAt: "2026-11-24T12:00:00.000Z",
-      playerColor: null,
+      playerColor: "white",
     });
     expect(item.game.headers.Event).toBe("Practice");
   });
@@ -46,6 +47,7 @@ describe("importGames", () => {
     const initial = importGames({
       text: GAME,
       source: { type: "paste" },
+      playerColor: "white",
       existingFingerprints: new Set(),
       idFactory: gameIdFactory(),
       now: () => "2026-11-24T12:00:00.000Z",
@@ -63,6 +65,7 @@ describe("importGames", () => {
     const existing = importGames({
       text: GAME,
       source: { type: "paste" },
+      playerColor: "white",
       existingFingerprints: new Set([first.game.record.fingerprint]),
       idFactory: gameIdFactory(),
       now: () => "2026-11-24T12:00:00.000Z",
@@ -72,6 +75,7 @@ describe("importGames", () => {
     const withinBatch = importGames({
       text: `${GAME}\n\n${GAME}`,
       source: { type: "paste" },
+      playerColor: "white",
       existingFingerprints: new Set(),
       idFactory: gameIdFactory(),
       now: () => "2026-11-24T12:00:00.000Z",
@@ -81,5 +85,22 @@ describe("importGames", () => {
 
     expect(existing.duplicateCount).toBe(1);
     expect(withinBatch).toMatchObject({ acceptedCount: 1, duplicateCount: 1 });
+  });
+
+  it("preserves Black as the learner color on every accepted game", () => {
+    const result = importGames({
+      text: GAME,
+      source: { type: "paste" },
+      playerColor: "black",
+      existingFingerprints: new Set(),
+      idFactory: gameIdFactory(),
+      now: () => "2026-11-24T12:00:00.000Z",
+      curriculumVersion: "curriculum-1",
+      configurationVersion: "config-1",
+    });
+
+    const accepted = result.items.filter((item) => item.status === "accepted");
+    expect(accepted).toHaveLength(1);
+    expect(accepted[0]?.game.record.playerColor).toBe("black");
   });
 });

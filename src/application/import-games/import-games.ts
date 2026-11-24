@@ -2,6 +2,7 @@ import type {
   GameId,
   GameOrigin,
   GameRecord,
+  PlayerColor,
   RecordedMove,
 } from "../../domain/game/types";
 import { parsePgnBatch } from "../../domain/import/pgn-parser";
@@ -15,6 +16,7 @@ import type {
 export interface ImportGamesInput {
   readonly text: string;
   readonly source: PgnImportSource;
+  readonly playerColor: PlayerColor;
   readonly existingFingerprints: ReadonlySet<string>;
   readonly idFactory: () => GameId;
   readonly now: () => string;
@@ -47,7 +49,7 @@ function toRecord(
     initialFen: game.initialFen,
     moves,
     pgn: game.canonicalPgn,
-    playerColor: null,
+    playerColor: input.playerColor,
     result: game.result,
     createdAt: importedAt,
     completedAt: importedAt,
