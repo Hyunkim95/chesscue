@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "chess-tutor-dev",
-    "staging": "chess-tutor-dev",
-    "production": "chess-tutor-prod"
+    "default": "chesscue-hybrid-ai-2026",
+    "staging": "chesscue-hybrid-ai-2026",
+    "production": "chesscue-hybrid-ai-2026"
   }
 }
