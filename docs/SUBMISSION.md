@@ -72,6 +72,16 @@ The cloud path has already been verified on the hosted app with App Check enforc
 
 ## Demo video outline, maximum 3 minutes
 
+Suggested YouTube title: **ChessCue | #BuildHybridAI 2026 Demo**
+
+Description for YouTube:
+
+> ChessCue turns a completed chess game into a training plan. The demo shows Stockfish play, a board-based review with Firebase AI Logic, and an imported PGN changing the next training focus. The Firebase AI Logic review is shown with Gemini Nano on device and with Gemini cloud fallback.
+>
+> Try ChessCue: https://chesscue-hybrid-ai-2026.web.app/
+>
+> Source and setup: https://github.com/Hyunkim95/chesscue
+
 ### 0:00-0:20 - Problem and promise
 
 Developing players can play many games but still struggle to decide what to study. ChessCue makes the games themselves the curriculum.
@@ -106,11 +116,12 @@ ChessCue: play, understand, and meet the lesson again in your next game.
 - [x] Firebase project and Web app configured
 - [x] Firebase AI Logic enabled with App Check enforcement
 - [x] Cloud fallback verified on the hosted build
-- [ ] Gemini Nano on-device inference verified on the hosted build
+- [x] Gemini Nano on-device inference verified on the hosted build
 - [x] Firestore emulator rules suite passes
 - [x] Firebase Hosting deployment smoke-tested
 - [x] Public repository URL added and Apache-2.0 visible
 - [x] Hosted project URL added
+- [x] Captioned 61-second demo verified locally
 - [ ] Public YouTube video added and no longer than 3 minutes
 - [ ] Devpost text reviewed in English
 - [ ] Existing-project disclosure and submission-period work confirmed
