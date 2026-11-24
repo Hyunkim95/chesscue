@@ -12,7 +12,7 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 | Firebase AI Logic used at runtime       | Live review imports the Firebase AI Logic hybrid provider, initializes the device model from a review-board gesture, calls `generateContent`, validates structured output, and shows provenance. | Code proven; hosted call pending          |
 | Gemini Nano with cloud fallback         | Provider uses `InferenceMode.PREFER_ON_DEVICE` and reports `ON_DEVICE` or `IN_CLOUD`; unit tests cover accepted on-device output and deterministic rejection.                                    | Code proven; real device pending          |
 | App Check                               | Provider is enabled only when Firebase initializes with App Check; production CSP permits reCAPTCHA; local debug mode is opt-in.                                                                 | Code proven; console enforcement pending  |
-| Public open-source repository           | Apache-2.0, third-party notices, and public repository URL are present.                                                                                                                          | Publication created; push pending         |
+| Public open-source repository           | <https://github.com/Hyunkim95/chesscue> is public, contains source and assets, and GitHub detects Apache-2.0.                                                                                    | Proven                                    |
 | Source, assets, and instructions        | Source, exact Stockfish assets and checksums, setup instructions, and test commands are present.                                                                                                 | Proven locally                            |
 | Text description and value proposition  | `docs/SUBMISSION.md` contains a submission-ready draft and disclosure of submission-period work.                                                                                                 | Draft complete                            |
 | Public YouTube demo, at most 3 minutes  | Timed demo script is drafted in `docs/SUBMISSION.md`.                                                                                                                                            | Recording and upload pending              |
@@ -29,6 +29,7 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 - All 12 Chromium end-to-end journeys pass.
 - Stockfish 19 Lite source, GPL license, and SHA-256 checksums are recorded.
 - Firestore rules default to deny, scope reads and creates to the authenticated owner, and prohibit updates.
+- GitHub Actions Verify run `45460115474` passed the same gates from the public `main` branch.
 
 ## External blockers
 
@@ -36,9 +37,8 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 2. Enable Firebase AI Logic with the Gemini Developer API.
 3. Register the Web app and App Check provider, then enforce App Check for Firebase AI Logic.
 4. Configure the Hosting environment and verify real on-device plus cloud-fallback calls.
-5. Push and verify the public repository contents and license detection.
-6. Deploy the hosted app and add its URL.
-7. Record, upload, and link the public demonstration video.
-8. Complete the Devpost form and have the entrant confirm eligibility, ownership, and third-party compliance.
+5. Deploy the hosted app and add its URL.
+6. Record, upload, and link the public demonstration video.
+7. Complete the Devpost form and have the entrant confirm eligibility, ownership, and third-party compliance.
 
 This audit does not treat local mocks, skipped tests, configuration files, or unexecuted workflows as proof of external deployment.
