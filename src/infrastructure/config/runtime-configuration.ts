@@ -58,7 +58,7 @@ export const defaultRuntimeConfiguration: RuntimeConfiguration = {
   },
   coaching: {
     timeoutMs: 20000,
-    model: "gemini-nano",
+    model: "gemini-3.5-flash-lite",
     promptVersion: "1.0.0",
   },
   enabledPlaybooks: ["tactics.hanging-piece@1.0.0"],

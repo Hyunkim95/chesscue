@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { deterministicLessonContent } from "../../domain/coaching/resolve-content";
 import { hangingPiecePlaybook } from "../../domain/lessons/hanging-piece";
@@ -10,6 +10,8 @@ import { LessonPanel } from "./LessonPanel";
 const step = hangingPiecePlaybook.steps[0];
 if (step === undefined)
   throw new Error("Hanging-piece playbook must define its first step");
+
+afterEach(cleanup);
 
 describe("LessonPanel", () => {
   it("shows the fixed playbook step and submits a learner answer", () => {
@@ -30,9 +32,13 @@ describe("LessonPanel", () => {
     render(
       <LessonPanel
         playbook={hangingPiecePlaybook}
+        facts={hangingPieceFacts}
         run={run}
         content={content}
+        feedback={null}
         onSubmit={onSubmit}
+        onContinue={() => undefined}
+        onRestart={() => undefined}
       />,
     );
     fireEvent.change(screen.getByLabelText("Your answer"), {
@@ -42,7 +48,13 @@ describe("LessonPanel", () => {
 
     expect(onSubmit).toHaveBeenCalledWith("b5");
     expect(screen.getByLabelText("Content source")).toHaveTextContent(
-      "Verified lesson wording",
+      "Verified playbook wording",
     );
+    expect(
+      screen.getByRole("grid", { name: "Lesson position, White side" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("gridcell", { name: "White bishop on b5" }),
+    ).toBeVisible();
   });
 });

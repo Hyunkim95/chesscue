@@ -1,22 +1,43 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { analyzeCompletedGame } from "../application/analyze-game/analyze-completed-game";
 import { importGames } from "../application/import-games/import-games";
+import type { LearningMoment } from "../domain/analysis/types";
 import { buildPlayerProfile } from "../domain/curriculum";
 import { createGameId, createPositionId } from "../domain/game/types";
+import {
+  canonicalHangingPieceFacts,
+  hangingPiecePlaybook,
+} from "../domain/lessons";
 import { CurriculumCard } from "../features/curriculum/CurriculumCard";
 import {
   ImportGamesPanel,
   type ImportGamesRequest,
 } from "../features/import-games/ImportGamesPanel";
+import { LessonExperience } from "../features/lessons";
 import { PlayGameScreen } from "../features/play/PlayGameScreen";
 import { ProfileOverview } from "../features/profile/ProfileOverview";
+import { LearningMomentsReview } from "../features/review/LearningMomentsReview";
+import type { LessonContentProvider } from "../infrastructure/ai/lesson-content-provider";
+import { loadFirebaseClientConfig } from "../infrastructure/config/firebase-environment";
+import { StockfishAnalysisEngine } from "../infrastructure/engine/stockfish-analysis-engine";
 import { StockfishGameEngine } from "../infrastructure/engine/stockfish-game-engine";
 import { IndexedDbGameRepository } from "../infrastructure/persistence/indexeddb-game-repository";
 
-type AppView = "play" | "import" | "training";
+type AppView = "play" | "import" | "training" | "lesson";
 
 const repository = new IndexedDbGameRepository();
 const engine = new StockfishGameEngine();
+const analysisEngine = new StockfishAnalysisEngine();
+const firebaseConfiguration = loadFirebaseClientConfig();
+const demoLessonRunId = crypto.randomUUID();
+const demoLessonStartedAt = new Date().toISOString();
+
+type AnalysisViewState =
+  | { readonly status: "idle" }
+  | { readonly status: "running" }
+  | { readonly status: "ready"; readonly moments: readonly LearningMoment[] }
+  | { readonly status: "failed"; readonly message: string };
 
 const seededProfile = buildPlayerProfile({
   initialTargetElo: 1450,
@@ -60,8 +81,51 @@ const titleCase = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
+function useLessonProvider(enabled: boolean): LessonContentProvider | null {
+  const [provider, setProvider] = useState<LessonContentProvider | null>(null);
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      !firebaseConfiguration.ok ||
+      firebaseConfiguration.value === null
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.all([
+      import("../infrastructure/firebase/firebase-client"),
+      import("../infrastructure/ai/firebase-hybrid-lesson-content-provider"),
+    ]).then(([firebaseModule, providerModule]) => {
+      if (cancelled) return;
+      const firebase = firebaseModule.initializeFirebaseClient({
+        enableAppCheck: import.meta.env.PROD,
+      });
+      if (firebase.status !== "ready") return;
+      setProvider(
+        providerModule.createFirebaseHybridLessonContentProvider({
+          firebaseApp: firebase.services.app,
+          timeoutMs: 10_000,
+        }),
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
+  return provider;
+}
+
 export function App() {
   const [view, setView] = useState<AppView>("play");
+  const [analysis, setAnalysis] = useState<AnalysisViewState>({
+    status: "idle",
+  });
+  const lessonProvider = useLessonProvider(view === "lesson");
+  const activeNavigationView = view === "lesson" ? "training" : view;
   const targetElo = seededProfile.nextGame.targetElo;
   const focus = seededProfile.nextGame.reason;
 
@@ -100,6 +164,39 @@ export function App() {
     return result;
   }
 
+  async function analyzeLatestTutorGame(): Promise<void> {
+    setAnalysis({ status: "running" });
+    const completed = await repository.listCompleted();
+    if (!completed.ok) {
+      setAnalysis({ status: "failed", message: completed.error.message });
+      return;
+    }
+    const game = completed.value.findLast(
+      (record) => record.origin.type === "tutor" && record.result !== null,
+    );
+    if (game === undefined) {
+      setAnalysis({
+        status: "failed",
+        message: "Finish a tutor game before requesting a verified review.",
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+    const result = await analyzeCompletedGame({
+      game,
+      engine: analysisEngine,
+      analysisVersion: "stockfish-19-lite@1",
+      timeBudgetPerPositionMs: 120,
+      signal: controller.signal,
+    });
+    if (!result.ok) {
+      setAnalysis({ status: "failed", message: result.error.message });
+      return;
+    }
+    setAnalysis({ status: "ready", moments: result.value.moments });
+  }
+
   return (
     <div className="app-frame">
       <header className="app-bar">
@@ -123,7 +220,9 @@ export function App() {
             <button
               key={item.id}
               type="button"
-              aria-current={view === item.id ? "page" : undefined}
+              aria-current={
+                activeNavigationView === item.id ? "page" : undefined
+              }
               onClick={() => {
                 setView(item.id);
               }}
@@ -187,7 +286,67 @@ export function App() {
               facts, while AI may personalize wording without changing scoring,
               progression, or your next game.
             </p>
+            <button
+              className="primary-link"
+              type="button"
+              onClick={() => {
+                setView("lesson");
+              }}
+            >
+              Start playbook lesson
+            </button>
           </section>
+          <section className="review-card" aria-labelledby="review-card-title">
+            <p className="section-kicker">Stockfish review</p>
+            <h2 id="review-card-title">Analyze your latest tutor game</h2>
+            <p>
+              The analysis worker validates every line before a moment can
+              influence your curriculum.
+            </p>
+            <button
+              className="review-action"
+              type="button"
+              disabled={analysis.status === "running"}
+              onClick={() => {
+                void analyzeLatestTutorGame();
+              }}
+            >
+              {analysis.status === "running"
+                ? "Analyzing game..."
+                : "Analyze latest game"}
+            </button>
+            {analysis.status === "failed" ? (
+              <p role="alert" className="review-error">
+                {analysis.message}
+              </p>
+            ) : null}
+          </section>
+          {analysis.status === "ready" ? (
+            <div className="review-results">
+              <LearningMomentsReview moments={analysis.moments} />
+            </div>
+          ) : null}
+        </main>
+      ) : null}
+
+      {view === "lesson" ? (
+        <main className="content-shell lesson-shell">
+          <button
+            className="lesson-back"
+            type="button"
+            onClick={() => {
+              setView("training");
+            }}
+          >
+            Back to training plan
+          </button>
+          <LessonExperience
+            runId={demoLessonRunId}
+            startedAt={demoLessonStartedAt}
+            playbook={hangingPiecePlaybook}
+            facts={canonicalHangingPieceFacts}
+            provider={lessonProvider}
+          />
         </main>
       ) : null}
     </div>
