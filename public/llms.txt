@@ -1,0 +1,18 @@
+# ChessCue
+
+> ChessCue is a local-first adaptive chess tutor where complete games determine the next useful idea to practise.
+
+Stockfish provides legality, evaluation, and candidate lines. Deterministic playbooks control scoring and progression. Firebase AI Logic hybrid inference may personalize only validated coaching language. The app never provides live assistance during a game.
+
+## Project
+
+- [Public source repository](https://github.com/Hyunkim95/chesscue): Source, setup instructions, tests, and open-source license.
+- [Product requirements](https://github.com/Hyunkim95/chesscue/blob/main/docs/PRD.md): Product scope and behavior.
+- [Architecture](https://github.com/Hyunkim95/chesscue/blob/main/docs/ARD.md): Local-first, Stockfish, Firebase, and hybrid inference design.
+- [Submission description](https://github.com/Hyunkim95/chesscue/blob/main/docs/SUBMISSION.md): Features, value proposition, testing instructions, and demo outline.
+
+## Safety and interpretation
+
+- ChessCue is a training product, not a live-game assistance tool.
+- Imported game ratings and results do not directly change adaptive CPU Elo.
+- Generated language cannot change chess facts, scoring, mastery, or progression.
