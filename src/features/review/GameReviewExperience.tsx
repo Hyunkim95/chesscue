@@ -3,11 +3,12 @@ import { useMemo, useState, type ReactNode } from "react";
 
 import type { CompletedGameAnalysis } from "../../application/analyze-game/analyze-completed-game";
 import {
-  commitPrimaryMove,
-  commitThemeRetrieval,
-  commitTransferMove,
-  completeAfterTransfer,
-  continueAfterPrimaryFeedback,
+  commitCloseMove,
+  commitOriginalMove,
+  commitUnlabeledMove,
+  completeAfterUnlabeled,
+  continueAfterCloseFeedback,
+  continueAfterOriginalFeedback,
   startReviewTraining,
   type ReviewTrainingState,
 } from "../../application/analyze-game/review-training-session";
@@ -17,13 +18,12 @@ import {
 } from "../../domain/analysis/replay-game";
 import {
   REVIEW_MOVE_TOLERANCE_CP,
-  getThemeLabel,
+  getThemeFeedback,
+  getThemeName,
+  type MoveAttemptScore,
   type ReviewTrainingLog,
 } from "../../domain/analysis/review-training";
-import type {
-  LearningTheme,
-  MoveAnalysisFact,
-} from "../../domain/analysis/types";
+import type { LearningTheme } from "../../domain/analysis/types";
 import type { GameRecord } from "../../domain/game/types";
 import { ReviewBoard } from "./ReviewBoard";
 import "./game-review-experience.css";
@@ -36,8 +36,7 @@ const legalTargets = (fen: string, from: string): readonly string[] => {
   if (!isSquare(from)) return [];
   try {
     const chess = new Chess(fen);
-    const piece = chess.get(from);
-    if (piece?.color !== chess.turn()) return [];
+    if (chess.get(from)?.color !== chess.turn()) return [];
     return chess.moves({ square: from, verbose: true }).map((move) => move.to);
   } catch {
     return [];
@@ -48,8 +47,7 @@ const buildMove = (fen: string, from: string, to: string): string | null => {
   if (!isSquare(from) || !isSquare(to)) return null;
   try {
     const chess = new Chess(fen);
-    const piece = chess.get(from);
-    if (piece?.color !== chess.turn()) return null;
+    if (chess.get(from)?.color !== chess.turn()) return null;
     const move = chess.move({ from, to, promotion: "q" });
     return `${move.from}${move.to}${move.promotion ?? ""}`;
   } catch {
@@ -57,22 +55,13 @@ const buildMove = (fen: string, from: string, to: string): string | null => {
   }
 };
 
-const lineFrame = (
-  fact: MoveAnalysisFact,
-  moveUci: string,
-  verified: boolean,
+const firstLineFrame = (
+  fen: string,
+  line: readonly string[],
 ): { readonly fen: string; readonly lastMoveUci: string | null } => {
-  const candidate = fact.candidates.find((item) => item.uci === moveUci);
-  const line =
-    verified && candidate !== undefined
-      ? candidate.principalVariation
-      : [moveUci];
-  const frames = buildVariationFrames(fact.fenBefore, line);
+  const frames = buildVariationFrames(fen, line);
   const frame = frames.ok ? frames.frames[1] : undefined;
-  return {
-    fen: frame?.fen ?? fact.fenBefore,
-    lastMoveUci: frame?.lastMoveUci ?? null,
-  };
+  return { fen: frame?.fen ?? fen, lastMoveUci: frame?.lastMoveUci ?? null };
 };
 
 export interface PracticePositionRequest {
@@ -100,14 +89,9 @@ export function GameReviewExperience({
   now = () => new Date().toISOString(),
 }: GameReviewExperienceProps) {
   const replay = useMemo(() => buildGameReplay(game), [game]);
-  const initialSession = useMemo(
-    () => startReviewTraining(analysis),
-    [analysis],
+  const [session, setSession] = useState<ReviewTrainingState | null>(() =>
+    startReviewTraining(analysis),
   );
-  const [session, setSession] = useState<ReviewTrainingState | null>(
-    initialSession,
-  );
-  const [themeChoice, setThemeChoice] = useState<LearningTheme | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [feedbackLine, setFeedbackLine] = useState<FeedbackLine>("attempt");
@@ -132,23 +116,23 @@ export function GameReviewExperience({
     );
   }
 
-  const activeFact =
-    session.stage === "transfer-move" || session.stage === "transfer-feedback"
-      ? session.transferFact
-      : session.primaryFact;
-  if (activeFact === null)
-    return <p role="alert">The transfer position is unavailable.</p>;
+  const activeExercise =
+    session.stage === "close-move" || session.stage === "close-feedback"
+      ? session.closeExercise
+      : session.stage === "unlabeled-move" ||
+          session.stage === "unlabeled-feedback"
+        ? session.unlabeledExercise
+        : null;
+  const activeFen = activeExercise?.fen ?? session.primaryFact.fenBefore;
   const targets =
-    selectedSquare === null
-      ? []
-      : legalTargets(activeFact.fenBefore, selectedSquare);
+    selectedSquare === null ? [] : legalTargets(activeFen, selectedSquare);
 
   const selectBoardSquare = (square: string): void => {
     if (targets.includes(square) && selectedSquare !== null) {
-      setSelectedMove(buildMove(activeFact.fenBefore, selectedSquare, square));
+      setSelectedMove(buildMove(activeFen, selectedSquare, square));
       return;
     }
-    const nextTargets = legalTargets(activeFact.fenBefore, square);
+    const nextTargets = legalTargets(activeFen, square);
     setSelectedSquare(nextTargets.length > 0 ? square : null);
     setSelectedMove(null);
   };
@@ -162,9 +146,11 @@ export function GameReviewExperience({
     if (selectedMove === null) return;
     setSession((current) => {
       if (current === null) return current;
-      return current.stage === "primary-move"
-        ? commitPrimaryMove(current, selectedMove)
-        : commitTransferMove(current, selectedMove);
+      if (current.stage === "original-move")
+        return commitOriginalMove(current, selectedMove);
+      if (current.stage === "close-move")
+        return commitCloseMove(current, selectedMove);
+      return commitUnlabeledMove(current, selectedMove);
     });
     setFeedbackLine("attempt");
     clearMoveSelection();
@@ -175,135 +161,147 @@ export function GameReviewExperience({
     if (next.stage === "complete") onTrainingComplete?.(next.log);
   };
 
-  const stageNumber =
-    session.stage === "theme-retrieval"
+  const totalSets =
+    session.closeExercise === null || session.unlabeledExercise === null
+      ? 2
+      : 4;
+  const setNumber =
+    session.stage === "original-move" || session.stage === "original-feedback"
       ? 1
-      : session.stage === "primary-move" || session.stage === "primary-feedback"
+      : session.stage === "close-move" || session.stage === "close-feedback"
         ? 2
-        : session.stage === "transfer-move" ||
-            session.stage === "transfer-feedback"
+        : session.stage === "unlabeled-move" ||
+            session.stage === "unlabeled-feedback"
           ? 3
-          : 4;
+          : totalSets;
 
   return (
     <section className="game-review" aria-labelledby="game-review-title">
       <header className="game-review__header">
         <div>
           <p className="game-review__eyebrow">Active review set</p>
-          <h2 id="game-review-title">Find it, play it, transfer it</h2>
+          <h2 id="game-review-title">Retry it, vary it, transfer it</h2>
         </div>
         <p className="game-review__set-progress">
-          Set {String(stageNumber)} of 4
+          Set {String(setNumber)} of {String(totalSets)}
         </p>
       </header>
 
-      {session.stage === "theme-retrieval" ? (
-        <TrainingStage
-          board={
-            <ReviewBoard
-              fen={session.primaryFact.fenBefore}
-              orientation={game.playerColor ?? "white"}
-              lastMoveUci={null}
-            />
-          }
-          eyebrow="Warm-up recall"
-          title="What matters most before you move?"
-          description="Choose from memory. Stockfish stays hidden until you commit."
-        >
-          <fieldset className="game-review__choices">
-            <legend>Position demand</legend>
-            {session.themeChoices.map((choice) => (
-              <label key={choice.theme}>
-                <input
-                  type="radio"
-                  name="theme-choice"
-                  value={choice.theme}
-                  checked={themeChoice === choice.theme}
-                  onChange={() => {
-                    setThemeChoice(choice.theme);
-                  }}
-                />
-                <span>{choice.label}</span>
-              </label>
-            ))}
-          </fieldset>
-          <button
-            className="game-review__primary"
-            type="button"
-            disabled={themeChoice === null}
-            onClick={() => {
-              if (themeChoice !== null)
-                setSession(commitThemeRetrieval(session, themeChoice));
-            }}
-          >
-            Lock this read
-          </button>
-        </TrainingStage>
+      {session.stage === "original-move" ? (
+        <MoveStage
+          game={game}
+          fen={session.primaryFact.fenBefore}
+          selectedSquare={selectedSquare}
+          selectedMove={selectedMove}
+          legalTargets={targets}
+          onSquareSelect={selectBoardSquare}
+          onCommit={commitMove}
+          eyebrow="Exact retry"
+          title="What would you play now?"
+          description="Commit a legal move from the original position. Stockfish stays hidden until you choose."
+        />
       ) : null}
 
-      {session.stage === "primary-move" || session.stage === "transfer-move" ? (
-        <TrainingStage
-          board={
-            <ReviewBoard
-              fen={activeFact.fenBefore}
-              orientation={game.playerColor ?? "white"}
-              lastMoveUci={selectedMove}
-              selectedSquare={selectedSquare}
-              legalTargets={targets}
-              onSquareSelect={selectBoardSquare}
-            />
-          }
-          eyebrow={
-            session.stage === "primary-move" ? "Working set" : "Transfer set"
-          }
-          title={
-            session.stage === "primary-move"
-              ? "Commit the move you would play"
-              : "Apply the same idea in this new position"
-          }
-          description="Select a piece, choose a legal destination, then commit. No notation needed."
-        >
-          <p className="game-review__selection-status" role="status">
-            {selectedMove === null
-              ? selectedSquare === null
-                ? "Select one of your pieces on the board."
-                : "Now choose one of the marked legal destinations."
-              : "Move selected. Commit when you are sure."}
-          </p>
-          <button
-            className="game-review__primary"
-            type="button"
-            disabled={selectedMove === null}
-            onClick={commitMove}
-          >
-            Commit this move
-          </button>
-        </TrainingStage>
+      {session.stage === "close-move" && session.closeExercise !== null ? (
+        <MoveStage
+          game={game}
+          fen={session.closeExercise.fen}
+          selectedSquare={selectedSquare}
+          selectedMove={selectedMove}
+          legalTargets={targets}
+          onSquareSelect={selectBoardSquare}
+          onCommit={commitMove}
+          eyebrow="Close analogue"
+          title={session.closeExercise.prompt}
+          description="The surface details changed. Commit a move before seeing the verified answer."
+        />
       ) : null}
 
-      {session.stage === "primary-feedback" ||
-      session.stage === "transfer-feedback" ? (
+      {session.stage === "unlabeled-move" &&
+      session.unlabeledExercise !== null ? (
+        <MoveStage
+          game={game}
+          fen={session.unlabeledExercise.fen}
+          selectedSquare={selectedSquare}
+          selectedMove={selectedMove}
+          legalTargets={targets}
+          onSquareSelect={selectBoardSquare}
+          onCommit={commitMove}
+          eyebrow="Unlabeled transfer"
+          title={session.unlabeledExercise.prompt}
+          description="Treat this like an ordinary game position. No pattern label or hint is shown."
+        />
+      ) : null}
+
+      {session.stage === "original-feedback" ? (
         <FeedbackStage
           game={game}
-          fact={activeFact}
-          score={
-            session.stage === "primary-feedback"
-              ? session.primaryScore
-              : session.transferScore
+          fen={session.primaryFact.fenBefore}
+          score={session.originalScore}
+          verifiedLine={
+            session.primaryFact.candidates.find(
+              (candidate) =>
+                candidate.uci === session.originalScore?.bestMoveUci,
+            )?.principalVariation ?? []
           }
           line={feedbackLine}
           setLine={setFeedbackLine}
-          themeCorrect={session.themeCorrect ?? false}
-          primary={session.stage === "primary-feedback"}
-          hasTransfer={session.transferFact !== null}
+          eyebrow="Pattern named after your attempt"
+          title={getThemeName(session.primaryFact.theme)}
+          explanation={getThemeFeedback(session.primaryFact.theme)}
+          continueLabel={
+            session.closeExercise === null || session.unlabeledExercise === null
+              ? "Finish and schedule transfer"
+              : "Try a close analogue"
+          }
           onContinue={() => {
-            const completedAt = now();
-            const next =
-              session.stage === "primary-feedback"
-                ? continueAfterPrimaryFeedback(session, completedAt)
-                : completeAfterTransfer(session, completedAt);
-            completeSession(next);
-            clearMoveSelection();
+            completeSession(continueAfterOriginalFeedback(session, now()));
+          }}
+        />
+      ) : null}
+
+      {session.stage === "close-feedback" && session.closeExercise !== null ? (
+        <FeedbackStage
+          game={game}
+          fen={session.closeExercise.fen}
+          score={session.closeScore}
+          verifiedLine={[session.closeExercise.verification.bestMoveUci]}
+          line={feedbackLine}
+          setLine={setFeedbackLine}
+          eyebrow="Close analogue feedback"
+          title={
+            session.closeScore?.accepted === true
+              ? "The pattern transferred"
+              : "Same pattern, new surface"
+          }
+          explanation={session.closeExercise.explanation}
+          continueLabel="Try it without a label"
+          onContinue={() => {
+            setSession(continueAfterCloseFeedback(session));
+            setFeedbackLine("attempt");
+          }}
+        />
+      ) : null}
+
+      {session.stage === "unlabeled-feedback" &&
+      session.unlabeledExercise !== null ? (
+        <FeedbackStage
+          game={game}
+          fen={session.unlabeledExercise.fen}
+          score={session.unlabeledScore}
+          verifiedLine={[session.unlabeledExercise.verification.bestMoveUci]}
+          line={feedbackLine}
+          setLine={setFeedbackLine}
+          eyebrow="Unlabeled transfer feedback"
+          title={
+            session.unlabeledScore?.accepted === true
+              ? "You found it without the label"
+              : "This is the hard transfer"
+          }
+          explanation={session.unlabeledExercise.explanation}
+          continueLabel="Finish and log this set"
+          onContinue={() => {
+            completeSession(completeAfterUnlabeled(session, now()));
           }}
         />
       ) : null}
@@ -330,36 +328,29 @@ export function GameReviewExperience({
         setReplayPly={setReplayPly}
       />
 
-      {session.stage === "primary-feedback" ||
-      session.stage === "transfer-feedback" ||
+      {session.stage === "original-feedback" ||
+      session.stage === "close-feedback" ||
+      session.stage === "unlabeled-feedback" ||
       session.stage === "complete" ? (
         <details className="game-review__technical">
           <summary>Technical details</summary>
           <dl>
             <div>
-              <dt>Attempt</dt>
+              <dt>Original attempt</dt>
               <dd>
-                {session.primaryScore?.attemptedMoveUci ?? "Not committed"}
+                {session.originalScore?.attemptedMoveUci ?? "Not committed"}
               </dd>
             </div>
             <div>
-              <dt>Verified move</dt>
+              <dt>Verified original move</dt>
               <dd>
-                {session.primaryScore?.bestMoveUci ??
+                {session.originalScore?.bestMoveUci ??
                   session.primaryMoment.candidateMoveUci}
               </dd>
             </div>
             <div>
               <dt>Acceptance tolerance</dt>
               <dd>{String(REVIEW_MOVE_TOLERANCE_CP)} centipawns</dd>
-            </div>
-            <div>
-              <dt>Verified continuation</dt>
-              <dd>
-                {session.primaryFact.candidates[0]?.principalVariation.join(
-                  " ",
-                ) ?? "Unavailable"}
-              </dd>
             </div>
             <div>
               <dt>Analysis version</dt>
@@ -369,6 +360,64 @@ export function GameReviewExperience({
         </details>
       ) : null}
     </section>
+  );
+}
+
+function MoveStage({
+  game,
+  fen,
+  selectedSquare,
+  selectedMove,
+  legalTargets,
+  onSquareSelect,
+  onCommit,
+  eyebrow,
+  title,
+  description,
+}: {
+  readonly game: GameRecord;
+  readonly fen: string;
+  readonly selectedSquare: string | null;
+  readonly selectedMove: string | null;
+  readonly legalTargets: readonly string[];
+  readonly onSquareSelect: (square: string) => void;
+  readonly onCommit: () => void;
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly description: string;
+}) {
+  return (
+    <TrainingStage
+      board={
+        <ReviewBoard
+          fen={fen}
+          orientation={game.playerColor ?? "white"}
+          lastMoveUci={selectedMove}
+          selectedSquare={selectedSquare}
+          legalTargets={legalTargets}
+          onSquareSelect={onSquareSelect}
+        />
+      }
+      eyebrow={eyebrow}
+      title={title}
+      description={description}
+    >
+      <p className="game-review__selection-status" role="status">
+        {selectedMove === null
+          ? selectedSquare === null
+            ? "Select one of your pieces on the board."
+            : "Now choose one of the marked legal destinations."
+          : "Move selected. Commit when you are sure."}
+      </p>
+      <button
+        className="game-review__primary"
+        type="button"
+        disabled={selectedMove === null}
+        onClick={onCommit}
+      >
+        Commit this move
+      </button>
+    </TrainingStage>
   );
 }
 
@@ -400,28 +449,34 @@ function TrainingStage({
 
 function FeedbackStage({
   game,
-  fact,
+  fen,
   score,
+  verifiedLine,
   line,
   setLine,
-  themeCorrect,
-  primary,
-  hasTransfer,
+  eyebrow,
+  title,
+  explanation,
+  continueLabel,
   onContinue,
 }: {
   readonly game: GameRecord;
-  readonly fact: MoveAnalysisFact;
-  readonly score: ReviewTrainingState["primaryScore"];
+  readonly fen: string;
+  readonly score: MoveAttemptScore | null;
+  readonly verifiedLine: readonly string[];
   readonly line: FeedbackLine;
   readonly setLine: (line: FeedbackLine) => void;
-  readonly themeCorrect: boolean;
-  readonly primary: boolean;
-  readonly hasTransfer: boolean;
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly explanation: string;
+  readonly continueLabel: string;
   readonly onContinue: () => void;
 }) {
   if (score === null) return <p role="alert">This move was not scored.</p>;
-  const move = line === "attempt" ? score.attemptedMoveUci : score.bestMoveUci;
-  const frame = lineFrame(fact, move, line === "verified");
+  const frame = firstLineFrame(
+    fen,
+    line === "attempt" ? [score.attemptedMoveUci] : verifiedLine,
+  );
   return (
     <TrainingStage
       board={
@@ -431,19 +486,11 @@ function FeedbackStage({
           lastMoveUci={frame.lastMoveUci}
         />
       }
-      eyebrow={score.accepted ? "Set passed" : "Correction"}
-      title={score.accepted ? "Your move holds up" : "Resolve the demand first"}
+      eyebrow={eyebrow}
+      title={title}
       description={score.comparison}
     >
-      {primary ? (
-        <p className="game-review__retrieval-result">
-          Retrieval:{" "}
-          {themeCorrect
-            ? "you identified the demand"
-            : `the key demand was ${getThemeLabel(fact.theme).toLowerCase()}`}
-          .
-        </p>
-      ) : null}
+      <p className="game-review__retrieval-result">{explanation}</p>
       <div
         className="game-review__line-switch"
         aria-label="Compare attempted and verified lines"
@@ -472,11 +519,7 @@ function FeedbackStage({
         type="button"
         onClick={onContinue}
       >
-        {primary
-          ? hasTransfer
-            ? "Continue to transfer"
-            : "Finish and log this set"
-          : "Finish this set"}
+        {continueLabel}
       </button>
     </TrainingStage>
   );
@@ -495,6 +538,10 @@ function TrainingSummary({
   readonly onPractice: () => void;
 }) {
   const { log } = session;
+  const scoreLabel = (value: number | null | undefined): string =>
+    value === null || value === undefined
+      ? "Scheduled for next game"
+      : `${String(value)}%`;
   return (
     <section
       className="game-review__summary"
@@ -504,7 +551,19 @@ function TrainingSummary({
       <h3 id="training-log-title">This set programs the next one</h3>
       <dl>
         <div>
-          <dt>First-attempt score</dt>
+          <dt>Original retry</dt>
+          <dd>{scoreLabel(log.originalAttemptScore)}</dd>
+        </div>
+        <div>
+          <dt>Close analogue</dt>
+          <dd>{scoreLabel(log.closeTransferScore)}</dd>
+        </div>
+        <div>
+          <dt>Unlabeled transfer</dt>
+          <dd>{scoreLabel(log.unlabeledTransferScore)}</dd>
+        </div>
+        <div>
+          <dt>Set score</dt>
           <dd>{String(log.firstAttemptScore)}%</dd>
         </div>
         <div>
@@ -514,14 +573,6 @@ function TrainingSummary({
         <div>
           <dt>Due for review</dt>
           <dd>{log.dueReview}</dd>
-        </div>
-        <div>
-          <dt>Transfer</dt>
-          <dd>
-            {log.transfer === "completed"
-              ? "Completed with another verified position"
-              : "Scheduled explicitly for the next game"}
-          </dd>
         </div>
       </dl>
       <div className="game-review__reinforcement">

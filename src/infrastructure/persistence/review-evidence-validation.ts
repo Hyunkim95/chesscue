@@ -13,6 +13,15 @@ export const reviewEvidenceRecordSchema = z
     analysisVersion: z.string().min(1).max(80),
     theme: learningThemeSchema,
     firstAttemptScore: z.number().int().min(0).max(100),
+    originalAttemptScore: z.number().int().min(0).max(100).optional(),
+    closeTransferScore: z.number().int().min(0).max(100).nullable().optional(),
+    unlabeledTransferScore: z
+      .number()
+      .int()
+      .min(0)
+      .max(100)
+      .nullable()
+      .optional(),
     hardSpot: z.string().min(1).max(400),
     dueReview: dueReviewSchema,
     reinforcement: z.string().min(1).max(800),

@@ -33,6 +33,15 @@ const reviewLogValue = (record: ReviewEvidenceRecord): ReviewTrainingLog => ({
   subject: "chess",
   theme: record.theme,
   firstAttemptScore: record.firstAttemptScore,
+  ...(record.originalAttemptScore === undefined
+    ? {}
+    : { originalAttemptScore: record.originalAttemptScore }),
+  ...(record.closeTransferScore === undefined
+    ? {}
+    : { closeTransferScore: record.closeTransferScore }),
+  ...(record.unlabeledTransferScore === undefined
+    ? {}
+    : { unlabeledTransferScore: record.unlabeledTransferScore }),
   hardSpot: record.hardSpot,
   dueReview: record.dueReview,
   nextGameReinforcement: record.reinforcement,
@@ -99,6 +108,15 @@ export const createReviewEvidenceRecord = (input: {
   analysisVersion: ANALYSIS_VERSION,
   theme: input.log.theme,
   firstAttemptScore: input.log.firstAttemptScore,
+  ...(input.log.originalAttemptScore === undefined
+    ? {}
+    : { originalAttemptScore: input.log.originalAttemptScore }),
+  ...(input.log.closeTransferScore === undefined
+    ? {}
+    : { closeTransferScore: input.log.closeTransferScore }),
+  ...(input.log.unlabeledTransferScore === undefined
+    ? {}
+    : { unlabeledTransferScore: input.log.unlabeledTransferScore }),
   hardSpot: input.log.hardSpot,
   dueReview: input.log.dueReview,
   reinforcement: input.log.nextGameReinforcement,

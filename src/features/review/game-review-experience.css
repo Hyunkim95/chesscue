@@ -346,48 +346,6 @@
   line-height: 1.6;
 }
 
-.game-review__choices {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.game-review__choices legend {
-  margin-bottom: 0.45rem;
-  color: var(--cue-muted);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.game-review__choices label {
-  display: grid;
-  min-height: 48px;
-  padding: 0.7rem 0.8rem;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 0.7rem;
-  border: 1px solid var(--cue-line);
-  border-radius: 0.7rem;
-  background: var(--cue-paper);
-  color: var(--cue-ink);
-  cursor: pointer;
-}
-
-.game-review__choices label:has(input:checked) {
-  border-color: var(--cue-pine);
-  box-shadow: inset 4px 0 0 var(--cue-pine);
-}
-
-.game-review__choices input {
-  width: 1.05rem;
-  height: 1.05rem;
-  accent-color: var(--cue-pine);
-}
-
 .game-review .game-review__primary {
   min-height: 3.1rem;
   color: var(--cue-paper);

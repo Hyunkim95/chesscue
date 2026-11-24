@@ -3,15 +3,16 @@ import { describe, expect, it } from "vitest";
 import type { MoveAnalysisFact } from "../../domain/analysis/types";
 import type { CompletedGameAnalysis } from "./analyze-completed-game";
 import {
-  commitPrimaryMove,
-  commitThemeRetrieval,
-  commitTransferMove,
-  completeAfterTransfer,
-  continueAfterPrimaryFeedback,
+  commitCloseMove,
+  commitOriginalMove,
+  commitUnlabeledMove,
+  completeAfterUnlabeled,
+  continueAfterCloseFeedback,
+  continueAfterOriginalFeedback,
   startReviewTraining,
 } from "./review-training-session";
 
-const first: MoveAnalysisFact = {
+const fact: MoveAnalysisFact = {
   schemaVersion: 1,
   gameId: "game-1",
   ply: 3,
@@ -35,92 +36,84 @@ const first: MoveAnalysisFact = {
   ],
   analysisVersion: "stockfish-19-lite@1",
 };
-const second: MoveAnalysisFact = {
-  ...first,
-  gameId: "game-2",
-  ply: 5,
-  impactCp: 100,
-  candidates: [
-    {
-      uci: "b1c3",
-      san: "Nc3",
-      evaluationCp: 20,
-      principalVariation: ["b1c3"],
-    },
-  ],
+
+const analysis = (theme = fact.theme): CompletedGameAnalysis => {
+  const themedFact = { ...fact, theme };
+  return {
+    facts: [themedFact],
+    analyzedPlayerMoves: 1,
+    moments: [
+      {
+        id: "moment-1",
+        gameId: themedFact.gameId,
+        ply: themedFact.ply,
+        fenBefore: themedFact.fenBefore,
+        playedMoveUci: themedFact.playedMoveUci,
+        playedMoveSan: themedFact.playedMoveSan,
+        candidateMoveUci: themedFact.candidates[0]?.uci ?? "",
+        ...(themedFact.candidates[0]?.san === undefined
+          ? {}
+          : { candidateMoveSan: themedFact.candidates[0].san }),
+        impactCp: themedFact.impactCp,
+        theme: themedFact.theme,
+        phase: themedFact.phase,
+        analysisVersion: themedFact.analysisVersion,
+        trace: {
+          evaluationBeforeCp: themedFact.evaluationBeforeCp,
+          evaluationAfterCp: themedFact.evaluationAfterCp,
+          recurrence: themedFact.recurrence,
+          curricularRelevance: themedFact.curricularRelevance,
+        },
+      },
+    ],
+  };
 };
 
-const analysis = (
-  facts: readonly MoveAnalysisFact[],
-): CompletedGameAnalysis => ({
-  facts,
-  analyzedPlayerMoves: facts.length,
-  moments: [
-    {
-      id: "moment-1",
-      gameId: first.gameId,
-      ply: first.ply,
-      fenBefore: first.fenBefore,
-      playedMoveUci: first.playedMoveUci,
-      playedMoveSan: first.playedMoveSan,
-      candidateMoveUci: first.candidates[0]?.uci ?? "",
-      ...(first.candidates[0]?.san === undefined
-        ? {}
-        : { candidateMoveSan: first.candidates[0].san }),
-      impactCp: first.impactCp,
-      theme: first.theme,
-      phase: first.phase,
-      analysisVersion: first.analysisVersion,
-      trace: {
-        evaluationBeforeCp: first.evaluationBeforeCp,
-        evaluationAfterCp: first.evaluationAfterCp,
-        recurrence: first.recurrence,
-        curricularRelevance: first.curricularRelevance,
-      },
-    },
-  ],
-});
-
 describe("review training session", () => {
-  it("progresses deterministically through retrieval, move, transfer, and log", () => {
-    const started = startReviewTraining(analysis([first, second]));
-    expect(started?.stage).toBe("theme-retrieval");
+  it("progresses deterministically through original, close, unlabeled, and log", () => {
+    const started = startReviewTraining(analysis());
+    expect(started?.stage).toBe("original-move");
     if (started === null) return;
-    const themed = commitThemeRetrieval(started, "one-move-threat");
-    const primary = commitPrimaryMove(themed, "d2d4");
-    const transfer = continueAfterPrimaryFeedback(
-      primary,
+    const original = commitOriginalMove(started, "d2d4");
+    const close = continueAfterOriginalFeedback(
+      original,
       "2026-11-24T12:00:00.000Z",
     );
-    const transferScored = commitTransferMove(transfer, "b1c3");
-    const completed = completeAfterTransfer(
-      transferScored,
+    const closeScored = commitCloseMove(close, "h5f7");
+    const unlabeled = continueAfterCloseFeedback(closeScored);
+    const unlabeledScored = commitUnlabeledMove(unlabeled, "e1e8");
+    const completed = completeAfterUnlabeled(
+      unlabeledScored,
       "2026-11-24T12:00:00.000Z",
     );
 
     expect(completed.stage).toBe("complete");
     expect(completed.log).toMatchObject({
       firstAttemptScore: 100,
+      originalAttemptScore: 100,
+      closeTransferScore: 100,
+      unlabeledTransferScore: 100,
       transfer: "completed",
-      dueReview: "2026-11-27",
     });
   });
 
-  it("schedules transfer in the next game when no same-theme fact exists", () => {
-    const started = startReviewTraining(analysis([first]));
+  it("schedules transfer without inventing exercises for unsupported themes", () => {
+    const started = startReviewTraining(analysis("calculation"));
     if (started === null) return;
-    const themed = commitThemeRetrieval(started, "development");
-    const primary = commitPrimaryMove(themed, "d2d4");
-    const completed = continueAfterPrimaryFeedback(
-      primary,
+    expect(started.closeExercise).toBeNull();
+    expect(started.unlabeledExercise).toBeNull();
+    const original = commitOriginalMove(started, "d2d4");
+    const completed = continueAfterOriginalFeedback(
+      original,
       "2026-11-24T12:00:00.000Z",
     );
 
     expect(completed.stage).toBe("complete");
     expect(completed.log).toMatchObject({
-      firstAttemptScore: 50,
+      firstAttemptScore: 100,
+      closeTransferScore: null,
+      unlabeledTransferScore: null,
       transfer: "scheduled-next-game",
-      hardSpot: "Recognizing the position's main demand",
     });
   });
 });
