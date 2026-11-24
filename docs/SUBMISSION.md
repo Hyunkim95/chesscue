@@ -2,7 +2,7 @@
 
 ## Required links
 
-- Live project: pending Firebase Hosting deployment
+- Live project: <https://chesscue-hybrid-ai-2026.web.app>
 - Public source repository: <https://github.com/Hyunkim95/chesscue>
 - Demo video: pending public YouTube upload
 
@@ -93,13 +93,14 @@ ChessCue: play, understand, and meet the lesson again in your next game.
 
 ## Final submission checklist
 
-- [ ] Firebase project and Web app configured
-- [ ] Firebase AI Logic enabled with App Check enforcement
-- [ ] On-device and cloud fallback calls verified on the hosted build
-- [ ] Firestore emulator rules suite passes
-- [ ] Firebase Hosting deployment smoke-tested
-- [ ] Public repository URL added and Apache-2.0 visible
-- [ ] Hosted project URL added
+- [x] Firebase project and Web app configured
+- [x] Firebase AI Logic enabled with App Check enforcement
+- [x] Cloud fallback verified on the hosted build
+- [ ] Gemini Nano on-device inference verified on the hosted build
+- [x] Firestore emulator rules suite passes
+- [x] Firebase Hosting deployment smoke-tested
+- [x] Public repository URL added and Apache-2.0 visible
+- [x] Hosted project URL added
 - [ ] Public YouTube video added and no longer than 3 minutes
 - [ ] Devpost text reviewed in English
 - [ ] Existing-project disclosure and submission-period work confirmed

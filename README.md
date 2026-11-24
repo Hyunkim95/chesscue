@@ -32,7 +32,7 @@ ChessCue uses the Firebase Web SDK with `InferenceMode.PREFER_ON_DEVICE`. On sup
 
 1. Create or select a Firebase project and register a Web app.
 2. In Firebase AI Logic, choose the Gemini Developer API and complete its guided setup.
-3. Register a Web App Check provider and enforce App Check for Firebase AI Logic.
+3. Register a score-based reCAPTCHA Enterprise key for your hosted domain in Web App Check, then enforce App Check for Firebase AI Logic.
 4. Copy `.env.example` to `.env.local` and fill in the public Firebase Web configuration.
 5. For local development only, set `VITE_FIREBASE_APP_CHECK_DEBUG=true`, load the app, and register the printed debug token in the Firebase console. Never commit the token.
 6. Use Chrome desktop 139 or later with the Prompt API enabled to demonstrate on-device inference.

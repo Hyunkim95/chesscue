@@ -1,6 +1,6 @@
 import {
   initializeAppCheck,
-  ReCaptchaV3Provider,
+  ReCaptchaEnterpriseProvider,
   type AppCheck,
 } from "firebase/app-check";
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
@@ -73,7 +73,7 @@ export const initializeFirebaseClient = (
       options.enableAppCheck === true &&
       configResult.value.appCheckSiteKey !== undefined
         ? initializeAppCheck(app, {
-            provider: new ReCaptchaV3Provider(
+            provider: new ReCaptchaEnterpriseProvider(
               configResult.value.appCheckSiteKey,
             ),
             isTokenAutoRefreshEnabled: true,
