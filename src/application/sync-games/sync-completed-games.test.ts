@@ -33,6 +33,7 @@ describe("completed game synchronization", () => {
     const local: GameRepository = {
       get: () => Promise.resolve(ok(null)),
       put: () => Promise.resolve(ok(undefined)),
+      getLatestInProgress: () => Promise.resolve(ok(null)),
       listCompleted: () => Promise.resolve(ok(games)),
     };
     const remote: RemoteGameStore = {

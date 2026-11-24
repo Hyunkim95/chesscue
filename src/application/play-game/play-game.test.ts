@@ -12,6 +12,7 @@ import { OneShotGameCompletionObserver } from "./game-completion";
 import {
   acceptPlayerMove,
   requestCpuReply,
+  resumeTutorGame,
   resignTutorGame,
   startTutorGame,
 } from "./play-game";
@@ -31,6 +32,10 @@ class RecordingRepository implements GameRepository {
     return Promise.resolve(ok(undefined));
   }
 
+  public getLatestInProgress(): Promise<Result<GameRecord | null, never>> {
+    return Promise.resolve(ok(null));
+  }
+
   public async listCompleted(): Promise<Result<readonly GameRecord[], never>> {
     return Promise.resolve(ok([]));
   }
@@ -47,6 +52,10 @@ class FailOnTerminalRepository implements GameRepository {
       : Promise.resolve(
           err({ code: "unavailable", message: "terminal write failed" }),
         );
+  }
+
+  public getLatestInProgress(): Promise<Result<GameRecord | null, never>> {
+    return Promise.resolve(ok(null));
   }
 
   public listCompleted(): Promise<Result<readonly GameRecord[], never>> {
@@ -174,6 +183,35 @@ describe("play game application", () => {
     });
 
     expect(engine.request?.searchMoves).toEqual(["e7e5", "c7c5"]);
+  });
+
+  it("resumes an unfinished tutor game without rewriting it", async () => {
+    const repository = new RecordingRepository();
+    const started = await startTutorGame({
+      id: gameId("game-resume"),
+      playerColor: "white",
+      curriculumVersion: "1.0.0",
+      configurationVersion: "1.0.0",
+      now: "2026-11-24T12:00:00Z",
+      repository,
+    });
+    if (!started.ok) throw new Error("Expected the game to start");
+    const player = await acceptPlayerMove({
+      session: started.value,
+      move: { from: "e2", to: "e4" },
+      now: "2026-11-24T12:00:01Z",
+      repository,
+    });
+    if (!player.ok) throw new Error("Expected e4");
+
+    const resumed = resumeTutorGame(player.value.record);
+
+    expect(resumed.ok).toBe(true);
+    if (resumed.ok) {
+      expect(resumed.value.state.fen).toBe(player.value.state.fen);
+      expect(resumed.value.state.phase).toBe("cpu-turn");
+      expect(resumed.value.record).toEqual(player.value.record);
+    }
   });
 
   it("persists resignation as a completed loss", async () => {

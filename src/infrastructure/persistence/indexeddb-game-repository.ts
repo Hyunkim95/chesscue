@@ -88,6 +88,35 @@ export class IndexedDbGameRepository implements GameRepository {
     }
   }
 
+  async getLatestInProgress(): Promise<
+    Result<GameRecord | null, RepositoryFailure>
+  > {
+    try {
+      const database = await this.#open();
+      const values: readonly unknown[] = await database.getAll(GAME_STORE);
+      if (!values.every(isGameRecord)) {
+        return err({
+          code: "invalid-record",
+          message: "At least one stored game does not match schema version 1.",
+        });
+      }
+      const latest = values
+        .filter(
+          (record) =>
+            record.origin.type === "tutor" &&
+            record.completedAt === null &&
+            record.result === null,
+        )
+        .toSorted((left, right) => {
+          const time = right.createdAt.localeCompare(left.createdAt);
+          return time === 0 ? right.id.localeCompare(left.id) : time;
+        })[0];
+      return ok(latest === undefined ? null : structuredClone(latest));
+    } catch (error: unknown) {
+      return err({ code: "unavailable", message: errorMessage(error) });
+    }
+  }
+
   async listCompleted(): Promise<
     Result<readonly GameRecord[], RepositoryFailure>
   > {

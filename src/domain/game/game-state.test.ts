@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { createGameId } from "./types";
+
 import {
   applyCpuMove,
   applyPlayerMove,
   createGameState,
+  restoreGameState,
   resignGame,
 } from "./game-state";
 
@@ -132,5 +135,41 @@ describe("game state", () => {
 
     expect(resigned.phase).toBe("resigned");
     expect(resigned.result).toBe("black-win");
+  });
+
+  it("restores the exact unfinished position from immutable moves", () => {
+    const created = createGameState();
+    if (!created.ok) throw new Error("Expected a valid starting state");
+    const player = applyPlayerMove(
+      created.value,
+      { from: "e2", to: "e4" },
+      "2026-11-24T12:00:00Z",
+    );
+    if (!player.ok) throw new Error("Expected e4");
+    const cpu = applyCpuMove(player.value, "c7c5", "2026-11-24T12:00:01Z");
+    if (!cpu.ok) throw new Error("Expected c5");
+
+    const restored = restoreGameState({
+      schemaVersion: 1,
+      id: createGameId("resume-game"),
+      origin: { type: "tutor" },
+      initialFen: created.value.initialFen,
+      moves: cpu.value.moves,
+      pgn: cpu.value.pgn,
+      playerColor: "white",
+      result: null,
+      createdAt: "2026-11-24T12:00:00Z",
+      completedAt: null,
+      curriculumVersion: "1.0.0",
+      configurationVersion: "1.0.0",
+      fingerprint: null,
+    });
+
+    expect(restored.ok).toBe(true);
+    if (restored.ok) {
+      expect(restored.value.fen).toBe(cpu.value.fen);
+      expect(restored.value.moves).toEqual(cpu.value.moves);
+      expect(restored.value.phase).toBe("player-turn");
+    }
   });
 });

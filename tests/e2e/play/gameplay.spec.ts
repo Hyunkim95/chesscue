@@ -53,3 +53,31 @@ test("resigns and offers another game", async ({ page }) => {
     page.getByRole("button", { name: "Back to training plan" }),
   ).toBeVisible();
 });
+
+test("reload resumes the exact in-progress tutor game", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("status")).toHaveText(/Your move/, {
+    timeout: 10_000,
+  });
+  await page.getByRole("gridcell", { name: "White pawn on e2" }).click();
+  await page.getByRole("gridcell", { name: "Empty e4" }).click();
+  await expect(page.getByRole("status")).toHaveText("Your move", {
+    timeout: 10_000,
+  });
+
+  await page.reload();
+
+  await expect(page.getByRole("status")).toHaveText("Your move", {
+    timeout: 10_000,
+  });
+  await expect(
+    page.getByRole("gridcell", { name: "White pawn on e4" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("gridcell", { name: "Black pawn on c5" }),
+  ).toBeVisible();
+  const history = page.getByRole("list", { name: "Move history" });
+  await expect(history.getByText("e4")).toBeVisible();
+  await expect(history.getByText("c5")).toBeVisible();
+  await expect(history.getByRole("listitem")).toHaveCount(2);
+});
