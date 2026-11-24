@@ -4,11 +4,13 @@ import type {
   ImportGamesResult,
   PgnImportSource,
 } from "../../domain/import/types";
+import type { PlayerColor } from "../../domain/game/types";
 import "./import-games.css";
 
 export interface ImportGamesRequest {
   readonly text: string;
   readonly source: PgnImportSource;
+  readonly playerColor: PlayerColor;
 }
 
 export interface ImportGamesPanelProps {
@@ -31,6 +33,7 @@ function sourceLabel(source: PgnImportSource): string {
 export function ImportGamesPanel({ onImport }: ImportGamesPanelProps) {
   const [text, setText] = useState("");
   const [source, setSource] = useState<PgnImportSource>({ type: "paste" });
+  const [playerColor, setPlayerColor] = useState<PlayerColor | null>(null);
   const [view, setView] = useState<ImportViewState>({ status: "idle" });
 
   async function handleFile(file: File | null): Promise<void> {
@@ -55,7 +58,8 @@ export function ImportGamesPanel({ onImport }: ImportGamesPanelProps) {
     event.preventDefault();
     setView({ status: "importing" });
     try {
-      const result = await onImport({ text, source });
+      if (playerColor === null) return;
+      const result = await onImport({ text, source, playerColor });
       setView({ status: "complete", result });
     } catch {
       setView({
@@ -123,8 +127,49 @@ export function ImportGamesPanel({ onImport }: ImportGamesPanelProps) {
           />
         </label>
 
+        <fieldset className="import-panel__color-choice">
+          <legend>Which side did you play in these games?</legend>
+          <div className="import-panel__color-options">
+            <label>
+              <input
+                type="radio"
+                name="player-color"
+                value="white"
+                required
+                checked={playerColor === "white"}
+                disabled={busy}
+                onChange={() => {
+                  setPlayerColor("white");
+                }}
+              />
+              <span>I played White</span>
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="player-color"
+                value="black"
+                required
+                checked={playerColor === "black"}
+                disabled={busy}
+                onChange={() => {
+                  setPlayerColor("black");
+                }}
+              />
+              <span>I played Black</span>
+            </label>
+          </div>
+          <p>
+            All games in this batch must use the same side. Import mixed-color
+            games in separate batches.
+          </p>
+        </fieldset>
+
         <div className="import-panel__actions">
-          <button type="submit" disabled={busy || text.trim().length === 0}>
+          <button
+            type="submit"
+            disabled={busy || text.trim().length === 0 || playerColor === null}
+          >
             {view.status === "importing" ? "Checking games..." : "Import games"}
           </button>
           <span className="import-panel__source">
@@ -151,7 +196,7 @@ export function ImportGamesPanel({ onImport }: ImportGamesPanelProps) {
               >
                 <strong>Game {String(item.index + 1)}</strong>{" "}
                 {item.status === "accepted"
-                  ? "Accepted. It will influence weakness evidence and lesson focus after analysis."
+                  ? `Accepted as ${item.game.record.playerColor === "white" ? "White" : "Black"}. It will influence weakness evidence and lesson focus after analysis.`
                   : item.issue.message}
               </li>
             ))}

@@ -6,7 +6,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { StrictMode } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type {
   EngineMoveRequest,
@@ -93,14 +94,23 @@ describe("PlayGameScreen", () => {
   });
 
   it("preserves the terminal resignation state", async () => {
-    render(
-      <PlayGameScreen
-        engine={new ReadyEngine()}
-        repository={new MemoryRepository()}
-        createGameId={() => gameId("game-2")}
-        createPositionId={() => positionId("position-2")}
-        now={() => "2026-11-24T12:00:00Z"}
-      />,
+    const engine = new ReadyEngine();
+    const repository = new MemoryRepository();
+    const onGameCompleted = vi.fn();
+    const createGameId = () => gameId("game-2");
+    const createPositionId = () => positionId("position-2");
+    const now = () => "2026-11-24T12:00:00Z";
+    const view = render(
+      <StrictMode>
+        <PlayGameScreen
+          engine={engine}
+          repository={repository}
+          createGameId={createGameId}
+          createPositionId={createPositionId}
+          now={now}
+          onGameCompleted={onGameCompleted}
+        />
+      </StrictMode>,
     );
     await screen.findByText("Your move");
 
@@ -110,5 +120,52 @@ describe("PlayGameScreen", () => {
     expect(
       screen.getByRole("button", { name: "Start another game" }),
     ).toBeVisible();
+    expect(onGameCompleted).toHaveBeenCalledTimes(1);
+    expect(onGameCompleted.mock.calls[0]?.[0]).toMatchObject({
+      id: "game-2",
+      result: "black-win",
+      completedAt: "2026-11-24T12:00:00Z",
+    });
+
+    view.rerender(
+      <StrictMode>
+        <PlayGameScreen
+          engine={engine}
+          repository={repository}
+          createGameId={createGameId}
+          createPositionId={createPositionId}
+          now={now}
+          onGameCompleted={onGameCompleted}
+        />
+      </StrictMode>,
+    );
+    expect(onGameCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the saved terminal state when the completion callback throws", async () => {
+    const onGameCompleted = vi.fn(() => {
+      throw new Error("analysis handoff failed");
+    });
+    const repository = new MemoryRepository();
+    render(
+      <PlayGameScreen
+        engine={new ReadyEngine()}
+        repository={repository}
+        createGameId={() => gameId("game-callback-failure")}
+        createPositionId={() => positionId("position-callback-failure")}
+        now={() => "2026-11-24T12:00:00Z"}
+        onGameCompleted={onGameCompleted}
+      />,
+    );
+    await screen.findByText("Your move");
+
+    fireEvent.click(screen.getByRole("button", { name: "Resign game" }));
+
+    expect(await screen.findByText("Game resigned")).toBeVisible();
+    expect(repository.records.at(-1)).toMatchObject({
+      result: "black-win",
+      completedAt: "2026-11-24T12:00:00Z",
+    });
+    expect(onGameCompleted).toHaveBeenCalledTimes(1);
   });
 });

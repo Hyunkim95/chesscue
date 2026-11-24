@@ -34,10 +34,18 @@ test("resigns and offers another game", async ({ page }) => {
     timeout: 10_000,
   });
 
+  await page.getByRole("gridcell", { name: "White pawn on e2" }).click();
+  await page.getByRole("gridcell", { name: "Empty e4" }).click();
+  await expect(page.getByRole("status")).toHaveText("Your move", {
+    timeout: 10_000,
+  });
+
   await page.getByRole("button", { name: "Resign game" }).click();
 
-  await expect(page.getByRole("status")).toHaveText("Game resigned");
   await expect(
-    page.getByRole("button", { name: "Start another game" }),
+    page.getByRole("heading", { name: "Find it, play it, transfer it" }),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByRole("button", { name: "Back to training plan" }),
   ).toBeVisible();
 });

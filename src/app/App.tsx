@@ -1,11 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+  ANALYSIS_VERSION,
+  completedAnalysisFromRecord,
+  createAnalysisRecord,
+  createReviewEvidenceRecord,
+  loadAdaptiveProfile,
+} from "./adaptive-profile";
 import {
   analyzeCompletedGame,
   type CompletedGameAnalysis,
 } from "../application/analyze-game/analyze-completed-game";
 import { importGames } from "../application/import-games/import-games";
-import { buildPlayerProfile } from "../domain/curriculum";
+import type { ReviewTrainingLog } from "../domain/analysis/review-training";
+import { buildPlayerProfile, type PlayerProfile } from "../domain/curriculum";
 import {
   createGameId,
   createPositionId,
@@ -29,10 +37,14 @@ import { loadFirebaseClientConfig } from "../infrastructure/config/firebase-envi
 import { StockfishAnalysisEngine } from "../infrastructure/engine/stockfish-analysis-engine";
 import { StockfishGameEngine } from "../infrastructure/engine/stockfish-game-engine";
 import { IndexedDbGameRepository } from "../infrastructure/persistence/indexeddb-game-repository";
+import { IndexedDbAnalysisRepository } from "../infrastructure/persistence/indexeddb-analysis-repository";
+import { IndexedDbReviewEvidenceRepository } from "../infrastructure/persistence/indexeddb-review-evidence-repository";
 
 type AppView = "play" | "import" | "training" | "review" | "lesson";
 
 const repository = new IndexedDbGameRepository();
+const analysisRepository = new IndexedDbAnalysisRepository();
+const reviewEvidenceRepository = new IndexedDbReviewEvidenceRepository();
 const engine = new StockfishGameEngine();
 const analysisEngine = new StockfishAnalysisEngine();
 const firebaseConfiguration = loadFirebaseClientConfig();
@@ -49,38 +61,12 @@ type AnalysisViewState =
     }
   | { readonly status: "failed"; readonly message: string };
 
-const seededProfile = buildPlayerProfile({
+const initialProfile = buildPlayerProfile({
   initialTargetElo: 1450,
   curriculumVersion: "1.0.0",
-  computedAt: "2026-11-24T12:00:00.000Z",
-  evidence: [
-    {
-      id: "evidence-hanging-1",
-      theme: "hanging-piece",
-      origin: "tutor",
-      outcome: "weakness",
-      impact: 0.9,
-      confidence: 0.92,
-      occurredAt: "2026-11-23T12:00:00.000Z",
-      phase: "middlegame",
-      sourceGameId: "seed-game-1",
-    },
-    {
-      id: "evidence-hanging-2",
-      theme: "hanging-piece",
-      origin: "import",
-      outcome: "weakness",
-      impact: 0.8,
-      confidence: 0.8,
-      occurredAt: "2026-11-22T12:00:00.000Z",
-      phase: "opening",
-      sourceGameId: "seed-game-2",
-    },
-  ],
-  tutorGames: [
-    { id: "seed-game-1", completedAt: "2026-11-23T12:00:00.000Z", score: 0 },
-    { id: "seed-game-3", completedAt: "2026-11-24T08:00:00.000Z", score: 1 },
-  ],
+  computedAt: new Date().toISOString(),
+  evidence: [],
+  tutorGames: [],
 });
 
 const newGameId = () => createGameId(crypto.randomUUID());
@@ -134,11 +120,35 @@ export function App() {
   const [analysis, setAnalysis] = useState<AnalysisViewState>({
     status: "idle",
   });
+  const [profile, setProfile] = useState<PlayerProfile>(initialProfile);
+  const [profileReady, setProfileReady] = useState(false);
   const lessonProvider = useLessonProvider(view === "lesson");
   const activeNavigationView =
     view === "lesson" || view === "review" ? "training" : view;
-  const targetElo = seededProfile.nextGame.targetElo;
-  const focus = seededProfile.nextGame.reason;
+  const targetElo = profile.nextGame.targetElo;
+  const focus = profile.nextGame.reason;
+
+  const refreshAdaptiveProfile = useCallback(async (): Promise<void> => {
+    const result = await loadAdaptiveProfile({
+      games: repository,
+      analyses: analysisRepository,
+      reviews: reviewEvidenceRepository,
+      initialTargetElo: 1450,
+      curriculumVersion: "1.0.0",
+      computedAt: new Date().toISOString(),
+    });
+    if (result.ok) setProfile(result.value.profile);
+    setProfileReady(true);
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void refreshAdaptiveProfile();
+    }, 0);
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [refreshAdaptiveProfile]);
 
   const navigation = useMemo(
     () => [
@@ -172,41 +182,90 @@ export function App() {
       const saved = await repository.put(item.game.record);
       if (!saved.ok) throw new Error(saved.error.message);
     }
+    await refreshAdaptiveProfile();
     return result;
   }
 
-  async function analyzeLatestTutorGame(): Promise<void> {
-    setView("review");
-    setAnalysis({ status: "running" });
+  const analyzeGame = useCallback(
+    async (game: GameRecord): Promise<void> => {
+      setView("review");
+      setAnalysis({ status: "running" });
+      const stored = await analysisRepository.get(game.id, ANALYSIS_VERSION);
+      if (!stored.ok) {
+        setAnalysis({ status: "failed", message: stored.error.message });
+        return;
+      }
+      if (stored.value !== null) {
+        const completed = completedAnalysisFromRecord(stored.value);
+        setAnalysis({ status: "ready", game, analysis: completed });
+        await refreshAdaptiveProfile();
+        return;
+      }
+
+      const controller = new AbortController();
+      const result = await analyzeCompletedGame({
+        game,
+        engine: analysisEngine,
+        analysisVersion: ANALYSIS_VERSION,
+        timeBudgetPerPositionMs: 120,
+        signal: controller.signal,
+      });
+      if (!result.ok) {
+        setAnalysis({ status: "failed", message: result.error.message });
+        return;
+      }
+      const persisted = await analysisRepository.put(
+        createAnalysisRecord({
+          game,
+          analysis: result.value,
+          analyzedAt: new Date().toISOString(),
+        }),
+      );
+      if (!persisted.ok) {
+        setAnalysis({ status: "failed", message: persisted.error.message });
+        return;
+      }
+      setAnalysis({ status: "ready", game, analysis: result.value });
+      await refreshAdaptiveProfile();
+    },
+    [refreshAdaptiveProfile],
+  );
+
+  async function analyzeLatestGame(): Promise<void> {
     const completed = await repository.listCompleted();
     if (!completed.ok) {
+      setView("review");
       setAnalysis({ status: "failed", message: completed.error.message });
       return;
     }
     const game = completed.value.findLast(
-      (record) => record.origin.type === "tutor" && record.result !== null,
+      (record) => record.result !== null && record.playerColor !== null,
     );
     if (game === undefined) {
+      setView("review");
       setAnalysis({
         status: "failed",
-        message: "Finish a tutor game before requesting a verified review.",
+        message:
+          "Finish a tutor game or import a completed game with your color before requesting a review.",
       });
       return;
     }
+    await analyzeGame(game);
+  }
 
-    const controller = new AbortController();
-    const result = await analyzeCompletedGame({
-      game,
-      engine: analysisEngine,
-      analysisVersion: "stockfish-19-lite@1",
-      timeBudgetPerPositionMs: 120,
-      signal: controller.signal,
-    });
-    if (!result.ok) {
-      setAnalysis({ status: "failed", message: result.error.message });
-      return;
-    }
-    setAnalysis({ status: "ready", game, analysis: result.value });
+  const handleCompletedTutorGame = useCallback(
+    async (game: GameRecord): Promise<void> => {
+      await analyzeGame(game);
+    },
+    [analyzeGame],
+  );
+
+  async function handleTrainingComplete(log: ReviewTrainingLog): Promise<void> {
+    if (analysis.status !== "ready") return;
+    const persisted = await reviewEvidenceRepository.put(
+      createReviewEvidenceRecord({ gameId: analysis.game.id, log }),
+    );
+    if (persisted.ok) await refreshAdaptiveProfile();
   }
 
   return (
@@ -246,16 +305,29 @@ export function App() {
         </span>
       </header>
 
-      {view === "play" ? (
+      {view === "play" && profileReady ? (
         <PlayGameScreen
           engine={engine}
           repository={repository}
           createGameId={newGameId}
           createPositionId={newPositionId}
           targetElo={targetElo}
-          focusTitle={titleCase(seededProfile.nextGame.focus)}
+          focusTitle={titleCase(profile.nextGame.focus)}
           focus={focus}
+          onGameCompleted={handleCompletedTutorGame}
         />
+      ) : null}
+
+      {view === "play" && !profileReady ? (
+        <main className="content-shell review-page">
+          <section className="review-page__state" aria-live="polite">
+            <p className="section-kicker">ChessCue</p>
+            <h1>Loading your training plan</h1>
+            <p>
+              Rebuilding your next focus from saved games and review evidence.
+            </p>
+          </section>
+        </main>
       ) : null}
 
       {view === "import" ? (
@@ -269,8 +341,8 @@ export function App() {
           <div className="training-hero">
             <p className="section-kicker">Your next experience</p>
             <CurriculumCard
-              prescription={seededProfile.nextGame}
-              mastery={seededProfile.mastery[seededProfile.nextGame.focus]}
+              prescription={profile.nextGame}
+              mastery={profile.mastery[profile.nextGame.focus]}
             />
             <button
               className="primary-link"
@@ -283,7 +355,7 @@ export function App() {
             </button>
           </div>
           <div className="training-profile">
-            <ProfileOverview profile={seededProfile} />
+            <ProfileOverview profile={profile} />
           </div>
           <section
             className="playbook-note"
@@ -308,16 +380,16 @@ export function App() {
           </section>
           <section className="review-card" aria-labelledby="review-card-title">
             <p className="section-kicker">Stockfish review</p>
-            <h2 id="review-card-title">Analyze your latest tutor game</h2>
+            <h2 id="review-card-title">Analyze your latest game</h2>
             <p>
-              The analysis worker validates every line before a moment can
-              influence your curriculum.
+              Tutor and imported games use the same validated analysis before a
+              moment can influence your curriculum.
             </p>
             <button
               className="review-action"
               type="button"
               onClick={() => {
-                void analyzeLatestTutorGame();
+                void analyzeLatestGame();
               }}
             >
               Analyze latest game
@@ -356,7 +428,7 @@ export function App() {
                 className="review-action"
                 type="button"
                 onClick={() => {
-                  void analyzeLatestTutorGame();
+                  void analyzeLatestGame();
                 }}
               >
                 Try analysis again
@@ -371,6 +443,9 @@ export function App() {
                 isPracticeAvailable={(theme) => theme === "hanging-piece"}
                 onPracticePosition={() => {
                   setView("lesson");
+                }}
+                onTrainingComplete={(log) => {
+                  void handleTrainingComplete(log);
                 }}
               />
             </div>

@@ -127,17 +127,44 @@ const calculateTargetElo = (
 };
 
 export const buildPlayerProfile = (input: BuildProfileInput): PlayerProfile => {
-  const masteryEntries = curriculumThemes.map(
-    (theme) =>
-      [
-        theme,
-        buildThemeMastery(theme, input.evidence, input.computedAt),
-      ] as const,
-  );
-  const mastery = Object.fromEntries(masteryEntries) as Record<
-    CurriculumTheme,
-    ThemeMastery
-  >;
+  const mastery: Record<CurriculumTheme, ThemeMastery> = {
+    "hanging-piece": buildThemeMastery(
+      "hanging-piece",
+      input.evidence,
+      input.computedAt,
+    ),
+    "one-move-threat": buildThemeMastery(
+      "one-move-threat",
+      input.evidence,
+      input.computedAt,
+    ),
+    "central-pawn-tension": buildThemeMastery(
+      "central-pawn-tension",
+      input.evidence,
+      input.computedAt,
+    ),
+    "king-safety": buildThemeMastery(
+      "king-safety",
+      input.evidence,
+      input.computedAt,
+    ),
+    development: buildThemeMastery(
+      "development",
+      input.evidence,
+      input.computedAt,
+    ),
+    calculation: buildThemeMastery(
+      "calculation",
+      input.evidence,
+      input.computedAt,
+    ),
+    "endgame-technique": buildThemeMastery(
+      "endgame-technique",
+      input.evidence,
+      input.computedAt,
+    ),
+    other: buildThemeMastery("other", input.evidence, input.computedAt),
+  };
   const orderedFocus = curriculumThemes.toSorted((left, right) => {
     const difference =
       mastery[right].weaknessPriority - mastery[left].weaknessPriority;

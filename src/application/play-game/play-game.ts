@@ -20,6 +20,7 @@ import type {
 } from "../../domain/game/types";
 import type { Result } from "../../shared/result/result";
 import { err, ok } from "../../shared/result/result";
+import type { GameCompletionObserver } from "./game-completion";
 
 export interface PlaySession {
   readonly state: GameState;
@@ -92,6 +93,7 @@ export async function acceptPlayerMove(input: {
   readonly move: MoveInput;
   readonly now: string;
   readonly repository: GameRepository;
+  readonly completionObserver?: GameCompletionObserver;
 }): Promise<Result<PlaySession, PlayFailure>> {
   const moved = applyPlayerMove(input.session.state, input.move, input.now);
   if (!moved.ok)
@@ -101,6 +103,7 @@ export async function acceptPlayerMove(input: {
     moved.value,
     input.now,
     input.repository,
+    input.completionObserver,
   );
 }
 
@@ -113,6 +116,7 @@ export async function requestCpuReply(input: {
   readonly timeBudgetMs: number;
   readonly now: () => string;
   readonly signal: AbortSignal;
+  readonly completionObserver?: GameCompletionObserver;
 }): Promise<Result<PlaySession, PlayFailure>> {
   const move = await input.engine.chooseMove({
     positionId: input.positionId,
@@ -134,6 +138,7 @@ export async function requestCpuReply(input: {
     moved.value,
     playedAt,
     input.repository,
+    input.completionObserver,
   );
 }
 
@@ -141,6 +146,7 @@ export async function resignTutorGame(input: {
   readonly session: PlaySession;
   readonly now: string;
   readonly repository: GameRepository;
+  readonly completionObserver?: GameCompletionObserver;
 }): Promise<Result<PlaySession, PlayFailure>> {
   const resigned = resignGame(input.session.state);
   return persistState(
@@ -148,6 +154,7 @@ export async function resignTutorGame(input: {
     resigned,
     input.now,
     input.repository,
+    input.completionObserver,
   );
 }
 
@@ -156,6 +163,7 @@ async function persistState(
   state: GameState,
   now: string,
   repository: GameRepository,
+  completionObserver?: GameCompletionObserver,
 ): Promise<Result<PlaySession, PlayFailure>> {
   const terminal = state.phase === "completed" || state.phase === "resigned";
   const record: GameRecord = {
@@ -167,7 +175,9 @@ async function persistState(
   };
   const session = { state, record };
   const persisted = await repository.put(record);
-  return persisted.ok
-    ? ok(session)
-    : err({ code: "storage", cause: persisted.error, session });
+  if (!persisted.ok) {
+    return err({ code: "storage", cause: persisted.error, session });
+  }
+  if (terminal) completionObserver?.notify(record);
+  return ok(session);
 }
