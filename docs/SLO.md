@@ -22,6 +22,7 @@ The reference environment is current supported Chrome desktop with at least four
 | SLO-007 | Cloud synchronization    | Locally queued completed games uploaded and acknowledged while authenticated and continuously online | 99% within 60 seconds                                                                         | Retry in the background and preserve the immutable local record.                                              |
 | SLO-008 | PGN import intake        | Time to validate, fingerprint, deduplicate, and durably store one standard game of at most 200 plies | 99% within 1 second                                                                           | Report the per-game error without modifying existing records; analysis remains asynchronous.                  |
 | SLO-009 | Lesson readiness         | Time from eligible verified evidence to selected playbook and first deterministic step               | 99% within 500 ms                                                                             | Start the versioned playbook with deterministic content while optional generated wording remains independent. |
+| SLO-010 | Review interaction       | Time from replay, comparison, line-step, or moment navigation to the updated board after analysis    | 99% within 100 ms                                                                             | Keep the last verified frame visible and suppress an invalid transition.                                      |
 
 ## 3. Correctness invariants
 
@@ -69,6 +70,7 @@ Before release, automated tests run at least:
 - 300 authenticated sync cycles with injected disconnects for SLO-007
 - 1,000 valid, malformed, illegal, and duplicate single-game imports for SLO-008
 - 1,000 eligible evidence profiles across all enabled playbooks for SLO-009
+- 1,000 replay, comparison, line-step, and moment-navigation actions for SLO-010
 
 P50, P95, P99, success count, and failure classification are reported. Averages alone are insufficient.
 
@@ -77,7 +79,7 @@ P50, P95, P99, success count, and failure classification are reported. Averages 
 For objectives below 100%, the error budget is the complement of the target over its stated window. A release candidate must not ship if:
 
 - any correctness invariant fails
-- SLO-001, SLO-002, SLO-005, SLO-006, SLO-008, or SLO-009 misses its target in the reference test run
+- SLO-001, SLO-002, SLO-005, SLO-006, SLO-008, SLO-009, or SLO-010 misses its target in the reference test run
 - a regression consumes more than half of an objective's error budget compared with the previous accepted build
 - the deterministic coaching fallback is not independently proven
 - the prior complete offline release cannot survive a failed update

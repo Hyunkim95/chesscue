@@ -91,6 +91,28 @@ describe("StockfishAnalysisEngine", () => {
     engine.dispose();
   });
 
+  it("bounds principal variations to the persisted schema limit", async () => {
+    const worker = new FakeWorker();
+    const engine = await readyEngine(worker);
+    const result = engine.analyze({
+      fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      timeBudgetMs: 100,
+      multiPv: 1,
+      signal: new AbortController().signal,
+    });
+    const longLine = Array.from({ length: 25 }, () => "e2e4").join(" ");
+
+    worker.emit(`info depth 10 multipv 1 score cp 20 pv ${longLine}`);
+    worker.emit("bestmove e2e4");
+
+    const settled = await result;
+    expect(settled.ok).toBe(true);
+    if (settled.ok) {
+      expect(settled.value.candidates[0]?.principalVariation).toHaveLength(20);
+    }
+    engine.dispose();
+  });
+
   it("cancels analysis and ignores late worker output", async () => {
     const worker = new FakeWorker();
     const engine = await readyEngine(worker);

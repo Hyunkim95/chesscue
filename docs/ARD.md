@@ -99,6 +99,8 @@ For each player decision, the analysis pipeline records:
 
 Learning moments are chosen deterministically. Candidate priority combines evaluation impact, recurrence in recent games, curricular relevance, and diversity. The result contains no more than three moments and avoids presenting multiple instances of the same theme unless recurrence is itself the lesson.
 
+The review projection is a pure function of the immutable game record and validated analysis. It reconstructs every saved position, auto-selects the frame before a learning moment, and builds separate legal frame sequences for the played line and the verified principal variation. Invalid saved moves or engine lines stop the affected replay rather than showing a fabricated position. Engine notation, evaluation, and version remain collapsed by default; the board, plain explanation, and one next action own the primary hierarchy.
+
 ### 5.4 Curriculum module
 
 The curriculum module is a pure deterministic function of ordered, completed game evidence plus a versioned policy configuration. It produces:
@@ -318,6 +320,7 @@ Lesson playbooks are immutable after publication. A changed trigger, step, rubri
 
 - worker initialization, cancellation, stale-response rejection, and restart
 - fixed-PGN analysis stability
+- full-game replay plus played-line and verified-alternative frame construction
 - mixed valid, invalid, and duplicate multi-game PGN import
 - IndexedDB atomic move persistence and migration
 - offline cache activation and rollback
@@ -326,6 +329,7 @@ Lesson playbooks are immutable after publication. A changed trigger, step, rubri
 ### Browser E2E tests
 
 - start, play, complete, review, and begin the prescribed next game
+- scrub a completed game, switch between played and better lines, step each line, and move between learning moments
 - reload after each game lifecycle state
 - network loss before, during, and after a game
 - unsupported on-device model and cloud failure fallback
