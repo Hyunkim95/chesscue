@@ -223,7 +223,7 @@ export function App() {
             ♞
           </span>
           <span>
-            <strong>Chess Tutor</strong>
+            <strong>ChessCue</strong>
             <small>Adaptive training</small>
           </span>
         </button>

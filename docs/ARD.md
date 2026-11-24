@@ -1,4 +1,4 @@
-# Adaptive Chess Tutor Architecture Requirements
+# ChessCue Architecture Requirements
 
 Status: MVP architecture baseline  
 Related documents: `docs/PRD.md`, `docs/SLO.md`

@@ -1,4 +1,4 @@
-# Adaptive Chess Tutor Service Level Objectives
+# ChessCue Service Level Objectives
 
 Status: MVP reliability baseline  
 Related documents: `docs/PRD.md`, `docs/ARD.md`

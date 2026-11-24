@@ -1,4 +1,4 @@
-# Chess Tutor Agent Instructions
+# ChessCue Agent Instructions
 
 These rules apply to the entire repository. See `docs/ENGINEERING.md` for the architecture, folder ownership, coding standards, and deployment model.
 

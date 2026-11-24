@@ -1,4 +1,4 @@
-# Adaptive Chess Tutor Product Requirements
+# ChessCue Product Requirements
 
 Status: Approved for hackathon MVP  
 Product: Chrome desktop web app  

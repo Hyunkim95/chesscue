@@ -9,10 +9,10 @@ export default defineConfig({
       registerType: "prompt",
       injectRegister: "auto",
       manifest: {
-        name: "Adaptive Chess Tutor",
-        short_name: "Chess Tutor",
+        name: "ChessCue",
+        short_name: "ChessCue",
         description:
-          "A local-first adaptive chess tutor where complete games shape the curriculum.",
+          "ChessCue turns complete chess games into adaptive training.",
         theme_color: "#101813",
         background_color: "#101813",
         display: "standalone",

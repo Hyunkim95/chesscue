@@ -1,4 +1,4 @@
-# Adaptive Chess Tutor Engineering Handbook
+# ChessCue Engineering Handbook
 
 Status: Repository baseline  
 Applies to: application code, workers, data tooling, tests, Firebase configuration, and deployment
@@ -38,7 +38,7 @@ The domain does not know which UI framework, database, engine transport, or AI p
 
 ### 2.2 Core boundaries
 
-- `domain/` contains pure chess-tutor policy and deterministic transformations.
+- `domain/` contains pure ChessCue policy and deterministic transformations.
 - `application/` coordinates use cases and transactions.
 - `features/` owns user-facing screens and feature-local presentation state.
 - `infrastructure/` owns browser, worker, Firebase, and AI adapters.
