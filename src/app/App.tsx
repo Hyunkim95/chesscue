@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   analyzeCompletedGame,
@@ -30,7 +30,7 @@ import { StockfishAnalysisEngine } from "../infrastructure/engine/stockfish-anal
 import { StockfishGameEngine } from "../infrastructure/engine/stockfish-game-engine";
 import { IndexedDbGameRepository } from "../infrastructure/persistence/indexeddb-game-repository";
 
-type AppView = "play" | "import" | "training" | "lesson";
+type AppView = "play" | "import" | "training" | "review" | "lesson";
 
 const repository = new IndexedDbGameRepository();
 const engine = new StockfishGameEngine();
@@ -134,17 +134,11 @@ export function App() {
   const [analysis, setAnalysis] = useState<AnalysisViewState>({
     status: "idle",
   });
-  const reviewResults = useRef<HTMLDivElement | null>(null);
   const lessonProvider = useLessonProvider(view === "lesson");
-  const activeNavigationView = view === "lesson" ? "training" : view;
+  const activeNavigationView =
+    view === "lesson" || view === "review" ? "training" : view;
   const targetElo = seededProfile.nextGame.targetElo;
   const focus = seededProfile.nextGame.reason;
-
-  useEffect(() => {
-    if (analysis.status === "ready") {
-      reviewResults.current?.scrollIntoView({ block: "start" });
-    }
-  }, [analysis.status]);
 
   const navigation = useMemo(
     () => [
@@ -182,6 +176,7 @@ export function App() {
   }
 
   async function analyzeLatestTutorGame(): Promise<void> {
+    setView("review");
     setAnalysis({ status: "running" });
     const completed = await repository.listCompleted();
     if (!completed.ok) {
@@ -323,23 +318,55 @@ export function App() {
             <button
               className="review-action"
               type="button"
-              disabled={analysis.status === "running"}
               onClick={() => {
                 void analyzeLatestTutorGame();
               }}
             >
-              {analysis.status === "running"
-                ? "Analyzing game..."
-                : "Analyze latest game"}
+              Analyze latest game
             </button>
-            {analysis.status === "failed" ? (
-              <p role="alert" className="review-error">
-                {analysis.message}
-              </p>
-            ) : null}
           </section>
+        </main>
+      ) : null}
+
+      {view === "review" ? (
+        <main className="content-shell review-page">
+          <button
+            className="lesson-back"
+            type="button"
+            onClick={() => {
+              setView("training");
+            }}
+          >
+            Back to training plan
+          </button>
+          {analysis.status === "running" ? (
+            <section className="review-page__state" aria-live="polite">
+              <p className="section-kicker">Stockfish review</p>
+              <h1>Analyzing your game</h1>
+              <p>
+                Checking each decision and validating every replay line. This
+                can take a few seconds.
+              </p>
+            </section>
+          ) : null}
+          {analysis.status === "failed" ? (
+            <section className="review-page__state">
+              <p className="section-kicker">Review unavailable</p>
+              <h1>We could not analyze this game</h1>
+              <p role="alert">{analysis.message}</p>
+              <button
+                className="review-action"
+                type="button"
+                onClick={() => {
+                  void analyzeLatestTutorGame();
+                }}
+              >
+                Try analysis again
+              </button>
+            </section>
+          ) : null}
           {analysis.status === "ready" ? (
-            <div className="review-results" ref={reviewResults}>
+            <div className="review-page__experience">
               <GameReviewExperience
                 game={analysis.game}
                 analysis={analysis.analysis}

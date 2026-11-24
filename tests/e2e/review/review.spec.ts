@@ -77,11 +77,28 @@ test("replays and compares a verified learning moment", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: "See the position, then compare the choice",
+      name: "Find it, play it, transfer it",
     }),
   ).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole("grid", { name: /Review board/ })).toBeVisible();
-  const rowHeights = await page
+  await expect(
+    page.getByRole("button", { name: "Back to training plan" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your Training Profile" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "What matters most before you move?" }),
+  ).toBeVisible();
+  await expect(page.getByText("Technical details")).toHaveCount(0);
+  await page.getByRole("radio").first().check();
+  await page.getByRole("button", { name: "Lock this read" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Commit the move you would play" }),
+  ).toBeVisible();
+  const board = page.getByRole("grid", { name: /Training board/ });
+  await expect(board).toBeVisible();
+  const rowHeights = await board
     .locator(".game-review-board__row")
     .evaluateAll((rows) =>
       rows.map((row) => row.getBoundingClientRect().height),
@@ -89,9 +106,18 @@ test("replays and compares a verified learning moment", async ({ page }) => {
   expect(rowHeights).toHaveLength(8);
   expect(Math.max(...rowHeights) - Math.min(...rowHeights)).toBeLessThan(1);
 
-  await page.getByRole("tab", { name: /^Better move/ }).click();
-  await page.getByRole("button", { name: "Play next move" }).click();
-  await expect(page.getByRole("status")).toContainText("Comparison step 1");
+  await board.getByRole("gridcell", { name: /White pawn on a2/ }).click();
+  await board
+    .getByRole("gridcell", { name: /Empty a3, legal destination/ })
+    .click();
+  await page.getByRole("button", { name: "Commit this move" }).click();
+
+  await expect(
+    page.getByRole("heading", {
+      name: /Your move holds up|Resolve the demand first/,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Verified line" }).click();
 
   await page.getByText("Technical details").click();
   await expect(page.getByText("Analysis version")).toBeVisible();

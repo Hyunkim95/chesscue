@@ -1,81 +1,78 @@
-import { Chess, type PieceSymbol, type Square } from "chess.js";
-import { useMemo, useState } from "react";
+import { Chess, type Square } from "chess.js";
+import { useMemo, useState, type ReactNode } from "react";
 
 import type { CompletedGameAnalysis } from "../../application/analyze-game/analyze-completed-game";
+import {
+  commitPrimaryMove,
+  commitThemeRetrieval,
+  commitTransferMove,
+  completeAfterTransfer,
+  continueAfterPrimaryFeedback,
+  startReviewTraining,
+  type ReviewTrainingState,
+} from "../../application/analyze-game/review-training-session";
 import {
   buildGameReplay,
   buildVariationFrames,
 } from "../../domain/analysis/replay-game";
-import type { LearningTheme } from "../../domain/analysis/types";
+import {
+  REVIEW_MOVE_TOLERANCE_CP,
+  getThemeLabel,
+  type ReviewTrainingLog,
+} from "../../domain/analysis/review-training";
+import type {
+  LearningTheme,
+  MoveAnalysisFact,
+} from "../../domain/analysis/types";
 import type { GameRecord } from "../../domain/game/types";
 import { ReviewBoard } from "./ReviewBoard";
 import "./game-review-experience.css";
 
-type Comparison = "your-move" | "better-move";
-
-const pieceNames: Readonly<Record<PieceSymbol, string>> = {
-  p: "pawn",
-  n: "knight",
-  b: "bishop",
-  r: "rook",
-  q: "queen",
-  k: "king",
-};
+type FeedbackLine = "attempt" | "verified";
 
 const isSquare = (value: string): value is Square => /^[a-h][1-8]$/.test(value);
 
-function describeMove(fen: string, uci: string): string {
+const legalTargets = (fen: string, from: string): readonly string[] => {
+  if (!isSquare(from)) return [];
   try {
     const chess = new Chess(fen);
-    const from = uci.slice(0, 2);
-    const to = uci.slice(2, 4);
-    if (!isSquare(from) || !isSquare(to)) return "Show the verified move";
     const piece = chess.get(from);
-    const target = chess.get(to);
-    if (piece === undefined) return `Move from ${from} to ${to}`;
-
-    if (
-      piece.type === "k" &&
-      Math.abs(from.charCodeAt(0) - to.charCodeAt(0)) === 2
-    ) {
-      return to.charCodeAt(0) > from.charCodeAt(0)
-        ? "Castle kingside"
-        : "Castle queenside";
-    }
-    if (target !== undefined) {
-      return `Capture the ${pieceNames[target.type]} on ${to} with your ${pieceNames[piece.type]}`;
-    }
-    const promotion = uci[4];
-    const promotionName =
-      promotion === "q" ||
-      promotion === "r" ||
-      promotion === "b" ||
-      promotion === "n"
-        ? pieceNames[promotion]
-        : null;
-    return `Move the ${pieceNames[piece.type]} from ${from} to ${to}${promotionName === null ? "" : ` and promote to ${promotionName}`}`;
+    if (piece?.color !== chess.turn()) return [];
+    return chess.moves({ square: from, verbose: true }).map((move) => move.to);
   } catch {
-    return `Move from ${uci.slice(0, 2)} to ${uci.slice(2, 4)}`;
+    return [];
   }
-}
+};
 
-const explanations: Readonly<Record<LearningTheme, string>> = {
-  "hanging-piece":
-    "A piece was left with more pressure on it than protection. Check every attacked piece before committing to your plan.",
-  "one-move-threat":
-    "The position contained an immediate threat. Pause for checks, captures, and direct attacks before choosing your move.",
-  "premature-central-exchange":
-    "The central tension was released before it helped your position. Consider which side benefits before exchanging central pawns.",
-  "king-safety":
-    "Your king remained exposed while the position opened. Complete development and secure the king before starting an attack.",
-  development:
-    "A developing move was available while another move delayed coordination. Bring new pieces into useful squares early.",
-  calculation:
-    "The move needed a longer forcing-line check. Calculate the opponent’s strongest reply before finalizing the move.",
-  "endgame-technique":
-    "The endgame required a precise sequence. Start with the most forcing move and verify the resulting pawn or king position.",
-  other:
-    "This move changed the position significantly. Compare the two lines and identify what the stronger move preserves.",
+const buildMove = (fen: string, from: string, to: string): string | null => {
+  if (!isSquare(from) || !isSquare(to)) return null;
+  try {
+    const chess = new Chess(fen);
+    const piece = chess.get(from);
+    if (piece?.color !== chess.turn()) return null;
+    const move = chess.move({ from, to, promotion: "q" });
+    return `${move.from}${move.to}${move.promotion ?? ""}`;
+  } catch {
+    return null;
+  }
+};
+
+const lineFrame = (
+  fact: MoveAnalysisFact,
+  moveUci: string,
+  verified: boolean,
+): { readonly fen: string; readonly lastMoveUci: string | null } => {
+  const candidate = fact.candidates.find((item) => item.uci === moveUci);
+  const line =
+    verified && candidate !== undefined
+      ? candidate.principalVariation
+      : [moveUci];
+  const frames = buildVariationFrames(fact.fenBefore, line);
+  const frame = frames.ok ? frames.frames[1] : undefined;
+  return {
+    fen: frame?.fen ?? fact.fenBefore,
+    lastMoveUci: frame?.lastMoveUci ?? null,
+  };
 };
 
 export interface PracticePositionRequest {
@@ -90,6 +87,8 @@ export interface GameReviewExperienceProps {
   readonly analysis: CompletedGameAnalysis;
   readonly isPracticeAvailable?: (theme: LearningTheme) => boolean;
   readonly onPracticePosition: (request: PracticePositionRequest) => void;
+  readonly onTrainingComplete?: ((log: ReviewTrainingLog) => void) | null;
+  readonly now?: () => string;
 }
 
 export function GameReviewExperience({
@@ -97,326 +96,492 @@ export function GameReviewExperience({
   analysis,
   isPracticeAvailable = () => true,
   onPracticePosition,
+  onTrainingComplete = null,
+  now = () => new Date().toISOString(),
 }: GameReviewExperienceProps) {
   const replay = useMemo(() => buildGameReplay(game), [game]);
-  const initialMomentPly = analysis.moments[0]?.ply ?? 1;
-  const [momentIndex, setMomentIndex] = useState(0);
-  const [replayPly, setReplayPly] = useState(Math.max(0, initialMomentPly - 1));
-  const [comparison, setComparison] = useState<Comparison>("your-move");
-  const [lineStep, setLineStep] = useState(0);
+  const initialSession = useMemo(
+    () => startReviewTraining(analysis),
+    [analysis],
+  );
+  const [session, setSession] = useState<ReviewTrainingState | null>(
+    initialSession,
+  );
+  const [themeChoice, setThemeChoice] = useState<LearningTheme | null>(null);
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [selectedMove, setSelectedMove] = useState<string | null>(null);
+  const [feedbackLine, setFeedbackLine] = useState<FeedbackLine>("attempt");
+  const [replayPly, setReplayPly] = useState(0);
 
   if (!replay.ok) return <p role="alert">{replay.message}</p>;
-
-  const selectedMoment = analysis.moments[momentIndex];
-  const selectedFact =
-    selectedMoment === undefined
-      ? undefined
-      : analysis.facts.find(
-          (fact) =>
-            fact.gameId === selectedMoment.gameId &&
-            fact.ply === selectedMoment.ply,
-        );
-  const betterCandidate =
-    selectedMoment === undefined
-      ? undefined
-      : (selectedFact?.candidates.find(
-          (candidate) => candidate.uci === selectedMoment.candidateMoveUci,
-        ) ?? selectedFact?.candidates[0]);
-  const yourLine =
-    selectedMoment === undefined
-      ? []
-      : game.moves
-          .slice(Math.max(0, selectedMoment.ply - 1), selectedMoment.ply + 2)
-          .map((move) => move.uci);
-  const betterLine =
-    selectedMoment === undefined
-      ? []
-      : (betterCandidate?.principalVariation.slice(0, 3) ?? [
-          selectedMoment.candidateMoveUci,
-        ]);
-  const activeLine = comparison === "your-move" ? yourLine : betterLine;
-  const variation =
-    selectedMoment === undefined
-      ? null
-      : buildVariationFrames(selectedMoment.fenBefore, activeLine);
-  const variationFrames = variation?.ok === true ? variation.frames : [];
-  const boundedReplayPly = Math.min(replayPly, replay.frames.length - 1);
-  const replayFrame = replay.frames[boundedReplayPly];
-  const variationFrame = lineStep > 0 ? variationFrames[lineStep] : undefined;
-  const displayFrame = variationFrame ?? replayFrame ?? replay.frames[0];
-  if (displayFrame === undefined)
-    return <p role="alert">The game has no replay positions.</p>;
-  const practiceAvailable =
-    selectedMoment !== undefined && isPracticeAvailable(selectedMoment.theme);
-
-  function selectMoment(index: number): void {
-    const moment = analysis.moments[index];
-    if (moment === undefined) return;
-    setMomentIndex(index);
-    setReplayPly(Math.max(0, moment.ply - 1));
-    setComparison("your-move");
-    setLineStep(0);
+  if (session === null) {
+    return (
+      <section
+        className="game-review game-review__empty"
+        aria-labelledby="review-empty-title"
+      >
+        <h2 id="review-empty-title">No verified training set yet</h2>
+        <p>You can still replay the completed game while analysis finishes.</p>
+        <ReplayDetails
+          game={game}
+          replayFrames={replay.frames}
+          replayPly={replayPly}
+          setReplayPly={setReplayPly}
+        />
+      </section>
+    );
   }
 
-  function selectComparison(value: Comparison): void {
-    setComparison(value);
-    if (selectedMoment !== undefined)
-      setReplayPly(Math.max(0, selectedMoment.ply - 1));
-    setLineStep(0);
-  }
+  const activeFact =
+    session.stage === "transfer-move" || session.stage === "transfer-feedback"
+      ? session.transferFact
+      : session.primaryFact;
+  if (activeFact === null)
+    return <p role="alert">The transfer position is unavailable.</p>;
+  const targets =
+    selectedSquare === null
+      ? []
+      : legalTargets(activeFact.fenBefore, selectedSquare);
 
-  const replayLabel =
-    boundedReplayPly === 0
-      ? "Starting position"
-      : `After ${boundedReplayPly % 2 === 1 ? "White's" : "Black's"} move ${String(Math.ceil(boundedReplayPly / 2))}`;
-  const lineLabel =
-    lineStep === 0
-      ? "Position before the learner move"
-      : `Comparison step ${String(lineStep)} of ${String(Math.max(0, variationFrames.length - 1))}`;
-  const yourMoveDescription =
-    selectedMoment === undefined
-      ? ""
-      : describeMove(selectedMoment.fenBefore, selectedMoment.playedMoveUci);
-  const betterMoveDescription =
-    selectedMoment === undefined
-      ? ""
-      : describeMove(selectedMoment.fenBefore, selectedMoment.candidateMoveUci);
+  const selectBoardSquare = (square: string): void => {
+    if (targets.includes(square) && selectedSquare !== null) {
+      setSelectedMove(buildMove(activeFact.fenBefore, selectedSquare, square));
+      return;
+    }
+    const nextTargets = legalTargets(activeFact.fenBefore, square);
+    setSelectedSquare(nextTargets.length > 0 ? square : null);
+    setSelectedMove(null);
+  };
+
+  const clearMoveSelection = (): void => {
+    setSelectedSquare(null);
+    setSelectedMove(null);
+  };
+
+  const commitMove = (): void => {
+    if (selectedMove === null) return;
+    setSession((current) => {
+      if (current === null) return current;
+      return current.stage === "primary-move"
+        ? commitPrimaryMove(current, selectedMove)
+        : commitTransferMove(current, selectedMove);
+    });
+    setFeedbackLine("attempt");
+    clearMoveSelection();
+  };
+
+  const completeSession = (next: ReviewTrainingState): void => {
+    setSession(next);
+    if (next.stage === "complete") onTrainingComplete?.(next.log);
+  };
+
+  const stageNumber =
+    session.stage === "theme-retrieval"
+      ? 1
+      : session.stage === "primary-move" || session.stage === "primary-feedback"
+        ? 2
+        : session.stage === "transfer-move" ||
+            session.stage === "transfer-feedback"
+          ? 3
+          : 4;
 
   return (
     <section className="game-review" aria-labelledby="game-review-title">
       <header className="game-review__header">
         <div>
-          <p className="game-review__eyebrow">Replay-first review</p>
-          <h2 id="game-review-title">
-            See the position, then compare the choice
-          </h2>
+          <p className="game-review__eyebrow">Active review set</p>
+          <h2 id="game-review-title">Find it, play it, transfer it</h2>
         </div>
-        {selectedMoment === undefined ? null : (
-          <p className="game-review__moment-count">
-            Moment {String(momentIndex + 1)} of{" "}
-            {String(analysis.moments.length)}
-          </p>
-        )}
+        <p className="game-review__set-progress">
+          Set {String(stageNumber)} of 4
+        </p>
       </header>
 
-      <div className="game-review__layout">
-        <div className="game-review__stage">
-          <ReviewBoard
-            fen={displayFrame.fen}
-            orientation={game.playerColor ?? "white"}
-            lastMoveUci={displayFrame.lastMoveUci}
-          />
-          <p className="game-review__board-status" role="status">
-            {lineStep > 0 ? lineLabel : replayLabel}
-          </p>
-
-          <div className="game-review__scrubber">
-            <label htmlFor="game-review-ply">Replay the full game</label>
-            <input
-              id="game-review-ply"
-              type="range"
-              min="0"
-              max={String(Math.max(0, replay.frames.length - 1))}
-              value={String(boundedReplayPly)}
-              onChange={(event) => {
-                setReplayPly(Number(event.currentTarget.value));
-                setLineStep(0);
-              }}
+      {session.stage === "theme-retrieval" ? (
+        <TrainingStage
+          board={
+            <ReviewBoard
+              fen={session.primaryFact.fenBefore}
+              orientation={game.playerColor ?? "white"}
+              lastMoveUci={null}
             />
-            <div className="game-review__replay-actions">
-              <button
-                type="button"
-                disabled={boundedReplayPly === 0}
-                onClick={() => {
-                  setReplayPly((value) => Math.max(0, value - 1));
-                  setLineStep(0);
-                }}
-              >
-                Previous move
-              </button>
-              <span>
-                Ply {String(boundedReplayPly)} of{" "}
-                {String(replay.frames.length - 1)}
-              </span>
-              <button
-                type="button"
-                disabled={boundedReplayPly >= replay.frames.length - 1}
-                onClick={() => {
-                  setReplayPly((value) =>
-                    Math.min(replay.frames.length - 1, value + 1),
-                  );
-                  setLineStep(0);
-                }}
-              >
-                Next move
-              </button>
+          }
+          eyebrow="Warm-up recall"
+          title="What matters most before you move?"
+          description="Choose from memory. Stockfish stays hidden until you commit."
+        >
+          <fieldset className="game-review__choices">
+            <legend>Position demand</legend>
+            {session.themeChoices.map((choice) => (
+              <label key={choice.theme}>
+                <input
+                  type="radio"
+                  name="theme-choice"
+                  value={choice.theme}
+                  checked={themeChoice === choice.theme}
+                  onChange={() => {
+                    setThemeChoice(choice.theme);
+                  }}
+                />
+                <span>{choice.label}</span>
+              </label>
+            ))}
+          </fieldset>
+          <button
+            className="game-review__primary"
+            type="button"
+            disabled={themeChoice === null}
+            onClick={() => {
+              if (themeChoice !== null)
+                setSession(commitThemeRetrieval(session, themeChoice));
+            }}
+          >
+            Lock this read
+          </button>
+        </TrainingStage>
+      ) : null}
+
+      {session.stage === "primary-move" || session.stage === "transfer-move" ? (
+        <TrainingStage
+          board={
+            <ReviewBoard
+              fen={activeFact.fenBefore}
+              orientation={game.playerColor ?? "white"}
+              lastMoveUci={selectedMove}
+              selectedSquare={selectedSquare}
+              legalTargets={targets}
+              onSquareSelect={selectBoardSquare}
+            />
+          }
+          eyebrow={
+            session.stage === "primary-move" ? "Working set" : "Transfer set"
+          }
+          title={
+            session.stage === "primary-move"
+              ? "Commit the move you would play"
+              : "Apply the same idea in this new position"
+          }
+          description="Select a piece, choose a legal destination, then commit. No notation needed."
+        >
+          <p className="game-review__selection-status" role="status">
+            {selectedMove === null
+              ? selectedSquare === null
+                ? "Select one of your pieces on the board."
+                : "Now choose one of the marked legal destinations."
+              : "Move selected. Commit when you are sure."}
+          </p>
+          <button
+            className="game-review__primary"
+            type="button"
+            disabled={selectedMove === null}
+            onClick={commitMove}
+          >
+            Commit this move
+          </button>
+        </TrainingStage>
+      ) : null}
+
+      {session.stage === "primary-feedback" ||
+      session.stage === "transfer-feedback" ? (
+        <FeedbackStage
+          game={game}
+          fact={activeFact}
+          score={
+            session.stage === "primary-feedback"
+              ? session.primaryScore
+              : session.transferScore
+          }
+          line={feedbackLine}
+          setLine={setFeedbackLine}
+          themeCorrect={session.themeCorrect ?? false}
+          primary={session.stage === "primary-feedback"}
+          hasTransfer={session.transferFact !== null}
+          onContinue={() => {
+            const completedAt = now();
+            const next =
+              session.stage === "primary-feedback"
+                ? continueAfterPrimaryFeedback(session, completedAt)
+                : completeAfterTransfer(session, completedAt);
+            completeSession(next);
+            clearMoveSelection();
+          }}
+        />
+      ) : null}
+
+      {session.stage === "complete" ? (
+        <TrainingSummary
+          session={session}
+          practiceAvailable={isPracticeAvailable(session.primaryFact.theme)}
+          onPractice={() => {
+            onPracticePosition({
+              gameId: session.primaryMoment.gameId,
+              momentId: session.primaryMoment.id,
+              fen: session.primaryMoment.fenBefore,
+              theme: session.primaryMoment.theme,
+            });
+          }}
+        />
+      ) : null}
+
+      <ReplayDetails
+        game={game}
+        replayFrames={replay.frames}
+        replayPly={replayPly}
+        setReplayPly={setReplayPly}
+      />
+
+      {session.stage === "primary-feedback" ||
+      session.stage === "transfer-feedback" ||
+      session.stage === "complete" ? (
+        <details className="game-review__technical">
+          <summary>Technical details</summary>
+          <dl>
+            <div>
+              <dt>Attempt</dt>
+              <dd>
+                {session.primaryScore?.attemptedMoveUci ?? "Not committed"}
+              </dd>
             </div>
-          </div>
-        </div>
-
-        <div className="game-review__guide">
-          {selectedMoment === undefined ? (
-            <div className="game-review__empty">
-              <h3>No verified learning moments</h3>
-              <p>
-                You can still scrub the completed game while deeper analysis is
-                unavailable.
-              </p>
+            <div>
+              <dt>Verified move</dt>
+              <dd>
+                {session.primaryScore?.bestMoveUci ??
+                  session.primaryMoment.candidateMoveUci}
+              </dd>
             </div>
-          ) : (
-            <>
-              <div className="game-review__moment-nav">
-                <button
-                  type="button"
-                  disabled={momentIndex === 0}
-                  onClick={() => {
-                    selectMoment(momentIndex - 1);
-                  }}
-                >
-                  Previous moment
-                </button>
-                <button
-                  type="button"
-                  disabled={momentIndex >= analysis.moments.length - 1}
-                  onClick={() => {
-                    selectMoment(momentIndex + 1);
-                  }}
-                >
-                  Next moment
-                </button>
-              </div>
-
-              <p className="game-review__theme">
-                {selectedMoment.theme.replaceAll("-", " ")}
-              </p>
-              <h3>Move {String(Math.ceil(selectedMoment.ply / 2))}</h3>
-              <p className="game-review__explanation">
-                {explanations[selectedMoment.theme]}
-              </p>
-              <p className="game-review__comparison-copy">
-                Compare what you chose with the safer engine line. Step through
-                each option and watch how the board changes.
-              </p>
-
-              <div
-                className="game-review__tabs"
-                role="tablist"
-                aria-label="Compare moves"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={comparison === "your-move"}
-                  onClick={() => {
-                    selectComparison("your-move");
-                  }}
-                >
-                  <strong>Your move</strong>
-                  <span>{yourMoveDescription}</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={comparison === "better-move"}
-                  onClick={() => {
-                    selectComparison("better-move");
-                  }}
-                >
-                  <strong>Better move</strong>
-                  <span>{betterMoveDescription}</span>
-                </button>
-              </div>
-
-              <div className="game-review__line-controls">
-                <button
-                  type="button"
-                  disabled={lineStep === 0}
-                  onClick={() => {
-                    setLineStep((value) => Math.max(0, value - 1));
-                  }}
-                >
-                  Back one move
-                </button>
-                <span>
-                  Step {String(lineStep)} of{" "}
-                  {String(Math.max(0, variationFrames.length - 1))}
-                </span>
-                <button
-                  type="button"
-                  disabled={lineStep >= variationFrames.length - 1}
-                  onClick={() => {
-                    setLineStep((value) =>
-                      Math.min(variationFrames.length - 1, value + 1),
-                    );
-                  }}
-                >
-                  Play next move
-                </button>
-              </div>
-
-              {practiceAvailable ? (
-                <button
-                  className="game-review__practice"
-                  type="button"
-                  onClick={() => {
-                    onPracticePosition({
-                      gameId: selectedMoment.gameId,
-                      momentId: selectedMoment.id,
-                      fen: selectedMoment.fenBefore,
-                      theme: selectedMoment.theme,
-                    });
-                  }}
-                >
-                  Practice this pattern
-                </button>
-              ) : (
-                <p className="game-review__practice-unavailable">
-                  Guided practice for this pattern is coming next.
-                </p>
-              )}
-
-              <details className="game-review__technical">
-                <summary>Technical details</summary>
-                <dl>
-                  <div>
-                    <dt>Your notation</dt>
-                    <dd>
-                      {selectedMoment.playedMoveSan} (
-                      {selectedMoment.playedMoveUci})
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Better notation</dt>
-                    <dd>
-                      {selectedMoment.candidateMoveSan ??
-                        "Verified engine move"}{" "}
-                      ({selectedMoment.candidateMoveUci})
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Verified continuation</dt>
-                    <dd>
-                      {betterLine.join(" ") || "No continuation available"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Evaluation</dt>
-                    <dd>
-                      {String(selectedMoment.trace.evaluationBeforeCp)} to{" "}
-                      {String(selectedMoment.trace.evaluationAfterCp)}{" "}
-                      centipawns
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Analysis version</dt>
-                    <dd>{selectedMoment.analysisVersion}</dd>
-                  </div>
-                </dl>
-              </details>
-            </>
-          )}
-        </div>
-      </div>
+            <div>
+              <dt>Acceptance tolerance</dt>
+              <dd>{String(REVIEW_MOVE_TOLERANCE_CP)} centipawns</dd>
+            </div>
+            <div>
+              <dt>Verified continuation</dt>
+              <dd>
+                {session.primaryFact.candidates[0]?.principalVariation.join(
+                  " ",
+                ) ?? "Unavailable"}
+              </dd>
+            </div>
+            <div>
+              <dt>Analysis version</dt>
+              <dd>{session.primaryMoment.analysisVersion}</dd>
+            </div>
+          </dl>
+        </details>
+      ) : null}
     </section>
+  );
+}
+
+function TrainingStage({
+  board,
+  eyebrow,
+  title,
+  description,
+  children,
+}: {
+  readonly board: ReactNode;
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly description: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <div className="game-review__training-layout">
+      <div className="game-review__board-stage">{board}</div>
+      <div className="game-review__prompt">
+        <p className="game-review__theme">{eyebrow}</p>
+        <h3>{title}</h3>
+        <p className="game-review__prompt-copy">{description}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function FeedbackStage({
+  game,
+  fact,
+  score,
+  line,
+  setLine,
+  themeCorrect,
+  primary,
+  hasTransfer,
+  onContinue,
+}: {
+  readonly game: GameRecord;
+  readonly fact: MoveAnalysisFact;
+  readonly score: ReviewTrainingState["primaryScore"];
+  readonly line: FeedbackLine;
+  readonly setLine: (line: FeedbackLine) => void;
+  readonly themeCorrect: boolean;
+  readonly primary: boolean;
+  readonly hasTransfer: boolean;
+  readonly onContinue: () => void;
+}) {
+  if (score === null) return <p role="alert">This move was not scored.</p>;
+  const move = line === "attempt" ? score.attemptedMoveUci : score.bestMoveUci;
+  const frame = lineFrame(fact, move, line === "verified");
+  return (
+    <TrainingStage
+      board={
+        <ReviewBoard
+          fen={frame.fen}
+          orientation={game.playerColor ?? "white"}
+          lastMoveUci={frame.lastMoveUci}
+        />
+      }
+      eyebrow={score.accepted ? "Set passed" : "Correction"}
+      title={score.accepted ? "Your move holds up" : "Resolve the demand first"}
+      description={score.comparison}
+    >
+      {primary ? (
+        <p className="game-review__retrieval-result">
+          Retrieval:{" "}
+          {themeCorrect
+            ? "you identified the demand"
+            : `the key demand was ${getThemeLabel(fact.theme).toLowerCase()}`}
+          .
+        </p>
+      ) : null}
+      <div
+        className="game-review__line-switch"
+        aria-label="Compare attempted and verified lines"
+      >
+        <button
+          type="button"
+          aria-pressed={line === "attempt"}
+          onClick={() => {
+            setLine("attempt");
+          }}
+        >
+          Your attempt
+        </button>
+        <button
+          type="button"
+          aria-pressed={line === "verified"}
+          onClick={() => {
+            setLine("verified");
+          }}
+        >
+          Verified line
+        </button>
+      </div>
+      <button
+        className="game-review__primary"
+        type="button"
+        onClick={onContinue}
+      >
+        {primary
+          ? hasTransfer
+            ? "Continue to transfer"
+            : "Finish and log this set"
+          : "Finish this set"}
+      </button>
+    </TrainingStage>
+  );
+}
+
+function TrainingSummary({
+  session,
+  practiceAvailable,
+  onPractice,
+}: {
+  readonly session: Extract<
+    ReviewTrainingState,
+    { readonly stage: "complete" }
+  >;
+  readonly practiceAvailable: boolean;
+  readonly onPractice: () => void;
+}) {
+  const { log } = session;
+  return (
+    <section
+      className="game-review__summary"
+      aria-labelledby="training-log-title"
+    >
+      <p className="game-review__eyebrow">Training log</p>
+      <h3 id="training-log-title">This set programs the next one</h3>
+      <dl>
+        <div>
+          <dt>First-attempt score</dt>
+          <dd>{String(log.firstAttemptScore)}%</dd>
+        </div>
+        <div>
+          <dt>Hard spot</dt>
+          <dd>{log.hardSpot}</dd>
+        </div>
+        <div>
+          <dt>Due for review</dt>
+          <dd>{log.dueReview}</dd>
+        </div>
+        <div>
+          <dt>Transfer</dt>
+          <dd>
+            {log.transfer === "completed"
+              ? "Completed with another verified position"
+              : "Scheduled explicitly for the next game"}
+          </dd>
+        </div>
+      </dl>
+      <div className="game-review__reinforcement">
+        <strong>Exact next-game reinforcement</strong>
+        <p>{log.nextGameReinforcement}</p>
+      </div>
+      {practiceAvailable ? (
+        <button
+          className="game-review__secondary"
+          type="button"
+          onClick={onPractice}
+        >
+          Continue with the full playbook lesson
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
+function ReplayDetails({
+  game,
+  replayFrames,
+  replayPly,
+  setReplayPly,
+}: {
+  readonly game: GameRecord;
+  readonly replayFrames: readonly {
+    readonly fen: string;
+    readonly lastMoveUci: string | null;
+  }[];
+  readonly replayPly: number;
+  readonly setReplayPly: (value: number) => void;
+}) {
+  const bounded = Math.min(replayPly, replayFrames.length - 1);
+  const frame = replayFrames[bounded];
+  if (frame === undefined) return null;
+  return (
+    <details className="game-review__replay">
+      <summary>Replay the full game</summary>
+      <div className="game-review__replay-content">
+        <ReviewBoard
+          fen={frame.fen}
+          orientation={game.playerColor ?? "white"}
+          lastMoveUci={frame.lastMoveUci}
+        />
+        <label htmlFor="game-review-ply">Move through the game</label>
+        <input
+          id="game-review-ply"
+          type="range"
+          min="0"
+          max={String(Math.max(0, replayFrames.length - 1))}
+          value={String(bounded)}
+          onChange={(event) => {
+            setReplayPly(Number(event.currentTarget.value));
+          }}
+        />
+        <p>
+          Position {String(bounded)} of {String(replayFrames.length - 1)}
+        </p>
+      </div>
+    </details>
   );
 }
