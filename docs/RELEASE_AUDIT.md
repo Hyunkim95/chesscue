@@ -29,7 +29,7 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 - All 12 Chromium end-to-end journeys pass.
 - Stockfish 19 Lite source, GPL license, and SHA-256 checksums are recorded.
 - Firestore rules default to deny, scope reads and creates to the authenticated owner, and prohibit updates.
-- GitHub Actions Verify run `45460115474` passed the same gates from the public `main` branch.
+- GitHub Actions Verify run [45464660281](https://github.com/Hyunkim95/chesscue/actions/runs/45464660281) passed the same gates from the public `main` branch at `e96698b`.
 - Lighthouse scores 100 for Accessibility, Best Practices, and SEO; Agentic Browsing scores 98 with valid `llms.txt` and ARD metadata plus one low-severity warning because ChessCue publishes a Web app rather than a standard agent protocol artifact.
 
 ## Hosted verification
@@ -38,6 +38,7 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 - Firebase lists the Web app as registered with Fraud Defense and Firebase AI Logic as enforced under App Check. The score-based site key is restricted to the `web.app` hostname.
 - In a fresh Chromium session on the hosted build, starting a game, resigning, and retrying the position produced HTTP 200 from the Enterprise App Check token exchange and Firebase AI Logic `generateContent`. The review displayed “Feedback source: Gemini cloud fallback.” A separate headless session received HTTP 400 during token exchange.
 - Chrome reported the on-device model unavailable on this Mac. The system volume had roughly 2.1 GiB available, below the [Chrome model setup requirement](https://developer.chrome.com/docs/ai/get-started#required_hardware).
+- A separate hosted browser journey imported the synthetic demo PGN. The focus changed from Calculation to One Move Threat, and the opponent remained at 1450 Elo.
 
 ## Remaining submission gates
 

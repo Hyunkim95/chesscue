@@ -59,7 +59,16 @@ During the hackathon period, ChessCue was built into a functioning Chrome PWA wi
 
 For a fast synthetic demonstration, use `demo/chesscue-demo.pgn` and follow `demo/README.md`.
 
-For an on-device demonstration, use Chrome desktop 139 or later with the Prompt API enabled and the Gemini Nano model downloaded. Otherwise the same Firebase AI Logic call uses cloud fallback.
+### Verify Gemini Nano on a second desktop
+
+Use a regular Chrome desktop profile with the Prompt API enabled. Check the [Chrome hardware requirements](https://developer.chrome.com/docs/ai/prompt-api#review_the_hardware_requirements) and follow the [Firebase on-device setup](https://firebase.google.com/docs/ai-logic/hybrid/web/get-started#step_1_set_up_chrome_and_the_prompt_api_for_on-device_inference). The hosted app works without a repository checkout or a sign-in.
+
+1. Open the hosted app in a fresh browser profile. Play **e4** and wait for Black’s reply.
+2. Resign. In the rewind, select the knight on **g1**, move it to **f3**, and click **Play this move**. This starts Chrome’s model initialization on a user gesture.
+3. If the model is downloading, wait until it is available, choose **Undo and try another move**, and replay **Nf3**.
+4. Capture the board and the completed **Hybrid coach** note together. Verify that it reads **Feedback source: Gemini Nano on device**. Save a short recording for the demo and note the Chrome version.
+
+The cloud path has already been verified on the hosted app with App Check enforced. The on-device label is the pass condition for this separate check.
 
 ## Demo video outline, maximum 3 minutes
 
@@ -93,6 +102,7 @@ ChessCue: play, understand, and meet the lesson again in your next game.
 
 ## Final submission checklist
 
+- [ ] Select Web (Chrome) as the submission platform
 - [x] Firebase project and Web app configured
 - [x] Firebase AI Logic enabled with App Check enforcement
 - [x] Cloud fallback verified on the hosted build
