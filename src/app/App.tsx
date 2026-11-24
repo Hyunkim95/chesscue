@@ -101,7 +101,7 @@ function useReviewCoachProvider(
       setProvider(
         providerModule.createFirebaseHybridLessonContentProvider({
           firebaseApp: firebase.services.app,
-          timeoutMs: 10_000,
+          timeoutMs: providerModule.ON_DEVICE_INFERENCE_TIMEOUT_MS,
         }),
       );
     });

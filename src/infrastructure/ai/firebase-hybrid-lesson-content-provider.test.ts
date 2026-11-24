@@ -6,6 +6,7 @@ import type { LessonContentRequest } from "../../domain/coaching/types";
 
 import {
   FirebaseHybridLessonContentProvider,
+  ON_DEVICE_INFERENCE_TIMEOUT_MS,
   type HybridInferenceClient,
 } from "./firebase-hybrid-lesson-content-provider";
 
@@ -210,6 +211,37 @@ describe("Firebase hybrid lesson content provider", () => {
         new FirebaseHybridLessonContentProvider(clientReturning("on_device"), {
           timeoutMs: 0,
         }),
-    ).toThrow("between 1000 and 20000 ms");
+    ).toThrow("between 1000 and 120000 ms");
+    expect(
+      () =>
+        new FirebaseHybridLessonContentProvider(clientReturning("on_device"), {
+          timeoutMs: ON_DEVICE_INFERENCE_TIMEOUT_MS + 1,
+        }),
+    ).toThrow("between 1000 and 120000 ms");
+  });
+
+  it("allows a cold Nano response after the cloud request deadline", async () => {
+    vi.useFakeTimers();
+    const provider = new FirebaseHybridLessonContentProvider(
+      {
+        initializeDeviceModel: () => Promise.resolve(),
+        generate: () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve({
+                text: JSON.stringify(validContent),
+                inferenceSource: "on_device",
+              });
+            }, 92_000);
+          }),
+      },
+      { timeoutMs: ON_DEVICE_INFERENCE_TIMEOUT_MS },
+    );
+    const pending = provider.generate(request, new AbortController().signal);
+    const result = expect(pending).resolves.toMatchObject({
+      provenance: "on-device",
+    });
+    await vi.advanceTimersByTimeAsync(92_000);
+    await result;
   });
 });

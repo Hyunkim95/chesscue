@@ -22,6 +22,8 @@ import {
 const DEFAULT_CLOUD_MODEL = "gemini-3.5-flash-lite";
 const MAX_PROMPT_CHARACTERS = 12_000;
 const DEFAULT_MAX_OUTPUT_TOKENS = 512;
+export const ON_DEVICE_INFERENCE_TIMEOUT_MS = 120_000;
+const CLOUD_REQUEST_TIMEOUT_MS = 10_000;
 
 const systemInstruction = [
   "You personalize one step in a deterministic chess lesson playbook.",
@@ -133,10 +135,10 @@ const validateOptions = (options: FirebaseHybridProviderOptions): void => {
   if (
     !Number.isInteger(options.timeoutMs) ||
     options.timeoutMs < 1_000 ||
-    options.timeoutMs > 20_000
+    options.timeoutMs > ON_DEVICE_INFERENCE_TIMEOUT_MS
   ) {
     throw new Error(
-      "Firebase hybrid lesson timeout must be between 1000 and 20000 ms.",
+      `Firebase hybrid lesson timeout must be between 1000 and ${ON_DEVICE_INFERENCE_TIMEOUT_MS.toString()} ms.`,
     );
   }
   if (options.cloudModel?.trim().length === 0) {
@@ -260,7 +262,7 @@ export const createFirebaseHybridLessonContentProvider = (
         },
       },
     },
-    { timeout: options.timeoutMs },
+    { timeout: Math.min(options.timeoutMs, CLOUD_REQUEST_TIMEOUT_MS) },
   );
 
   const client: HybridInferenceClient = {
