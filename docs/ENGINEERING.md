@@ -374,12 +374,12 @@ No merge is allowed with:
 
 ## 12. Environment structure
 
-| Environment | Purpose | Firebase | Data |
-| --- | --- | --- | --- |
-| Local | Development and automated integration | Emulator Suite | Disposable fixtures |
-| Preview | Per-pull-request browser review | Development project with isolated test user namespace | Seeded non-production data |
-| Staging | Release-candidate E2E and SLO verification | Dedicated development or staging project | Seeded and synthetic data only |
-| Production | Public application | Dedicated production project | Real user data |
+| Environment | Purpose                                    | Firebase                                              | Data                           |
+| ----------- | ------------------------------------------ | ----------------------------------------------------- | ------------------------------ |
+| Local       | Development and automated integration      | Emulator Suite                                        | Disposable fixtures            |
+| Preview     | Per-pull-request browser review            | Development project with isolated test user namespace | Seeded non-production data     |
+| Staging     | Release-candidate E2E and SLO verification | Dedicated development or staging project              | Seeded and synthetic data only |
+| Production  | Public application                         | Dedicated production project                          | Real user data                 |
 
 Production credentials or data must never be used in local, preview, or CI runs. Preview deployments are visibly labeled and cannot write to production.
 

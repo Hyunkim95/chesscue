@@ -11,19 +11,19 @@ The system is a local-first progressive web application. IndexedDB is the gamepl
 
 ## 2. Required technology boundaries
 
-| Component | Owns | Must not own |
-| --- | --- | --- |
-| Chess rules library | Position state, legal move application, PGN/FEN serialization, terminal result detection | Evaluation or pedagogy |
-| Stockfish WASM worker | CPU moves, evaluations, principal variations, limited strength | UI state, prose, mastery decisions |
-| Analysis pipeline | Versioned fact packets and deterministic learning-moment candidates | Unverified generated facts |
-| PGN import module | Parse, normalize, validate, deduplicate, and label completed external games | Live-game access or trusted-rating assumptions |
-| Curriculum engine | Player model, evidence aggregation, focus selection, difficulty policy | Chess evaluation or prose generation |
-| Lesson playbook engine | Playbook selection, ordered steps, allowed transitions, scoring, and reinforcement | Free-form lesson planning or generated mastery decisions |
-| Coaching adapter | Prompt construction, structured inference, output validation, deterministic fallback | Legal move or evaluation authority |
-| Local repository | Atomic persistence for games, analysis, profile inputs, and sync state | Cloud-specific behavior |
-| Sync adapter | Authentication, immutable-record upload/download, merge coordination | Last-write-wins profile updates |
-| Firebase services | Hosting, Auth, Firestore, App Check, Remote Config, AI Logic | CPU move calculation or required gameplay state |
-| Lichess build pipeline | Reproducible compact opening and theme assets | Runtime dependency on bulk exports |
+| Component              | Owns                                                                                     | Must not own                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Chess rules library    | Position state, legal move application, PGN/FEN serialization, terminal result detection | Evaluation or pedagogy                                   |
+| Stockfish WASM worker  | CPU moves, evaluations, principal variations, limited strength                           | UI state, prose, mastery decisions                       |
+| Analysis pipeline      | Versioned fact packets and deterministic learning-moment candidates                      | Unverified generated facts                               |
+| PGN import module      | Parse, normalize, validate, deduplicate, and label completed external games              | Live-game access or trusted-rating assumptions           |
+| Curriculum engine      | Player model, evidence aggregation, focus selection, difficulty policy                   | Chess evaluation or prose generation                     |
+| Lesson playbook engine | Playbook selection, ordered steps, allowed transitions, scoring, and reinforcement       | Free-form lesson planning or generated mastery decisions |
+| Coaching adapter       | Prompt construction, structured inference, output validation, deterministic fallback     | Legal move or evaluation authority                       |
+| Local repository       | Atomic persistence for games, analysis, profile inputs, and sync state                   | Cloud-specific behavior                                  |
+| Sync adapter           | Authentication, immutable-record upload/download, merge coordination                     | Last-write-wins profile updates                          |
+| Firebase services      | Hosting, Auth, Firestore, App Check, Remote Config, AI Logic                             | CPU move calculation or required gameplay state          |
+| Lichess build pipeline | Reproducible compact opening and theme assets                                            | Runtime dependency on bulk exports                       |
 
 ## 3. Reference stack
 
@@ -287,18 +287,18 @@ Lesson playbooks are immutable after publication. A changed trigger, step, rubri
 
 ## 12. Failure behavior
 
-| Failure | Required behavior |
-| --- | --- |
-| Gameplay worker fails to initialize | Block game start with a retry action; do not offer a fake opponent. |
-| Gameplay worker crashes midgame | Preserve the position, restart the worker once, and allow retry, resignation, or later resume. |
-| Analysis fails | Keep the completed game and allow analysis retry; do not update mastery from partial facts. |
-| Gemini is unavailable or slow | Show verified deterministic coaching within the SLO. |
-| Gemini output is invalid | Suppress it, record the validation code, and use deterministic coaching. |
-| IndexedDB write fails | Keep the board state visible, stop accepting further moves, and offer a recoverable retry or PGN export. |
-| Firestore is unavailable | Mark records unsynced and continue local play. |
-| Remote Config is invalid | Use the last validated local configuration. |
-| Curriculum pack is corrupt | Retain the previous valid pack and report update failure. |
-| PGN import is malformed or duplicated | Preserve existing data, report a per-game result, and continue processing independent valid games. |
+| Failure                               | Required behavior                                                                                        |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Gameplay worker fails to initialize   | Block game start with a retry action; do not offer a fake opponent.                                      |
+| Gameplay worker crashes midgame       | Preserve the position, restart the worker once, and allow retry, resignation, or later resume.           |
+| Analysis fails                        | Keep the completed game and allow analysis retry; do not update mastery from partial facts.              |
+| Gemini is unavailable or slow         | Show verified deterministic coaching within the SLO.                                                     |
+| Gemini output is invalid              | Suppress it, record the validation code, and use deterministic coaching.                                 |
+| IndexedDB write fails                 | Keep the board state visible, stop accepting further moves, and offer a recoverable retry or PGN export. |
+| Firestore is unavailable              | Mark records unsynced and continue local play.                                                           |
+| Remote Config is invalid              | Use the last validated local configuration.                                                              |
+| Curriculum pack is corrupt            | Retain the previous valid pack and report update failure.                                                |
+| PGN import is malformed or duplicated | Preserve existing data, report a per-game result, and continue processing independent valid games.       |
 
 ## 13. Verification requirements
 

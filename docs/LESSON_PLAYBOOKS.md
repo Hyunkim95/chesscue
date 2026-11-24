@@ -38,25 +38,25 @@ Generation failure changes the wording source, not the lesson sequence, scoring,
 
 Each playbook contains:
 
-| Field | Purpose |
-| --- | --- |
-| `id` | Stable machine-readable identity, such as `tactics.hanging-piece` |
-| `version` | Immutable semantic version |
-| `theme` | Canonical curriculum theme |
-| `objective` | One observable learner outcome |
-| `prerequisites` | Required prior mastery or chess concepts |
-| `trigger` | Evidence pattern and confidence required for selection |
+| Field              | Purpose                                                             |
+| ------------------ | ------------------------------------------------------------------- |
+| `id`               | Stable machine-readable identity, such as `tactics.hanging-piece`   |
+| `version`          | Immutable semantic version                                          |
+| `theme`            | Canonical curriculum theme                                          |
+| `objective`        | One observable learner outcome                                      |
+| `prerequisites`    | Required prior mastery or chess concepts                            |
+| `trigger`          | Evidence pattern and confidence required for selection              |
 | `positionSelector` | Rules for choosing player positions or validated canonical examples |
-| `steps` | Ordered state graph using the approved step vocabulary |
-| `allowedFacts` | Exact engine and game facts that content may reference |
-| `contentSlots` | Bounded fields Gemini may personalize |
-| `fallbackContent` | Deterministic copy for every slot |
-| `answerSchema` | Accepted learner response shape |
-| `validator` | Deterministic correctness check |
-| `rubric` | Score and feedback mapping |
-| `masteryEvidence` | Evidence emitted for each scored outcome |
-| `transitions` | Allowed repeat, advance, stop, and remediation edges |
-| `reinforcement` | How the next CPU game should recreate the concept |
+| `steps`            | Ordered state graph using the approved step vocabulary              |
+| `allowedFacts`     | Exact engine and game facts that content may reference              |
+| `contentSlots`     | Bounded fields Gemini may personalize                               |
+| `fallbackContent`  | Deterministic copy for every slot                                   |
+| `answerSchema`     | Accepted learner response shape                                     |
+| `validator`        | Deterministic correctness check                                     |
+| `rubric`           | Score and feedback mapping                                          |
+| `masteryEvidence`  | Evidence emitted for each scored outcome                            |
+| `transitions`      | Allowed repeat, advance, stop, and remediation edges                |
+| `reinforcement`    | How the next CPU game should recreate the concept                   |
 
 ## 4. Approved step vocabulary
 

@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "chess-tutor-dev",
+    "staging": "chess-tutor-dev",
+    "production": "chess-tutor-prod"
+  }
+}

@@ -1,0 +1,82 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Firebase target
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm exec firebase emulators:exec --only firestore "VITE_FIRESTORE_EMULATOR=true pnpm test:integration"
+      - run: pnpm build
+      - uses: actions/upload-artifact@v5
+        with:
+          name: release-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/download-artifact@v5
+        with:
+          name: release-${{ github.sha }}
+          path: dist
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy immutable rules and indexes
+        run: pnpm exec firebase deploy --project "${{ inputs.environment }}" --only firestore:rules,firestore:indexes --non-interactive
+      - name: Deploy verified Hosting artifact
+        run: pnpm exec firebase deploy --project "${{ inputs.environment }}" --only hosting --non-interactive
+      - name: Smoke test production shell and engine asset
+        env:
+          DEPLOYED_URL: ${{ vars.DEPLOYED_URL }}
+        run: |
+          test -n "$DEPLOYED_URL"
+          curl --fail --retry 3 "$DEPLOYED_URL/"
+          curl --fail --retry 3 "$DEPLOYED_URL/stockfish/stockfish-19-lite-single.wasm" >/dev/null

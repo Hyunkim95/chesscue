@@ -2,7 +2,13 @@
   color: #f4f3e8;
   background: #101813;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -23,33 +29,282 @@ textarea {
   font: inherit;
 }
 
-.shell {
-  display: grid;
-  min-height: 100vh;
-  place-content: center;
-  padding: 2rem;
-  text-align: center;
+button {
+  color: inherit;
 }
 
-.eyebrow {
-  color: #b5d69d;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
+.app-frame {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      rgb(83 114 89 / 18%),
+      transparent 42rem
+    ),
+    #101813;
+}
+
+.app-bar {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  display: grid;
+  min-height: 68px;
+  padding: 0.6rem clamp(1rem, 3vw, 2.5rem);
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  border-bottom: 1px solid rgb(244 243 232 / 9%);
+  background: rgb(16 24 19 / 90%);
+  backdrop-filter: blur(16px);
+}
+
+.brand {
+  display: inline-flex;
+  width: max-content;
+  padding: 0;
+  align-items: center;
+  gap: 0.65rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.brand-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 11px;
+  background: #b5d69d;
+  color: #101813;
+  font-size: 1.45rem;
+}
+
+.brand > span:last-child {
+  display: grid;
+  line-height: 1.1;
+}
+
+.brand strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+}
+
+.brand small {
+  margin-top: 0.22rem;
+  color: #8f9c91;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-h1 {
-  max-width: 16ch;
-  margin: 0.5rem auto 1rem;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.5rem, 8vw, 5.5rem);
-  line-height: 0.95;
+.app-bar nav {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: #17221b;
 }
 
-.lede {
-  max-width: 52ch;
+.app-bar nav button {
+  min-height: 38px;
+  padding: 0.45rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #9ba69d;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.app-bar nav button[aria-current="page"] {
+  background: #29372d;
+  color: #f4f3e8;
+}
+
+.app-bar button:focus-visible,
+.primary-link:focus-visible {
+  outline: 3px solid #f1bc72;
+  outline-offset: 3px;
+}
+
+.local-status {
+  display: inline-flex;
+  justify-self: end;
+  align-items: center;
+  gap: 0.45rem;
+  color: #9ba69d;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.local-status > span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #9bc681;
+  box-shadow: 0 0 0 4px rgb(155 198 129 / 10%);
+}
+
+.app-frame .play-shell {
+  min-height: calc(100vh - 68px);
+}
+
+.content-shell {
+  width: min(1180px, 100%);
+  min-height: calc(100vh - 68px);
   margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 3.5rem);
+}
+
+.content-shell--narrow {
+  display: grid;
+  place-items: start center;
+}
+
+.training-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  grid-template-areas:
+    "hero profile"
+    "note profile";
+  align-content: start;
+  gap: 1.25rem;
+}
+
+.training-hero,
+.training-profile,
+.playbook-note {
+  border: 1px solid rgb(244 243 232 / 10%);
+  border-radius: 18px;
+  background: #17221b;
+}
+
+.training-hero {
+  grid-area: hero;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  box-shadow: 0 22px 65px rgb(0 0 0 / 20%);
+}
+
+.training-profile {
+  grid-area: profile;
+  padding: 1.4rem;
   color: #c6c9bf;
-  line-height: 1.65;
+}
+
+.playbook-note {
+  grid-area: note;
+  padding: 1.5rem;
+  color: #c6c9bf;
+}
+
+.training-layout h2 {
+  margin: 0.25rem 0 0.75rem;
+  color: #f4f3e8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  text-transform: capitalize;
+}
+
+.training-profile h2,
+.playbook-note h2 {
+  font-family: inherit;
+  font-size: 1.2rem;
+}
+
+.training-layout p,
+.training-layout dl,
+.training-layout ul {
+  line-height: 1.6;
+}
+
+.training-profile ul {
+  display: grid;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  gap: 0.65rem;
+  list-style: none;
+}
+
+.training-profile li {
+  display: grid;
+  padding: 0.75rem 0;
+  gap: 0.2rem;
+  border-bottom: 1px solid rgb(244 243 232 / 8%);
+  text-transform: capitalize;
+}
+
+.training-profile li span:last-child {
+  color: #8f9c91;
+  font-size: 0.82rem;
+}
+
+.section-kicker {
+  margin: 0;
+  color: #b5d69d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.primary-link {
+  min-height: 48px;
+  margin-top: 1.25rem;
+  padding: 0.7rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: #b5d69d;
+  color: #101813;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+@media (max-width: 760px) {
+  .app-bar {
+    grid-template-columns: 1fr auto;
+    background: #101813;
+    backdrop-filter: none;
+  }
+
+  .app-bar nav {
+    position: fixed;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    z-index: 30;
+    justify-content: space-around;
+    box-shadow: 0 12px 40px rgb(0 0 0 / 45%);
+  }
+
+  .local-status {
+    display: none;
+  }
+
+  .app-frame .play-shell,
+  .content-shell {
+    min-height: calc(100vh - 68px);
+    padding-bottom: 5.5rem;
+  }
+
+  .training-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "hero"
+      "note"
+      "profile";
+  }
+}
+
+@media (max-width: 430px) {
+  .brand small {
+    display: none;
+  }
+
+  .app-bar nav button {
+    padding-inline: 0.7rem;
+    font-size: 0.8rem;
+  }
 }

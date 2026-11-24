@@ -102,30 +102,30 @@ The lesson agent receives the selected playbook and verified Stockfish facts. It
 
 ## 6. Functional requirements
 
-| ID | Requirement | Acceptance criterion |
-| --- | --- | --- |
-| FR-001 | The user can play a complete legal game against Stockfish. | Legal moves, all terminal results, resignation, and draw handling pass browser E2E tests. |
-| FR-002 | Engine calculation must not block the interface. | Stockfish runs in a dedicated Web Worker and the board remains interactive during search. |
-| FR-003 | In-progress games persist locally after every accepted move. | Reloading restores the exact position, clocks, move history, and active focus. |
-| FR-004 | No coaching appears before a game ends. | E2E tests find no evaluation, hint, suggested move, or learning moment in active-game UI or accessible text. |
-| FR-005 | Every completed game produces a versioned analysis fact packet. | Reanalyzing a fixed PGN with fixed engine settings produces equivalent facts within documented evaluation tolerance. |
-| FR-006 | The system identifies no more than three learning moments. | Each moment references a legal position and engine-supported candidate move from its fact packet. |
-| FR-007 | Coaching output is constrained and validated. | Output matches the schema and every move, number, and theme is traceable to allowed input facts. Invalid output is suppressed. |
-| FR-008 | The player profile tracks strength and theme mastery with uncertainty. | Each score includes evidence count, confidence, and last-observed time; low evidence is labeled as an emerging pattern. |
-| FR-009 | Difficulty adapts only after a three-game window. | Scripted histories deterministically increase, hold, or reduce target Elo by at most 50 points per window. |
-| FR-010 | The scheduler chooses one focus for the next game. | The selection is deterministic from the same history and includes a user-facing reason. |
-| FR-011 | Focus affects the next game conditions. | Color, opening branch, or opponent style targets the focus; engine strength targets a 45 to 55 percent expected score. |
-| FR-012 | Offline play remains available after setup. | With the network disabled, a cached installation can start, complete, analyze, save, and schedule another game. |
-| FR-013 | Cloud synchronization never overwrites local game history. | Immutable game records merge by stable ID, then the profile is recomputed from the merged set. |
-| FR-014 | Inference provenance is visible after the game. | Coaching identifies on-device, cloud, or deterministic fallback as its source. |
-| FR-015 | The judge can observe adaptation quickly. | A seeded profile and two scripted game outcomes visibly change focus or opponent settings. |
-| FR-016 | The player can upload or paste completed PGNs. | Valid standard-chess games are stored and queued for analysis; malformed, incomplete, or unsupported games receive a specific non-destructive error. |
-| FR-017 | Imported games are deduplicated and traceable. | Importing the same canonical game twice creates one record and reports the duplicate; every accepted game displays its import source. |
-| FR-018 | Imported evidence influences curriculum without directly controlling CPU Elo. | Scripted imported histories change theme mastery and focus while identical tutor-game histories retain the same difficulty adjustment. |
-| FR-019 | Every lesson run is bound to a versioned teaching playbook. | The stored lesson record identifies the playbook version, input evidence, step sequence, and transition results. |
-| FR-020 | Lesson selection and progression are deterministic. | Identical evidence, profile, configuration, and time produce the same playbook, step order, mastery result, and next-game reinforcement. |
-| FR-021 | Generated lesson content is constrained to playbook slots. | Unknown steps, unsupported facts, altered objectives, and invalid transitions are rejected and replaced with deterministic content. |
-| FR-022 | Lessons use the player's verified positions when evidence is sufficient. | Each personalized exercise references a legal stored position and fact packet; otherwise the playbook uses a validated canonical example. |
+| ID     | Requirement                                                                   | Acceptance criterion                                                                                                                                 |
+| ------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-001 | The user can play a complete legal game against Stockfish.                    | Legal moves, all terminal results, resignation, and draw handling pass browser E2E tests.                                                            |
+| FR-002 | Engine calculation must not block the interface.                              | Stockfish runs in a dedicated Web Worker and the board remains interactive during search.                                                            |
+| FR-003 | In-progress games persist locally after every accepted move.                  | Reloading restores the exact position, clocks, move history, and active focus.                                                                       |
+| FR-004 | No coaching appears before a game ends.                                       | E2E tests find no evaluation, hint, suggested move, or learning moment in active-game UI or accessible text.                                         |
+| FR-005 | Every completed game produces a versioned analysis fact packet.               | Reanalyzing a fixed PGN with fixed engine settings produces equivalent facts within documented evaluation tolerance.                                 |
+| FR-006 | The system identifies no more than three learning moments.                    | Each moment references a legal position and engine-supported candidate move from its fact packet.                                                    |
+| FR-007 | Coaching output is constrained and validated.                                 | Output matches the schema and every move, number, and theme is traceable to allowed input facts. Invalid output is suppressed.                       |
+| FR-008 | The player profile tracks strength and theme mastery with uncertainty.        | Each score includes evidence count, confidence, and last-observed time; low evidence is labeled as an emerging pattern.                              |
+| FR-009 | Difficulty adapts only after a three-game window.                             | Scripted histories deterministically increase, hold, or reduce target Elo by at most 50 points per window.                                           |
+| FR-010 | The scheduler chooses one focus for the next game.                            | The selection is deterministic from the same history and includes a user-facing reason.                                                              |
+| FR-011 | Focus affects the next game conditions.                                       | Color, opening branch, or opponent style targets the focus; engine strength targets a 45 to 55 percent expected score.                               |
+| FR-012 | Offline play remains available after setup.                                   | With the network disabled, a cached installation can start, complete, analyze, save, and schedule another game.                                      |
+| FR-013 | Cloud synchronization never overwrites local game history.                    | Immutable game records merge by stable ID, then the profile is recomputed from the merged set.                                                       |
+| FR-014 | Inference provenance is visible after the game.                               | Coaching identifies on-device, cloud, or deterministic fallback as its source.                                                                       |
+| FR-015 | The judge can observe adaptation quickly.                                     | A seeded profile and two scripted game outcomes visibly change focus or opponent settings.                                                           |
+| FR-016 | The player can upload or paste completed PGNs.                                | Valid standard-chess games are stored and queued for analysis; malformed, incomplete, or unsupported games receive a specific non-destructive error. |
+| FR-017 | Imported games are deduplicated and traceable.                                | Importing the same canonical game twice creates one record and reports the duplicate; every accepted game displays its import source.                |
+| FR-018 | Imported evidence influences curriculum without directly controlling CPU Elo. | Scripted imported histories change theme mastery and focus while identical tutor-game histories retain the same difficulty adjustment.               |
+| FR-019 | Every lesson run is bound to a versioned teaching playbook.                   | The stored lesson record identifies the playbook version, input evidence, step sequence, and transition results.                                     |
+| FR-020 | Lesson selection and progression are deterministic.                           | Identical evidence, profile, configuration, and time produce the same playbook, step order, mastery result, and next-game reinforcement.             |
+| FR-021 | Generated lesson content is constrained to playbook slots.                    | Unknown steps, unsupported facts, altered objectives, and invalid transitions are rejected and replaced with deterministic content.                  |
+| FR-022 | Lessons use the player's verified positions when evidence is sufficient.      | Each personalized exercise references a legal stored position and fact packet; otherwise the playbook uses a validated canonical example.            |
 
 ## 7. Curriculum and adaptation policy
 
@@ -143,15 +143,15 @@ The MVP theme vocabulary contains six to eight labels selected from Lichess puzz
 
 ## 8. Offline and online behavior
 
-| Capability | Offline after setup | Online |
-| --- | --- | --- |
-| CPU game | Local Stockfish WASM | Same local engine path |
-| Analysis | Local Stockfish and deterministic moment selection | Same local analysis |
-| Coaching | Gemini Nano when installed, otherwise deterministic copy | Prefer Nano, then approved cloud fallback |
-| Curriculum | Recomputed from local tutor and imported game history | Recomputed from merged cross-device history |
-| Storage | IndexedDB with visible unsynced state | IndexedDB plus Firestore synchronization |
-| Configuration | Last validated configuration | Remote Config may update approved model, prompt, and thresholds |
-| Game import | Upload or paste PGN, then validate and analyze locally | Same local import path; accepted records may synchronize |
+| Capability    | Offline after setup                                      | Online                                                          |
+| ------------- | -------------------------------------------------------- | --------------------------------------------------------------- |
+| CPU game      | Local Stockfish WASM                                     | Same local engine path                                          |
+| Analysis      | Local Stockfish and deterministic moment selection       | Same local analysis                                             |
+| Coaching      | Gemini Nano when installed, otherwise deterministic copy | Prefer Nano, then approved cloud fallback                       |
+| Curriculum    | Recomputed from local tutor and imported game history    | Recomputed from merged cross-device history                     |
+| Storage       | IndexedDB with visible unsynced state                    | IndexedDB plus Firestore synchronization                        |
+| Configuration | Last validated configuration                             | Remote Config may update approved model, prompt, and thresholds |
+| Game import   | Upload or paste PGN, then validate and analyze locally   | Same local import path; accepted records may synchronize        |
 
 ## 9. Success measures
 
@@ -170,16 +170,16 @@ Longer-term product signals are repeat games per player, completion rate, return
 
 ## 10. Risks and mitigations
 
-| Risk | Mitigation |
-| --- | --- |
-| Limited-strength Stockfish makes implausible moves. | Benchmark all levels against human games, extend book play where useful, and constrain the adjustment range. |
-| The curriculum overclaims a weakness. | Store evidence and uncertainty; require repeated evidence before declaring a stable pattern. |
-| Gemini hallucinates chess facts. | Supply a compact fact packet, require structured output, validate every claim, and fall back to deterministic copy. |
-| Lesson agents drift from the teaching method. | Select and advance versioned playbooks deterministically; allow generation only inside validated content slots. |
-| On-device inference is unsupported or unavailable. | Capability-detect at runtime and preserve a deterministic local coaching path. |
-| Cross-device state conflicts. | Sync immutable games and recompute derived profiles instead of syncing mutable profile totals. |
-| Imported metadata distorts difficulty. | Treat ratings and results as low-confidence context; adjust CPU Elo primarily from tutor-played games. |
-| The offline claim is misleading. | Consistently describe the product as offline after setup and show model/cache readiness. |
+| Risk                                                | Mitigation                                                                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Limited-strength Stockfish makes implausible moves. | Benchmark all levels against human games, extend book play where useful, and constrain the adjustment range.        |
+| The curriculum overclaims a weakness.               | Store evidence and uncertainty; require repeated evidence before declaring a stable pattern.                        |
+| Gemini hallucinates chess facts.                    | Supply a compact fact packet, require structured output, validate every claim, and fall back to deterministic copy. |
+| Lesson agents drift from the teaching method.       | Select and advance versioned playbooks deterministically; allow generation only inside validated content slots.     |
+| On-device inference is unsupported or unavailable.  | Capability-detect at runtime and preserve a deterministic local coaching path.                                      |
+| Cross-device state conflicts.                       | Sync immutable games and recompute derived profiles instead of syncing mutable profile totals.                      |
+| Imported metadata distorts difficulty.              | Treat ratings and results as low-confidence context; adjust CPU Elo primarily from tutor-played games.              |
+| The offline claim is misleading.                    | Consistently describe the product as offline after setup and show model/cache readiness.                            |
 
 ## 11. Release acceptance
 

@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function ownsUserScope(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function createsOwnedImmutableGame(userId) {
+      return request.resource.data.keys().hasOnly(['ownerId', 'contentHash', 'record', 'createdAt'])
+        && request.resource.data.ownerId == userId
+        && request.resource.data.contentHash is string
+        && request.resource.data.contentHash.size() == 64
+        && request.resource.data.record is map
+        && request.resource.data.record.id is string
+        && request.resource.data.record.schemaVersion == 1
+        && request.resource.data.createdAt is string;
+    }
+
+    match /users/{userId}/games/{gameId} {
+      allow get, list: if ownsUserScope(userId);
+      allow create: if ownsUserScope(userId)
+        && createsOwnedImmutableGame(userId)
+        && request.resource.data.record.id == gameId;
+      allow delete: if ownsUserScope(userId);
+      allow update: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

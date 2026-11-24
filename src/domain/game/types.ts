@@ -1,16 +1,27 @@
 export type Brand<T, Name extends string> = T & { readonly __brand: Name };
 
-export type GameId = Brand<string, 'GameId'>;
-export type PositionId = Brand<string, 'PositionId'>;
+export type GameId = Brand<string, "GameId">;
+export type PositionId = Brand<string, "PositionId">;
 
-export type PlayerColor = 'white' | 'black';
+export function createGameId(value: string): GameId {
+  if (value.trim().length === 0) throw new Error("Game ID must not be empty");
+  return value as GameId;
+}
+
+export function createPositionId(value: string): PositionId {
+  if (value.trim().length === 0)
+    throw new Error("Position ID must not be empty");
+  return value as PositionId;
+}
+
+export type PlayerColor = "white" | "black";
 
 export type GameOrigin =
-  | { readonly type: 'tutor' }
-  | { readonly type: 'pgn-upload'; readonly sourceName: string }
-  | { readonly type: 'pgn-paste' };
+  | { readonly type: "tutor" }
+  | { readonly type: "pgn-upload"; readonly sourceName: string }
+  | { readonly type: "pgn-paste" };
 
-export type GameResult = 'white-win' | 'black-win' | 'draw';
+export type GameResult = "white-win" | "black-win" | "draw";
 
 export interface RecordedMove {
   readonly ply: number;

@@ -1,0 +1,164 @@
+import { deleteDB, type IDBPDatabase, type DBSchema, openDB } from "idb";
+
+import type {
+  GameRepository,
+  RepositoryFailure,
+} from "../../application/ports/game-repository";
+import type { GameId, GameRecord } from "../../domain/game/types";
+import { err, ok, type Result } from "../../shared/result/result";
+
+import { isGameRecord } from "./game-record-validation";
+import { decideGameWrite } from "./write-policy";
+
+interface ChessTutorDatabase extends DBSchema {
+  games: {
+    key: string;
+    value: GameRecord;
+  };
+}
+
+const DATABASE_VERSION = 1;
+const GAME_STORE = "games";
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : "IndexedDB operation failed.";
+
+export class IndexedDbGameRepository implements GameRepository {
+  readonly #databaseName: string;
+  #databasePromise: Promise<IDBPDatabase<ChessTutorDatabase>> | null = null;
+
+  constructor(databaseName = "adaptive-chess-tutor") {
+    this.#databaseName = databaseName;
+  }
+
+  async get(id: GameId): Promise<Result<GameRecord | null, RepositoryFailure>> {
+    try {
+      const database = await this.#open();
+      const value: unknown = await database.get(GAME_STORE, id);
+
+      if (value === undefined) {
+        return ok(null);
+      }
+
+      if (!isGameRecord(value)) {
+        return err({
+          code: "invalid-record",
+          message: `Stored game ${id} does not match schema version 1.`,
+        });
+      }
+
+      return ok(structuredClone(value));
+    } catch (error: unknown) {
+      return err({ code: "unavailable", message: errorMessage(error) });
+    }
+  }
+
+  async put(record: GameRecord): Promise<Result<void, RepositoryFailure>> {
+    if (!isGameRecord(record)) {
+      return err({
+        code: "invalid-record",
+        message: "Game record failed schema validation.",
+      });
+    }
+
+    try {
+      const database = await this.#open();
+      const transaction = database.transaction(GAME_STORE, "readwrite");
+      const storedValue: unknown = await transaction.store.get(record.id);
+
+      if (storedValue !== undefined && !isGameRecord(storedValue)) {
+        await transaction.done;
+        return err({
+          code: "invalid-record",
+          message: `Stored game ${record.id} does not match schema version 1.`,
+        });
+      }
+
+      const decision = decideGameWrite(storedValue, record);
+      if (decision.type === "conflict") {
+        await transaction.done;
+        return err({ code: "conflict", message: decision.reason });
+      }
+
+      if (decision.type !== "idempotent") {
+        await transaction.store.put(structuredClone(record));
+      }
+
+      await transaction.done;
+      return ok(undefined);
+    } catch (error: unknown) {
+      return err({ code: "unavailable", message: errorMessage(error) });
+    }
+  }
+
+  async listCompleted(): Promise<
+    Result<readonly GameRecord[], RepositoryFailure>
+  > {
+    try {
+      const database = await this.#open();
+      const values: readonly unknown[] = await database.getAll(GAME_STORE);
+      if (!values.every(isGameRecord)) {
+        return err({
+          code: "invalid-record",
+          message: "At least one stored game does not match schema version 1.",
+        });
+      }
+
+      const completed = values
+        .filter((record) => record.completedAt !== null)
+        .sort((left, right) => {
+          const completedComparison = (left.completedAt ?? "").localeCompare(
+            right.completedAt ?? "",
+          );
+          return completedComparison === 0
+            ? left.id.localeCompare(right.id)
+            : completedComparison;
+        })
+        .map((record) => structuredClone(record));
+
+      return ok(completed);
+    } catch (error: unknown) {
+      return err({ code: "unavailable", message: errorMessage(error) });
+    }
+  }
+
+  async close(): Promise<void> {
+    const databasePromise = this.#databasePromise;
+    this.#databasePromise = null;
+    if (databasePromise !== null) {
+      const database = await databasePromise;
+      database.close();
+    }
+  }
+
+  #open(): Promise<IDBPDatabase<ChessTutorDatabase>> {
+    if (typeof indexedDB === "undefined") {
+      return Promise.reject(
+        new Error("IndexedDB is unavailable in this environment."),
+      );
+    }
+
+    this.#databasePromise ??= openDB<ChessTutorDatabase>(
+      this.#databaseName,
+      DATABASE_VERSION,
+      {
+        upgrade(database) {
+          if (!database.objectStoreNames.contains(GAME_STORE)) {
+            database.createObjectStore(GAME_STORE, { keyPath: "id" });
+          }
+        },
+      },
+    );
+
+    return this.#databasePromise;
+  }
+}
+
+export const deleteChessTutorDatabase = async (
+  databaseName: string,
+): Promise<void> => {
+  if (typeof indexedDB === "undefined") {
+    throw new Error("IndexedDB is unavailable in this environment.");
+  }
+  await deleteDB(databaseName);
+};

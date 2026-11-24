@@ -1,5 +1,5 @@
-import type { Result } from '../../shared/result/result';
-import type { PositionId } from '../../domain/game/types';
+import type { Result } from "../../shared/result/result";
+import type { PositionId } from "../../domain/game/types";
 
 export interface EngineMove {
   readonly uci: string;
@@ -7,10 +7,10 @@ export interface EngineMove {
 }
 
 export type EngineFailure =
-  | { readonly code: 'not-ready' }
-  | { readonly code: 'cancelled' }
-  | { readonly code: 'timeout' }
-  | { readonly code: 'crashed'; readonly message: string };
+  | { readonly code: "not-ready" }
+  | { readonly code: "cancelled" }
+  | { readonly code: "timeout" }
+  | { readonly code: "crashed"; readonly message: string };
 
 export interface EngineMoveRequest {
   readonly positionId: PositionId;
@@ -23,6 +23,8 @@ export interface EngineMoveRequest {
 
 export interface GameEngine {
   initialize(signal: AbortSignal): Promise<Result<void, EngineFailure>>;
-  chooseMove(request: EngineMoveRequest): Promise<Result<EngineMove, EngineFailure>>;
+  chooseMove(
+    request: EngineMoveRequest,
+  ): Promise<Result<EngineMove, EngineFailure>>;
   dispose(): void;
 }

@@ -1,9 +1,13 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const workerRequestSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('initialize'), requestId: z.string().min(1), protocolVersion: z.literal(1) }),
+export const workerRequestSchema = z.discriminatedUnion("type", [
   z.object({
-    type: z.literal('search'),
+    type: z.literal("initialize"),
+    requestId: z.string().min(1),
+    protocolVersion: z.literal(1),
+  }),
+  z.object({
+    type: z.literal("search"),
     requestId: z.string().min(1),
     protocolVersion: z.literal(1),
     positionId: z.string().min(1),
@@ -12,25 +16,33 @@ export const workerRequestSchema = z.discriminatedUnion('type', [
     targetElo: z.number().int().min(400).max(3190),
     timeBudgetMs: z.number().int().positive().max(5000),
   }),
-  z.object({ type: z.literal('cancel'), requestId: z.string().min(1), protocolVersion: z.literal(1) }),
+  z.object({
+    type: z.literal("cancel"),
+    requestId: z.string().min(1),
+    protocolVersion: z.literal(1),
+  }),
 ]);
 
 export type WorkerRequest = z.infer<typeof workerRequestSchema>;
 
-export const workerResponseSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('ready'), requestId: z.string().min(1), protocolVersion: z.literal(1) }),
+export const workerResponseSchema = z.discriminatedUnion("type", [
   z.object({
-    type: z.literal('best-move'),
+    type: z.literal("ready"),
+    requestId: z.string().min(1),
+    protocolVersion: z.literal(1),
+  }),
+  z.object({
+    type: z.literal("best-move"),
     requestId: z.string().min(1),
     protocolVersion: z.literal(1),
     positionId: z.string().min(1),
     uci: z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/),
   }),
   z.object({
-    type: z.literal('error'),
+    type: z.literal("error"),
     requestId: z.string().min(1),
     protocolVersion: z.literal(1),
-    code: z.enum(['not-ready', 'invalid-request', 'timeout', 'crashed']),
+    code: z.enum(["not-ready", "invalid-request", "timeout", "crashed"]),
     message: z.string(),
   }),
 ]);
