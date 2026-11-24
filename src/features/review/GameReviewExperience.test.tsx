@@ -125,7 +125,7 @@ const playBoardMove = (fromLabel: RegExp, toLabel: RegExp): void => {
   });
   fireEvent.click(within(board).getByRole("gridcell", { name: fromLabel }));
   fireEvent.click(within(board).getByRole("gridcell", { name: toLabel }));
-  fireEvent.click(screen.getByRole("button", { name: "Commit this move" }));
+  fireEvent.click(screen.getByRole("button", { name: "Play this move" }));
 };
 
 const playOriginalBest = (): void => {
@@ -135,17 +135,18 @@ const playOriginalBest = (): void => {
 describe("GameReviewExperience transfer set", () => {
   it("starts with an exact board retry and hides the pattern until commitment", () => {
     const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+    render(<GameReviewExperience {...fixture} />);
 
     expect(
-      screen.getByRole("heading", { name: "What would you play now?" }),
+      screen.getByRole("heading", { name: "Play it differently." }),
     ).toBeVisible();
+    expect(screen.queryByText(/Set 1 of/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/one-move threat/i)).not.toBeInTheDocument();
     expect(screen.queryByText("d2d4")).not.toBeInTheDocument();
     playOriginalBest();
 
     expect(
-      screen.getByRole("heading", { name: "one-move threat" }),
+      screen.getByRole("heading", { name: "One-move threat" }),
     ).toBeVisible();
     expect(
       screen.getByText(/immediate check, capture, or direct attack/),
@@ -154,21 +155,21 @@ describe("GameReviewExperience transfer set", () => {
 
   it("gives deterministic correction for an incorrect legal original move", () => {
     const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+    render(<GameReviewExperience {...fixture} />);
     playBoardMove(/White bishop on f1/, /Empty c4, legal destination/);
 
     expect(
-      screen.getByText(/does not handle the one-move threat/),
+      screen.getByText(/coach's line meets the position's demand/),
     ).toBeVisible();
   });
 
   it("accepts a verified alternative original move inside tolerance", () => {
     const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+    render(<GameReviewExperience {...fixture} />);
     playBoardMove(/White knight on b1/, /Empty c3, legal destination/);
 
     expect(
-      screen.getByText(/stays inside the verified tolerance/),
+      screen.getByText(/one of the coach's strongest choices/),
     ).toBeVisible();
     fireEvent.click(screen.getByText("Technical details"));
     expect(screen.getByText("35 centipawns")).toBeVisible();
@@ -180,55 +181,55 @@ describe("GameReviewExperience transfer set", () => {
     render(
       <GameReviewExperience
         {...fixture}
-        onPracticePosition={vi.fn()}
         onTrainingComplete={onTrainingComplete}
         now={() => "2026-11-24T12:00:00.000Z"}
       />,
     );
     playOriginalBest();
     fireEvent.click(
-      screen.getByRole("button", { name: "Try a close analogue" }),
+      screen.getByRole("button", { name: "Try a similar position" }),
     );
     expect(
-      screen.getByRole("heading", {
-        name: "Find the forcing move that ends the game.",
-      }),
+      screen.getByRole("heading", { name: "Spot it again?" }),
     ).toBeVisible();
     playBoardMove(/White queen on h5/, /Black pawn on f7, legal destination/);
     fireEvent.click(
-      screen.getByRole("button", { name: "Try it without a label" }),
+      screen.getByRole("button", { name: "Spot it again, no hint" }),
     );
 
     expect(
-      screen.getByRole("heading", { name: "What would you play here?" }),
+      screen.getByRole("heading", { name: "One more position?" }),
     ).toBeVisible();
     expect(screen.queryByText(/one-move threat/i)).not.toBeInTheDocument();
     playBoardMove(/White rook on e1/, /Empty e8, legal destination/);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Finish and log this set" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Finish review" }));
 
     expect(
-      screen.getByRole("heading", { name: "This set programs the next one" }),
+      screen.getByRole("heading", {
+        name: "Take one cue into the next game",
+      }),
     ).toBeVisible();
-    expect(screen.getAllByText("100%")).toHaveLength(4);
+    expect(
+      screen.getByText(/tested the idea in 2 new positions/),
+    ).toBeVisible();
+    expect(screen.queryByText(/100%/)).not.toBeInTheDocument();
     expect(onTrainingComplete).toHaveBeenCalledOnce();
   });
 
   it("scores an incorrect close analogue without changing progression", () => {
     const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+    render(<GameReviewExperience {...fixture} />);
     playOriginalBest();
     fireEvent.click(
-      screen.getByRole("button", { name: "Try a close analogue" }),
+      screen.getByRole("button", { name: "Try a similar position" }),
     );
     playBoardMove(/White queen on h5/, /Empty g5, legal destination/);
 
     expect(
-      screen.getByText(/does not handle the one-move threat/),
+      screen.getByText(/coach's line meets the position's demand/),
     ).toBeVisible();
     expect(
-      screen.getByRole("button", { name: "Try it without a label" }),
+      screen.getByRole("button", { name: "Spot it again, no hint" }),
     ).toBeVisible();
   });
 
@@ -237,16 +238,12 @@ describe("GameReviewExperience transfer set", () => {
     render(
       <GameReviewExperience
         {...fixture}
-        onPracticePosition={vi.fn()}
         now={() => "2026-11-24T12:00:00.000Z"}
       />,
     );
     playOriginalBest();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Finish and schedule transfer" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Finish review" }));
 
-    expect(screen.getAllByText("Scheduled for next game")).toHaveLength(2);
     expect(
       screen.getByText(/The next game will include one forcing decision/),
     ).toBeVisible();
@@ -254,7 +251,7 @@ describe("GameReviewExperience transfer set", () => {
 
   it("keeps replay and engine data collapsed as secondary references", () => {
     const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} onPracticePosition={vi.fn()} />);
+    render(<GameReviewExperience {...fixture} />);
 
     expect(
       screen.getByText("Replay the full game").closest("details"),
@@ -264,5 +261,44 @@ describe("GameReviewExperience transfer set", () => {
     expect(
       screen.getByText("Technical details").closest("details"),
     ).not.toHaveAttribute("open");
+  });
+
+  it("lets the learner stop after the rewound game without taking a quiz", () => {
+    const fixture = reviewFixture();
+    const onTrainingComplete = vi.fn<(log: ReviewTrainingLog) => void>();
+    render(
+      <GameReviewExperience
+        {...fixture}
+        onTrainingComplete={onTrainingComplete}
+        now={() => "2026-11-24T12:00:00.000Z"}
+      />,
+    );
+    playOriginalBest();
+
+    expect(screen.getByRole("button", { name: "Finish review" })).toBeVisible();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Finish review" }));
+
+    expect(screen.getByText(/replayed the critical moment/)).toBeVisible();
+    expect(onTrainingComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        closeTransferScore: null,
+        unlabeledTransferScore: null,
+      }),
+    );
+  });
+
+  it("plays through the coach line to show the opponent reply", () => {
+    const fixture = reviewFixture();
+    render(<GameReviewExperience {...fixture} />);
+    playOriginalBest();
+
+    fireEvent.click(screen.getByRole("button", { name: "Coach's line" }));
+    expect(screen.getByText("Move 1 of 3")).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show the opponent's reply" }),
+    );
+
+    expect(screen.getByText(/Move 2 of 3 - opponent's reply/)).toBeVisible();
   });
 });

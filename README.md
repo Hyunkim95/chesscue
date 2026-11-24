@@ -16,10 +16,10 @@ The current checkpoint supports:
 - complete legal games against Stockfish 19 lite in a Web Worker
 - durable local game state and offline PWA startup
 - PGN paste or file import with learner color, validation, and deduplication
-- active Stockfish review with exact retry, curated close analogue, unlabeled transfer, and a three-part training log
+- rewind-style Stockfish review with a direct board retry and optional transfer challenges
 - automatic post-game analysis with durable analysis and review evidence
 - a real profile recomputed from game history, with bounded three-game CPU difficulty changes
-- an interactive versioned playbook lesson with validated deterministic fallback
+- versioned lesson playbooks that constrain analysis, feedback, and follow-up generation behind the review experience
 - a Firebase hybrid provider that prefers on-device inference and falls back to cloud when configured
 - optional Firebase persistence and deployment adapters
 

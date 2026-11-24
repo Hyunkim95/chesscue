@@ -43,7 +43,7 @@ test("resigns and offers another game", async ({ page }) => {
   await page.getByRole("button", { name: "Resign game" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Retry it, vary it, transfer it" }),
+    page.getByRole("heading", { name: "Your game, rewound" }),
   ).toBeVisible({ timeout: 30_000 });
   await expect(
     page.getByRole("button", { name: "Back to training plan" }),

@@ -19,37 +19,27 @@ import {
   createPositionId,
   type GameRecord,
 } from "../domain/game/types";
-import {
-  canonicalHangingPieceFacts,
-  hangingPiecePlaybook,
-} from "../domain/lessons";
 import { CurriculumCard } from "../features/curriculum/CurriculumCard";
 import {
   ImportGamesPanel,
   type ImportGamesRequest,
 } from "../features/import-games/ImportGamesPanel";
-import { LessonExperience } from "../features/lessons";
 import { PlayGameScreen } from "../features/play/PlayGameScreen";
 import { ProfileOverview } from "../features/profile/ProfileOverview";
 import { GameReviewExperience } from "../features/review/GameReviewExperience";
-import type { LessonContentProvider } from "../infrastructure/ai/lesson-content-provider";
-import { loadFirebaseClientConfig } from "../infrastructure/config/firebase-environment";
 import { StockfishAnalysisEngine } from "../infrastructure/engine/stockfish-analysis-engine";
 import { StockfishGameEngine } from "../infrastructure/engine/stockfish-game-engine";
 import { IndexedDbGameRepository } from "../infrastructure/persistence/indexeddb-game-repository";
 import { IndexedDbAnalysisRepository } from "../infrastructure/persistence/indexeddb-analysis-repository";
 import { IndexedDbReviewEvidenceRepository } from "../infrastructure/persistence/indexeddb-review-evidence-repository";
 
-type AppView = "play" | "import" | "training" | "review" | "lesson";
+type AppView = "play" | "import" | "training" | "review";
 
 const repository = new IndexedDbGameRepository();
 const analysisRepository = new IndexedDbAnalysisRepository();
 const reviewEvidenceRepository = new IndexedDbReviewEvidenceRepository();
 const engine = new StockfishGameEngine();
 const analysisEngine = new StockfishAnalysisEngine();
-const firebaseConfiguration = loadFirebaseClientConfig();
-const demoLessonRunId = crypto.randomUUID();
-const demoLessonStartedAt = new Date().toISOString();
 
 type AnalysisViewState =
   | { readonly status: "idle" }
@@ -77,44 +67,6 @@ const titleCase = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
-function useLessonProvider(enabled: boolean): LessonContentProvider | null {
-  const [provider, setProvider] = useState<LessonContentProvider | null>(null);
-
-  useEffect(() => {
-    if (
-      !enabled ||
-      !firebaseConfiguration.ok ||
-      firebaseConfiguration.value === null
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    void Promise.all([
-      import("../infrastructure/firebase/firebase-client"),
-      import("../infrastructure/ai/firebase-hybrid-lesson-content-provider"),
-    ]).then(([firebaseModule, providerModule]) => {
-      if (cancelled) return;
-      const firebase = firebaseModule.initializeFirebaseClient({
-        enableAppCheck: import.meta.env.PROD,
-      });
-      if (firebase.status !== "ready") return;
-      setProvider(
-        providerModule.createFirebaseHybridLessonContentProvider({
-          firebaseApp: firebase.services.app,
-          timeoutMs: 10_000,
-        }),
-      );
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled]);
-
-  return provider;
-}
-
 export function App() {
   const [view, setView] = useState<AppView>("play");
   const [analysis, setAnalysis] = useState<AnalysisViewState>({
@@ -122,9 +74,7 @@ export function App() {
   });
   const [profile, setProfile] = useState<PlayerProfile>(initialProfile);
   const [profileReady, setProfileReady] = useState(false);
-  const lessonProvider = useLessonProvider(view === "lesson");
-  const activeNavigationView =
-    view === "lesson" || view === "review" ? "training" : view;
+  const activeNavigationView = view === "review" ? "training" : view;
   const targetElo = profile.nextGame.targetElo;
   const focus = profile.nextGame.reason;
 
@@ -357,27 +307,6 @@ export function App() {
           <div className="training-profile">
             <ProfileOverview profile={profile} />
           </div>
-          <section
-            className="playbook-note"
-            aria-labelledby="playbook-note-title"
-          >
-            <p className="section-kicker">Lesson agents</p>
-            <h2 id="playbook-note-title">Predictable by playbook</h2>
-            <p>
-              Lessons follow versioned teaching steps. Stockfish supplies the
-              facts, while AI may personalize wording without changing scoring,
-              progression, or your next game.
-            </p>
-            <button
-              className="primary-link"
-              type="button"
-              onClick={() => {
-                setView("lesson");
-              }}
-            >
-              Start playbook lesson
-            </button>
-          </section>
           <section className="review-card" aria-labelledby="review-card-title">
             <p className="section-kicker">Stockfish review</p>
             <h2 id="review-card-title">Analyze your latest game</h2>
@@ -440,37 +369,12 @@ export function App() {
               <GameReviewExperience
                 game={analysis.game}
                 analysis={analysis.analysis}
-                isPracticeAvailable={(theme) => theme === "hanging-piece"}
-                onPracticePosition={() => {
-                  setView("lesson");
-                }}
                 onTrainingComplete={(log) => {
                   void handleTrainingComplete(log);
                 }}
               />
             </div>
           ) : null}
-        </main>
-      ) : null}
-
-      {view === "lesson" ? (
-        <main className="content-shell lesson-shell">
-          <button
-            className="lesson-back"
-            type="button"
-            onClick={() => {
-              setView("training");
-            }}
-          >
-            Back to training plan
-          </button>
-          <LessonExperience
-            runId={demoLessonRunId}
-            startedAt={demoLessonStartedAt}
-            playbook={hangingPiecePlaybook}
-            facts={canonicalHangingPieceFacts}
-            provider={lessonProvider}
-          />
         </main>
       ) : null}
     </div>

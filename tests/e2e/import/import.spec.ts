@@ -62,8 +62,8 @@ test("shows the deterministic training plan", async ({ page }) => {
     page.getByRole("heading", { name: "Your Training Profile" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Predictable by playbook" }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Start playbook lesson" }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Play this focus game" }),
   ).toBeVisible();

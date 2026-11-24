@@ -147,8 +147,8 @@ const scoreCandidates = (input: {
     comparison: !legal
       ? "That move is not legal in this position. The board has been reset for another attempt."
       : accepted
-        ? `Your move handles the ${themeNames[input.theme]} and stays inside the verified tolerance.`
-        : `Your move is legal, but it does not handle the ${themeNames[input.theme]} as reliably as the verified line.`,
+        ? "Your move meets the position's demand. It is one of the coach's strongest choices."
+        : "Your move is legal. The coach's line meets the position's demand more directly.",
   };
 };
 
