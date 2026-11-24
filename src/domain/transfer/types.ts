@@ -14,6 +14,7 @@ export interface TransferVerification {
   readonly verifiedAt: string;
   readonly toleranceCp: number;
   readonly bestMoveUci: string;
+  readonly principalVariation: readonly string[];
   readonly candidates: readonly VerifiedTransferCandidate[];
 }
 

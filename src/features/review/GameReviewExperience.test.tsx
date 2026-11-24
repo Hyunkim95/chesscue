@@ -301,4 +301,20 @@ describe("GameReviewExperience transfer set", () => {
 
     expect(screen.getByText(/Move 2 of 3 - opponent's reply/)).toBeVisible();
   });
+
+  it("shows the opponent reply in an optional similar position", () => {
+    const fixture = reviewFixture("development");
+    render(<GameReviewExperience {...fixture} />);
+    playOriginalBest();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Try a similar position" }),
+    );
+    playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
+    fireEvent.click(screen.getByRole("button", { name: "Coach's line" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show the opponent's reply" }),
+    );
+
+    expect(screen.getByText(/Move 2 of 3 - opponent's reply/)).toBeVisible();
+  });
 });

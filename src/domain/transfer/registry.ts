@@ -6,6 +6,7 @@ const provenance =
 
 const verification = (
   bestMoveUci: string,
+  principalVariation: readonly string[],
   candidates: CuratedTransferExercise["verification"]["candidates"],
   toleranceCp = 35,
 ): CuratedTransferExercise["verification"] => ({
@@ -15,6 +16,7 @@ const verification = (
   verifiedAt: "2026-11-24",
   toleranceCp,
   bestMoveUci,
+  principalVariation,
   candidates,
 });
 
@@ -31,11 +33,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "The pawn attacks the bishop. Moving it or exchanging it prevents a free loss of material.",
     provenance,
-    verification: verification("b5a4", [
-      { uci: "b5a4", evaluationCp: 37 },
-      { uci: "b5c6", evaluationCp: 18 },
-      { uci: "b5c4", evaluationCp: -6 },
-    ]),
+    verification: verification(
+      "b5a4",
+      ["b5a4", "g8f6", "e1g1", "f6e4", "d2d4", "b7b5", "a4b3", "d7d5"],
+      [
+        { uci: "b5a4", evaluationCp: 37 },
+        { uci: "b5c6", evaluationCp: 18 },
+        { uci: "b5c4", evaluationCp: -6 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -49,11 +55,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "The bishop is under pressure. Exchanging on f6 removes the attack and changes Black's pawn structure.",
     provenance,
-    verification: verification("g5f6", [
-      { uci: "g5f6", evaluationCp: 128 },
-      { uci: "g5f4", evaluationCp: 7 },
-      { uci: "g5h4", evaluationCp: 0 },
-    ]),
+    verification: verification(
+      "g5f6",
+      ["g5f6", "g7f6", "c4d5", "e6d5", "e2e3", "h6h5", "g1f3", "h5h4"],
+      [
+        { uci: "g5f6", evaluationCp: 128 },
+        { uci: "g5f4", evaluationCp: 7 },
+        { uci: "g5h4", evaluationCp: 0 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -67,11 +77,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "The queen captures on f7 with checkmate because the bishop protects that square.",
     provenance,
-    verification: verification("h5f7", [
-      { uci: "h5f7", evaluationCp: 99_999 },
-      { uci: "h5g5", evaluationCp: -241 },
-      { uci: "h5h4", evaluationCp: -302 },
-    ]),
+    verification: verification(
+      "h5f7",
+      ["h5f7"],
+      [
+        { uci: "h5f7", evaluationCp: 99_999 },
+        { uci: "h5g5", evaluationCp: -241 },
+        { uci: "h5h4", evaluationCp: -302 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -85,11 +99,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "The rook reaches the back rank with checkmate because the king's own pawns remove every escape square.",
     provenance,
-    verification: verification("e1e8", [
-      { uci: "e1e8", evaluationCp: 99_999 },
-      { uci: "g2g4", evaluationCp: 710 },
-      { uci: "g2g3", evaluationCp: 678 },
-    ]),
+    verification: verification(
+      "e1e8",
+      ["e1e8"],
+      [
+        { uci: "e1e8", evaluationCp: 99_999 },
+        { uci: "g2g4", evaluationCp: 710 },
+        { uci: "g2g3", evaluationCp: 678 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -103,11 +121,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "The center supports several good plans. Compare the recapture before exchanging, or improve a piece while keeping options.",
     provenance,
-    verification: verification("c4d5", [
-      { uci: "c4d5", evaluationCp: 26 },
-      { uci: "c1g5", evaluationCp: 24 },
-      { uci: "g1f3", evaluationCp: 16 },
-    ]),
+    verification: verification(
+      "c4d5",
+      ["c4d5", "e6d5", "c1g5", "f8e7", "e2e3", "e8g8", "f1d3", "h7h6"],
+      [
+        { uci: "c4d5", evaluationCp: 26 },
+        { uci: "c1g5", evaluationCp: 24 },
+        { uci: "g1f3", evaluationCp: 16 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -121,11 +143,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "Improving coordination keeps the central pawn decision flexible instead of resolving it without a reason.",
     provenance,
-    verification: verification("e2e3", [
-      { uci: "e2e3", evaluationCp: 27 },
-      { uci: "c1g5", evaluationCp: 23 },
-      { uci: "d1d3", evaluationCp: 19 },
-    ]),
+    verification: verification(
+      "e2e3",
+      ["e2e3", "b8d7", "f1d3", "d5c4", "d3c4", "b7b5", "c4d3", "c8b7"],
+      [
+        { uci: "e2e3", evaluationCp: 27 },
+        { uci: "c1g5", evaluationCp: 23 },
+        { uci: "d1d3", evaluationCp: 19 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -139,11 +165,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "Castling moves the king away from the open center and connects the rook to the rest of the position.",
     provenance,
-    verification: verification("e1g1", [
-      { uci: "e1g1", evaluationCp: 13 },
-      { uci: "b2b3", evaluationCp: 12 },
-      { uci: "b1d2", evaluationCp: 8 },
-    ]),
+    verification: verification(
+      "e1g1",
+      ["e1g1", "c7c5", "d4c5", "e8g8", "b2b4", "a7a5", "c2c3", "a5b4"],
+      [
+        { uci: "e1g1", evaluationCp: 13 },
+        { uci: "b2b3", evaluationCp: 12 },
+        { uci: "b1d2", evaluationCp: 8 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -157,11 +187,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "Castling is the direct safety choice. The other accepted moves also keep development healthy and preserve castling next.",
     provenance,
-    verification: verification("a2a4", [
-      { uci: "a2a4", evaluationCp: 31 },
-      { uci: "e1g1", evaluationCp: 30 },
-      { uci: "b1c3", evaluationCp: 29 },
-    ]),
+    verification: verification(
+      "a2a4",
+      ["a2a4", "d7d6", "c2c3"],
+      [
+        { uci: "a2a4", evaluationCp: 31 },
+        { uci: "e1g1", evaluationCp: 30 },
+        { uci: "b1c3", evaluationCp: 29 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -175,11 +209,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "Each accepted move improves activity by developing a bishop or challenging the center before repeating moves.",
     provenance,
-    verification: verification("d2d4", [
-      { uci: "d2d4", evaluationCp: 33 },
-      { uci: "f1b5", evaluationCp: 32 },
-      { uci: "f1c4", evaluationCp: 21 },
-    ]),
+    verification: verification(
+      "d2d4",
+      ["d2d4", "e5d4", "f3d4"],
+      [
+        { uci: "d2d4", evaluationCp: 33 },
+        { uci: "f1b5", evaluationCp: 32 },
+        { uci: "f1c4", evaluationCp: 21 },
+      ],
+    ),
   },
   {
     schemaVersion: 1,
@@ -193,11 +231,15 @@ const candidates: readonly CuratedTransferExercise[] = [
     explanation:
       "Developing a knight or challenging the center brings more force into play and prepares safe castling.",
     provenance,
-    verification: verification("g1f3", [
-      { uci: "g1f3", evaluationCp: 30 },
-      { uci: "b1c3", evaluationCp: 13 },
-      { uci: "d2d4", evaluationCp: -3 },
-    ]),
+    verification: verification(
+      "g1f3",
+      ["g1f3", "b8c6"],
+      [
+        { uci: "g1f3", evaluationCp: 30 },
+        { uci: "b1c3", evaluationCp: 13 },
+        { uci: "d2d4", evaluationCp: -3 },
+      ],
+    ),
   },
 ];
 
