@@ -66,9 +66,10 @@ afterEach(() => {
 describe("PlayGameScreen", () => {
   it("lets the player move and shows the CPU reply without coaching", async () => {
     const repository = new MemoryRepository();
+    const engine = new ReadyEngine();
     render(
       <PlayGameScreen
-        engine={new ReadyEngine()}
+        engine={engine}
         repository={repository}
         createGameId={() => gameId("game-1")}
         createPositionId={() => positionId("position-1")}
@@ -91,6 +92,12 @@ describe("PlayGameScreen", () => {
       screen.queryByText(/hint|evaluation|candidate|coach/i),
     ).not.toBeInTheDocument();
     expect(repository.records.at(-1)?.moves).toHaveLength(2);
+    expect(engine.request?.searchMoves).toEqual(["e7e5"]);
+    expect(repository.records.at(-1)?.origin).toEqual({
+      type: "tutor",
+      trainingFocus: "development",
+      openingPolicyVersion: "focus-openings@1",
+    });
   });
 
   it("preserves the terminal resignation state", async () => {

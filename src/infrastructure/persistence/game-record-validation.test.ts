@@ -31,4 +31,28 @@ describe("persisted game validation", () => {
       }),
     ).toBe(false);
   });
+
+  it("accepts versioned focus metadata on tutor games", () => {
+    expect(
+      isGameRecord({
+        schemaVersion: 1,
+        id: "game-focus",
+        origin: {
+          type: "tutor",
+          trainingFocus: "development",
+          openingPolicyVersion: "focus-openings@1",
+        },
+        initialFen: "start",
+        moves: [],
+        pgn: "",
+        playerColor: "white",
+        result: null,
+        createdAt: "2026-11-24T12:00:00.000Z",
+        completedAt: null,
+        curriculumVersion: "1.0.0",
+        configurationVersion: "1.0.0",
+        fingerprint: null,
+      }),
+    ).toBe(true);
+  });
 });

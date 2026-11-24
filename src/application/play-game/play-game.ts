@@ -49,6 +49,8 @@ export interface StartTutorGameInput {
   readonly playerColor: PlayerColor;
   readonly curriculumVersion: string;
   readonly configurationVersion: string;
+  readonly trainingFocus?: string;
+  readonly openingPolicyVersion?: string;
   readonly now: string;
   readonly repository: GameRepository;
   readonly initialFen?: string;
@@ -68,7 +70,15 @@ export async function startTutorGame(
     record: {
       schemaVersion: 1,
       id: input.id,
-      origin: { type: "tutor" },
+      origin: {
+        type: "tutor",
+        ...(input.trainingFocus === undefined
+          ? {}
+          : { trainingFocus: input.trainingFocus }),
+        ...(input.openingPolicyVersion === undefined
+          ? {}
+          : { openingPolicyVersion: input.openingPolicyVersion }),
+      },
       initialFen: created.value.initialFen,
       moves: [],
       pgn: created.value.pgn,
@@ -114,6 +124,7 @@ export async function requestCpuReply(input: {
   readonly positionId: PositionId;
   readonly targetElo: number;
   readonly timeBudgetMs: number;
+  readonly searchMoves?: readonly string[];
   readonly now: () => string;
   readonly signal: AbortSignal;
   readonly completionObserver?: GameCompletionObserver;
@@ -124,6 +135,9 @@ export async function requestCpuReply(input: {
     moves: input.session.state.moves.map(({ uci }) => uci),
     targetElo: input.targetElo,
     timeBudgetMs: input.timeBudgetMs,
+    ...(input.searchMoves === undefined
+      ? {}
+      : { searchMoves: input.searchMoves }),
     signal: input.signal,
   });
   if (!move.ok)

@@ -262,6 +262,7 @@ export function App() {
           createGameId={newGameId}
           createPositionId={newPositionId}
           targetElo={targetElo}
+          focusTheme={profile.nextGame.focus}
           focusTitle={titleCase(profile.nextGame.focus)}
           focus={focus}
           onGameCompleted={handleCompletedTutorGame}

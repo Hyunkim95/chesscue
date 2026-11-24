@@ -14,6 +14,7 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
 The current checkpoint supports:
 
 - complete legal games against Stockfish 19 lite in a Web Worker
+- versioned focus-opening policies that steer early Stockfish replies without forcing learner moves
 - durable local game state and offline PWA startup
 - PGN paste or file import with learner color, validation, and deduplication
 - rewind-style Stockfish review with a direct board retry and optional transfer challenges
