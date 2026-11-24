@@ -156,6 +156,31 @@ export const completeAfterCloseFeedback = (
 ): ReviewTrainingState =>
   state.stage === "close-feedback" ? complete(state, completedAt) : state;
 
+export const retryCurrentMove = (
+  state: ReviewTrainingState,
+): ReviewTrainingState => {
+  if (state.stage === "original-feedback") {
+    return {
+      ...state,
+      stage: "original-move",
+      originalScore: null,
+      log: null,
+    };
+  }
+  if (state.stage === "close-feedback") {
+    return { ...state, stage: "close-move", closeScore: null, log: null };
+  }
+  if (state.stage === "unlabeled-feedback") {
+    return {
+      ...state,
+      stage: "unlabeled-move",
+      unlabeledScore: null,
+      log: null,
+    };
+  }
+  return state;
+};
+
 export const commitUnlabeledMove = (
   state: ReviewTrainingState,
   moveUci: string,

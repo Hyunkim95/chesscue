@@ -1,4 +1,4 @@
-import { Chess, type Square } from "chess.js";
+import { Chess, type PieceSymbol, type Square } from "chess.js";
 
 import type { CuratedTransferExercise } from "../transfer";
 import type { LearningTheme, MoveAnalysisFact } from "./types";
@@ -41,21 +41,156 @@ const themeNames: Readonly<Record<LearningTheme, string>> = {
 
 const themeFeedback: Readonly<Record<LearningTheme, string>> = {
   "hanging-piece":
-    "A loose piece has more pressure on it than protection. Scan your attacked pieces before continuing your plan.",
+    "Before every move, check whether one of your pieces is attacked and cannot be safely defended.",
   "one-move-threat":
-    "A one-move threat is an immediate check, capture, or direct attack that must be handled before a slower plan.",
+    "Before starting a plan, look for immediate checks, captures, and direct threats from both sides.",
   "premature-central-exchange":
-    "Central tension means both pawn structures can still change. Compare who benefits before releasing it.",
+    "Before exchanging central pawns, ask which side benefits when the center opens.",
   "king-safety":
-    "King safety comes first when the center may open. Secure the king before starting a new plan.",
+    "When the center may open, secure your king before beginning a slower plan.",
   development:
-    "Development brings a new piece into useful play. Improve inactive pieces before repeating moves without a reason.",
+    "Bring inactive pieces into the game before moving the same developed piece again.",
   calculation:
-    "Calculation means checking the opponent's strongest reply before committing to a forcing line.",
+    "Before committing to a move, check the opponent's strongest reply.",
   "endgame-technique":
-    "Endgame technique depends on precise king and pawn sequencing, not only the first good-looking move.",
+    "In an endgame, check the exact king and pawn move order before committing.",
   other:
-    "The position had one practical demand that needed to be addressed before continuing the plan.",
+    "Handle the most urgent threat or opportunity before continuing your plan.",
+};
+
+const pieceNames: Readonly<Record<PieceSymbol, string>> = {
+  p: "pawn",
+  n: "knight",
+  b: "bishop",
+  r: "rook",
+  q: "queen",
+  k: "king",
+};
+
+export interface AttemptFeedback {
+  readonly title: "Good move" | "Try another move";
+  readonly summary: string;
+}
+
+const sanForMove = (fen: string, uci: string): string => {
+  try {
+    const game = new Chess(fen);
+    return game.move({
+      from: uci.slice(0, 2),
+      to: uci.slice(2, 4),
+      ...(uci.length === 5 ? { promotion: uci.slice(4, 5) } : {}),
+    }).san;
+  } catch {
+    return uci;
+  }
+};
+
+const loosePieceFeedback = (
+  fen: string,
+  score: MoveAttemptScore,
+  attemptedSan: string,
+  bestSan: string,
+): string | null => {
+  try {
+    const game = new Chess(fen);
+    const player = game.turn();
+    const opponent = player === "w" ? "b" : "w";
+    const loosePiece = game
+      .board()
+      .flat()
+      .filter((piece) => piece?.color === player && piece.type !== "k")
+      .find((piece) => {
+        if (piece === null) return false;
+        return (
+          game.attackers(piece.square, opponent).length >
+          game.attackers(piece.square, player).length
+        );
+      });
+    if (loosePiece === null || loosePiece === undefined) return null;
+    const attackerSquare = game.attackers(loosePiece.square, opponent)[0];
+    const attacker =
+      attackerSquare === undefined ? undefined : game.get(attackerSquare);
+    const pieceName = pieceNames[loosePiece.type];
+
+    if (score.accepted) {
+      return score.attemptedMoveUci.startsWith(loosePiece.square)
+        ? `You played ${attemptedSan}. That moves your ${pieceName} out of attack before Black can win it.`
+        : `You played ${attemptedSan}. That deals with the attack on your ${pieceName} before Black can win it.`;
+    }
+
+    const after = new Chess(fen);
+    after.move({
+      from: score.attemptedMoveUci.slice(0, 2),
+      to: score.attemptedMoveUci.slice(2, 4),
+      ...(score.attemptedMoveUci.length === 5
+        ? { promotion: score.attemptedMoveUci.slice(4, 5) }
+        : {}),
+    });
+    const pieceStillLoose =
+      after.get(loosePiece.square)?.color === player &&
+      after.attackers(loosePiece.square, opponent).length >
+        after.attackers(loosePiece.square, player).length;
+    if (
+      pieceStillLoose &&
+      attackerSquare !== undefined &&
+      attacker !== undefined
+    ) {
+      return `You played ${attemptedSan}. Your ${pieceName} on ${loosePiece.square} is still attacked by Black's ${pieceNames[attacker.type]} on ${attackerSquare}, so Black can win it next.`;
+    }
+    return `You played ${attemptedSan}. It is legal, but ${bestSan} handles the danger more safely.`;
+  } catch {
+    return null;
+  }
+};
+
+const acceptedExplanations: Readonly<Record<LearningTheme, string>> = {
+  "hanging-piece": "It deals with the attacked piece before material is lost.",
+  "one-move-threat":
+    "It handles the immediate forcing threat before starting another plan.",
+  "premature-central-exchange":
+    "It makes a sound choice while the central pawns can still change.",
+  "king-safety": "It improves king safety before the center opens.",
+  development: "It improves piece coordination or control of the center.",
+  calculation: "It holds up against the opponent's strongest reply.",
+  "endgame-technique": "It keeps the endgame move order accurate.",
+  other: "It handles the most urgent feature of the position.",
+};
+
+const rejectedExplanations: Readonly<Record<LearningTheme, string>> = {
+  "hanging-piece": "It does not fully solve the danger to the attacked piece.",
+  "one-move-threat": "It leaves the immediate forcing threat unanswered.",
+  "premature-central-exchange":
+    "It gives up central options before the position is ready.",
+  "king-safety": "It leaves the king exposed while the center may open.",
+  development: "It improves the position less directly than the coach move.",
+  calculation: "It does not hold up as well against the strongest reply.",
+  "endgame-technique": "It loses accuracy in the endgame move order.",
+  other: "It misses the most urgent feature of the position.",
+};
+
+export const getAttemptFeedback = (input: {
+  readonly fen: string;
+  readonly theme: LearningTheme;
+  readonly score: MoveAttemptScore;
+}): AttemptFeedback => {
+  const attemptedSan = sanForMove(input.fen, input.score.attemptedMoveUci);
+  const bestSan = sanForMove(input.fen, input.score.bestMoveUci);
+  const loosePiece =
+    input.theme === "hanging-piece"
+      ? loosePieceFeedback(input.fen, input.score, attemptedSan, bestSan)
+      : null;
+  if (loosePiece !== null) {
+    return {
+      title: input.score.accepted ? "Good move" : "Try another move",
+      summary: loosePiece,
+    };
+  }
+  return {
+    title: input.score.accepted ? "Good move" : "Try another move",
+    summary: input.score.accepted
+      ? `You played ${attemptedSan}. ${acceptedExplanations[input.theme]}`
+      : `You played ${attemptedSan}. ${rejectedExplanations[input.theme]} ${bestSan} is the stronger response.`,
+  };
 };
 
 const reinforcementByTheme: Readonly<Record<LearningTheme, string>> = {

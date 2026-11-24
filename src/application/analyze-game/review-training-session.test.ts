@@ -11,6 +11,7 @@ import {
   completeAfterUnlabeled,
   continueAfterCloseFeedback,
   continueAfterOriginalFeedback,
+  retryCurrentMove,
   startReviewTraining,
 } from "./review-training-session";
 
@@ -157,6 +158,27 @@ describe("review training session", () => {
       closeTransferScore: 100,
       unlabeledTransferScore: null,
       transfer: "scheduled-next-game",
+    });
+  });
+
+  it("returns feedback to the same board without keeping the discarded score", () => {
+    const started = startReviewTraining(analysis());
+    if (started === null) return;
+    const originalFeedback = commitOriginalMove(started, "d2d4");
+    const originalRetry = retryCurrentMove(originalFeedback);
+    expect(originalRetry).toMatchObject({
+      stage: "original-move",
+      originalScore: null,
+    });
+
+    const close = continueAfterOriginalFeedback(
+      commitOriginalMove(originalRetry, "d2d4"),
+      "2026-11-24T12:00:00.000Z",
+    );
+    const closeFeedback = commitCloseMove(close, "h5g5");
+    expect(retryCurrentMove(closeFeedback)).toMatchObject({
+      stage: "close-move",
+      closeScore: null,
     });
   });
 });

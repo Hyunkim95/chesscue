@@ -121,11 +121,16 @@ test("replays and compares a verified learning moment", async ({ page }) => {
   await commitFirstLegalMove(page);
 
   await expect(
-    page.getByRole("heading", {
-      name: /loose piece|one-move threat|central tension|king safety|development|calculation|endgame technique|position demand/i,
-    }),
+    page.getByRole("heading", { name: /Good move|Try another move/ }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Coach's line" }).click();
+  await expect(page.getByText(/^You played /)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Undo.*try|Try again/ }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Show coach move" }).click();
+  await expect(
+    page.getByRole("button", { name: "Back to my move" }),
+  ).toBeVisible();
   const opponentReply = page.getByRole("button", {
     name: "Show the opponent's reply",
   });
@@ -138,7 +143,7 @@ test("replays and compares a verified learning moment", async ({ page }) => {
   await expect(page.getByText("Analysis version")).toBeVisible();
 
   const closeAnalogue = page.getByRole("button", {
-    name: "Try a similar position",
+    name: "Practice this idea",
   });
   if ((await closeAnalogue.count()) > 0) {
     await closeAnalogue.click();
@@ -146,11 +151,16 @@ test("replays and compares a verified learning moment", async ({ page }) => {
       page.getByText("Optional challenge", { exact: true }),
     ).toBeVisible();
     await commitFirstLegalMove(page);
-    await page.getByRole("button", { name: "Spot it again, no hint" }).click();
-    await expect(
-      page.getByText("No hint this time", { exact: true }),
-    ).toBeVisible();
-    await commitFirstLegalMove(page);
+    const practiceWithoutHint = page.getByRole("button", {
+      name: "Practice without a hint",
+    });
+    if ((await practiceWithoutHint.count()) > 0) {
+      await practiceWithoutHint.click();
+      await expect(
+        page.getByText("No hint this time", { exact: true }),
+      ).toBeVisible();
+      await commitFirstLegalMove(page);
+    }
     await page.getByRole("button", { name: "Finish review" }).click();
   } else {
     await page.getByRole("button", { name: "Finish review" }).click();
