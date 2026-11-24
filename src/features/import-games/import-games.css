@@ -3,17 +3,22 @@
   gap: 1.5rem;
   width: min(100%, 46rem);
   padding: clamp(1.25rem, 4vw, 2rem);
-  color: #f4f3e8;
-  background: #17211a;
-  border: 1px solid rgb(181 214 157 / 20%);
+  color: var(--cue-ink);
+  background: var(--cue-paper);
+  border: 1px solid var(--cue-line);
   border-radius: 1.25rem;
-  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 24%);
+  box-shadow: var(--cue-shadow);
 }
 
 .import-panel h2,
 .import-panel h3,
 .import-panel p {
   margin-block: 0;
+}
+
+.import-panel h2,
+.import-panel h3 {
+  font-family: var(--cue-display);
 }
 
 .import-panel__intro {
@@ -23,12 +28,12 @@
 
 .import-panel__intro p:last-child {
   max-width: 64ch;
-  color: #c6c9bf;
+  color: var(--cue-muted);
   line-height: 1.55;
 }
 
 .import-panel__eyebrow {
-  color: #b5d69d;
+  color: var(--cue-pine);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -43,7 +48,7 @@
 
 .import-panel__form label > span,
 .import-panel__source {
-  color: #c6c9bf;
+  color: var(--cue-muted);
   font-size: 0.9rem;
   font-weight: 650;
 }
@@ -52,8 +57,8 @@
 .import-panel textarea {
   width: 100%;
   color: inherit;
-  background: #0e1511;
-  border: 1px solid rgb(244 243 232 / 18%);
+  background: #fffaf1;
+  border: 1px solid var(--cue-line);
   border-radius: 0.7rem;
 }
 
@@ -71,12 +76,12 @@
 .import-panel input:focus-visible,
 .import-panel textarea:focus-visible,
 .import-panel button:focus-visible {
-  outline: 3px solid #b5d69d;
+  outline: 3px solid var(--cue-coral);
   outline-offset: 3px;
 }
 
 .import-panel__or {
-  color: #8f998f;
+  color: var(--cue-muted);
   text-align: center;
 }
 
@@ -90,9 +95,9 @@
 .import-panel button {
   min-height: 2.75rem;
   padding: 0.65rem 1rem;
-  color: #101813;
+  color: var(--cue-paper);
   font-weight: 800;
-  background: #b5d69d;
+  background: var(--cue-pine);
   border: 0;
   border-radius: 999px;
   cursor: pointer;
@@ -104,16 +109,16 @@
 }
 
 .import-panel .import-panel__secondary {
-  color: #f4f3e8;
+  color: var(--cue-pine-dark);
   background: transparent;
-  border: 1px solid rgb(244 243 232 / 30%);
+  border: 1px solid var(--cue-line);
 }
 
 .import-panel__result {
   display: grid;
   gap: 1rem;
   padding: 1rem;
-  background: #0e1511;
+  background: var(--cue-paper-deep);
   border-radius: 0.9rem;
 }
 
@@ -127,16 +132,16 @@
 
 .import-panel__result li {
   padding-left: 0.75rem;
-  color: #c6c9bf;
-  border-left: 3px solid #cfb56d;
+  color: var(--cue-muted);
+  border-left: 3px solid var(--cue-coral);
 }
 
 .import-panel__result li[data-status="accepted"] {
-  border-left-color: #83c97e;
+  border-left-color: var(--cue-pine);
 }
 
 .import-panel__result li[data-status="rejected"] {
-  border-left-color: #dc7d77;
+  border-left-color: var(--cue-coral-dark);
 }
 
 @media (max-width: 36rem) {

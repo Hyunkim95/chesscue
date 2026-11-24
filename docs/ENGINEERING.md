@@ -186,7 +186,8 @@ chess-tutor/
 │   ├── PRD.md
 │   ├── ARD.md
 │   ├── SLO.md
-│   └── ENGINEERING.md
+│   ├── ENGINEERING.md
+│   └── BRAND.md
 └── .github/
     └── workflows/
         ├── verify.yml
