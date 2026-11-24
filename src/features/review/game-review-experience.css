@@ -68,11 +68,13 @@
   display: grid;
   overflow: hidden;
   aspect-ratio: 1;
+  grid-template-rows: repeat(8, minmax(0, 1fr));
   border-radius: 0.55rem;
 }
 
 .game-review-board__row {
   display: grid;
+  min-height: 0;
   grid-template-columns: repeat(8, 1fr);
 }
 
