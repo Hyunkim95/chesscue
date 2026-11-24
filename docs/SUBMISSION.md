@@ -57,6 +57,8 @@ During the hackathon period, ChessCue was built into a functioning Chrome PWA wi
 7. Import a completed PGN under Bring games to show external evidence changing focus without directly changing CPU Elo.
 8. Disable the network after the first load and confirm gameplay and deterministic review remain available.
 
+For a fast synthetic demonstration, use `demo/chesscue-demo.pgn` and follow `demo/README.md`.
+
 For an on-device demonstration, use Chrome desktop 139 or later with the Prompt API enabled and the Gemini Nano model downloaded. Otherwise the same Firebase AI Logic call uses cloud fallback.
 
 ## Demo video outline, maximum 3 minutes
