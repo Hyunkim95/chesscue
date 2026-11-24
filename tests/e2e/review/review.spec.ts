@@ -125,6 +125,9 @@ test("replays and compares a verified learning moment", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText(/^You played /)).toBeVisible();
   await expect(
+    page.getByText("Feedback source: verified local rules"),
+  ).toBeVisible();
+  await expect(
     page.getByRole("button", { name: /Undo.*try|Try again/ }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Show coach move" }).click();

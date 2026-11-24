@@ -24,6 +24,11 @@ export type FirebaseClientAvailability =
 export interface InitializeFirebaseOptions {
   readonly environment?: unknown;
   readonly enableAppCheck?: boolean;
+  readonly appCheckDebug?: boolean;
+}
+
+declare global {
+  var FIREBASE_APPCHECK_DEBUG_TOKEN: boolean | string | undefined;
 }
 
 const APP_NAME = "adaptive-chess-tutor";
@@ -43,6 +48,9 @@ export const initializeFirebaseClient = (
   }
 
   try {
+    if (options.appCheckDebug === true) {
+      globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
     const existingApp = getApps().find((app) => app.name === APP_NAME);
     const app =
       existingApp ??

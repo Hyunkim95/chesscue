@@ -6,6 +6,9 @@ export interface LessonContentProviderResult {
 }
 
 export interface LessonContentProvider {
+  initializeDeviceModel?(
+    onDownloadProgress?: (progress: number) => void,
+  ): Promise<void>;
   generate(
     request: LessonContentRequest,
     signal: AbortSignal,
