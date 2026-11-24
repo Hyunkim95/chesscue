@@ -30,6 +30,7 @@ Deadline: 2026-11-30 2:00 PM Pacific Time
 - Stockfish 19 Lite source, GPL license, and SHA-256 checksums are recorded.
 - Firestore rules default to deny, scope reads and creates to the authenticated owner, and prohibit updates.
 - GitHub Actions Verify run `45460115474` passed the same gates from the public `main` branch.
+- Lighthouse scores 100 for Accessibility, Best Practices, and SEO; Agentic Browsing scores 98 with valid `llms.txt` and ARD metadata plus one low-severity warning because ChessCue publishes a Web app rather than a standard agent protocol artifact.
 
 ## External blockers
 

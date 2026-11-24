@@ -1,0 +1,25 @@
+{
+  "entries": [
+    {
+      "@context": "https://agenticresourcediscovery.org/context/v1",
+      "identifier": "urn:air:github.com:Hyunkim95:chesscue",
+      "displayName": "ChessCue",
+      "type": "text/html",
+      "url": "https://github.com/Hyunkim95/chesscue",
+      "description": "Local-first adaptive chess training where completed games shape review and the next CPU game.",
+      "capabilities": [
+        "ChessTraining",
+        "PGNImport",
+        "StockfishAnalysis",
+        "HybridCoaching"
+      ],
+      "representativeQueries": [
+        "help me improve at chess by learning from my completed games",
+        "analyze my PGN and choose what I should practise next",
+        "play an adaptive offline chess game against Stockfish"
+      ],
+      "version": "0.1.0",
+      "updatedAt": "2026-11-24T22:30:00Z"
+    }
+  ]
+}
