@@ -141,6 +141,41 @@ describe("play game application", () => {
     ]);
   });
 
+  it("forwards bounded opening candidates without bypassing Stockfish", async () => {
+    const repository = new RecordingRepository();
+    const engine = new FixedEngine();
+    const started = await startTutorGame({
+      id: gameId("game-opening-policy"),
+      playerColor: "white",
+      curriculumVersion: "1.0.0",
+      configurationVersion: "1.0.0",
+      now: "2026-11-24T12:00:00Z",
+      repository,
+    });
+    if (!started.ok) throw new Error("Expected the game to start");
+    const playerTurn = await acceptPlayerMove({
+      session: started.value,
+      move: { from: "e2", to: "e4" },
+      now: "2026-11-24T12:00:01Z",
+      repository,
+    });
+    if (!playerTurn.ok) throw new Error("Expected a legal player turn");
+
+    await requestCpuReply({
+      session: playerTurn.value,
+      engine,
+      repository,
+      positionId: positionId("position-opening-policy"),
+      targetElo: 1480,
+      timeBudgetMs: 1200,
+      searchMoves: ["e7e5", "c7c5"],
+      now: () => "2026-11-24T12:00:02Z",
+      signal: new AbortController().signal,
+    });
+
+    expect(engine.request?.searchMoves).toEqual(["e7e5", "c7c5"]);
+  });
+
   it("persists resignation as a completed loss", async () => {
     const events: string[] = [];
     const repository = new RecordingRepository(events);

@@ -88,7 +88,7 @@ The tutor then compares the consequence on the board, names the pattern, and let
 
 ### 5.4 Continue the curriculum
 
-The mastery profile records evidence, confidence, and recency. The scheduler selects one next focus and explains why. The next game begins with the chosen opponent settings and opening branch.
+The mastery profile records evidence, confidence, and recency. The scheduler selects one next focus and explains why. Every next game begins from the normal initial position. During the early opening, a versioned focus policy gives Stockfish a small set of legal curated candidate replies that are more likely to create the selected training condition. The player can make any legal move. If the game leaves the curated branch, Stockfish immediately returns to unrestricted play at the same bounded Elo.
 
 ### 5.5 Bring completed games
 

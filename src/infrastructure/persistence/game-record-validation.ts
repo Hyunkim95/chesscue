@@ -20,6 +20,12 @@ const isGameOrigin = (value: unknown): value is GameOrigin => {
 
   switch (value.type) {
     case "tutor":
+      return (
+        (value.trainingFocus === undefined ||
+          isNonEmptyString(value.trainingFocus)) &&
+        (value.openingPolicyVersion === undefined ||
+          isNonEmptyString(value.openingPolicyVersion))
+      );
     case "pgn-paste":
       return true;
     case "pgn-upload":

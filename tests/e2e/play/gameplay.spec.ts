@@ -17,11 +17,15 @@ test("plays a legal move and receives a CPU reply without live coaching", async 
   await expect(
     page.getByRole("gridcell", { name: "White pawn on e4" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("gridcell", { name: "Black pawn on c5" }),
+  ).toBeVisible();
   await expect(page.getByRole("status")).toHaveText("Your move", {
     timeout: 5_000,
   });
   const moveHistory = page.getByRole("list", { name: "Move history" });
   await expect(moveHistory.getByText("e4")).toBeVisible();
+  await expect(moveHistory.getByText("c5")).toBeVisible();
   await expect(moveHistory.getByRole("listitem")).toHaveCount(2);
   await expect(page.getByText(/hint|evaluation|candidate|coach/i)).toHaveCount(
     0,

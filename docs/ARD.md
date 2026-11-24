@@ -111,6 +111,8 @@ The curriculum module is a pure deterministic function of ordered, completed gam
 - next focus theme and explanation code
 - target Elo, color, opening branch, and game type
 
+The focus-opening policy maps that prescription to legal candidate replies for the first eight plies. The game still starts from the standard initial position and Stockfish still chooses the move at the configured Elo and time budget, but its early search is restricted to the policy candidates when the learner's moves match a curated branch. An unmatched move produces no candidates and therefore an unrestricted Stockfish search. New tutor-game records store the focus and opening-policy version in origin metadata so the intervention remains auditable; older records without those optional fields remain valid.
+
 Difficulty is recalculated after each completed game but may change only at the end of a three-game window. Target Elo changes by at most 50 points per window. The scheduler aims for a 45 to 55 percent expected score and alternates focus with consolidation games.
 
 Derived profiles are disposable caches. They must be reproducible from immutable game and evidence records for a specified curriculum version.

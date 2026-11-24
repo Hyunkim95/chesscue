@@ -38,6 +38,7 @@ interface PendingSearch {
 const DEFAULT_ASSET_URL = "/stockfish/stockfish-19-lite-single.js";
 const MIN_STOCKFISH_ELO = 1320;
 const MAX_STOCKFISH_ELO = 3190;
+const UCI_MOVE_PATTERN = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
 
 export class StockfishGameEngine implements GameEngine {
   private readonly assetUrl: string;
@@ -136,7 +137,14 @@ export class StockfishGameEngine implements GameEngine {
         `setoption name UCI_Elo value ${targetElo.toString()}`,
       );
       worker.postMessage(`position fen ${request.fen}`);
-      worker.postMessage(`go movetime ${stopAtMs.toString()}`);
+      const searchMoves = [...new Set(request.searchMoves ?? [])]
+        .filter((move) => UCI_MOVE_PATTERN.test(move))
+        .slice(0, 8);
+      worker.postMessage(
+        searchMoves.length === 0
+          ? `go movetime ${stopAtMs.toString()}`
+          : `go searchmoves ${searchMoves.join(" ")} movetime ${stopAtMs.toString()}`,
+      );
     });
   }
 

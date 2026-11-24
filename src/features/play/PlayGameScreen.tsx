@@ -14,6 +14,11 @@ import {
   startTutorGame,
   type PlaySession,
 } from "../../application/play-game/play-game";
+import {
+  FOCUS_OPENING_POLICY_VERSION,
+  focusOpeningCandidates,
+  type CurriculumTheme,
+} from "../../domain/curriculum";
 import type { GameId, PositionId } from "../../domain/game/types";
 import "./play-game.css";
 
@@ -98,6 +103,7 @@ export interface PlayGameScreenProps {
   readonly createPositionId: () => PositionId;
   readonly now?: () => string;
   readonly targetElo?: number;
+  readonly focusTheme?: CurriculumTheme;
   readonly focusTitle?: string;
   readonly focus?: string;
   readonly onGameCompleted?: GameCompletedCallback;
@@ -110,6 +116,7 @@ export function PlayGameScreen({
   createPositionId,
   now = systemNow,
   targetElo = 1480,
+  focusTheme = "development",
   focusTitle = "Hold the center",
   focus = "Hold the center. Keep the tension before exchanging central pawns.",
   onGameCompleted,
@@ -154,6 +161,8 @@ export function PlayGameScreen({
         playerColor: "white",
         curriculumVersion: "1.0.0",
         configurationVersion: "1.0.0",
+        trainingFocus: focusTheme,
+        openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
         now: now(),
         repository,
       });
@@ -167,7 +176,7 @@ export function PlayGameScreen({
         );
       }
     },
-    [createGameId, now, repository],
+    [createGameId, focusTheme, now, repository],
   );
 
   useEffect(() => {
@@ -180,6 +189,8 @@ export function PlayGameScreen({
           playerColor: "white",
           curriculumVersion: "1.0.0",
           configurationVersion: "1.0.0",
+          trainingFocus: focusTheme,
+          openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
           now: now(),
           repository,
         }),
@@ -205,12 +216,17 @@ export function PlayGameScreen({
       abort.abort();
       searchAbort.current?.abort();
     };
-  }, [createGameId, engine, now, repository]);
+  }, [createGameId, engine, focusTheme, now, repository]);
 
   const requestCpu = async (current: PlaySession) => {
     const abort = new AbortController();
     searchAbort.current = abort;
     setNotice("CPU thinking…");
+    const openingCandidates = focusOpeningCandidates({
+      focus: focusTheme,
+      fen: current.state.fen,
+      moves: current.state.moves.map(({ uci }) => uci),
+    });
     const reply = await requestCpuReply({
       session: current,
       engine,
@@ -218,6 +234,9 @@ export function PlayGameScreen({
       positionId: createPositionId(),
       targetElo,
       timeBudgetMs: 1200,
+      ...(openingCandidates.length === 0
+        ? {}
+        : { searchMoves: openingCandidates }),
       now,
       signal: abort.signal,
       completionObserver,

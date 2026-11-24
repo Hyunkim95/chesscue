@@ -18,6 +18,7 @@ export interface EngineMoveRequest {
   readonly moves: readonly string[];
   readonly targetElo: number;
   readonly timeBudgetMs: number;
+  readonly searchMoves?: readonly string[];
   readonly signal: AbortSignal;
 }
 

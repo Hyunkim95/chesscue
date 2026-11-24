@@ -17,7 +17,11 @@ export function createPositionId(value: string): PositionId {
 export type PlayerColor = "white" | "black";
 
 export type GameOrigin =
-  | { readonly type: "tutor" }
+  | {
+      readonly type: "tutor";
+      readonly trainingFocus?: string;
+      readonly openingPolicyVersion?: string;
+    }
   | { readonly type: "pgn-upload"; readonly sourceName: string }
   | { readonly type: "pgn-paste" };
 

@@ -63,6 +63,33 @@ describe("StockfishGameEngine", () => {
     engine.dispose();
   });
 
+  it("restricts an opening search to validated policy candidates", async () => {
+    const worker = new FakeWorker();
+    const engine = new StockfishGameEngine({ createWorker: () => worker });
+    const initialized = engine.initialize(new AbortController().signal);
+    worker.emit("uciok");
+    worker.emit("readyok");
+    await initialized;
+
+    const result = engine.chooseMove({
+      positionId: positionId("position-opening"),
+      fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+      moves: ["e2e4"],
+      targetElo: 1480,
+      timeBudgetMs: 1000,
+      searchMoves: ["e7e5", "c7c5", "invalid", "e7e5"],
+      signal: new AbortController().signal,
+    });
+
+    expect(worker.messages).toContain("go searchmoves e7e5 c7c5 movetime 1000");
+    worker.emit("bestmove e7e5");
+    await expect(result).resolves.toEqual({
+      ok: true,
+      value: { uci: "e7e5" },
+    });
+    engine.dispose();
+  });
+
   it("cancels a pending search and ignores a late best move", async () => {
     const worker = new FakeWorker();
     const engine = new StockfishGameEngine({ createWorker: () => worker });
