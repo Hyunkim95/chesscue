@@ -371,6 +371,26 @@
   line-height: 1.55;
 }
 
+.game-review__coach-note {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--cue-pine) 7%, transparent);
+}
+
+.game-review__coach-note p {
+  color: var(--cue-ink);
+  line-height: 1.5;
+}
+
+.game-review__coach-note small,
+.game-review__provenance {
+  color: var(--cue-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .game-review__line-player {
   display: flex;
   flex-wrap: wrap;

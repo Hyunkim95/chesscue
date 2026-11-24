@@ -1,6 +1,6 @@
 # ChessCue
 
-A local-first PWA where complete games shape the curriculum. Stockfish owns chess truth, deterministic playbooks own lesson progression, and Gemini may personalize only validated wording slots.
+A local-first PWA where complete games shape the curriculum. Stockfish owns chess truth, deterministic playbooks own progression, and Firebase AI Logic hybrid inference personalizes only validated coaching slots.
 
 ## Test locally
 
@@ -21,10 +21,25 @@ The current checkpoint supports:
 - automatic post-game analysis with durable analysis and review evidence
 - a real profile recomputed from game history, with bounded three-game CPU difficulty changes
 - versioned lesson playbooks that constrain analysis, feedback, and follow-up generation behind the review experience
-- a Firebase hybrid provider that prefers on-device inference and falls back to cloud when configured
+- live review coaching through Firebase AI Logic, preferring Gemini Nano on device and falling back to Gemini in the cloud
 - optional Firebase persistence and deployment adapters
 
-Real Firebase project configuration, App Check, authentication, cloud synchronization for adaptive evidence, and live Gemini inference remain environment work. No deployment has been performed.
+Without Firebase configuration, ChessCue remains fully playable and uses verified deterministic coaching. A configured deployment requires App Check before hybrid coaching is enabled.
+
+## Firebase AI Logic setup
+
+ChessCue uses the Firebase Web SDK with `InferenceMode.PREFER_ON_DEVICE`. On supported Chrome desktop installations, coaching runs with Gemini Nano. When the on-device model is unavailable or still downloading, Firebase AI Logic uses the configured Gemini cloud model. The interface displays the inference source after each generated note.
+
+1. Create or select a Firebase project and register a Web app.
+2. In Firebase AI Logic, choose the Gemini Developer API and complete its guided setup.
+3. Register a Web App Check provider and enforce App Check for Firebase AI Logic.
+4. Copy `.env.example` to `.env.local` and fill in the public Firebase Web configuration.
+5. For local development only, set `VITE_FIREBASE_APP_CHECK_DEBUG=true`, load the app, and register the printed debug token in the Firebase console. Never commit the token.
+6. Use Chrome desktop 139 or later with the Prompt API enabled to demonstrate on-device inference.
+
+The first review move is a user gesture that starts on-device model initialization. Generated output is schema-validated against the supplied moves, squares, and numbers. Invalid, unavailable, or timed-out generation falls back to the same deterministic explanation without affecting scoring or progression.
+
+See the [Firebase hybrid Web setup](https://firebase.google.com/docs/ai-logic/hybrid/web/get-started).
 
 ## Verify
 
@@ -33,6 +48,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:integration
 pnpm build
 pnpm test:e2e --project=chromium
 ```
@@ -47,3 +63,9 @@ The Firestore rules integration suite additionally requires Java 21 and the Fire
 - [Service level objectives](docs/SLO.md)
 - [Engineering handbook](docs/ENGINEERING.md)
 - [Brand system](docs/BRAND.md)
+- [Submission draft and demo script](docs/SUBMISSION.md)
+- [Parked roadmap](docs/ROADMAP.md)
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).

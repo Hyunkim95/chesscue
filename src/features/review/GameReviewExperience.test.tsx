@@ -19,6 +19,7 @@ import {
   type GameRecord,
   type RecordedMove,
 } from "../../domain/game/types";
+import type { LessonContentProvider } from "../../infrastructure/ai/lesson-content-provider";
 import { GameReviewExperience } from "./GameReviewExperience";
 
 afterEach(cleanup);
@@ -319,5 +320,39 @@ describe("GameReviewExperience transfer set", () => {
     );
 
     expect(screen.getByText(/Move 2 of 3 - opponent's reply/)).toBeVisible();
+  });
+
+  it("calls Firebase hybrid coaching after a user gesture and shows provenance", async () => {
+    const fixture = reviewFixture("development");
+    const initializeDeviceModel = vi.fn(() => Promise.resolve());
+    const provider: LessonContentProvider = {
+      initializeDeviceModel,
+      generate: () =>
+        Promise.resolve({
+          provenance: "on-device",
+          value: {
+            stepId: "explain-attempt",
+            prompt: "What improved?",
+            correctFeedback:
+              "That move improves coordination before the position opens.",
+            incorrectFeedback: "Try another move.",
+            referencedMoves: [],
+            referencedSquares: [],
+            referencedNumbers: [],
+          },
+        }),
+    };
+    render(<GameReviewExperience {...fixture} coachProvider={provider} />);
+    playOriginalBest();
+
+    expect(initializeDeviceModel).toHaveBeenCalledOnce();
+    expect(
+      await screen.findByText(
+        "That move improves coordination before the position opens.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Feedback source: Gemini Nano on device"),
+    ).toBeVisible();
   });
 });

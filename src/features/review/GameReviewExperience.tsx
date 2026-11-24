@@ -1,7 +1,12 @@
 import { Chess, type Square } from "chess.js";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { CompletedGameAnalysis } from "../../application/analyze-game/analyze-completed-game";
+import {
+  buildReviewCoachingRequest,
+  prepareReviewCoaching,
+  type ReviewCoachingResult,
+} from "../../application/analyze-game/prepare-review-coaching";
 import {
   commitCloseMove,
   commitOriginalMove,
@@ -28,6 +33,7 @@ import {
 } from "../../domain/analysis/review-training";
 import type { LearningTheme } from "../../domain/analysis/types";
 import type { GameRecord } from "../../domain/game/types";
+import type { LessonContentProvider } from "../../infrastructure/ai/lesson-content-provider";
 import { ReviewBoard } from "./ReviewBoard";
 import "./game-review-experience.css";
 
@@ -71,6 +77,7 @@ const lineFrame = (
 export interface GameReviewExperienceProps {
   readonly game: GameRecord;
   readonly analysis: CompletedGameAnalysis;
+  readonly coachProvider?: LessonContentProvider | null;
   readonly onTrainingComplete?: ((log: ReviewTrainingLog) => void) | null;
   readonly now?: () => string;
 }
@@ -78,6 +85,7 @@ export interface GameReviewExperienceProps {
 export function GameReviewExperience({
   game,
   analysis,
+  coachProvider = null,
   onTrainingComplete = null,
   now = () => new Date().toISOString(),
 }: GameReviewExperienceProps) {
@@ -89,6 +97,7 @@ export function GameReviewExperience({
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [feedbackLine, setFeedbackLine] = useState<FeedbackLine>("attempt");
   const [replayPly, setReplayPly] = useState(0);
+  const deviceInitializationStarted = useRef(false);
 
   if (!replay.ok) return <p role="alert">{replay.message}</p>;
   if (session === null) {
@@ -137,6 +146,13 @@ export function GameReviewExperience({
 
   const commitMove = (): void => {
     if (selectedMove === null) return;
+    if (
+      !deviceInitializationStarted.current &&
+      coachProvider?.initializeDeviceModel !== undefined
+    ) {
+      deviceInitializationStarted.current = true;
+      void coachProvider.initializeDeviceModel().catch(() => undefined);
+    }
     setSession((current) => {
       if (current === null) return current;
       if (current.stage === "original-move")
@@ -220,6 +236,8 @@ export function GameReviewExperience({
       {session.stage === "original-feedback" ? (
         <FeedbackStage
           game={game}
+          gameId={session.primaryMoment.gameId}
+          coachProvider={coachProvider}
           fen={session.primaryFact.fenBefore}
           score={session.originalScore}
           verifiedLine={
@@ -251,6 +269,8 @@ export function GameReviewExperience({
       {session.stage === "close-feedback" && session.closeExercise !== null ? (
         <FeedbackStage
           game={game}
+          gameId={session.primaryMoment.gameId}
+          coachProvider={coachProvider}
           fen={session.closeExercise.fen}
           score={session.closeScore}
           verifiedLine={session.closeExercise.verification.principalVariation}
@@ -275,6 +295,8 @@ export function GameReviewExperience({
       session.unlabeledExercise !== null ? (
         <FeedbackStage
           game={game}
+          gameId={session.primaryMoment.gameId}
+          coachProvider={coachProvider}
           fen={session.unlabeledExercise.fen}
           score={session.unlabeledScore}
           verifiedLine={
@@ -424,6 +446,8 @@ function TrainingStage({
 
 function FeedbackStage({
   game,
+  gameId,
+  coachProvider,
   fen,
   score,
   verifiedLine,
@@ -438,6 +462,8 @@ function FeedbackStage({
   onUndo,
 }: {
   readonly game: GameRecord;
+  readonly gameId: string;
+  readonly coachProvider: LessonContentProvider | null;
   readonly fen: string;
   readonly score: MoveAttemptScore | null;
   readonly verifiedLine: readonly string[];
@@ -452,8 +478,41 @@ function FeedbackStage({
   readonly onUndo: () => void;
 }) {
   const [verifiedPly, setVerifiedPly] = useState(1);
-  if (score === null) return <p role="alert">This move was not scored.</p>;
-  const feedback = getAttemptFeedback({ fen, theme, score });
+  const [coachResult, setCoachResult] = useState<ReviewCoachingResult | null>(
+    null,
+  );
+  const feedback =
+    score === null ? null : getAttemptFeedback({ fen, theme, score });
+  const feedbackSummary = feedback?.summary;
+  useEffect(() => {
+    if (
+      score === null ||
+      feedbackSummary === undefined ||
+      coachProvider === null
+    )
+      return;
+    const controller = new AbortController();
+    const request = buildReviewCoachingRequest({
+      gameId,
+      fen,
+      theme,
+      score,
+      deterministicExplanation: feedbackSummary,
+    });
+    void prepareReviewCoaching({
+      request,
+      accepted: score.accepted,
+      provider: coachProvider,
+      signal: controller.signal,
+    }).then((result) => {
+      if (!controller.signal.aborted) setCoachResult(result);
+    });
+    return () => {
+      controller.abort();
+    };
+  }, [coachProvider, feedbackSummary, fen, gameId, score, theme]);
+  if (score === null || feedback === null)
+    return <p role="alert">This move was not scored.</p>;
   const boundedVerifiedPly = Math.min(
     Math.max(1, verifiedPly),
     Math.max(1, verifiedLine.length),
@@ -482,6 +541,7 @@ function FeedbackStage({
         <strong>Remember</strong>
         <p>{explanation}</p>
       </div>
+      <HybridCoachNote provider={coachProvider} result={coachResult} />
       <div className="game-review__feedback-controls">
         <button
           className={
@@ -558,6 +618,46 @@ function FeedbackStage({
         </button>
       </div>
     </TrainingStage>
+  );
+}
+
+function HybridCoachNote({
+  provider,
+  result,
+}: {
+  readonly provider: LessonContentProvider | null;
+  readonly result: ReviewCoachingResult | null;
+}) {
+  if (provider === null) {
+    return (
+      <p className="game-review__provenance">
+        Feedback source: verified local rules
+      </p>
+    );
+  }
+  if (result === null) {
+    return (
+      <p className="game-review__provenance" role="status">
+        Hybrid coach is preparing feedback…
+      </p>
+    );
+  }
+  const source =
+    result.provenance === "on-device"
+      ? "Gemini Nano on device"
+      : result.provenance === "cloud"
+        ? "Gemini cloud fallback"
+        : "verified local fallback";
+  return (
+    <div className="game-review__coach-note" aria-live="polite">
+      {result.provenance === "deterministic" ? null : (
+        <>
+          <strong>Hybrid coach</strong>
+          <p>{result.note}</p>
+        </>
+      )}
+      <small>Feedback source: {source}</small>
+    </div>
   );
 }
 

@@ -27,6 +27,8 @@ import {
 import { PlayGameScreen } from "../features/play/PlayGameScreen";
 import { ProfileOverview } from "../features/profile/ProfileOverview";
 import { GameReviewExperience } from "../features/review/GameReviewExperience";
+import type { LessonContentProvider } from "../infrastructure/ai/lesson-content-provider";
+import { loadFirebaseClientConfig } from "../infrastructure/config/firebase-environment";
 import { StockfishAnalysisEngine } from "../infrastructure/engine/stockfish-analysis-engine";
 import { StockfishGameEngine } from "../infrastructure/engine/stockfish-game-engine";
 import { IndexedDbGameRepository } from "../infrastructure/persistence/indexeddb-game-repository";
@@ -40,6 +42,7 @@ const analysisRepository = new IndexedDbAnalysisRepository();
 const reviewEvidenceRepository = new IndexedDbReviewEvidenceRepository();
 const engine = new StockfishGameEngine();
 const analysisEngine = new StockfishAnalysisEngine();
+const firebaseConfiguration = loadFirebaseClientConfig();
 
 type AnalysisViewState =
   | { readonly status: "idle" }
@@ -67,6 +70,49 @@ const titleCase = (value: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
+function useReviewCoachProvider(
+  enabled: boolean,
+): LessonContentProvider | null {
+  const [provider, setProvider] = useState<LessonContentProvider | null>(null);
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      !firebaseConfiguration.ok ||
+      firebaseConfiguration.value === null ||
+      provider !== null
+    ) {
+      return;
+    }
+    let cancelled = false;
+    void Promise.all([
+      import("../infrastructure/firebase/firebase-client"),
+      import("../infrastructure/ai/firebase-hybrid-lesson-content-provider"),
+    ]).then(([firebaseModule, providerModule]) => {
+      if (cancelled) return;
+      const firebase = firebaseModule.initializeFirebaseClient({
+        enableAppCheck: true,
+        appCheckDebug:
+          import.meta.env.DEV &&
+          import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG === "true",
+      });
+      if (firebase.status !== "ready" || firebase.services.appCheck === null)
+        return;
+      setProvider(
+        providerModule.createFirebaseHybridLessonContentProvider({
+          firebaseApp: firebase.services.app,
+          timeoutMs: 10_000,
+        }),
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, provider]);
+
+  return provider;
+}
+
 export function App() {
   const [view, setView] = useState<AppView>("play");
   const [analysis, setAnalysis] = useState<AnalysisViewState>({
@@ -74,6 +120,7 @@ export function App() {
   });
   const [profile, setProfile] = useState<PlayerProfile>(initialProfile);
   const [profileReady, setProfileReady] = useState(false);
+  const reviewCoachProvider = useReviewCoachProvider(view === "review");
   const activeNavigationView = view === "review" ? "training" : view;
   const targetElo = profile.nextGame.targetElo;
   const focus = profile.nextGame.reason;
@@ -370,6 +417,7 @@ export function App() {
               <GameReviewExperience
                 game={analysis.game}
                 analysis={analysis.analysis}
+                coachProvider={reviewCoachProvider}
                 onTrainingComplete={(log) => {
                   void handleTrainingComplete(log);
                 }}
