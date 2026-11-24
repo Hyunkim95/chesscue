@@ -219,9 +219,7 @@ export function App() {
             setView("play");
           }}
         >
-          <span className="brand-mark" aria-hidden="true">
-            ♞
-          </span>
+          <span className="brand-mark" aria-hidden="true" />
           <span>
             <strong>ChessCue</strong>
             <small>Adaptive training</small>
