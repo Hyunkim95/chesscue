@@ -69,3 +69,5 @@ The Firestore rules integration suite additionally requires Java 21 and the Fire
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+Third-party components retain their own licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
