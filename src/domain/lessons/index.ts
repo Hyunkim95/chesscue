@@ -1,3 +1,4 @@
+export { canonicalHangingPieceFacts } from "./canonical-hanging-piece";
 export { hangingPiecePlaybook } from "./hanging-piece";
 export { getLessonPlaybook, lessonPlaybookRegistry } from "./registry";
 export { startLessonRun, submitLessonAnswer } from "./run-lesson";

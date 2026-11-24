@@ -44,4 +44,9 @@ test("shows the deterministic training plan", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Play this focus game" }),
   ).toBeVisible();
+
+  await page.getByRole("button", { name: "Analyze latest game" }).click();
+  await expect(page.getByRole("alert")).toHaveText(
+    "Finish a tutor game before requesting a verified review.",
+  );
 });

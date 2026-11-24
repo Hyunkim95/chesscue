@@ -17,11 +17,12 @@ export class DeterministicOnlyProvider implements LessonContentProvider {
     _request: LessonContentRequest,
     signal: AbortSignal,
   ): Promise<LessonContentProviderResult> {
-    if (signal.aborted)
+    if (signal.aborted) {
       throw new DOMException(
         "Lesson content request was cancelled",
         "AbortError",
       );
+    }
     return Promise.reject(new Error("Generated lesson content is unavailable"));
   }
 }
