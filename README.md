@@ -1,4 +1,4 @@
-# Adaptive Chess Tutor
+# ChessCue
 
 A local-first PWA where complete games shape the curriculum. Stockfish owns chess truth, deterministic playbooks own lesson progression, and Gemini may personalize only validated wording slots.
 

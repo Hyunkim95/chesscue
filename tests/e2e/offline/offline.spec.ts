@@ -51,7 +51,7 @@ test("publishes an installable manifest", async ({ page }) => {
     }>;
   });
 
-  expect(manifest.name).toBe("Adaptive Chess Tutor");
+  expect(manifest.name).toBe("ChessCue");
   expect(manifest.display).toBe("standalone");
   expect(manifest.start_url).toBe("/");
   expect(
