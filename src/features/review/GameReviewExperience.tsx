@@ -11,6 +11,7 @@ import {
   completeAfterUnlabeled,
   continueAfterCloseFeedback,
   continueAfterOriginalFeedback,
+  retryCurrentMove,
   startReviewTraining,
   type ReviewTrainingState,
 } from "../../application/analyze-game/review-training-session";
@@ -20,11 +21,12 @@ import {
 } from "../../domain/analysis/replay-game";
 import {
   REVIEW_MOVE_TOLERANCE_CP,
+  getAttemptFeedback,
   getThemeFeedback,
-  getThemeName,
   type MoveAttemptScore,
   type ReviewTrainingLog,
 } from "../../domain/analysis/review-training";
+import type { LearningTheme } from "../../domain/analysis/types";
 import type { GameRecord } from "../../domain/game/types";
 import { ReviewBoard } from "./ReviewBoard";
 import "./game-review-experience.css";
@@ -32,8 +34,6 @@ import "./game-review-experience.css";
 type FeedbackLine = "attempt" | "verified";
 
 const isSquare = (value: string): value is Square => /^[a-h][1-8]$/.test(value);
-const capitalize = (value: string): string =>
-  `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 
 const legalTargets = (fen: string, from: string): readonly string[] => {
   if (!isSquare(from)) return [];
@@ -154,6 +154,14 @@ export function GameReviewExperience({
     if (next.stage === "complete") onTrainingComplete?.(next.log);
   };
 
+  const undoAttempt = (): void => {
+    setSession((current) =>
+      current === null ? current : retryCurrentMove(current),
+    );
+    setFeedbackLine("attempt");
+    clearMoveSelection();
+  };
+
   return (
     <section className="game-review" aria-labelledby="game-review-title">
       <header className="game-review__header">
@@ -222,25 +230,21 @@ export function GameReviewExperience({
           }
           line={feedbackLine}
           setLine={setFeedbackLine}
-          eyebrow="What the position was asking for"
-          title={capitalize(getThemeName(session.primaryFact.theme))}
+          eyebrow="Move feedback"
+          theme={session.primaryFact.theme}
           explanation={getThemeFeedback(session.primaryFact.theme)}
-          primaryLabel={
-            session.closeExercise === null || session.unlabeledExercise === null
-              ? "Finish review"
-              : "Try a similar position"
-          }
-          onPrimary={() => {
-            completeSession(continueAfterOriginalFeedback(session, now()));
-          }}
-          secondaryLabel={
+          nextLabel={
             session.closeExercise === null || session.unlabeledExercise === null
               ? undefined
-              : "Finish review"
+              : "Practice this idea"
           }
-          onSecondary={() => {
+          onNext={() => {
+            completeSession(continueAfterOriginalFeedback(session, now()));
+          }}
+          onFinish={() => {
             completeSession(completeAfterOriginalFeedback(session, now()));
           }}
+          onUndo={undoAttempt}
         />
       ) : null}
 
@@ -252,22 +256,18 @@ export function GameReviewExperience({
           verifiedLine={session.closeExercise.verification.principalVariation}
           line={feedbackLine}
           setLine={setFeedbackLine}
-          eyebrow="Same idea, different board"
-          title={
-            session.closeScore?.accepted === true
-              ? "The pattern transferred"
-              : "Same pattern, new surface"
-          }
+          eyebrow="Move feedback"
+          theme={session.primaryFact.theme}
           explanation={session.closeExercise.explanation}
-          primaryLabel="Spot it again, no hint"
-          onPrimary={() => {
+          nextLabel="Practice without a hint"
+          onNext={() => {
             setSession(continueAfterCloseFeedback(session));
             setFeedbackLine("attempt");
           }}
-          secondaryLabel="Finish review"
-          onSecondary={() => {
+          onFinish={() => {
             completeSession(completeAfterCloseFeedback(session, now()));
           }}
+          onUndo={undoAttempt}
         />
       ) : null}
 
@@ -282,17 +282,13 @@ export function GameReviewExperience({
           }
           line={feedbackLine}
           setLine={setFeedbackLine}
-          eyebrow="You played it cold"
-          title={
-            session.unlabeledScore?.accepted === true
-              ? "You found it without the label"
-              : "This is the hard transfer"
-          }
+          eyebrow="Move feedback"
+          theme={session.primaryFact.theme}
           explanation={session.unlabeledExercise.explanation}
-          primaryLabel="Finish review"
-          onPrimary={() => {
+          onFinish={() => {
             completeSession(completeAfterUnlabeled(session, now()));
           }}
+          onUndo={undoAttempt}
         />
       ) : null}
 
@@ -434,12 +430,12 @@ function FeedbackStage({
   line,
   setLine,
   eyebrow,
-  title,
+  theme,
   explanation,
-  primaryLabel,
-  onPrimary,
-  secondaryLabel,
-  onSecondary,
+  nextLabel,
+  onNext,
+  onFinish,
+  onUndo,
 }: {
   readonly game: GameRecord;
   readonly fen: string;
@@ -448,15 +444,16 @@ function FeedbackStage({
   readonly line: FeedbackLine;
   readonly setLine: (line: FeedbackLine) => void;
   readonly eyebrow: string;
-  readonly title: string;
+  readonly theme: LearningTheme;
   readonly explanation: string;
-  readonly primaryLabel: string;
-  readonly onPrimary: () => void;
-  readonly secondaryLabel?: string | undefined;
-  readonly onSecondary?: () => void;
+  readonly nextLabel?: string | undefined;
+  readonly onNext?: () => void;
+  readonly onFinish: () => void;
+  readonly onUndo: () => void;
 }) {
   const [verifiedPly, setVerifiedPly] = useState(1);
   if (score === null) return <p role="alert">This move was not scored.</p>;
+  const feedback = getAttemptFeedback({ fen, theme, score });
   const boundedVerifiedPly = Math.min(
     Math.max(1, verifiedPly),
     Math.max(1, verifiedLine.length),
@@ -478,33 +475,45 @@ function FeedbackStage({
         />
       }
       eyebrow={eyebrow}
-      title={title}
-      description={score.comparison}
+      title={feedback.title}
+      description={feedback.summary}
     >
-      <p className="game-review__retrieval-result">{explanation}</p>
-      <div
-        className="game-review__line-switch"
-        aria-label="Compare your move and the coach line"
-      >
+      <div className="game-review__learning-cue">
+        <strong>Remember</strong>
+        <p>{explanation}</p>
+      </div>
+      <div className="game-review__feedback-controls">
         <button
+          className={
+            score.accepted ? "game-review__secondary" : "game-review__primary"
+          }
           type="button"
-          aria-pressed={line === "attempt"}
-          onClick={() => {
-            setLine("attempt");
-          }}
+          onClick={onUndo}
         >
-          Your move
+          {score.accepted ? "Undo and try another move" : "Undo and try again"}
         </button>
-        <button
-          type="button"
-          aria-pressed={line === "verified"}
-          onClick={() => {
-            setLine("verified");
-            setVerifiedPly(1);
-          }}
-        >
-          Coach&apos;s line
-        </button>
+        {line === "attempt" ? (
+          <button
+            className="game-review__secondary"
+            type="button"
+            onClick={() => {
+              setLine("verified");
+              setVerifiedPly(1);
+            }}
+          >
+            Show coach move
+          </button>
+        ) : (
+          <button
+            className="game-review__secondary"
+            type="button"
+            onClick={() => {
+              setLine("attempt");
+            }}
+          >
+            Back to my move
+          </button>
+        )}
       </div>
       {line === "verified" ? (
         <div className="game-review__line-player" aria-live="polite">
@@ -527,23 +536,26 @@ function FeedbackStage({
           ) : null}
         </div>
       ) : null}
-      <div className="game-review__decision-actions">
-        <button
-          className="game-review__primary"
-          type="button"
-          onClick={onPrimary}
-        >
-          {primaryLabel}
-        </button>
-        {secondaryLabel !== undefined && onSecondary !== undefined ? (
-          <button
-            className="game-review__quiet-action"
-            type="button"
-            onClick={onSecondary}
-          >
-            {secondaryLabel}
-          </button>
+      <div className="game-review__optional-actions">
+        {score.accepted && nextLabel !== undefined && onNext !== undefined ? (
+          <div>
+            <span>Want more practice?</span>
+            <button
+              className="game-review__quiet-action"
+              type="button"
+              onClick={onNext}
+            >
+              {nextLabel}
+            </button>
+          </div>
         ) : null}
+        <button
+          className="game-review__quiet-action"
+          type="button"
+          onClick={onFinish}
+        >
+          Finish review
+        </button>
       </div>
     </TrainingStage>
   );

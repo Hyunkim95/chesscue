@@ -334,7 +334,6 @@
 }
 
 .game-review__prompt-copy,
-.game-review__retrieval-result,
 .game-review__selection-status {
   color: var(--cue-muted);
   line-height: 1.6;
@@ -351,17 +350,25 @@
   background: transparent;
 }
 
-.game-review__line-switch {
+.game-review__feedback-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
-.game-review__line-switch button[aria-pressed="true"] {
+.game-review__learning-cue {
+  padding-left: 1rem;
+  border-left: 3px solid var(--cue-coral);
+}
+
+.game-review__learning-cue strong {
   color: var(--cue-ink);
-  background: var(--cue-coral);
-  border-color: var(--cue-coral);
-  box-shadow: inset 0 0 0 2px var(--cue-ink);
+}
+
+.game-review__learning-cue p {
+  margin-top: 0.35rem;
+  color: var(--cue-muted);
+  line-height: 1.55;
 }
 
 .game-review__line-player {
@@ -382,9 +389,20 @@
   border-color: transparent;
 }
 
-.game-review__decision-actions {
+.game-review__optional-actions {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.2rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--cue-line);
+}
+
+.game-review__optional-actions > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--cue-muted);
+  font-size: 0.9rem;
 }
 
 .game-review button.game-review__quiet-action {
@@ -514,6 +532,10 @@
   .game-review__technical dl > div {
     grid-template-columns: 1fr;
     gap: 0.2rem;
+  }
+
+  .game-review__feedback-controls {
+    grid-template-columns: 1fr;
   }
 
   .game-review__summary dl {

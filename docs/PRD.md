@@ -84,7 +84,7 @@ The player makes legal moves and receives CPU replies. The interface may show cl
 
 After the result, review opens as its own focused screen at the board position immediately before the most important moment. The game visibly rewinds, Stockfish remains hidden, and the player makes a different legal move directly on the board.
 
-The tutor then compares the consequence on the board, names the pattern, and lets the player step through the coach line and the opponent's reply. A curated similar position and an unlabeled game-like transfer are optional follow-up challenges, never a compulsory quiz sequence. Unsupported or skipped transfers are scheduled for a later game instead of fabricated. The system records outcomes for adaptation but shows the learner a next-game cue instead of percentages. Full-game replay and raw engine details remain collapsed as secondary references. There is no separate standalone lesson page.
+The tutor immediately says `Good move` or `Try another move`, names the move in chess notation, and explains its concrete consequence in plain language. The player can undo any attempt, try another move, switch between their position and the coach move, and step through the opponent's reply. A curated similar position and an unlabeled game-like transfer are quiet optional actions, never a compulsory quiz sequence. Unsupported or skipped transfers are scheduled for a later game instead of fabricated. The system records outcomes for adaptation but shows the learner a next-game cue instead of percentages. Full-game replay and raw engine details remain collapsed as secondary references. There is no separate standalone lesson page.
 
 ### 5.4 Continue the curriculum
 

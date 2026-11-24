@@ -4,6 +4,7 @@ import { transferExercisesForTheme } from "../transfer";
 import type { MoveAnalysisFact } from "./types";
 import {
   buildReviewTrainingLog,
+  getAttemptFeedback,
   scoreMoveAttempt,
   scoreTransferAttempt,
 } from "./review-training";
@@ -109,6 +110,47 @@ describe("review training policy", () => {
       unlabeledTransferScore: null,
       transfer: "scheduled-next-game",
       dueReview: "2026-11-27",
+    });
+  });
+
+  it("explains a loose-piece move with the actual piece and squares", () => {
+    const fen =
+      "r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4";
+    expect(
+      getAttemptFeedback({
+        fen,
+        theme: "hanging-piece",
+        score: {
+          legal: true,
+          accepted: true,
+          attemptedMoveUci: "b5a4",
+          bestMoveUci: "b5a4",
+          evaluationGapCp: 0,
+          comparison: "",
+        },
+      }),
+    ).toEqual({
+      title: "Good move",
+      summary:
+        "You played Ba4. That moves your bishop out of attack before Black can win it.",
+    });
+    expect(
+      getAttemptFeedback({
+        fen,
+        theme: "hanging-piece",
+        score: {
+          legal: true,
+          accepted: false,
+          attemptedMoveUci: "d2d4",
+          bestMoveUci: "b5a4",
+          evaluationGapCp: null,
+          comparison: "",
+        },
+      }),
+    ).toEqual({
+      title: "Try another move",
+      summary:
+        "You played d4. Your bishop on b5 is still attacked by Black's pawn on a6, so Black can win it next.",
     });
   });
 });

@@ -145,11 +145,10 @@ describe("GameReviewExperience transfer set", () => {
     expect(screen.queryByText("d2d4")).not.toBeInTheDocument();
     playOriginalBest();
 
+    expect(screen.getByRole("heading", { name: "Good move" })).toBeVisible();
+    expect(screen.getByText(/You played d4/)).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: "One-move threat" }),
-    ).toBeVisible();
-    expect(
-      screen.getByText(/immediate check, capture, or direct attack/),
+      screen.getByText(/immediate checks, captures, and direct threats/),
     ).toBeVisible();
   });
 
@@ -159,7 +158,14 @@ describe("GameReviewExperience transfer set", () => {
     playBoardMove(/White bishop on f1/, /Empty c4, legal destination/);
 
     expect(
-      screen.getByText(/coach's line meets the position's demand/),
+      screen.getByRole("heading", { name: "Try another move" }),
+    ).toBeVisible();
+    expect(screen.getByText(/You played Bc4/)).toBeVisible();
+    expect(
+      screen.getByText(/immediate forcing threat unanswered/),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Undo and try again" }),
     ).toBeVisible();
   });
 
@@ -168,9 +174,8 @@ describe("GameReviewExperience transfer set", () => {
     render(<GameReviewExperience {...fixture} />);
     playBoardMove(/White knight on b1/, /Empty c3, legal destination/);
 
-    expect(
-      screen.getByText(/one of the coach's strongest choices/),
-    ).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Good move" })).toBeVisible();
+    expect(screen.getByText(/You played Nc3/)).toBeVisible();
     fireEvent.click(screen.getByText("Technical details"));
     expect(screen.getByText("35 centipawns")).toBeVisible();
   });
@@ -186,15 +191,13 @@ describe("GameReviewExperience transfer set", () => {
       />,
     );
     playOriginalBest();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Try a similar position" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Practice this idea" }));
     expect(
       screen.getByRole("heading", { name: "Spot it again?" }),
     ).toBeVisible();
     playBoardMove(/White queen on h5/, /Black pawn on f7, legal destination/);
     fireEvent.click(
-      screen.getByRole("button", { name: "Spot it again, no hint" }),
+      screen.getByRole("button", { name: "Practice without a hint" }),
     );
 
     expect(
@@ -216,20 +219,22 @@ describe("GameReviewExperience transfer set", () => {
     expect(onTrainingComplete).toHaveBeenCalledOnce();
   });
 
-  it("scores an incorrect close analogue without changing progression", () => {
+  it("lets the learner undo an incorrect similar-position move", () => {
     const fixture = reviewFixture();
     render(<GameReviewExperience {...fixture} />);
     playOriginalBest();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Try a similar position" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Practice this idea" }));
     playBoardMove(/White queen on h5/, /Empty g5, legal destination/);
 
     expect(
-      screen.getByText(/coach's line meets the position's demand/),
+      screen.getByRole("heading", { name: "Try another move" }),
     ).toBeVisible();
     expect(
-      screen.getByRole("button", { name: "Spot it again, no hint" }),
+      screen.queryByRole("button", { name: "Practice without a hint" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Undo and try again" }));
+    expect(
+      screen.getByRole("heading", { name: "Spot it again?" }),
     ).toBeVisible();
   });
 
@@ -293,7 +298,7 @@ describe("GameReviewExperience transfer set", () => {
     render(<GameReviewExperience {...fixture} />);
     playOriginalBest();
 
-    fireEvent.click(screen.getByRole("button", { name: "Coach's line" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show coach move" }));
     expect(screen.getByText("Move 1 of 3")).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "Show the opponent's reply" }),
@@ -306,11 +311,9 @@ describe("GameReviewExperience transfer set", () => {
     const fixture = reviewFixture("development");
     render(<GameReviewExperience {...fixture} />);
     playOriginalBest();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Try a similar position" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Practice this idea" }));
     playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
-    fireEvent.click(screen.getByRole("button", { name: "Coach's line" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show coach move" }));
     fireEvent.click(
       screen.getByRole("button", { name: "Show the opponent's reply" }),
     );

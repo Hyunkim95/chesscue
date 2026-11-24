@@ -178,9 +178,10 @@ Review uses the predictable learning contract directly. It is the lesson experie
 
 1. Retry the original position before seeing Stockfish.
 2. Score the attempt against verified candidates within a versioned tolerance.
-3. Compare the attempted and verified consequences, then name the pattern.
-4. Offer one curated close analogue as an optional challenge.
-5. If accepted, offer one unlabeled game-like transfer as another optional challenge.
-6. Log attempted stages, hard spot, due review, and next-game reinforcement without exposing a quiz score.
+3. Say whether the move worked, name it in SAN, and explain the concrete consequence before showing general pattern advice.
+4. Let the learner undo and retry, or reversibly compare their move with the coach line and opponent reply.
+5. Offer one curated close analogue as an optional challenge.
+6. If accepted, offer one unlabeled game-like transfer as another optional challenge.
+7. Log attempted stages, hard spot, due review, and next-game reinforcement without exposing a quiz score.
 
 When no second validated position exists, or the learner stops, transfer is scheduled for the next game. The system must never manufacture a transfer example or let generated wording determine scoring. ChessCue does not expose a separate standalone lesson page.
