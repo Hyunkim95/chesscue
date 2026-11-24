@@ -81,6 +81,13 @@ test("replays and compares a verified learning moment", async ({ page }) => {
     }),
   ).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("grid", { name: /Review board/ })).toBeVisible();
+  const rowHeights = await page
+    .locator(".game-review-board__row")
+    .evaluateAll((rows) =>
+      rows.map((row) => row.getBoundingClientRect().height),
+    );
+  expect(rowHeights).toHaveLength(8);
+  expect(Math.max(...rowHeights) - Math.min(...rowHeights)).toBeLessThan(1);
 
   await page.getByRole("tab", { name: /^Better move/ }).click();
   await page.getByRole("button", { name: "Play next move" }).click();
