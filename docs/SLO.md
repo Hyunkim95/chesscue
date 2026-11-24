@@ -38,6 +38,7 @@ Correctness has no error budget. A failing claim is suppressed rather than displ
 - Imported results and ratings never directly change adaptive CPU Elo.
 - Identical evidence and configuration always select the same playbook version.
 - Generated output never changes lesson steps, scoring, transitions, mastery evidence, or reinforcement.
+- Curated transfer items enter the runtime registry only when their FEN, accepted moves, verification metadata, uniqueness, and unlabeled copy pass deterministic validation.
 - No live evaluation, hint, suggested move, or learning moment is exposed before game completion.
 
 ## 4. Availability boundary

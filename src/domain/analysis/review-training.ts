@@ -1,13 +1,9 @@
 import { Chess, type Square } from "chess.js";
 
+import type { CuratedTransferExercise } from "../transfer";
 import type { LearningTheme, MoveAnalysisFact } from "./types";
 
 export const REVIEW_MOVE_TOLERANCE_CP = 35;
-
-export interface ThemeChoice {
-  readonly theme: LearningTheme;
-  readonly label: string;
-}
 
 export interface MoveAttemptScore {
   readonly legal: boolean;
@@ -22,6 +18,9 @@ export interface ReviewTrainingLog {
   readonly subject: "chess";
   readonly theme: LearningTheme;
   readonly firstAttemptScore: number;
+  readonly originalAttemptScore?: number;
+  readonly closeTransferScore?: number | null;
+  readonly unlabeledTransferScore?: number | null;
   readonly hardSpot: string;
   readonly dueReview: string;
   readonly nextGameReinforcement: string;
@@ -29,15 +28,34 @@ export interface ReviewTrainingLog {
   readonly completedAt: string;
 }
 
-const themeLabels: Readonly<Record<LearningTheme, string>> = {
-  "hanging-piece": "An attacked piece may be left loose",
-  "one-move-threat": "The opponent has an immediate forcing threat",
-  "premature-central-exchange": "The central tension should be preserved",
-  "king-safety": "The king needs safety before the position opens",
-  development: "A new piece should join the game",
-  calculation: "The forcing line needs one more reply checked",
-  "endgame-technique": "The king or pawn sequence needs precision",
-  other: "A general positional tradeoff matters most",
+const themeNames: Readonly<Record<LearningTheme, string>> = {
+  "hanging-piece": "loose piece",
+  "one-move-threat": "one-move threat",
+  "premature-central-exchange": "central tension",
+  "king-safety": "king safety",
+  development: "development",
+  calculation: "calculation",
+  "endgame-technique": "endgame technique",
+  other: "position demand",
+};
+
+const themeFeedback: Readonly<Record<LearningTheme, string>> = {
+  "hanging-piece":
+    "A loose piece has more pressure on it than protection. Scan your attacked pieces before continuing your plan.",
+  "one-move-threat":
+    "A one-move threat is an immediate check, capture, or direct attack that must be handled before a slower plan.",
+  "premature-central-exchange":
+    "Central tension means both pawn structures can still change. Compare who benefits before releasing it.",
+  "king-safety":
+    "King safety comes first when the center may open. Secure the king before starting a new plan.",
+  development:
+    "Development brings a new piece into useful play. Improve inactive pieces before repeating moves without a reason.",
+  calculation:
+    "Calculation means checking the opponent's strongest reply before committing to a forcing line.",
+  "endgame-technique":
+    "Endgame technique depends on precise king and pawn sequencing, not only the first good-looking move.",
+  other:
+    "The position had one practical demand that needed to be addressed before continuing the plan.",
 };
 
 const reinforcementByTheme: Readonly<Record<LearningTheme, string>> = {
@@ -59,17 +77,6 @@ const reinforcementByTheme: Readonly<Record<LearningTheme, string>> = {
     "The next focus game will recreate this decision type and ask for one explicit reason before the move is committed.",
 };
 
-const themeOrder: readonly LearningTheme[] = [
-  "hanging-piece",
-  "one-move-threat",
-  "premature-central-exchange",
-  "king-safety",
-  "development",
-  "calculation",
-  "endgame-technique",
-  "other",
-];
-
 const isSquare = (value: string): value is Square => /^[a-h][1-8]$/.test(value);
 
 const legalMove = (fen: string, uci: string): boolean => {
@@ -89,43 +96,25 @@ const legalMove = (fen: string, uci: string): boolean => {
   }
 };
 
-export const buildThemeChoices = (
-  theme: LearningTheme,
-): readonly ThemeChoice[] => {
-  const choices = themeOrder.slice(0, 4).includes(theme)
-    ? themeOrder.slice(0, 4)
-    : [...themeOrder.slice(0, 3), theme];
-  return choices.map((choice) => ({
-    theme: choice,
-    label: themeLabels[choice],
-  }));
-};
-
-export const scoreThemeRetrieval = (
-  selected: LearningTheme,
-  expected: LearningTheme,
-): boolean => selected === expected;
-
-const themeComparison = (theme: LearningTheme, accepted: boolean): string => {
-  if (accepted) {
-    return `Your move solves the ${themeLabels[theme].toLowerCase()} problem and stays inside the verified tolerance.`;
-  }
-  return `Your move is legal, but it does not resolve the ${themeLabels[theme].toLowerCase()} problem as reliably as the verified line.`;
-};
-
-export const scoreMoveAttempt = (
-  fact: MoveAnalysisFact,
-  attemptedMoveUci: string,
-  toleranceCp = REVIEW_MOVE_TOLERANCE_CP,
-): MoveAttemptScore => {
-  const bestCandidate = fact.candidates.toSorted(
+const scoreCandidates = (input: {
+  readonly fen: string;
+  readonly attemptedMoveUci: string;
+  readonly candidates: readonly {
+    readonly uci: string;
+    readonly evaluationCp: number;
+  }[];
+  readonly acceptedMoves: readonly string[];
+  readonly toleranceCp: number;
+  readonly theme: LearningTheme;
+}): MoveAttemptScore => {
+  const bestCandidate = input.candidates.toSorted(
     (left, right) => right.evaluationCp - left.evaluationCp,
   )[0];
   if (bestCandidate === undefined) {
     return {
       legal: false,
       accepted: false,
-      attemptedMoveUci,
+      attemptedMoveUci: input.attemptedMoveUci,
       bestMoveUci: "",
       evaluationGapCp: null,
       comparison:
@@ -133,9 +122,9 @@ export const scoreMoveAttempt = (
     };
   }
 
-  const legal = legalMove(fact.fenBefore, attemptedMoveUci);
-  const attemptedCandidate = fact.candidates.find(
-    (candidate) => candidate.uci === attemptedMoveUci,
+  const legal = legalMove(input.fen, input.attemptedMoveUci);
+  const attemptedCandidate = input.candidates.find(
+    (candidate) => candidate.uci === input.attemptedMoveUci,
   );
   const evaluationGapCp =
     attemptedCandidate === undefined
@@ -145,34 +134,57 @@ export const scoreMoveAttempt = (
           bestCandidate.evaluationCp - attemptedCandidate.evaluationCp,
         );
   const accepted =
-    legal && evaluationGapCp !== null && evaluationGapCp <= toleranceCp;
-
+    legal &&
+    input.acceptedMoves.includes(input.attemptedMoveUci) &&
+    evaluationGapCp !== null &&
+    evaluationGapCp <= input.toleranceCp;
   return {
     legal,
     accepted,
-    attemptedMoveUci,
+    attemptedMoveUci: input.attemptedMoveUci,
     bestMoveUci: bestCandidate.uci,
     evaluationGapCp,
-    comparison: legal
-      ? themeComparison(fact.theme, accepted)
-      : "That move is not legal in this position. The board has been reset for another attempt.",
+    comparison: !legal
+      ? "That move is not legal in this position. The board has been reset for another attempt."
+      : accepted
+        ? `Your move handles the ${themeNames[input.theme]} and stays inside the verified tolerance.`
+        : `Your move is legal, but it does not handle the ${themeNames[input.theme]} as reliably as the verified line.`,
   };
 };
 
-export const selectTransferFact = (
-  facts: readonly MoveAnalysisFact[],
-  primary: MoveAnalysisFact,
-): MoveAnalysisFact | null =>
-  facts
-    .filter(
-      (fact) =>
-        fact.theme === primary.theme &&
-        (fact.gameId !== primary.gameId || fact.ply !== primary.ply),
-    )
-    .toSorted((left, right) => {
-      const impactDifference = right.impactCp - left.impactCp;
-      return impactDifference === 0 ? left.ply - right.ply : impactDifference;
-    })[0] ?? null;
+export const scoreMoveAttempt = (
+  fact: MoveAnalysisFact,
+  attemptedMoveUci: string,
+  toleranceCp = REVIEW_MOVE_TOLERANCE_CP,
+): MoveAttemptScore =>
+  scoreCandidates({
+    fen: fact.fenBefore,
+    attemptedMoveUci,
+    candidates: fact.candidates,
+    acceptedMoves: fact.candidates
+      .filter((candidate) => {
+        const best = Math.max(
+          ...fact.candidates.map((item) => item.evaluationCp),
+        );
+        return best - candidate.evaluationCp <= toleranceCp;
+      })
+      .map((candidate) => candidate.uci),
+    toleranceCp,
+    theme: fact.theme,
+  });
+
+export const scoreTransferAttempt = (
+  exercise: CuratedTransferExercise,
+  attemptedMoveUci: string,
+): MoveAttemptScore =>
+  scoreCandidates({
+    fen: exercise.fen,
+    attemptedMoveUci,
+    candidates: exercise.verification.candidates,
+    acceptedMoves: exercise.acceptableMoves,
+    toleranceCp: exercise.verification.toleranceCp,
+    theme: exercise.theme,
+  });
 
 const addDays = (timestamp: string, days: number): string => {
   const date = new Date(timestamp);
@@ -182,23 +194,25 @@ const addDays = (timestamp: string, days: number): string => {
 
 export const buildReviewTrainingLog = (input: {
   readonly theme: LearningTheme;
-  readonly themeCorrect: boolean;
-  readonly primaryMoveAccepted: boolean;
-  readonly transferMoveAccepted: boolean | null;
+  readonly originalMoveAccepted: boolean;
+  readonly closeMoveAccepted: boolean | null;
+  readonly unlabeledMoveAccepted: boolean | null;
   readonly completedAt: string;
 }): ReviewTrainingLog => {
-  const scoredAttempts = [input.themeCorrect, input.primaryMoveAccepted];
-  if (input.transferMoveAccepted !== null)
-    scoredAttempts.push(input.transferMoveAccepted);
+  const scoredAttempts = [input.originalMoveAccepted];
+  if (input.closeMoveAccepted !== null)
+    scoredAttempts.push(input.closeMoveAccepted);
+  if (input.unlabeledMoveAccepted !== null)
+    scoredAttempts.push(input.unlabeledMoveAccepted);
   const firstAttemptScore = Math.round(
     (scoredAttempts.filter(Boolean).length / scoredAttempts.length) * 100,
   );
-  const hardSpot = !input.themeCorrect
-    ? "Recognizing the position's main demand"
-    : !input.primaryMoveAccepted
-      ? "Choosing a move that resolves the demand"
-      : input.transferMoveAccepted === false
-        ? "Transferring the idea to a second position"
+  const hardSpot = !input.originalMoveAccepted
+    ? "Retrying the original decision"
+    : input.closeMoveAccepted === false
+      ? "Applying the pattern to a close analogue"
+      : input.unlabeledMoveAccepted === false
+        ? "Recognizing the pattern without a label"
         : "No hard spot observed in this set";
   const reviewDelayDays = firstAttemptScore === 100 ? 3 : 1;
 
@@ -206,14 +220,30 @@ export const buildReviewTrainingLog = (input: {
     subject: "chess",
     theme: input.theme,
     firstAttemptScore,
+    originalAttemptScore: input.originalMoveAccepted ? 100 : 0,
+    closeTransferScore:
+      input.closeMoveAccepted === null
+        ? null
+        : input.closeMoveAccepted
+          ? 100
+          : 0,
+    unlabeledTransferScore:
+      input.unlabeledMoveAccepted === null
+        ? null
+        : input.unlabeledMoveAccepted
+          ? 100
+          : 0,
     hardSpot,
     dueReview: addDays(input.completedAt, reviewDelayDays),
     nextGameReinforcement: reinforcementByTheme[input.theme],
     transfer:
-      input.transferMoveAccepted === null ? "scheduled-next-game" : "completed",
+      input.closeMoveAccepted === null || input.unlabeledMoveAccepted === null
+        ? "scheduled-next-game"
+        : "completed",
     completedAt: input.completedAt,
   };
 };
 
-export const getThemeLabel = (theme: LearningTheme): string =>
-  themeLabels[theme];
+export const getThemeName = (theme: LearningTheme): string => themeNames[theme];
+export const getThemeFeedback = (theme: LearningTheme): string =>
+  themeFeedback[theme];

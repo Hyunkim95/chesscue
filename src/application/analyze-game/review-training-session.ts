@@ -1,50 +1,50 @@
 import {
   buildReviewTrainingLog,
-  buildThemeChoices,
   scoreMoveAttempt,
-  scoreThemeRetrieval,
-  selectTransferFact,
+  scoreTransferAttempt,
   type MoveAttemptScore,
   type ReviewTrainingLog,
-  type ThemeChoice,
 } from "../../domain/analysis/review-training";
 import type {
   LearningMoment,
-  LearningTheme,
   MoveAnalysisFact,
 } from "../../domain/analysis/types";
+import {
+  transferExercisesForTheme,
+  type CuratedTransferExercise,
+} from "../../domain/transfer";
 import type { CompletedGameAnalysis } from "./analyze-completed-game";
 
 interface ReviewTrainingBase {
   readonly primaryFact: MoveAnalysisFact;
   readonly primaryMoment: LearningMoment;
-  readonly transferFact: MoveAnalysisFact | null;
-  readonly themeChoices: readonly ThemeChoice[];
-  readonly themeChoice: LearningTheme | null;
-  readonly themeCorrect: boolean | null;
-  readonly primaryScore: MoveAttemptScore | null;
-  readonly transferScore: MoveAttemptScore | null;
+  readonly closeExercise: CuratedTransferExercise | null;
+  readonly unlabeledExercise: CuratedTransferExercise | null;
+  readonly originalScore: MoveAttemptScore | null;
+  readonly closeScore: MoveAttemptScore | null;
+  readonly unlabeledScore: MoveAttemptScore | null;
 }
 
 export type ReviewTrainingState =
   | (ReviewTrainingBase & {
-      readonly stage: "theme-retrieval";
+      readonly stage: "original-move";
       readonly log: null;
     })
   | (ReviewTrainingBase & {
-      readonly stage: "primary-move";
+      readonly stage: "original-feedback";
+      readonly log: null;
+    })
+  | (ReviewTrainingBase & { readonly stage: "close-move"; readonly log: null })
+  | (ReviewTrainingBase & {
+      readonly stage: "close-feedback";
       readonly log: null;
     })
   | (ReviewTrainingBase & {
-      readonly stage: "primary-feedback";
+      readonly stage: "unlabeled-move";
       readonly log: null;
     })
   | (ReviewTrainingBase & {
-      readonly stage: "transfer-move";
-      readonly log: null;
-    })
-  | (ReviewTrainingBase & {
-      readonly stage: "transfer-feedback";
+      readonly stage: "unlabeled-feedback";
       readonly log: null;
     })
   | (ReviewTrainingBase & {
@@ -63,89 +63,101 @@ export const startReviewTraining = (
       fact.gameId === primaryMoment.gameId && fact.ply === primaryMoment.ply,
   );
   if (primaryFact === undefined) return null;
+  const transferExercises = transferExercisesForTheme(primaryFact.theme);
+  const closeExercise =
+    transferExercises.find((exercise) => exercise.difficulty === "close") ??
+    null;
+  const unlabeledExercise =
+    transferExercises.find((exercise) => exercise.difficulty === "unlabeled") ??
+    null;
+  const completePack = closeExercise !== null && unlabeledExercise !== null;
 
   return {
-    stage: "theme-retrieval",
+    stage: "original-move",
     primaryFact,
     primaryMoment,
-    transferFact: selectTransferFact(analysis.facts, primaryFact),
-    themeChoices: buildThemeChoices(primaryFact.theme),
-    themeChoice: null,
-    themeCorrect: null,
-    primaryScore: null,
-    transferScore: null,
+    closeExercise: completePack ? closeExercise : null,
+    unlabeledExercise: completePack ? unlabeledExercise : null,
+    originalScore: null,
+    closeScore: null,
+    unlabeledScore: null,
     log: null,
   };
 };
 
-export const commitThemeRetrieval = (
-  state: ReviewTrainingState,
-  theme: LearningTheme,
-): ReviewTrainingState => {
-  if (state.stage !== "theme-retrieval") return state;
-  return {
-    ...state,
-    stage: "primary-move",
-    themeChoice: theme,
-    themeCorrect: scoreThemeRetrieval(theme, state.primaryFact.theme),
-  };
-};
-
-export const commitPrimaryMove = (
+export const commitOriginalMove = (
   state: ReviewTrainingState,
   moveUci: string,
-): ReviewTrainingState => {
-  if (state.stage !== "primary-move") return state;
-  return {
-    ...state,
-    stage: "primary-feedback",
-    primaryScore: scoreMoveAttempt(state.primaryFact, moveUci),
-  };
-};
+): ReviewTrainingState =>
+  state.stage === "original-move"
+    ? {
+        ...state,
+        stage: "original-feedback",
+        originalScore: scoreMoveAttempt(state.primaryFact, moveUci),
+      }
+    : state;
 
 const complete = (
   state: Exclude<ReviewTrainingState, { readonly stage: "complete" }>,
   completedAt: string,
 ): ReviewTrainingState => {
-  if (state.themeCorrect === null || state.primaryScore === null) return state;
+  if (state.originalScore === null) return state;
   return {
     ...state,
     stage: "complete",
     log: buildReviewTrainingLog({
       theme: state.primaryFact.theme,
-      themeCorrect: state.themeCorrect,
-      primaryMoveAccepted: state.primaryScore.accepted,
-      transferMoveAccepted: state.transferScore?.accepted ?? null,
+      originalMoveAccepted: state.originalScore.accepted,
+      closeMoveAccepted: state.closeScore?.accepted ?? null,
+      unlabeledMoveAccepted: state.unlabeledScore?.accepted ?? null,
       completedAt,
     }),
   };
 };
 
-export const continueAfterPrimaryFeedback = (
+export const continueAfterOriginalFeedback = (
   state: ReviewTrainingState,
   completedAt: string,
 ): ReviewTrainingState => {
-  if (state.stage !== "primary-feedback") return state;
-  return state.transferFact === null
+  if (state.stage !== "original-feedback") return state;
+  return state.closeExercise === null || state.unlabeledExercise === null
     ? complete(state, completedAt)
-    : { ...state, stage: "transfer-move" };
+    : { ...state, stage: "close-move" };
 };
 
-export const commitTransferMove = (
+export const commitCloseMove = (
   state: ReviewTrainingState,
   moveUci: string,
-): ReviewTrainingState => {
-  if (state.stage !== "transfer-move" || state.transferFact === null)
-    return state;
-  return {
-    ...state,
-    stage: "transfer-feedback",
-    transferScore: scoreMoveAttempt(state.transferFact, moveUci),
-  };
-};
+): ReviewTrainingState =>
+  state.stage === "close-move" && state.closeExercise !== null
+    ? {
+        ...state,
+        stage: "close-feedback",
+        closeScore: scoreTransferAttempt(state.closeExercise, moveUci),
+      }
+    : state;
 
-export const completeAfterTransfer = (
+export const continueAfterCloseFeedback = (
+  state: ReviewTrainingState,
+): ReviewTrainingState =>
+  state.stage === "close-feedback" && state.unlabeledExercise !== null
+    ? { ...state, stage: "unlabeled-move" }
+    : state;
+
+export const commitUnlabeledMove = (
+  state: ReviewTrainingState,
+  moveUci: string,
+): ReviewTrainingState =>
+  state.stage === "unlabeled-move" && state.unlabeledExercise !== null
+    ? {
+        ...state,
+        stage: "unlabeled-feedback",
+        unlabeledScore: scoreTransferAttempt(state.unlabeledExercise, moveUci),
+      }
+    : state;
+
+export const completeAfterUnlabeled = (
   state: ReviewTrainingState,
   completedAt: string,
 ): ReviewTrainingState =>
-  state.stage === "transfer-feedback" ? complete(state, completedAt) : state;
+  state.stage === "unlabeled-feedback" ? complete(state, completedAt) : state;

@@ -10,6 +10,9 @@ export interface ReviewEvidenceRecord {
   readonly analysisVersion: string;
   readonly theme: LearningTheme;
   readonly firstAttemptScore: number;
+  readonly originalAttemptScore?: number;
+  readonly closeTransferScore?: number | null;
+  readonly unlabeledTransferScore?: number | null;
   readonly hardSpot: string;
   readonly dueReview: string;
   readonly reinforcement: string;

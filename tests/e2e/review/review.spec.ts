@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { Chess } from "chess.js";
 
 const buildCompletedTutorGame = () => {
@@ -44,6 +44,22 @@ const buildCompletedTutorGame = () => {
   };
 };
 
+async function commitFirstLegalMove(page: Page): Promise<void> {
+  const board = page.getByRole("grid", { name: /Training board/ });
+  const cells = board.getByRole("gridcell");
+  const count = await cells.count();
+  for (let index = 0; index < count; index += 1) {
+    await cells.nth(index).click();
+    const targets = board.getByRole("gridcell", { name: /legal destination/ });
+    if ((await targets.count()) > 0) {
+      await targets.first().click();
+      await page.getByRole("button", { name: "Commit this move" }).click();
+      return;
+    }
+  }
+  throw new Error("No legal board move was available for the training set");
+}
+
 test("replays and compares a verified learning moment", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("status")).toHaveText("Your move", {
@@ -77,7 +93,7 @@ test("replays and compares a verified learning moment", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: "Find it, play it, transfer it",
+      name: "Retry it, vary it, transfer it",
     }),
   ).toBeVisible({ timeout: 30_000 });
   await expect(
@@ -87,15 +103,9 @@ test("replays and compares a verified learning moment", async ({ page }) => {
     page.getByRole("heading", { name: "Your Training Profile" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "What matters most before you move?" }),
+    page.getByRole("heading", { name: "What would you play now?" }),
   ).toBeVisible();
   await expect(page.getByText("Technical details")).toHaveCount(0);
-  await page.getByRole("radio").first().check();
-  await page.getByRole("button", { name: "Lock this read" }).click();
-
-  await expect(
-    page.getByRole("heading", { name: "Commit the move you would play" }),
-  ).toBeVisible();
   const board = page.getByRole("grid", { name: /Training board/ });
   await expect(board).toBeVisible();
   const rowHeights = await board
@@ -106,15 +116,11 @@ test("replays and compares a verified learning moment", async ({ page }) => {
   expect(rowHeights).toHaveLength(8);
   expect(Math.max(...rowHeights) - Math.min(...rowHeights)).toBeLessThan(1);
 
-  await board.getByRole("gridcell", { name: /White pawn on a2/ }).click();
-  await board
-    .getByRole("gridcell", { name: /Empty a3, legal destination/ })
-    .click();
-  await page.getByRole("button", { name: "Commit this move" }).click();
+  await commitFirstLegalMove(page);
 
   await expect(
     page.getByRole("heading", {
-      name: /Your move holds up|Resolve the demand first/,
+      name: /loose piece|one-move threat|central tension|king safety|development|calculation|endgame technique|position demand/i,
     }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Verified line" }).click();
@@ -122,33 +128,34 @@ test("replays and compares a verified learning moment", async ({ page }) => {
   await page.getByText("Technical details").click();
   await expect(page.getByText("Analysis version")).toBeVisible();
 
-  const continueToTransfer = page.getByRole("button", {
-    name: "Continue to transfer",
+  const closeAnalogue = page.getByRole("button", {
+    name: "Try a close analogue",
   });
-  if ((await continueToTransfer.count()) > 0) {
-    await continueToTransfer.click();
+  if ((await closeAnalogue.count()) > 0) {
+    await closeAnalogue.click();
     await expect(
-      page.getByRole("heading", {
-        name: "Apply the same idea in this new position",
-      }),
+      page.getByText("Close analogue", { exact: true }),
     ).toBeVisible();
-    const transferBoard = page.getByRole("grid", { name: /Training board/ });
-    await transferBoard
-      .getByRole("gridcell", { name: /White pawn on a2/ })
-      .click();
-    await transferBoard
-      .getByRole("gridcell", { name: /Empty a3, legal destination/ })
-      .click();
-    await page.getByRole("button", { name: "Commit this move" }).click();
-    await page.getByRole("button", { name: "Finish this set" }).click();
-  } else {
+    await commitFirstLegalMove(page);
+    await page.getByRole("button", { name: "Try it without a label" }).click();
+    await expect(
+      page.getByText("Unlabeled transfer", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(/pattern label or hint/i)).toBeVisible();
+    await commitFirstLegalMove(page);
     await page.getByRole("button", { name: "Finish and log this set" }).click();
+  } else {
+    await page
+      .getByRole("button", { name: "Finish and schedule transfer" })
+      .click();
   }
 
   await expect(
     page.getByRole("heading", { name: "This set programs the next one" }),
   ).toBeVisible();
-  await expect(page.getByText("First-attempt score")).toBeVisible();
+  await expect(page.getByText("Original retry")).toBeVisible();
+  await expect(page.getByText("Close analogue").last()).toBeVisible();
+  await expect(page.getByText("Unlabeled transfer").last()).toBeVisible();
 
   await page.getByRole("button", { name: "Back to training plan" }).click();
   await expect(page.getByText("Evidence from 1 tutor games.")).toBeVisible();

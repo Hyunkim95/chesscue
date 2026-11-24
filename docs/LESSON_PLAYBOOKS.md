@@ -176,11 +176,11 @@ Each playbook must have deterministic fallback content, golden positions, transi
 
 Review uses the same predictable learning contract before a full lesson begins:
 
-1. Retrieve the position's demand before seeing Stockfish.
-2. Commit a legal move directly on the board.
-3. Score the attempt against verified candidates within a versioned tolerance.
-4. Compare the attempted and verified consequences.
-5. Transfer the idea to another validated same-theme position when available.
-6. Log first-attempt score, hard spot, due review, and next-game reinforcement.
+1. Retry the original position before seeing Stockfish.
+2. Score the attempt against verified candidates within a versioned tolerance.
+3. Compare the attempted and verified consequences, then name the pattern.
+4. Commit a move in one curated close analogue.
+5. Commit a move in one unlabeled game-like transfer position.
+6. Log original, close, and unlabeled scores, hard spot, due review, and next-game reinforcement.
 
 When no second validated position exists, transfer is scheduled for the next game. The system must never manufacture a transfer example or let generated wording determine scoring.

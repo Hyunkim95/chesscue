@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { transferExercisesForTheme } from "../transfer";
 import type { MoveAnalysisFact } from "./types";
 import {
   buildReviewTrainingLog,
   scoreMoveAttempt,
-  selectTransferFact,
+  scoreTransferAttempt,
 } from "./review-training";
 
 const fact: MoveAnalysisFact = {
@@ -39,7 +40,7 @@ const fact: MoveAnalysisFact = {
 };
 
 describe("review training policy", () => {
-  it("accepts the best move and a verified alternative inside tolerance", () => {
+  it("accepts the best original move and a verified alternative inside tolerance", () => {
     expect(scoreMoveAttempt(fact, "d2d4")).toMatchObject({
       legal: true,
       accepted: true,
@@ -52,51 +53,62 @@ describe("review training policy", () => {
     });
   });
 
-  it("rejects a legal unverified move and an illegal move", () => {
-    expect(scoreMoveAttempt(fact, "f1c4")).toMatchObject({
-      legal: true,
-      accepted: false,
-      evaluationGapCp: null,
-    });
-    expect(scoreMoveAttempt(fact, "a1a8")).toMatchObject({
-      legal: false,
-      accepted: false,
-    });
-  });
-
-  it("selects another validated same-theme fact for transfer", () => {
-    const transfer = { ...fact, gameId: "game-2", ply: 7, impactCp: 90 };
-    const otherTheme = {
-      ...fact,
-      gameId: "game-3",
-      ply: 9,
-      theme: "development" as const,
-    };
-    expect(selectTransferFact([fact, otherTheme, transfer], fact)).toEqual(
-      transfer,
+  it("scores close and unlabeled exercises only against curated accepted moves", () => {
+    const exercises = transferExercisesForTheme("one-move-threat");
+    const close = exercises.find((exercise) => exercise.difficulty === "close");
+    const unlabeled = exercises.find(
+      (exercise) => exercise.difficulty === "unlabeled",
     );
-    expect(selectTransferFact([fact, otherTheme], fact)).toBeNull();
+    expect(close).toBeDefined();
+    expect(unlabeled).toBeDefined();
+    if (close === undefined || unlabeled === undefined) return;
+
+    expect(scoreTransferAttempt(close, "h5f7")).toMatchObject({
+      accepted: true,
+    });
+    expect(scoreTransferAttempt(close, "h5g5")).toMatchObject({
+      accepted: false,
+    });
+    expect(scoreTransferAttempt(unlabeled, "e1e8")).toMatchObject({
+      accepted: true,
+    });
   });
 
-  it("logs deterministic score, hard spot, spacing, and reinforcement", () => {
+  it("logs original, close, and unlabeled scores with spaced review", () => {
     expect(
       buildReviewTrainingLog({
         theme: "one-move-threat",
-        themeCorrect: true,
-        primaryMoveAccepted: false,
-        transferMoveAccepted: null,
+        originalMoveAccepted: true,
+        closeMoveAccepted: false,
+        unlabeledMoveAccepted: true,
         completedAt: "2026-11-24T12:00:00.000Z",
       }),
-    ).toEqual({
-      subject: "chess",
-      theme: "one-move-threat",
-      firstAttemptScore: 50,
-      hardSpot: "Choosing a move that resolves the demand",
+    ).toMatchObject({
+      firstAttemptScore: 67,
+      originalAttemptScore: 100,
+      closeTransferScore: 0,
+      unlabeledTransferScore: 100,
+      hardSpot: "Applying the pattern to a close analogue",
       dueReview: "2026-11-25",
-      nextGameReinforcement:
-        "The next game will emphasize forcing replies. Before choosing a plan, scan the opponent's checks, captures, and direct attacks.",
+      transfer: "completed",
+    });
+  });
+
+  it("does not penalize unavailable transfer exercises", () => {
+    expect(
+      buildReviewTrainingLog({
+        theme: "calculation",
+        originalMoveAccepted: true,
+        closeMoveAccepted: null,
+        unlabeledMoveAccepted: null,
+        completedAt: "2026-11-24T12:00:00.000Z",
+      }),
+    ).toMatchObject({
+      firstAttemptScore: 100,
+      closeTransferScore: null,
+      unlabeledTransferScore: null,
       transfer: "scheduled-next-game",
-      completedAt: "2026-11-24T12:00:00.000Z",
+      dueReview: "2026-11-27",
     });
   });
 });

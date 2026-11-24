@@ -263,6 +263,81 @@ describe("adaptive IndexedDB records", () => {
     });
   });
 
+  it("roundtrips optional research scores and treats score changes as immutable conflicts", async () => {
+    const databaseName = createDatabaseName();
+    const repository = track(
+      new IndexedDbReviewEvidenceRepository(databaseName),
+    );
+    const record: ReviewEvidenceRecord = {
+      ...reviewEvidence("review-research"),
+      originalAttemptScore: 75,
+      closeTransferScore: 50,
+      unlabeledTransferScore: null,
+    };
+
+    expect(await repository.put(record)).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(await repository.put(structuredClone(record))).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(
+      await repository.put({ ...record, originalAttemptScore: 100 }),
+    ).toMatchObject({ ok: false, error: { code: "conflict" } });
+    await repository.close();
+
+    const reloaded = track(new IndexedDbReviewEvidenceRepository(databaseName));
+    expect(await reloaded.get(record.id)).toEqual({ ok: true, value: record });
+  });
+
+  it("preserves legacy records with research score fields absent", async () => {
+    const databaseName = createDatabaseName();
+    const repository = track(
+      new IndexedDbReviewEvidenceRepository(databaseName),
+    );
+    const legacy = reviewEvidence("review-legacy");
+    expect(await repository.put(legacy)).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    await repository.close();
+
+    const reloaded = track(new IndexedDbReviewEvidenceRepository(databaseName));
+    const result = await reloaded.get(legacy.id);
+    expect(result).toEqual({ ok: true, value: legacy });
+    if (result.ok && result.value !== null) {
+      expect("originalAttemptScore" in result.value).toBe(false);
+      expect("closeTransferScore" in result.value).toBe(false);
+      expect("unlabeledTransferScore" in result.value).toBe(false);
+    }
+  });
+
+  it("rejects out-of-bounds and non-integer research scores", async () => {
+    const repository = track(
+      new IndexedDbReviewEvidenceRepository(createDatabaseName()),
+    );
+    expect(
+      await repository.put({
+        ...reviewEvidence("invalid-original"),
+        originalAttemptScore: 101,
+      }),
+    ).toMatchObject({ ok: false, error: { code: "invalid-record" } });
+    expect(
+      await repository.put({
+        ...reviewEvidence("invalid-close"),
+        closeTransferScore: -1,
+      }),
+    ).toMatchObject({ ok: false, error: { code: "invalid-record" } });
+    expect(
+      await repository.put({
+        ...reviewEvidence("invalid-unlabeled"),
+        unlabeledTransferScore: 50.5,
+      }),
+    ).toMatchObject({ ok: false, error: { code: "invalid-record" } });
+  });
+
   it("rejects invalid analysis and review records before persistence", async () => {
     const analyses = track(
       new IndexedDbAnalysisRepository(createDatabaseName()),
