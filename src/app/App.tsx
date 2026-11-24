@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { analyzeCompletedGame } from "../application/analyze-game/analyze-completed-game";
+import {
+  analyzeCompletedGame,
+  type CompletedGameAnalysis,
+} from "../application/analyze-game/analyze-completed-game";
 import { importGames } from "../application/import-games/import-games";
-import type { LearningMoment } from "../domain/analysis/types";
 import { buildPlayerProfile } from "../domain/curriculum";
-import { createGameId, createPositionId } from "../domain/game/types";
+import {
+  createGameId,
+  createPositionId,
+  type GameRecord,
+} from "../domain/game/types";
 import {
   canonicalHangingPieceFacts,
   hangingPiecePlaybook,
@@ -17,7 +23,7 @@ import {
 import { LessonExperience } from "../features/lessons";
 import { PlayGameScreen } from "../features/play/PlayGameScreen";
 import { ProfileOverview } from "../features/profile/ProfileOverview";
-import { LearningMomentsReview } from "../features/review/LearningMomentsReview";
+import { GameReviewExperience } from "../features/review/GameReviewExperience";
 import type { LessonContentProvider } from "../infrastructure/ai/lesson-content-provider";
 import { loadFirebaseClientConfig } from "../infrastructure/config/firebase-environment";
 import { StockfishAnalysisEngine } from "../infrastructure/engine/stockfish-analysis-engine";
@@ -36,7 +42,11 @@ const demoLessonStartedAt = new Date().toISOString();
 type AnalysisViewState =
   | { readonly status: "idle" }
   | { readonly status: "running" }
-  | { readonly status: "ready"; readonly moments: readonly LearningMoment[] }
+  | {
+      readonly status: "ready";
+      readonly game: GameRecord;
+      readonly analysis: CompletedGameAnalysis;
+    }
   | { readonly status: "failed"; readonly message: string };
 
 const seededProfile = buildPlayerProfile({
@@ -124,10 +134,17 @@ export function App() {
   const [analysis, setAnalysis] = useState<AnalysisViewState>({
     status: "idle",
   });
+  const reviewResults = useRef<HTMLDivElement | null>(null);
   const lessonProvider = useLessonProvider(view === "lesson");
   const activeNavigationView = view === "lesson" ? "training" : view;
   const targetElo = seededProfile.nextGame.targetElo;
   const focus = seededProfile.nextGame.reason;
+
+  useEffect(() => {
+    if (analysis.status === "ready") {
+      reviewResults.current?.scrollIntoView({ block: "start" });
+    }
+  }, [analysis.status]);
 
   const navigation = useMemo(
     () => [
@@ -194,7 +211,7 @@ export function App() {
       setAnalysis({ status: "failed", message: result.error.message });
       return;
     }
-    setAnalysis({ status: "ready", moments: result.value.moments });
+    setAnalysis({ status: "ready", game, analysis: result.value });
   }
 
   return (
@@ -322,8 +339,15 @@ export function App() {
             ) : null}
           </section>
           {analysis.status === "ready" ? (
-            <div className="review-results">
-              <LearningMomentsReview moments={analysis.moments} />
+            <div className="review-results" ref={reviewResults}>
+              <GameReviewExperience
+                game={analysis.game}
+                analysis={analysis.analysis}
+                isPracticeAvailable={(theme) => theme === "hanging-piece"}
+                onPracticePosition={() => {
+                  setView("lesson");
+                }}
+              />
             </div>
           ) : null}
         </main>

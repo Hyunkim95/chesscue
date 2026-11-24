@@ -44,7 +44,8 @@ export function validateMoveAnalysisFact(input: unknown): FactValidationResult {
     };
   }
 
-  const expectedImpact = Math.abs(
+  const expectedImpact = Math.max(
+    0,
     fact.evaluationBeforeCp - fact.evaluationAfterCp,
   );
   if (fact.impactCp !== expectedImpact) {

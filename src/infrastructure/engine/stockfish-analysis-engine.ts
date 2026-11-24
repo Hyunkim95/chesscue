@@ -63,7 +63,7 @@ function parseInfoCandidate(
   const multiPvMatch = /\bmultipv\s+(\d+)\b/.exec(line);
   const depth = Number(depthMatch?.[1] ?? 0);
   const multiPv = Number(multiPvMatch?.[1] ?? 1);
-  const principalVariation = pv[1]?.trim().split(/\s+/) ?? [];
+  const principalVariation = pv[1]?.trim().split(/\s+/).slice(0, 20) ?? [];
   const uci = principalVariation[0];
   if (uci === undefined) return null;
 
