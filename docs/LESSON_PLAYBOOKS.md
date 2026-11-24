@@ -174,13 +174,13 @@ Each playbook must have deterministic fallback content, golden positions, transi
 
 ## 11. Post-game review sets
 
-Review uses the same predictable learning contract before a full lesson begins:
+Review uses the predictable learning contract directly. It is the lesson experience:
 
 1. Retry the original position before seeing Stockfish.
 2. Score the attempt against verified candidates within a versioned tolerance.
 3. Compare the attempted and verified consequences, then name the pattern.
-4. Commit a move in one curated close analogue.
-5. Commit a move in one unlabeled game-like transfer position.
-6. Log original, close, and unlabeled scores, hard spot, due review, and next-game reinforcement.
+4. Offer one curated close analogue as an optional challenge.
+5. If accepted, offer one unlabeled game-like transfer as another optional challenge.
+6. Log attempted stages, hard spot, due review, and next-game reinforcement without exposing a quiz score.
 
-When no second validated position exists, transfer is scheduled for the next game. The system must never manufacture a transfer example or let generated wording determine scoring.
+When no second validated position exists, or the learner stops, transfer is scheduled for the next game. The system must never manufacture a transfer example or let generated wording determine scoring. ChessCue does not expose a separate standalone lesson page.

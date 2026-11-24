@@ -125,6 +125,12 @@ export const continueAfterOriginalFeedback = (
     : { ...state, stage: "close-move" };
 };
 
+export const completeAfterOriginalFeedback = (
+  state: ReviewTrainingState,
+  completedAt: string,
+): ReviewTrainingState =>
+  state.stage === "original-feedback" ? complete(state, completedAt) : state;
+
 export const commitCloseMove = (
   state: ReviewTrainingState,
   moveUci: string,
@@ -143,6 +149,12 @@ export const continueAfterCloseFeedback = (
   state.stage === "close-feedback" && state.unlabeledExercise !== null
     ? { ...state, stage: "unlabeled-move" }
     : state;
+
+export const completeAfterCloseFeedback = (
+  state: ReviewTrainingState,
+  completedAt: string,
+): ReviewTrainingState =>
+  state.stage === "close-feedback" ? complete(state, completedAt) : state;
 
 export const commitUnlabeledMove = (
   state: ReviewTrainingState,

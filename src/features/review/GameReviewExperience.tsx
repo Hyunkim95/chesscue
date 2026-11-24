@@ -6,6 +6,8 @@ import {
   commitCloseMove,
   commitOriginalMove,
   commitUnlabeledMove,
+  completeAfterCloseFeedback,
+  completeAfterOriginalFeedback,
   completeAfterUnlabeled,
   continueAfterCloseFeedback,
   continueAfterOriginalFeedback,
@@ -23,7 +25,6 @@ import {
   type MoveAttemptScore,
   type ReviewTrainingLog,
 } from "../../domain/analysis/review-training";
-import type { LearningTheme } from "../../domain/analysis/types";
 import type { GameRecord } from "../../domain/game/types";
 import { ReviewBoard } from "./ReviewBoard";
 import "./game-review-experience.css";
@@ -31,6 +32,8 @@ import "./game-review-experience.css";
 type FeedbackLine = "attempt" | "verified";
 
 const isSquare = (value: string): value is Square => /^[a-h][1-8]$/.test(value);
+const capitalize = (value: string): string =>
+  `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 
 const legalTargets = (fen: string, from: string): readonly string[] => {
   if (!isSquare(from)) return [];
@@ -55,27 +58,19 @@ const buildMove = (fen: string, from: string, to: string): string | null => {
   }
 };
 
-const firstLineFrame = (
+const lineFrame = (
   fen: string,
   line: readonly string[],
+  ply: number,
 ): { readonly fen: string; readonly lastMoveUci: string | null } => {
   const frames = buildVariationFrames(fen, line);
-  const frame = frames.ok ? frames.frames[1] : undefined;
+  const frame = frames.ok ? frames.frames[ply] : undefined;
   return { fen: frame?.fen ?? fen, lastMoveUci: frame?.lastMoveUci ?? null };
 };
-
-export interface PracticePositionRequest {
-  readonly gameId: string;
-  readonly momentId: string;
-  readonly fen: string;
-  readonly theme: LearningTheme;
-}
 
 export interface GameReviewExperienceProps {
   readonly game: GameRecord;
   readonly analysis: CompletedGameAnalysis;
-  readonly isPracticeAvailable?: (theme: LearningTheme) => boolean;
-  readonly onPracticePosition: (request: PracticePositionRequest) => void;
   readonly onTrainingComplete?: ((log: ReviewTrainingLog) => void) | null;
   readonly now?: () => string;
 }
@@ -83,8 +78,6 @@ export interface GameReviewExperienceProps {
 export function GameReviewExperience({
   game,
   analysis,
-  isPracticeAvailable = () => true,
-  onPracticePosition,
   onTrainingComplete = null,
   now = () => new Date().toISOString(),
 }: GameReviewExperienceProps) {
@@ -161,30 +154,13 @@ export function GameReviewExperience({
     if (next.stage === "complete") onTrainingComplete?.(next.log);
   };
 
-  const totalSets =
-    session.closeExercise === null || session.unlabeledExercise === null
-      ? 2
-      : 4;
-  const setNumber =
-    session.stage === "original-move" || session.stage === "original-feedback"
-      ? 1
-      : session.stage === "close-move" || session.stage === "close-feedback"
-        ? 2
-        : session.stage === "unlabeled-move" ||
-            session.stage === "unlabeled-feedback"
-          ? 3
-          : totalSets;
-
   return (
     <section className="game-review" aria-labelledby="game-review-title">
       <header className="game-review__header">
         <div>
-          <p className="game-review__eyebrow">Active review set</p>
-          <h2 id="game-review-title">Retry it, vary it, transfer it</h2>
+          <p className="game-review__eyebrow">Rewind challenge</p>
+          <h2 id="game-review-title">Your game, rewound</h2>
         </div>
-        <p className="game-review__set-progress">
-          Set {String(setNumber)} of {String(totalSets)}
-        </p>
       </header>
 
       {session.stage === "original-move" ? (
@@ -196,9 +172,9 @@ export function GameReviewExperience({
           legalTargets={targets}
           onSquareSelect={selectBoardSquare}
           onCommit={commitMove}
-          eyebrow="Exact retry"
-          title="What would you play now?"
-          description="Commit a legal move from the original position. Stockfish stays hidden until you choose."
+          eyebrow="Your turn again"
+          title="Play it differently."
+          description="The game has rewound to the critical moment. Play the move you wish you had chosen. Stockfish stays hidden until you move."
         />
       ) : null}
 
@@ -211,9 +187,9 @@ export function GameReviewExperience({
           legalTargets={targets}
           onSquareSelect={selectBoardSquare}
           onCommit={commitMove}
-          eyebrow="Close analogue"
-          title={session.closeExercise.prompt}
-          description="The surface details changed. Commit a move before seeing the verified answer."
+          eyebrow="Optional challenge"
+          title="Spot it again?"
+          description={session.closeExercise.prompt}
         />
       ) : null}
 
@@ -227,9 +203,9 @@ export function GameReviewExperience({
           legalTargets={targets}
           onSquareSelect={selectBoardSquare}
           onCommit={commitMove}
-          eyebrow="Unlabeled transfer"
-          title={session.unlabeledExercise.prompt}
-          description="Treat this like an ordinary game position. No pattern label or hint is shown."
+          eyebrow="No hint this time"
+          title="One more position?"
+          description="Treat this like an ordinary game. Play the move that feels most urgent."
         />
       ) : null}
 
@@ -246,16 +222,24 @@ export function GameReviewExperience({
           }
           line={feedbackLine}
           setLine={setFeedbackLine}
-          eyebrow="Pattern named after your attempt"
-          title={getThemeName(session.primaryFact.theme)}
+          eyebrow="What the position was asking for"
+          title={capitalize(getThemeName(session.primaryFact.theme))}
           explanation={getThemeFeedback(session.primaryFact.theme)}
-          continueLabel={
+          primaryLabel={
             session.closeExercise === null || session.unlabeledExercise === null
-              ? "Finish and schedule transfer"
-              : "Try a close analogue"
+              ? "Finish review"
+              : "Try a similar position"
           }
-          onContinue={() => {
+          onPrimary={() => {
             completeSession(continueAfterOriginalFeedback(session, now()));
+          }}
+          secondaryLabel={
+            session.closeExercise === null || session.unlabeledExercise === null
+              ? undefined
+              : "Finish review"
+          }
+          onSecondary={() => {
+            completeSession(completeAfterOriginalFeedback(session, now()));
           }}
         />
       ) : null}
@@ -268,17 +252,21 @@ export function GameReviewExperience({
           verifiedLine={[session.closeExercise.verification.bestMoveUci]}
           line={feedbackLine}
           setLine={setFeedbackLine}
-          eyebrow="Close analogue feedback"
+          eyebrow="Same idea, different board"
           title={
             session.closeScore?.accepted === true
               ? "The pattern transferred"
               : "Same pattern, new surface"
           }
           explanation={session.closeExercise.explanation}
-          continueLabel="Try it without a label"
-          onContinue={() => {
+          primaryLabel="Spot it again, no hint"
+          onPrimary={() => {
             setSession(continueAfterCloseFeedback(session));
             setFeedbackLine("attempt");
+          }}
+          secondaryLabel="Finish review"
+          onSecondary={() => {
+            completeSession(completeAfterCloseFeedback(session, now()));
           }}
         />
       ) : null}
@@ -292,33 +280,22 @@ export function GameReviewExperience({
           verifiedLine={[session.unlabeledExercise.verification.bestMoveUci]}
           line={feedbackLine}
           setLine={setFeedbackLine}
-          eyebrow="Unlabeled transfer feedback"
+          eyebrow="You played it cold"
           title={
             session.unlabeledScore?.accepted === true
               ? "You found it without the label"
               : "This is the hard transfer"
           }
           explanation={session.unlabeledExercise.explanation}
-          continueLabel="Finish and log this set"
-          onContinue={() => {
+          primaryLabel="Finish review"
+          onPrimary={() => {
             completeSession(completeAfterUnlabeled(session, now()));
           }}
         />
       ) : null}
 
       {session.stage === "complete" ? (
-        <TrainingSummary
-          session={session}
-          practiceAvailable={isPracticeAvailable(session.primaryFact.theme)}
-          onPractice={() => {
-            onPracticePosition({
-              gameId: session.primaryMoment.gameId,
-              momentId: session.primaryMoment.id,
-              fen: session.primaryMoment.fenBefore,
-              theme: session.primaryMoment.theme,
-            });
-          }}
-        />
+        <TrainingSummary session={session} />
       ) : null}
 
       <ReplayDetails
@@ -407,7 +384,7 @@ function MoveStage({
           ? selectedSquare === null
             ? "Select one of your pieces on the board."
             : "Now choose one of the marked legal destinations."
-          : "Move selected. Commit when you are sure."}
+          : "Move ready. Play it when you are happy."}
       </p>
       <button
         className="game-review__primary"
@@ -415,7 +392,7 @@ function MoveStage({
         disabled={selectedMove === null}
         onClick={onCommit}
       >
-        Commit this move
+        Play this move
       </button>
     </TrainingStage>
   );
@@ -457,8 +434,10 @@ function FeedbackStage({
   eyebrow,
   title,
   explanation,
-  continueLabel,
-  onContinue,
+  primaryLabel,
+  onPrimary,
+  secondaryLabel,
+  onSecondary,
 }: {
   readonly game: GameRecord;
   readonly fen: string;
@@ -469,14 +448,24 @@ function FeedbackStage({
   readonly eyebrow: string;
   readonly title: string;
   readonly explanation: string;
-  readonly continueLabel: string;
-  readonly onContinue: () => void;
+  readonly primaryLabel: string;
+  readonly onPrimary: () => void;
+  readonly secondaryLabel?: string | undefined;
+  readonly onSecondary?: () => void;
 }) {
+  const [verifiedPly, setVerifiedPly] = useState(1);
   if (score === null) return <p role="alert">This move was not scored.</p>;
-  const frame = firstLineFrame(
+  const boundedVerifiedPly = Math.min(
+    Math.max(1, verifiedPly),
+    Math.max(1, verifiedLine.length),
+  );
+  const frame = lineFrame(
     fen,
     line === "attempt" ? [score.attemptedMoveUci] : verifiedLine,
+    line === "attempt" ? 1 : boundedVerifiedPly,
   );
+  const canAdvanceLine =
+    line === "verified" && boundedVerifiedPly < verifiedLine.length;
   return (
     <TrainingStage
       board={
@@ -493,7 +482,7 @@ function FeedbackStage({
       <p className="game-review__retrieval-result">{explanation}</p>
       <div
         className="game-review__line-switch"
-        aria-label="Compare attempted and verified lines"
+        aria-label="Compare your move and the coach line"
       >
         <button
           type="button"
@@ -502,92 +491,95 @@ function FeedbackStage({
             setLine("attempt");
           }}
         >
-          Your attempt
+          Your move
         </button>
         <button
           type="button"
           aria-pressed={line === "verified"}
           onClick={() => {
             setLine("verified");
+            setVerifiedPly(1);
           }}
         >
-          Verified line
+          Coach&apos;s line
         </button>
       </div>
-      <button
-        className="game-review__primary"
-        type="button"
-        onClick={onContinue}
-      >
-        {continueLabel}
-      </button>
+      {line === "verified" ? (
+        <div className="game-review__line-player" aria-live="polite">
+          <p>
+            Move {String(boundedVerifiedPly)} of {String(verifiedLine.length)}
+            {boundedVerifiedPly % 2 === 0 ? " - opponent's reply" : ""}
+          </p>
+          {canAdvanceLine ? (
+            <button
+              className="game-review__line-next"
+              type="button"
+              onClick={() => {
+                setVerifiedPly((current) => current + 1);
+              }}
+            >
+              {boundedVerifiedPly === 1
+                ? "Show the opponent's reply"
+                : "Show the next move"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="game-review__decision-actions">
+        <button
+          className="game-review__primary"
+          type="button"
+          onClick={onPrimary}
+        >
+          {primaryLabel}
+        </button>
+        {secondaryLabel !== undefined && onSecondary !== undefined ? (
+          <button
+            className="game-review__quiet-action"
+            type="button"
+            onClick={onSecondary}
+          >
+            {secondaryLabel}
+          </button>
+        ) : null}
+      </div>
     </TrainingStage>
   );
 }
 
 function TrainingSummary({
   session,
-  practiceAvailable,
-  onPractice,
 }: {
   readonly session: Extract<
     ReviewTrainingState,
     { readonly stage: "complete" }
   >;
-  readonly practiceAvailable: boolean;
-  readonly onPractice: () => void;
 }) {
   const { log } = session;
-  const scoreLabel = (value: number | null | undefined): string =>
-    value === null || value === undefined
-      ? "Scheduled for next game"
-      : `${String(value)}%`;
+  const transferCount = [
+    log.closeTransferScore,
+    log.unlabeledTransferScore,
+  ].filter((score) => score !== null && score !== undefined).length;
   return (
     <section
       className="game-review__summary"
       aria-labelledby="training-log-title"
     >
-      <p className="game-review__eyebrow">Training log</p>
-      <h3 id="training-log-title">This set programs the next one</h3>
-      <dl>
-        <div>
-          <dt>Original retry</dt>
-          <dd>{scoreLabel(log.originalAttemptScore)}</dd>
-        </div>
-        <div>
-          <dt>Close analogue</dt>
-          <dd>{scoreLabel(log.closeTransferScore)}</dd>
-        </div>
-        <div>
-          <dt>Unlabeled transfer</dt>
-          <dd>{scoreLabel(log.unlabeledTransferScore)}</dd>
-        </div>
-        <div>
-          <dt>Set score</dt>
-          <dd>{String(log.firstAttemptScore)}%</dd>
-        </div>
-        <div>
-          <dt>Hard spot</dt>
-          <dd>{log.hardSpot}</dd>
-        </div>
-        <div>
-          <dt>Due for review</dt>
-          <dd>{log.dueReview}</dd>
-        </div>
-      </dl>
+      <p className="game-review__eyebrow">Review complete</p>
+      <h3 id="training-log-title">Take one cue into the next game</h3>
+      <p className="game-review__summary-copy">
+        You replayed the critical moment
+        {transferCount === 0
+          ? ". Similar positions will return naturally in future training."
+          : ` and tested the idea in ${String(transferCount)} new ${transferCount === 1 ? "position" : "positions"}.`}
+      </p>
       <div className="game-review__reinforcement">
-        <strong>Exact next-game reinforcement</strong>
+        <strong>Your next-game cue</strong>
         <p>{log.nextGameReinforcement}</p>
       </div>
-      {practiceAvailable ? (
-        <button
-          className="game-review__secondary"
-          type="button"
-          onClick={onPractice}
-        >
-          Continue with the full playbook lesson
-        </button>
-      ) : null}
+      <p className="game-review__due-note">
+        ChessCue will bring this pattern back on {log.dueReview}.
+      </p>
     </section>
   );
 }

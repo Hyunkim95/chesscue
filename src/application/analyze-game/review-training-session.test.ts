@@ -6,6 +6,8 @@ import {
   commitCloseMove,
   commitOriginalMove,
   commitUnlabeledMove,
+  completeAfterCloseFeedback,
+  completeAfterOriginalFeedback,
   completeAfterUnlabeled,
   continueAfterCloseFeedback,
   continueAfterOriginalFeedback,
@@ -112,6 +114,47 @@ describe("review training session", () => {
     expect(completed.log).toMatchObject({
       firstAttemptScore: 100,
       closeTransferScore: null,
+      unlabeledTransferScore: null,
+      transfer: "scheduled-next-game",
+    });
+  });
+
+  it("can finish after the rewound game without forcing transfer drills", () => {
+    const started = startReviewTraining(analysis());
+    if (started === null) return;
+    const original = commitOriginalMove(started, "d2d4");
+    const completed = completeAfterOriginalFeedback(
+      original,
+      "2026-11-24T12:00:00.000Z",
+    );
+
+    expect(completed.stage).toBe("complete");
+    expect(completed.log).toMatchObject({
+      originalAttemptScore: 100,
+      closeTransferScore: null,
+      unlabeledTransferScore: null,
+      transfer: "scheduled-next-game",
+    });
+  });
+
+  it("can finish after one optional similar position", () => {
+    const started = startReviewTraining(analysis());
+    if (started === null) return;
+    const original = commitOriginalMove(started, "d2d4");
+    const close = continueAfterOriginalFeedback(
+      original,
+      "2026-11-24T12:00:00.000Z",
+    );
+    const closeScored = commitCloseMove(close, "h5f7");
+    const completed = completeAfterCloseFeedback(
+      closeScored,
+      "2026-11-24T12:00:00.000Z",
+    );
+
+    expect(completed.stage).toBe("complete");
+    expect(completed.log).toMatchObject({
+      originalAttemptScore: 100,
+      closeTransferScore: 100,
       unlabeledTransferScore: null,
       transfer: "scheduled-next-game",
     });

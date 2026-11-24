@@ -198,15 +198,13 @@ button {
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
   grid-template-areas:
     "hero profile"
-    "note profile"
     "review profile";
   align-content: start;
   gap: 1.25rem;
 }
 
 .training-hero,
-.training-profile,
-.playbook-note {
+.training-profile {
   border: 1px solid var(--cue-line);
   border-radius: 18px;
   background: var(--cue-paper);
@@ -314,12 +312,6 @@ button {
   box-shadow: var(--cue-shadow);
 }
 
-.playbook-note {
-  grid-area: note;
-  padding: 1.5rem;
-  color: var(--cue-muted);
-}
-
 .training-layout h2 {
   margin: 0.25rem 0 0.75rem;
   color: var(--cue-ink);
@@ -328,8 +320,7 @@ button {
   text-transform: capitalize;
 }
 
-.training-profile h2,
-.playbook-note h2 {
+.training-profile h2 {
   font-family: inherit;
   font-size: 1.2rem;
 }
@@ -380,12 +371,6 @@ button {
   color: var(--cue-paper);
   cursor: pointer;
   font-weight: 850;
-}
-
-.lesson-shell {
-  display: grid;
-  align-content: start;
-  gap: 1.25rem;
 }
 
 .lesson-back {
