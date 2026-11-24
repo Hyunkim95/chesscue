@@ -17,6 +17,8 @@
   --cue-line: rgb(41 42 39 / 16%);
   --cue-shadow: 0 20px 50px rgb(64 53 39 / 12%);
   --cue-display: "Newsreader", Georgia, serif;
+  --cue-chess-font:
+    "Arial Unicode MS", "Segoe UI Symbol", "Noto Sans Symbols 2", serif;
 }
 
 * {

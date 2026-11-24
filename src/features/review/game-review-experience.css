@@ -105,6 +105,7 @@
 
 .game-review-piece {
   color: var(--cue-ink);
+  font-family: var(--cue-chess-font);
   font-size: clamp(1.65rem, 6.5vw, 4.25rem);
   line-height: 1;
   filter: drop-shadow(0 1px 0 rgb(255 255 255 / 35%));
