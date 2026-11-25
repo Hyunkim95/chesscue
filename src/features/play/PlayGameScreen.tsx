@@ -134,7 +134,7 @@ export function PlayGameScreen({
   createGameId,
   createPositionId,
   now = systemNow,
-  targetElo = 1480,
+  targetElo: initialTargetElo = 1480,
   focusTheme = "development",
   focusTitle = "Hold the center",
   focus = "Hold the center. Keep the tension before exchanging central pawns.",
@@ -145,6 +145,8 @@ export function PlayGameScreen({
   onModeChange,
   onCoachJoined,
 }: PlayGameScreenProps) {
+  // Incoming account syncs and switching this game to unrated must preserve its opponent.
+  const [targetElo] = useState(initialTargetElo);
   const [launch] = useState(() => ({ mode, resumeGameId }));
   const [modePickerOpen, setModePickerOpen] = useState(false);
 
