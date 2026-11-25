@@ -176,7 +176,8 @@ test.describe("Coached sideline", () => {
     await expect(page.getByRole("status")).toHaveText("Your move");
     await resumeCoachedGame(
       page,
-      new Chess("5rk1/pp4pp/8/8/8/8/PP5P/3QK3 w - - 0 1"),
+      // Qf3+ forces Rxf3, independent of Stockfish strength and search timing.
+      new Chess("8/7N/8/8/5k2/4r3/1B4K1/3Q4 w - - 0 1"),
       [],
     );
     const rook = page.getByRole("button", { name: "Rook", exact: true });
