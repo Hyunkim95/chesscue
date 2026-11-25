@@ -55,17 +55,6 @@ pnpm test:e2e --project=chromium
 
 The Firestore rules integration suite additionally requires Java 21 and the Firebase emulator.
 
-## Specifications
-
-- [Product requirements](docs/PRD.md)
-- [Architecture requirements](docs/ARD.md)
-- [Lesson playbook model](docs/LESSON_PLAYBOOKS.md)
-- [Service level objectives](docs/SLO.md)
-- [Engineering handbook](docs/ENGINEERING.md)
-- [Brand system](docs/BRAND.md)
-- [Submission draft and demo script](docs/SUBMISSION.md)
-- [Parked roadmap](docs/ROADMAP.md)
-
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
