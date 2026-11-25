@@ -6,24 +6,105 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    function createsOwnedImmutableGame(userId) {
+    function createsOwnedRecord(userId) {
       return request.resource.data.keys().hasOnly(['ownerId', 'contentHash', 'record', 'createdAt'])
         && request.resource.data.ownerId == userId
         && request.resource.data.contentHash is string
-        && request.resource.data.contentHash.size() == 64
+        && request.resource.data.contentHash.matches('[a-f0-9]{64}')
         && request.resource.data.record is map
-        && request.resource.data.record.id is string
-        && request.resource.data.record.schemaVersion == 1
         && request.resource.data.createdAt is string;
     }
 
     match /users/{userId}/games/{gameId} {
       allow get, list: if ownsUserScope(userId);
       allow create: if ownsUserScope(userId)
-        && createsOwnedImmutableGame(userId)
+        && createsOwnedRecord(userId)
+        && request.resource.data.record.schemaVersion == 1
+        && request.resource.data.record.completedAt is string
+        && request.resource.data.record.result in ['white-win', 'black-win', 'draw']
         && request.resource.data.record.id == gameId;
       allow delete: if ownsUserScope(userId);
       allow update: if false;
+    }
+
+    match /users/{userId}/{kind}/{recordId} {
+      allow get, list: if ownsUserScope(userId) && kind in ['analyses', 'reviews', 'practice'];
+      allow create: if ownsUserScope(userId) && createsOwnedRecord(userId)
+        && request.resource.data.record.gameId is string
+        && exists(/databases/$(database)/documents/users/$(userId)/games/$(request.resource.data.record.gameId))
+        && ((kind == 'analyses' && request.resource.data.record.schemaVersion == 1
+              && request.resource.data.record.analysisVersion is string
+              && request.resource.data.record.validationStatus == 'validated')
+          || (kind == 'reviews' && request.resource.data.record.id == recordId
+              && request.resource.data.record.schemaVersion == 1)
+          || (kind == 'practice' && request.resource.data.record.id == recordId
+              && request.resource.data.record.keys().hasOnly(['id', 'gameId'])
+              && get(/databases/$(database)/documents/users/$(userId)/reviews/$(recordId)).data.record.gameId == request.resource.data.record.gameId));
+    }
+
+    function uuid(id) { return id is string && id.matches('[a-f0-9-]{36}'); }
+    function elo(value) { return value == null || (value is int && value >= 0); }
+    function validGoal(g) {
+      return g is map && g.keys().hasOnly(['kind','value']) && g.kind in ['gain','milestone']
+        && g.value is int && g.value > 0 && g.value <= 10000;
+    }
+    function validMember(m) {
+      return m.keys().hasOnly(['name','joinedAt','startingElo','baseline','current','target','crossedAt','disputed','publishedAt'])
+        && m.name is string && m.name.size() > 0 && m.name.size() <= 100
+        && m.joinedAt is string && m.joinedAt.size() == 24
+        && elo(m.startingElo) && elo(m.baseline) && elo(m.current) && elo(m.target)
+        && (m.crossedAt == null || (m.crossedAt is string && m.crossedAt.size() == 24))
+        && m.disputed is bool && (!('publishedAt' in m) || m.publishedAt is timestamp);
+    }
+
+    // Pilot participants publish only their own standings. Game histories remain private.
+    match /races/{raceId} {
+      allow get: if uuid(raceId);
+      allow create: if request.auth != null && uuid(raceId)
+        && request.resource.data.keys().hasOnly(['version','goal'])
+        && request.resource.data.version == 1 && validGoal(request.resource.data.goal);
+      match /members/{uid} {
+        allow get: if ownsUserScope(uid);
+        allow read: if request.auth != null &&
+          exists(/databases/$(database)/documents/races/$(raceId)/members/$(request.auth.uid));
+        allow create: if ownsUserScope(uid) && validMember(request.resource.data)
+          && request.resource.data.get('publishedAt',request.time) == request.time
+          && getAfter(/databases/$(database)/documents/races/$(raceId)).data.version == 1;
+        allow update: if ownsUserScope(uid) && validMember(request.resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['current','crossedAt','target','baseline','disputed','publishedAt'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['publishedAt'])
+            || request.resource.data.publishedAt == request.time)
+          && (!resource.data.disputed || request.resource.data.disputed);
+      }
+    }
+    match /sharedWins/{winId} {
+      allow get: if uuid(winId);
+      allow create: if request.auth != null && uuid(winId)
+        && request.resource.data.keys().hasOnly(['name','fen','line','side','race','elo','raceElo','target'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 100
+        && request.resource.data.fen is string && request.resource.data.fen.size() <= 120
+        && request.resource.data.line is list && request.resource.data.line.size() > 0 && request.resource.data.line.size() <= 8
+        && request.resource.data.side in ['white','black'] && elo(request.resource.data.elo)
+        && elo(request.resource.data.raceElo) && elo(request.resource.data.target)
+        && (request.resource.data.race == null || (uuid(request.resource.data.race)
+          && exists(/databases/$(database)/documents/races/$(request.resource.data.race)/members/$(request.auth.uid))));
+    }
+    match /users/{uid}/raceLinks/{raceId} {
+      allow read: if ownsUserScope(uid);
+      allow create: if ownsUserScope(uid) && uuid(raceId)
+        && request.resource.data.keys().hasOnly(['goal'])
+        && request.resource.data.goal == getAfter(/databases/$(database)/documents/races/$(raceId)).data.goal
+        && getAfter(/databases/$(database)/documents/races/$(raceId)/members/$(uid)).data.joinedAt is string;
+    }
+    match /users/{uid}/raceState/version {
+      allow get: if ownsUserScope(uid);
+      allow create, update: if ownsUserScope(uid) && request.resource.data.keys().hasOnly(['revision'])
+        && uuid(request.resource.data.revision);
+    }
+    match /users/{uid}/raceConflicts/{gameId} {
+      allow read: if ownsUserScope(uid);
+      allow create, update: if ownsUserScope(uid) && request.resource.data == {'disputed': true}
+        && exists(/databases/$(database)/documents/users/$(uid)/games/$(gameId));
     }
 
     match /{document=**} {

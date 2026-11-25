@@ -1,3 +1,9 @@
+import {
+  beginnerSearchMoves,
+  STOCKFISH_ELO_FLOOR,
+  MIN_PLAYER_ELO,
+} from "../../domain/game/beginner-opponent";
+import { ratedOpponentElo } from "../../domain/game/rating";
 import { tutorGameMode } from "../../domain/game/types";
 import type { EngineFailure, GameEngine } from "../ports/game-engine";
 import type {
@@ -70,6 +76,10 @@ export async function startTutorGame(
   });
   if (!created.ok) return err({ code: "rule", cause: created.error });
 
+  const matchRating =
+    input.opponentElo === undefined
+      ? undefined
+      : Math.max(MIN_PLAYER_ELO, Math.round(input.opponentElo));
   const session: PlaySession = {
     state: created.value,
     record: {
@@ -78,9 +88,14 @@ export async function startTutorGame(
       origin: {
         type: "tutor",
         ...(input.mode === undefined ? {} : { mode: input.mode }),
-        ...(input.opponentElo === undefined
+        ...(matchRating === undefined
           ? {}
-          : { opponentElo: Math.round(input.opponentElo) }),
+          : { opponentElo: ratedOpponentElo(matchRating) }),
+        ...(input.mode === "rated" &&
+        matchRating !== undefined &&
+        matchRating < STOCKFISH_ELO_FLOOR
+          ? { beginnerOpponent: { version: 1 as const, target: matchRating } }
+          : {}),
         ...(input.trainingFocus === undefined
           ? {}
           : { trainingFocus: input.trainingFocus }),
@@ -188,15 +203,16 @@ export async function requestCpuReply(input: {
   readonly signal: AbortSignal;
   readonly completionObserver?: GameCompletionObserver;
 }): Promise<Result<PlaySession, PlayFailure>> {
+  const searchMoves =
+    beginnerSearchMoves(input.session.record, input.session.state.fen) ??
+    input.searchMoves;
   const move = await input.engine.chooseMove({
     positionId: input.positionId,
     fen: input.session.state.fen,
     moves: input.session.state.moves.map(({ uci }) => uci),
     targetElo: input.targetElo,
     timeBudgetMs: input.timeBudgetMs,
-    ...(input.searchMoves === undefined
-      ? {}
-      : { searchMoves: input.searchMoves }),
+    ...(searchMoves === undefined ? {} : { searchMoves }),
     signal: input.signal,
   });
   if (!move.ok)
@@ -241,6 +257,9 @@ async function persistState(
   const terminal = state.phase === "completed" || state.phase === "resigned";
   const record: GameRecord = {
     ...previous,
+    ...(terminal && tutorGameMode(previous) === "rated"
+      ? { ratingPolicy: "placement-v1" as const }
+      : {}),
     moves: state.moves,
     pgn: state.pgn,
     result: state.result,

@@ -225,12 +225,15 @@ describe("adaptive IndexedDB records", () => {
     });
 
     const database = await openChessTutorDatabase(databaseName);
-    expect([...database.objectStoreNames]).toEqual([
+    const stores = [...database.objectStoreNames];
+    database.close();
+    expect(stores).toEqual([
       "analyses",
       "games",
+      "guestClaims",
       "reviewEvidence",
+      "syncReceipts",
     ]);
-    database.close();
   });
 
   it("keeps analysis versions immutable, idempotent, and listable for recomputation", async () => {

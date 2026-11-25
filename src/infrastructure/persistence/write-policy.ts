@@ -33,7 +33,9 @@ export const decideGameWrite = (
     (existing.origin.type === "tutor" &&
       incoming.origin.type === "tutor" &&
       (existing.origin.mode !== incoming.origin.mode ||
-        existing.origin.opponentElo !== incoming.origin.opponentElo))
+        existing.origin.opponentElo !== incoming.origin.opponentElo ||
+        existing.origin.beginnerOpponent?.target !==
+          incoming.origin.beginnerOpponent?.target))
   ) {
     return {
       type: "conflict",

@@ -122,6 +122,7 @@ export interface PlayGameScreenProps {
   readonly focus?: string;
   readonly onGameCompleted?: GameCompletedCallback;
   readonly mode?: TutorGameMode;
+  readonly noteScope?: string;
   readonly resumeGameId?: GameId;
   readonly onModeChange?: (mode: TutorGameMode) => void;
   readonly onCoachJoined?: (gameId: GameId) => void;
@@ -133,19 +134,22 @@ export function PlayGameScreen({
   createGameId,
   createPositionId,
   now = systemNow,
-  targetElo = 1480,
+  targetElo: initialTargetElo = 1480,
   focusTheme = "development",
   focusTitle = "Hold the center",
   focus = "Hold the center. Keep the tension before exchanging central pawns.",
   onGameCompleted,
   mode,
+  noteScope = "adaptive-chess-tutor",
   resumeGameId,
   onModeChange,
   onCoachJoined,
 }: PlayGameScreenProps) {
+  // Incoming account syncs and switching this game to unrated must preserve its opponent.
+  const [targetElo] = useState(initialTargetElo);
   const [launch] = useState(() => ({ mode, resumeGameId }));
   const [modePickerOpen, setModePickerOpen] = useState(false);
-  const noteScope = "adaptive-chess-tutor";
+
   const [session, setSession] = useState<PlaySession | null>(null);
   const [engineStatus, setEngineStatus] = useState<EngineStatus>("starting");
   const [selected, setSelected] = useState<Square | null>(null);
