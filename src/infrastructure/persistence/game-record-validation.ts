@@ -1,3 +1,7 @@
+import {
+  MIN_PLAYER_ELO,
+  STOCKFISH_ELO_FLOOR,
+} from "../../domain/game/beginner-opponent";
 import type {
   GameOrigin,
   GameRecord,
@@ -24,6 +28,18 @@ const isGameOrigin = (value: unknown): value is GameOrigin => {
         (value.mode === undefined ||
           value.mode === "rated" ||
           value.mode === "coached") &&
+        (value.beginnerOpponent === undefined ||
+          (value.mode === "rated" &&
+            value.opponentElo === STOCKFISH_ELO_FLOOR &&
+            isRecord(value.beginnerOpponent) &&
+            value.beginnerOpponent.version === 1 &&
+            typeof value.beginnerOpponent.target === "number" &&
+            Number.isInteger(value.beginnerOpponent.target) &&
+            value.beginnerOpponent.target >= MIN_PLAYER_ELO &&
+            value.beginnerOpponent.target < STOCKFISH_ELO_FLOOR)) &&
+        (value.coachNotesAtStart === undefined ||
+          (value.mode === "coached" &&
+            typeof value.coachNotesAtStart === "boolean")) &&
         (value.opponentElo === undefined ||
           (typeof value.opponentElo === "number" &&
             Number.isSafeInteger(value.opponentElo) &&
@@ -71,6 +87,13 @@ export const isGameRecord = (value: unknown): value is GameRecord => {
     value.schemaVersion === 1 &&
     isNonEmptyString(value.id) &&
     isGameOrigin(value.origin) &&
+    (value.ratingPolicy === undefined ||
+      (value.ratingPolicy === "placement-v1" &&
+        value.origin.type === "tutor" &&
+        value.origin.mode === "rated" &&
+        value.coachJoinedAtPly === undefined &&
+        isNonEmptyString(value.completedAt) &&
+        value.result !== null)) &&
     isNonEmptyString(value.initialFen) &&
     Array.isArray(value.moves) &&
     value.moves.every(isRecordedMove) &&
@@ -78,7 +101,7 @@ export const isGameRecord = (value: unknown): value is GameRecord => {
       (value.origin.type === "tutor" &&
         value.origin.mode !== "coached" &&
         typeof value.coachJoinedAtPly === "number" &&
-        Number.isSafeInteger(value.coachJoinedAtPly) &&
+        Number.isInteger(value.coachJoinedAtPly) &&
         value.coachJoinedAtPly >= 0 &&
         value.coachJoinedAtPly <= value.moves.length)) &&
     typeof value.pgn === "string" &&
@@ -96,7 +119,27 @@ export const serializeGameRecord = (record: GameRecord): string =>
   JSON.stringify({
     schemaVersion: record.schemaVersion,
     id: record.id,
-    origin: record.origin,
+    origin:
+      record.origin.type === "tutor"
+        ? {
+            type: record.origin.type,
+            mode: record.origin.mode,
+            opponentElo: record.origin.opponentElo,
+            ...(record.origin.beginnerOpponent
+              ? {
+                  beginnerOpponent: {
+                    version: record.origin.beginnerOpponent.version,
+                    target: record.origin.beginnerOpponent.target,
+                  },
+                }
+              : {}),
+            coachNotesAtStart: record.origin.coachNotesAtStart,
+            trainingFocus: record.origin.trainingFocus,
+            openingPolicyVersion: record.origin.openingPolicyVersion,
+          }
+        : record.origin.type === "pgn-upload"
+          ? { type: record.origin.type, sourceName: record.origin.sourceName }
+          : { type: record.origin.type },
     initialFen: record.initialFen,
     moves: record.moves.map((move) => ({
       ply: move.ply,
@@ -113,5 +156,8 @@ export const serializeGameRecord = (record: GameRecord): string =>
     curriculumVersion: record.curriculumVersion,
     configurationVersion: record.configurationVersion,
     fingerprint: record.fingerprint,
-    coachJoinedAtPly: record.coachJoinedAtPly,
+    ...(record.ratingPolicy ? { ratingPolicy: record.ratingPolicy } : {}),
+    ...(record.coachJoinedAtPly === undefined
+      ? {}
+      : { coachJoinedAtPly: record.coachJoinedAtPly }),
   });

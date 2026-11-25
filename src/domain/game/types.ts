@@ -15,16 +15,20 @@ export function createPositionId(value: string): PositionId {
 }
 
 export type PlayerColor = "white" | "black";
-
 export type TutorGameMode = "rated" | "coached";
 
 export type GameOrigin =
   | {
       readonly type: "tutor";
-      readonly mode?: TutorGameMode;
-      readonly opponentElo?: number;
       readonly trainingFocus?: string;
       readonly openingPolicyVersion?: string;
+      readonly mode?: TutorGameMode;
+      readonly opponentElo?: number;
+      readonly beginnerOpponent?: {
+        readonly version: 1;
+        readonly target: number;
+      };
+      readonly coachNotesAtStart?: boolean;
     }
   | { readonly type: "pgn-upload"; readonly sourceName: string }
   | { readonly type: "pgn-paste" };
@@ -54,6 +58,7 @@ export interface GameRecord {
   readonly configurationVersion: string;
   readonly fingerprint: string | null;
   readonly coachJoinedAtPly?: number;
+  readonly ratingPolicy?: "placement-v1";
 }
 
 export function tutorGameMode(game: GameRecord): TutorGameMode | null {

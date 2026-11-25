@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const accountEmulators = process.env.VITE_ACCOUNT_EMULATORS === "true";
+const baseURL = accountEmulators
+  ? "http://127.0.0.1:4187"
+  : "http://127.0.0.1:4173";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -7,7 +12,7 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -18,8 +23,22 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm build && pnpm preview --host 127.0.0.1",
-    url: "http://127.0.0.1:4173",
+    command: accountEmulators
+      ? "pnpm exec vite build --outDir node_modules/.cache/account-preview && pnpm preview --outDir node_modules/.cache/account-preview --host 127.0.0.1 --port 4187 --strictPort"
+      : "pnpm build && pnpm preview --host 127.0.0.1",
+    ...(accountEmulators
+      ? {
+          env: {
+            VITE_FIREBASE_PROJECT_ID: "demo-chesscue-account",
+            VITE_FIREBASE_API_KEY: "demo-key",
+            VITE_FIREBASE_AUTH_DOMAIN: "demo-chesscue-account.firebaseapp.com",
+            VITE_FIREBASE_STORAGE_BUCKET: "demo-chesscue-account.appspot.com",
+            VITE_FIREBASE_MESSAGING_SENDER_ID: "123",
+            VITE_FIREBASE_APP_ID: "1:123:web:demo",
+          },
+        }
+      : {}),
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
   },
 });

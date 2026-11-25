@@ -1,15 +1,15 @@
 import type { IDBPDatabase } from "idb";
 
-import type {
-  GameRepository,
-  RepositoryFailure,
-} from "../../application/ports/game-repository";
 import {
   tutorGameMode,
   type GameId,
   type GameRecord,
   type TutorGameMode,
 } from "../../domain/game/types";
+import type {
+  GameRepository,
+  RepositoryFailure,
+} from "../../application/ports/game-repository";
 import { err, ok, type Result } from "../../shared/result/result";
 
 import {
@@ -55,7 +55,10 @@ export class IndexedDbGameRepository implements GameRepository {
     }
   }
 
-  async put(record: GameRecord): Promise<Result<void, RepositoryFailure>> {
+  async put(
+    record: GameRecord,
+    policy: "update-local" | "insert-only" = "update-local",
+  ): Promise<Result<void, RepositoryFailure>> {
     if (!isGameRecord(record)) {
       return err({
         code: "invalid-record",
@@ -65,8 +68,13 @@ export class IndexedDbGameRepository implements GameRepository {
 
     try {
       const database = await this.#open();
-      const transaction = database.transaction(GAME_STORE, "readwrite");
-      const storedValue: unknown = await transaction.store.get(record.id);
+      const transaction = database.transaction(
+        [GAME_STORE, "syncReceipts"],
+        "readwrite",
+      );
+      const storedValue: unknown = await transaction
+        .objectStore(GAME_STORE)
+        .get(record.id);
 
       if (storedValue !== undefined && !isGameRecord(storedValue)) {
         await transaction.done;
@@ -77,13 +85,25 @@ export class IndexedDbGameRepository implements GameRepository {
       }
 
       const decision = decideGameWrite(storedValue, record);
+      if (decision.type === "replace-in-progress" && policy === "insert-only") {
+        await transaction.done;
+        return err({
+          code: "conflict",
+          message:
+            "An unfinished game with this ID already exists on this device.",
+        });
+      }
       if (decision.type === "conflict") {
         await transaction.done;
         return err({ code: "conflict", message: decision.reason });
       }
 
       if (decision.type !== "idempotent") {
-        await transaction.store.put(structuredClone(record));
+        await transaction.objectStore(GAME_STORE).put(structuredClone(record));
+        if (record.completedAt !== null)
+          await transaction
+            .objectStore("syncReceipts")
+            .put({ queuedAt: Date.now(), acknowledgedAt: null }, record.id);
       }
 
       await transaction.done;
@@ -125,6 +145,22 @@ export class IndexedDbGameRepository implements GameRepository {
   }
 
   async listCompleted(): Promise<
+    Result<readonly GameRecord[], RepositoryFailure>
+  > {
+    const all = await this.listCompletedSources();
+    if (!all.ok) return all;
+    const seen = new Set<string>();
+    return ok(
+      all.value.filter((game) => {
+        if (game.fingerprint === null) return true;
+        if (seen.has(game.fingerprint)) return false;
+        seen.add(game.fingerprint);
+        return true;
+      }),
+    );
+  }
+
+  async listCompletedSources(): Promise<
     Result<readonly GameRecord[], RepositoryFailure>
   > {
     try {

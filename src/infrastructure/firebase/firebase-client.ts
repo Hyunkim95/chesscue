@@ -4,8 +4,12 @@ import {
   type AppCheck,
 } from "firebase/app-check";
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
+import {
+  getFirestore,
+  connectFirestoreEmulator,
+  type Firestore,
+} from "firebase/firestore";
 
 import { loadFirebaseClientConfig } from "../config/firebase-environment";
 
@@ -69,7 +73,21 @@ export const initializeFirebaseClient = (
         APP_NAME,
       );
 
+    const auth = getAuth(app);
+    const firestore = getFirestore(app);
+    const emulated =
+      import.meta.env.VITE_ACCOUNT_EMULATORS === "true" &&
+      configResult.value.projectId.startsWith("demo-") &&
+      globalThis.location.hostname === "127.0.0.1";
+    if (emulated && existingApp === undefined) {
+      connectAuthEmulator(auth, "http://127.0.0.1:9099", {
+        disableWarnings: true,
+      });
+      connectFirestoreEmulator(firestore, "127.0.0.1", 8080);
+    }
+
     const appCheck =
+      !emulated &&
       options.enableAppCheck === true &&
       configResult.value.appCheckSiteKey !== undefined
         ? initializeAppCheck(app, {
@@ -84,8 +102,8 @@ export const initializeFirebaseClient = (
       status: "ready",
       services: {
         app: existingApp === undefined ? app : getApp(APP_NAME),
-        auth: getAuth(app),
-        firestore: getFirestore(app),
+        auth,
+        firestore,
         appCheck,
       },
     };

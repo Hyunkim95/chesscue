@@ -48,20 +48,38 @@ import type { LessonContentProvider } from "../infrastructure/ai/lesson-content-
 import { loadFirebaseClientConfig } from "../infrastructure/config/firebase-environment";
 import { StockfishAnalysisEngine } from "../infrastructure/engine/stockfish-analysis-engine";
 import { StockfishGameEngine } from "../infrastructure/engine/stockfish-game-engine";
-import { IndexedDbGameRepository } from "../infrastructure/persistence/indexeddb-game-repository";
-import { IndexedDbAnalysisRepository } from "../infrastructure/persistence/indexeddb-analysis-repository";
-import { IndexedDbReviewEvidenceRepository } from "../infrastructure/persistence/indexeddb-review-evidence-repository";
+import { useRaceAccount } from "../features/race/use-race-account";
+import { AccountPanel } from "../features/account/AccountPanel";
+import { initialSync } from "../application/sync-games/sync-status";
+import type { PlayerHistory } from "../infrastructure/persistence/player-history";
+import {
+  ratingHistory,
+  placementCount,
+  INITIAL_PLAYER_ELO,
+} from "../domain/game/rating";
 
 const StudyScreen = lazy(() =>
   import("../features/study/StudyScreen").then((module) => ({
     default: module.StudyScreen,
   })),
 );
+const RaceView = lazy(async () => ({
+  default: (await import("../features/race/RaceView")).RaceView,
+}));
+const ShareWin = lazy(async () => ({
+  default: (await import("../features/race/SharedWin")).ShareWin,
+}));
+const SharedWinView = lazy(async () => ({
+  default: (await import("../features/race/SharedWin")).SharedWinView,
+}));
 type AppView = "play" | "import" | "training" | "review" | "study";
+function raceRoute(hash: string) {
+  if (hash === "#account") return "account";
+  if (hash === "#races" || hash.startsWith("#race/")) return "race";
+  if (hash.startsWith("#win/") || hash.startsWith("#mate/")) return "win";
+  return null;
+}
 
-const repository = new IndexedDbGameRepository();
-const analysisRepository = new IndexedDbAnalysisRepository();
-const reviewEvidenceRepository = new IndexedDbReviewEvidenceRepository();
 const engine = new StockfishGameEngine();
 const analysisEngine = new StockfishAnalysisEngine();
 const reviewReplyEngine = new StockfishAnalysisEngine();
@@ -85,9 +103,11 @@ const runningAnalyses = new Map<
 let previousAnalysis: Promise<unknown> = Promise.resolve();
 
 function loadGameAnalysis(
+  history: PlayerHistory,
   game: GameRecord,
 ): Promise<Result<CompletedGameAnalysis, string>> {
-  const key = game.id;
+  const analysisRepository = history.analyses;
+  const key = JSON.stringify([history.name, game.id]);
   const existing = runningAnalyses.get(key);
   if (existing !== undefined) return existing;
   const task = previousAnalysis
@@ -124,7 +144,7 @@ function loadGameAnalysis(
 
 type AnalysisViewState =
   | { readonly status: "idle" }
-  | { readonly status: "running" }
+  | { readonly status: "running"; readonly game: GameRecord }
   | {
       readonly status: "ready";
       readonly game: GameRecord;
@@ -147,10 +167,10 @@ interface PlaySelection {
   readonly gameId?: GameId;
 }
 
-function readPlaySelection(): PlaySelection {
+function readPlaySelection(history: PlayerHistory): PlaySelection {
   try {
     const value: unknown = JSON.parse(
-      localStorage.getItem(playModeStorage) ?? "null",
+      localStorage.getItem(history.key(playModeStorage)) ?? "null",
     );
     if (
       typeof value === "object" &&
@@ -173,9 +193,12 @@ function readPlaySelection(): PlaySelection {
   return { mode: "rated" };
 }
 
-function savePlaySelection(selection: PlaySelection) {
+function savePlaySelection(history: PlayerHistory, selection: PlaySelection) {
   try {
-    localStorage.setItem(playModeStorage, JSON.stringify(selection));
+    localStorage.setItem(
+      history.key(playModeStorage),
+      JSON.stringify(selection),
+    );
   } catch {
     /* The user can still change modes in this visit. */
   }
@@ -233,23 +256,89 @@ function useReviewCoachProvider(
 }
 
 export function App() {
-  const [view, setView] = useState<AppView>("play");
+  const [hash, setHash] = useState(location.hash);
+  const [accessRequested, setAccessRequested] = useState(
+    () =>
+      !!raceRoute(location.hash) ||
+      localStorage.getItem("chesscue-auth-used") === "1",
+  );
+  useEffect(() => {
+    const navigate = () => {
+      setHash(location.hash);
+      if (raceRoute(location.hash)) setAccessRequested(true);
+    };
+    window.addEventListener("hashchange", navigate);
+    return () => window.removeEventListener("hashchange", navigate);
+  }, []);
+  const account = useRaceAccount(accessRequested);
+  return <PlayerApp key={account.history.name} account={account} hash={hash} />;
+}
+function PlayerApp({
+  account,
+  hash,
+}: {
+  account: ReturnType<typeof useRaceAccount>;
+  hash: string;
+}) {
+  const { user, session, history } = account;
+  const repository = history.games,
+    analysisRepository = history.analyses,
+    reviewEvidenceRepository = history.reviews;
+  const loadAnalysis = useCallback(
+    (game: GameRecord) => loadGameAnalysis(history, game),
+    [history],
+  );
+  const social = raceRoute(hash);
+  const [view, changeView] = useState<AppView>("play");
+  const setView = useCallback((next: AppView) => {
+    if (raceRoute(location.hash)) location.hash = "";
+    changeView(next);
+  }, []);
+  const [sync, setSync] = useState(initialSync);
+  const [ratedGames, setRatedGames] = useState<readonly GameRecord[]>([]);
+  const ratings = useMemo(() => ratingHistory(ratedGames), [ratedGames]);
+  const latestWin = ratings.findLast((r) => r.result === "Won");
+  const wonGame =
+    latestWin && ratedGames.find((g) => g.id === latestWin.gameId);
+  function openRatedGame() {
+    selectPlayMode("rated");
+    setView("play");
+  }
+  const refreshGames = useCallback(async () => {
+    const all = await repository.listCompleted();
+    if (all.ok) setRatedGames(all.value);
+  }, [repository]);
+  const refreshSync = useCallback(() => {
+    void refreshGames();
+  }, [refreshGames]);
+  useEffect(
+    () => session?.sync(history, setSync, refreshSync),
+    [session, history, refreshSync],
+  );
+  useEffect(() => {
+    void refreshGames();
+    window.addEventListener("chesscue-history", refreshSync);
+    return () => window.removeEventListener("chesscue-history", refreshSync);
+  }, [refreshGames, refreshSync]);
+
   useLayoutEffect(() => {
     if (view === "review") window.scrollTo(0, 0);
   }, [view]);
-  const [playSelection, setPlaySelection] = useState(readPlaySelection);
+  const [playSelection, setPlaySelection] = useState(() =>
+    readPlaySelection(history),
+  );
   const [playInstance, setPlayInstance] = useState(0);
 
   function selectPlayMode(mode: TutorGameMode) {
     const selection = { mode };
-    savePlaySelection(selection);
+    savePlaySelection(history, selection);
     setPlaySelection(selection);
     setPlayInstance((instance) => instance + 1);
   }
 
   function rememberCoachJoin(gameId: GameId) {
     const selection: PlaySelection = { mode: "coached", gameId };
-    savePlaySelection(selection);
+    savePlaySelection(history, selection);
     setPlaySelection(selection);
   }
   const [analysis, setAnalysis] = useState<AnalysisViewState>({
@@ -265,7 +354,7 @@ export function App() {
     repository,
     analysisRepository,
     view === "study",
-    loadGameAnalysis,
+    loadAnalysis,
   );
   const reviewCoachProvider = useReviewCoachProvider(view === "review");
   const activeNavigationView =
@@ -287,7 +376,7 @@ export function App() {
       setContributingGames(result.value.contributingGames);
     }
     setProfileReady(true);
-  }, []);
+  }, [repository, analysisRepository, reviewEvidenceRepository]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -337,8 +426,8 @@ export function App() {
   const analyzeGame = useCallback(
     async (game: GameRecord): Promise<void> => {
       setView("review");
-      setAnalysis({ status: "running" });
-      const result = await loadGameAnalysis(game);
+      setAnalysis({ status: "running", game });
+      const result = await loadAnalysis(game);
       if (!result.ok) {
         setAnalysis({ status: "failed", message: result.error });
         return;
@@ -346,7 +435,7 @@ export function App() {
       setAnalysis({ status: "ready", game, analysis: result.value });
       await refreshAdaptiveProfile();
     },
-    [refreshAdaptiveProfile],
+    [refreshAdaptiveProfile, loadAnalysis, setView],
   );
 
   async function analyzeLatestGame(): Promise<void> {
@@ -373,6 +462,7 @@ export function App() {
 
   const handleCompletedTutorGame = useCallback(
     async (game: GameRecord): Promise<void> => {
+      window.dispatchEvent(new Event("chesscue-history"));
       await analyzeGame(game);
     },
     [analyzeGame],
@@ -386,45 +476,120 @@ export function App() {
     if (persisted.ok) await refreshAdaptiveProfile();
   }
 
+  const header = (
+    <header className="app-bar">
+      <button
+        className="brand"
+        type="button"
+        onClick={() => {
+          setView("play");
+        }}
+      >
+        <span className="brand-mark" aria-hidden="true" />
+        <span>
+          <strong>ChessCue</strong>
+          <small>Adaptive training</small>
+        </span>
+      </button>
+      <nav aria-label="Primary navigation">
+        {navigation.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-current={activeNavigationView === item.id ? "page" : undefined}
+            onClick={() => {
+              setView(item.id);
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+      <button
+        className="local-status"
+        type="button"
+        onClick={() => {
+          location.hash = "account";
+        }}
+      >
+        Account
+      </button>
+    </header>
+  );
+  if (social)
+    return (
+      <div className="app-frame">
+        {header}
+
+        {social === "account" && (
+          <AccountPanel
+            user={user}
+            session={session}
+            history={history}
+            sync={sync}
+            error={account.error}
+            merged={() => {
+              window.dispatchEvent(new Event("chesscue-history"));
+              void refreshAdaptiveProfile();
+            }}
+          >
+            <section>
+              <a className="review-action" href="#races">
+                Elo races
+              </a>
+              <p>
+                {placementCount(ratings.at(-1)) === null
+                  ? String(ratings.at(-1)?.after) + " Elo"
+                  : "In placement"}
+              </p>
+              {wonGame && (
+                <Suspense>
+                  <ShareWin
+                    key={wonGame.id}
+                    game={wonGame}
+                    session={session}
+                    uid={user?.uid ?? null}
+                  />
+                </Suspense>
+              )}
+            </section>
+          </AccountPanel>
+        )}
+        {social === "race" && (
+          <Suspense fallback={<p>Loading race…</p>}>
+            <RaceView
+              key={hash}
+              id={hash.startsWith("#race/") ? hash.slice(6) : null}
+              user={user}
+              session={session}
+              ratings={ratings}
+              onPlay={openRatedGame}
+              accountError={account.error}
+              conflict={sync.conflicts.some((k) => k.startsWith("games/"))}
+              uploadsPending={sync.pending > 0}
+            />
+          </Suspense>
+        )}
+        {social === "win" && (
+          <Suspense fallback={<p>Loading win…</p>}>
+            <SharedWinView
+              key={hash}
+              id={hash.slice(hash.indexOf("/") + 1)}
+              guest={hash.startsWith("#mate/")}
+              session={session}
+              unavailable={!!account.error}
+              onPlay={openRatedGame}
+            />
+          </Suspense>
+        )}
+      </div>
+    );
   return (
     <div className="app-frame">
-      <header className="app-bar">
-        <button
-          className="brand"
-          type="button"
-          onClick={() => {
-            setView("play");
-          }}
-        >
-          <span className="brand-mark" aria-hidden="true" />
-          <span>
-            <strong>ChessCue</strong>
-            <small>Adaptive training</small>
-          </span>
-        </button>
-        <nav aria-label="Primary navigation">
-          {navigation.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-current={
-                activeNavigationView === item.id ? "page" : undefined
-              }
-              onClick={() => {
-                setView(item.id);
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-        <span className="local-status" title="Games are saved in this browser">
-          <span aria-hidden="true" /> Local-first
-        </span>
-      </header>
-
+      {header}{" "}
       {view === "play" && profileReady ? (
         <PlayGameScreen
+          noteScope={history.name}
           key={playInstance}
           mode={playSelection.mode}
           {...(playSelection.gameId === undefined
@@ -436,14 +601,17 @@ export function App() {
           repository={repository}
           createGameId={newGameId}
           createPositionId={newPositionId}
-          targetElo={targetElo}
+          targetElo={
+            playSelection.mode === "rated"
+              ? (ratings.at(-1)?.after ?? INITIAL_PLAYER_ELO)
+              : targetElo
+          }
           focusTheme={profile.nextGame.focus}
           focusTitle={titleCase(profile.nextGame.focus)}
           focus={focus}
           onGameCompleted={handleCompletedTutorGame}
         />
       ) : null}
-
       {view === "play" && !profileReady ? (
         <main className="content-shell review-page">
           <section className="review-page__state" aria-live="polite">
@@ -455,13 +623,11 @@ export function App() {
           </section>
         </main>
       ) : null}
-
       {view === "import" ? (
         <main className="content-shell content-shell--narrow">
           <ImportGamesPanel onImport={handleImport} />
         </main>
       ) : null}
-
       {view === "training" ? (
         <main className="content-shell training-layout">
           <div className="training-hero">
@@ -521,7 +687,6 @@ export function App() {
           </section>
         </main>
       ) : null}
-
       {view === "study" && (
         <main className="content-shell review-page study-page">
           <button
@@ -541,12 +706,24 @@ export function App() {
                   ? snapshot.plan.practice[0]
                   : undefined
               }
-              storageKey="chesscue-study-roadmaps-v1"
+              storageKey={history.key("chesscue-study-roadmaps-v1")}
               profile={profile}
             />
           </Suspense>
         </main>
       )}
+      {view === "review" &&
+        wonGame &&
+        (analysis.status === "ready" || analysis.status === "running") &&
+        analysis.game.id === wonGame.id && (
+          <Suspense>
+            <ShareWin
+              game={wonGame}
+              session={session}
+              uid={user?.uid ?? null}
+            />
+          </Suspense>
+        )}
       {view === "review" ? (
         <main className="content-shell review-page">
           <button
