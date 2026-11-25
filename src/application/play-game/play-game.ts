@@ -1,3 +1,4 @@
+import { tutorGameMode } from "../../domain/game/types";
 import type { EngineFailure, GameEngine } from "../ports/game-engine";
 import type {
   GameRepository,
@@ -18,6 +19,7 @@ import type {
   GameRecord,
   PlayerColor,
   PositionId,
+  TutorGameMode,
 } from "../../domain/game/types";
 import type { Result } from "../../shared/result/result";
 import { err, ok } from "../../shared/result/result";
@@ -52,6 +54,8 @@ export interface StartTutorGameInput {
   readonly configurationVersion: string;
   readonly trainingFocus?: string;
   readonly openingPolicyVersion?: string;
+  readonly mode?: TutorGameMode;
+  readonly opponentElo?: number;
   readonly now: string;
   readonly repository: GameRepository;
   readonly initialFen?: string;
@@ -73,6 +77,10 @@ export async function startTutorGame(
       id: input.id,
       origin: {
         type: "tutor",
+        ...(input.mode === undefined ? {} : { mode: input.mode }),
+        ...(input.opponentElo === undefined
+          ? {}
+          : { opponentElo: Math.round(input.opponentElo) }),
         ...(input.trainingFocus === undefined
           ? {}
           : { trainingFocus: input.trainingFocus }),
@@ -119,6 +127,34 @@ export function resumeTutorGame(
   return restored.ok
     ? ok({ state: restored.value, record })
     : err({ code: "rule", cause: restored.error });
+}
+
+export async function bringInCoach(
+  session: PlaySession,
+  repository: GameRepository,
+): Promise<Result<PlaySession, PlayFailure>> {
+  if (
+    session.record.origin.type !== "tutor" ||
+    tutorGameMode(session.record) === "coached" ||
+    session.state.phase !== "player-turn"
+  ) {
+    return err({
+      code: "rule",
+      cause: {
+        code: "invalid-position",
+        message: "Coach can join on your turn in a rated game.",
+      },
+      session,
+    });
+  }
+  const record = {
+    ...session.record,
+    coachJoinedAtPly: session.record.moves.length,
+  };
+  const persisted = await repository.put(record);
+  return persisted.ok
+    ? ok({ state: session.state, record })
+    : err({ code: "storage", cause: persisted.error, session });
 }
 
 export async function acceptPlayerMove(input: {

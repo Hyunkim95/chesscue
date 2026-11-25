@@ -22,6 +22,7 @@ export type GameOrigin =
   | {
       readonly type: "tutor";
       readonly mode?: TutorGameMode;
+      readonly opponentElo?: number;
       readonly trainingFocus?: string;
       readonly openingPolicyVersion?: string;
     }
@@ -59,5 +60,5 @@ export function tutorGameMode(game: GameRecord): TutorGameMode | null {
   if (game.origin.type !== "tutor") return null;
   return game.coachJoinedAtPly !== undefined
     ? "coached"
-    : (game.origin.mode ?? "coached");
+    : (game.origin.mode ?? null);
 }

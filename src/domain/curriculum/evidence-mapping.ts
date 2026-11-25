@@ -1,3 +1,4 @@
+import { tutorGameMode } from "../game/types";
 import type { ReviewTrainingLog } from "../analysis/review-training";
 import type { LearningTheme, MoveAnalysisFact } from "../analysis/types";
 import type { GameRecord, PlayerColor } from "../game/types";
@@ -87,6 +88,7 @@ export const mapTutorGameOutcome = (
 ): TutorGameOutcome | null => {
   if (
     game.origin.type !== "tutor" ||
+    tutorGameMode(game) === "coached" ||
     game.completedAt === null ||
     game.result === null ||
     game.playerColor === null

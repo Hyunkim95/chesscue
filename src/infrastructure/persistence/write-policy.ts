@@ -29,11 +29,29 @@ export const decideGameWrite = (
 
   if (
     existing.createdAt !== incoming.createdAt ||
-    existing.origin.type !== incoming.origin.type
+    existing.origin.type !== incoming.origin.type ||
+    (existing.origin.type === "tutor" &&
+      incoming.origin.type === "tutor" &&
+      (existing.origin.mode !== incoming.origin.mode ||
+        existing.origin.opponentElo !== incoming.origin.opponentElo))
   ) {
     return {
       type: "conflict",
       reason: "An in-progress update must preserve game identity and origin.",
+    };
+  }
+
+  if (
+    existing.coachJoinedAtPly !== incoming.coachJoinedAtPly &&
+    (existing.coachJoinedAtPly !== undefined ||
+      incoming.coachJoinedAtPly !== existing.moves.length ||
+      incoming.moves.length !== existing.moves.length ||
+      incoming.completedAt !== null)
+  ) {
+    return {
+      type: "conflict",
+      reason:
+        "A coach join must preserve the saved position and cannot be undone.",
     };
   }
 

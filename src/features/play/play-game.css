@@ -300,3 +300,14 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+.play-mode {
+  margin-top: 0.5rem;
+}
+
+.play-mode__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}

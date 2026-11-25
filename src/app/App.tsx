@@ -32,7 +32,9 @@ import { buildPlayerProfile, type PlayerProfile } from "../domain/curriculum";
 import {
   createGameId,
   createPositionId,
+  type GameId,
   type GameRecord,
+  type TutorGameMode,
 } from "../domain/game/types";
 import { CurriculumCard } from "../features/curriculum/CurriculumCard";
 import {
@@ -138,6 +140,47 @@ const initialProfile = buildPlayerProfile({
   tutorGames: [],
 });
 
+const playModeStorage = "chesscue-active-play-mode";
+
+interface PlaySelection {
+  readonly mode: TutorGameMode;
+  readonly gameId?: GameId;
+}
+
+function readPlaySelection(): PlaySelection {
+  try {
+    const value: unknown = JSON.parse(
+      localStorage.getItem(playModeStorage) ?? "null",
+    );
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      "mode" in value &&
+      (value.mode === "rated" || value.mode === "coached")
+    ) {
+      return {
+        mode: value.mode,
+        ...("gameId" in value &&
+        typeof value.gameId === "string" &&
+        value.gameId.trim()
+          ? { gameId: createGameId(value.gameId) }
+          : {}),
+      };
+    }
+  } catch {
+    /* A saved mode is optional and game storage remains authoritative. */
+  }
+  return { mode: "rated" };
+}
+
+function savePlaySelection(selection: PlaySelection) {
+  try {
+    localStorage.setItem(playModeStorage, JSON.stringify(selection));
+  } catch {
+    /* The user can still change modes in this visit. */
+  }
+}
+
 const newGameId = () => createGameId(crypto.randomUUID());
 const newPositionId = () => createPositionId(crypto.randomUUID());
 const titleCase = (value: string) =>
@@ -194,6 +237,21 @@ export function App() {
   useLayoutEffect(() => {
     if (view === "review") window.scrollTo(0, 0);
   }, [view]);
+  const [playSelection, setPlaySelection] = useState(readPlaySelection);
+  const [playInstance, setPlayInstance] = useState(0);
+
+  function selectPlayMode(mode: TutorGameMode) {
+    const selection = { mode };
+    savePlaySelection(selection);
+    setPlaySelection(selection);
+    setPlayInstance((instance) => instance + 1);
+  }
+
+  function rememberCoachJoin(gameId: GameId) {
+    const selection: PlaySelection = { mode: "coached", gameId };
+    savePlaySelection(selection);
+    setPlaySelection(selection);
+  }
   const [analysis, setAnalysis] = useState<AnalysisViewState>({
     status: "idle",
   });
@@ -367,6 +425,13 @@ export function App() {
 
       {view === "play" && profileReady ? (
         <PlayGameScreen
+          key={playInstance}
+          mode={playSelection.mode}
+          {...(playSelection.gameId === undefined
+            ? {}
+            : { resumeGameId: playSelection.gameId })}
+          onModeChange={selectPlayMode}
+          onCoachJoined={rememberCoachJoin}
           engine={engine}
           repository={repository}
           createGameId={newGameId}

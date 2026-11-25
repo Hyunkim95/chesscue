@@ -21,6 +21,13 @@ const isGameOrigin = (value: unknown): value is GameOrigin => {
   switch (value.type) {
     case "tutor":
       return (
+        (value.mode === undefined ||
+          value.mode === "rated" ||
+          value.mode === "coached") &&
+        (value.opponentElo === undefined ||
+          (typeof value.opponentElo === "number" &&
+            Number.isSafeInteger(value.opponentElo) &&
+            value.opponentElo > 0)) &&
         (value.trainingFocus === undefined ||
           isNonEmptyString(value.trainingFocus)) &&
         (value.openingPolicyVersion === undefined ||
@@ -67,6 +74,13 @@ export const isGameRecord = (value: unknown): value is GameRecord => {
     isNonEmptyString(value.initialFen) &&
     Array.isArray(value.moves) &&
     value.moves.every(isRecordedMove) &&
+    (value.coachJoinedAtPly === undefined ||
+      (value.origin.type === "tutor" &&
+        value.origin.mode !== "coached" &&
+        typeof value.coachJoinedAtPly === "number" &&
+        Number.isSafeInteger(value.coachJoinedAtPly) &&
+        value.coachJoinedAtPly >= 0 &&
+        value.coachJoinedAtPly <= value.moves.length)) &&
     typeof value.pgn === "string" &&
     playerColorIsValid &&
     resultIsValid &&
@@ -99,4 +113,5 @@ export const serializeGameRecord = (record: GameRecord): string =>
     curriculumVersion: record.curriculumVersion,
     configurationVersion: record.configurationVersion,
     fingerprint: record.fingerprint,
+    coachJoinedAtPly: record.coachJoinedAtPly,
   });
