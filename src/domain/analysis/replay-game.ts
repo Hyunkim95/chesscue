@@ -43,7 +43,7 @@ export function buildGameReplay(game: GameRecord): ReplayBuildResult {
         ply: recordedMove.ply,
         fen: move.after,
         lastMoveUci: recordedMove.uci,
-        lastMoveSan: recordedMove.san,
+        lastMoveSan: move.san,
       });
     } catch {
       return {
