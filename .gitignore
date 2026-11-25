@@ -14,3 +14,7 @@ ui-debug.log
 data/generated/
 src/generated/
 .DS_Store
+
+/docs/
+/reports/
+/research_notes/
