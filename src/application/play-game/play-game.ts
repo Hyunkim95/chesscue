@@ -135,7 +135,7 @@ export async function bringInCoach(
 ): Promise<Result<PlaySession, PlayFailure>> {
   if (
     session.record.origin.type !== "tutor" ||
-    tutorGameMode(session.record) !== "rated" ||
+    tutorGameMode(session.record) === "coached" ||
     session.state.phase !== "player-turn"
   ) {
     return err({

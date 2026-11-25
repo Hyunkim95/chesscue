@@ -60,5 +60,5 @@ export function tutorGameMode(game: GameRecord): TutorGameMode | null {
   if (game.origin.type !== "tutor") return null;
   return game.coachJoinedAtPly !== undefined
     ? "coached"
-    : (game.origin.mode ?? "rated");
+    : (game.origin.mode ?? null);
 }

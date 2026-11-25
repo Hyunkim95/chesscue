@@ -87,7 +87,8 @@ export const mapTutorGameOutcome = (
   game: GameRecord,
 ): TutorGameOutcome | null => {
   if (
-    tutorGameMode(game) !== "rated" ||
+    game.origin.type !== "tutor" ||
+    tutorGameMode(game) === "coached" ||
     game.completedAt === null ||
     game.result === null ||
     game.playerColor === null

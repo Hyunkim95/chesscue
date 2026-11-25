@@ -1,4 +1,8 @@
+import { usePlayingSnapshot } from "./use-playing-snapshot";
+import { err, ok, type Result } from "../shared/result/result";
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -48,7 +52,12 @@ import { IndexedDbGameRepository } from "../infrastructure/persistence/indexeddb
 import { IndexedDbAnalysisRepository } from "../infrastructure/persistence/indexeddb-analysis-repository";
 import { IndexedDbReviewEvidenceRepository } from "../infrastructure/persistence/indexeddb-review-evidence-repository";
 
-type AppView = "play" | "import" | "training" | "review";
+const StudyScreen = lazy(() =>
+  import("../features/study/StudyScreen").then((module) => ({
+    default: module.StudyScreen,
+  })),
+);
+type AppView = "play" | "import" | "training" | "review" | "study";
 
 const repository = new IndexedDbGameRepository();
 const analysisRepository = new IndexedDbAnalysisRepository();
@@ -68,6 +77,50 @@ const readBoardPosition: AssessPosition = async (fen, signal) => {
 };
 
 const firebaseConfiguration = loadFirebaseClientConfig();
+
+const runningAnalyses = new Map<
+  string,
+  Promise<Result<CompletedGameAnalysis, string>>
+>();
+let previousAnalysis: Promise<unknown> = Promise.resolve();
+
+function loadGameAnalysis(
+  game: GameRecord,
+): Promise<Result<CompletedGameAnalysis, string>> {
+  const key = game.id;
+  const existing = runningAnalyses.get(key);
+  if (existing !== undefined) return existing;
+  const task = previousAnalysis
+    .then(async () => {
+      const stored = await analysisRepository.get(game.id, ANALYSIS_VERSION);
+      if (!stored.ok) return err(stored.error.message);
+      if (stored.value !== null)
+        return ok(completedAnalysisFromRecord(stored.value));
+      const result = await analyzeCompletedGame({
+        game,
+        engine: analysisEngine,
+        analysisVersion: ANALYSIS_VERSION,
+        timeBudgetPerPositionMs: 120,
+        signal: new AbortController().signal,
+      });
+      if (!result.ok) return err(result.error.message);
+      const persisted = await analysisRepository.put(
+        createAnalysisRecord({
+          game,
+          analysis: result.value,
+          analyzedAt: new Date().toISOString(),
+        }),
+      );
+      return persisted.ok ? ok(result.value) : err(persisted.error.message);
+    })
+    .catch(() => err("This game could not be analyzed."))
+    .finally(() => {
+      runningAnalyses.delete(key);
+    });
+  previousAnalysis = task;
+  runningAnalyses.set(key, task);
+  return task;
+}
 
 type AnalysisViewState =
   | { readonly status: "idle" }
@@ -208,8 +261,15 @@ export function App() {
     tutor: 0,
   });
   const [profileReady, setProfileReady] = useState(false);
+  const snapshot = usePlayingSnapshot(
+    repository,
+    analysisRepository,
+    view === "study",
+    loadGameAnalysis,
+  );
   const reviewCoachProvider = useReviewCoachProvider(view === "review");
-  const activeNavigationView = view === "review" ? "training" : view;
+  const activeNavigationView =
+    view === "review" || view === "study" ? "training" : view;
   const targetElo = profile.nextGame.targetElo;
   const focus = profile.nextGame.reason;
 
@@ -278,39 +338,9 @@ export function App() {
     async (game: GameRecord): Promise<void> => {
       setView("review");
       setAnalysis({ status: "running" });
-      const stored = await analysisRepository.get(game.id, ANALYSIS_VERSION);
-      if (!stored.ok) {
-        setAnalysis({ status: "failed", message: stored.error.message });
-        return;
-      }
-      if (stored.value !== null) {
-        const completed = completedAnalysisFromRecord(stored.value);
-        setAnalysis({ status: "ready", game, analysis: completed });
-        await refreshAdaptiveProfile();
-        return;
-      }
-
-      const controller = new AbortController();
-      const result = await analyzeCompletedGame({
-        game,
-        engine: analysisEngine,
-        analysisVersion: ANALYSIS_VERSION,
-        timeBudgetPerPositionMs: 120,
-        signal: controller.signal,
-      });
+      const result = await loadGameAnalysis(game);
       if (!result.ok) {
-        setAnalysis({ status: "failed", message: result.error.message });
-        return;
-      }
-      const persisted = await analysisRepository.put(
-        createAnalysisRecord({
-          game,
-          analysis: result.value,
-          analyzedAt: new Date().toISOString(),
-        }),
-      );
-      if (!persisted.ok) {
-        setAnalysis({ status: "failed", message: persisted.error.message });
+        setAnalysis({ status: "failed", message: result.error });
         return;
       }
       setAnalysis({ status: "ready", game, analysis: result.value });
@@ -450,6 +480,22 @@ export function App() {
               Play this focus game
             </button>
           </div>
+          <section
+            className="review-card study-entry"
+            aria-labelledby="study-title"
+          >
+            <h2 id="study-title">Study positions</h2>
+            <p>Compare a move from your game with a historical example.</p>
+            <button
+              type="button"
+              className="review-action"
+              onClick={() => {
+                setView("study");
+              }}
+            >
+              Open study board
+            </button>
+          </section>
           <div className="training-profile">
             <ProfileOverview
               profile={profile}
@@ -476,6 +522,31 @@ export function App() {
         </main>
       ) : null}
 
+      {view === "study" && (
+        <main className="content-shell review-page study-page">
+          <button
+            type="button"
+            className="lesson-back"
+            onClick={() => {
+              setView("training");
+            }}
+          >
+            Back to training plan
+          </button>
+          <Suspense fallback={<p role="status">Opening study positions…</p>}>
+            <StudyScreen
+              history={snapshot}
+              pattern={
+                snapshot.status === "ready"
+                  ? snapshot.plan.practice[0]
+                  : undefined
+              }
+              storageKey="chesscue-study-roadmaps-v1"
+              profile={profile}
+            />
+          </Suspense>
+        </main>
+      )}
       {view === "review" ? (
         <main className="content-shell review-page">
           <button

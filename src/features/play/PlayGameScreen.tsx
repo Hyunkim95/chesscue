@@ -224,7 +224,9 @@ export function PlayGameScreen({
 
   const record = session?.record;
   const currentMode =
-    mode === undefined || record === undefined ? mode : tutorGameMode(record);
+    mode === undefined || record === undefined
+      ? mode
+      : (tutorGameMode(record) ?? "rated");
   useEffect(() => {
     if (currentMode !== "coached" || !coachNotesEnabled || record === undefined)
       return;

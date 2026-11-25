@@ -109,7 +109,8 @@ export class IndexedDbGameRepository implements GameRepository {
         .filter(
           (record) =>
             record.origin.type === "tutor" &&
-            (mode === undefined || tutorGameMode(record) === mode) &&
+            (mode === undefined ||
+              (tutorGameMode(record) ?? "rated") === mode) &&
             record.completedAt === null &&
             record.result === null,
         )

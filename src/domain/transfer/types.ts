@@ -32,6 +32,16 @@ export interface CuratedTransferExercise {
   readonly verification: TransferVerification;
 }
 
+export type PracticeExercise = Pick<
+  CuratedTransferExercise,
+  "id" | "theme" | "fen" | "acceptableMoves" | "explanation"
+> & {
+  readonly verification: Pick<
+    TransferVerification,
+    "candidates" | "toleranceCp" | "principalVariation"
+  >;
+};
+
 export type TransferExerciseValidation =
   | { readonly ok: true; readonly exercise: CuratedTransferExercise }
   | { readonly ok: false; readonly reason: string };
