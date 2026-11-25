@@ -34,3 +34,12 @@ export async function evaluateReviewReply(
   }
   return null;
 }
+
+export async function analyzeReviewReply(
+  engine: AnalysisEngine,
+  fen: string,
+  signal: AbortSignal,
+): Promise<readonly string[]> {
+  const reply = await evaluateReviewReply(engine, fen, signal);
+  return reply?.line ?? [];
+}

@@ -32,7 +32,9 @@ export default defineConfig({
         clientsClaim: false,
         skipWaiting: false,
         navigateFallback: "/index.html",
-        globPatterns: ["**/*.{html,js,css,svg,webmanifest,wasm,woff2,txt,md}"],
+        globPatterns: [
+          "**/*.{html,js,css,svg,webp,webmanifest,wasm,woff2,txt,md}",
+        ],
       },
     }),
   ],
