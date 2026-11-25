@@ -159,22 +159,16 @@ button {
   outline-offset: 3px;
 }
 
-.local-status {
-  display: inline-flex;
+.account-button {
   justify-self: end;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--cue-muted);
-  font-size: 0.76rem;
-  font-weight: 750;
-}
-
-.local-status > span {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--cue-pine);
-  box-shadow: 0 0 0 4px rgb(61 107 90 / 10%);
+  min-height: 40px;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--cue-line);
+  border-radius: 999px;
+  background: var(--cue-paper);
+  color: var(--cue-pine-dark);
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .app-frame .play-shell {
@@ -414,10 +408,6 @@ button {
     z-index: 30;
     justify-content: space-around;
     box-shadow: 0 12px 36px rgb(64 53 39 / 22%);
-  }
-
-  .local-status {
-    display: none;
   }
 
   .app-frame .play-shell,

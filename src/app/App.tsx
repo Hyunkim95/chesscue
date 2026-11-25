@@ -510,7 +510,7 @@ function PlayerApp({
         ))}
       </nav>
       <button
-        className="local-status"
+        className="account-button"
         type="button"
         onClick={() => {
           location.hash = "account";
