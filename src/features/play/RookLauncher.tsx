@@ -61,6 +61,7 @@ export function RookLauncher({
   const [position, setPosition] = useState(() => readPosition(storageKey));
   const current = useRef(position);
   const hint = useId();
+  const launcher = useRef<HTMLDivElement>(null);
   const drag = useRef<{
     pointer: number;
     startX: number;
@@ -71,10 +72,23 @@ export function RookLauncher({
   const suppressClick = useRef(false);
 
   function move(from: Position, x: number, y: number) {
+    const bottomClearance =
+      launcher.current === null
+        ? 0
+        : Number.parseFloat(
+            getComputedStyle(launcher.current).getPropertyValue(
+              "--rook-nav-clearance",
+            ),
+          ) || 0;
     const next = {
       x: clamp(from.x + x / Math.max(1, window.innerWidth - WIDTH - 2 * INSET)),
       y: clamp(
-        from.y + y / Math.max(1, window.innerHeight - HEIGHT - 2 * INSET),
+        from.y +
+          y /
+            Math.max(
+              1,
+              window.innerHeight - HEIGHT - 2 * INSET - bottomClearance,
+            ),
       ),
     };
     current.current = next;
@@ -102,6 +116,7 @@ export function RookLauncher({
         Drag or use the arrow keys to move Rook. Press Enter to open chat.
       </span>
       <div
+        ref={launcher}
         className="rook-float"
         data-open={open}
         data-speech-x={position.x >= 0.5 ? "right" : "left"}
@@ -110,7 +125,7 @@ export function RookLauncher({
           width: WIDTH,
           height: HEIGHT,
           left: `calc(${String(INSET)}px + ${String(position.x)} * (100% - ${String(WIDTH + 2 * INSET)}px))`,
-          top: `calc(${String(INSET)}px + ${String(position.y)} * (100% - ${String(HEIGHT + 2 * INSET)}px))`,
+          top: `calc(${String(INSET)}px + ${String(position.y)} * (100% - ${String(HEIGHT + 2 * INSET)}px - var(--rook-nav-clearance)))`,
         }}
       >
         {open && (

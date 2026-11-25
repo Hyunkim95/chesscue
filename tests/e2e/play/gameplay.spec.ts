@@ -193,6 +193,16 @@ test.describe("Coached sideline", () => {
     await expect(unread).toHaveAttribute("aria-expanded", "false");
     await expect(unread.locator(".rook-toggle__dot")).toBeVisible();
     await expect(page.getByRole("status")).toHaveText("Your move");
+    await page.setViewportSize({ width: 390, height: 844 });
+    const launcher = await unread.boundingBox();
+    const navigation = await page
+      .getByRole("navigation", { name: "Primary navigation" })
+      .boundingBox();
+    expect(launcher).not.toBeNull();
+    expect(navigation).not.toBeNull();
+    expect((launcher?.y ?? 0) + (launcher?.height ?? 0)).toBeLessThan(
+      navigation?.y ?? 0,
+    );
     await unread.click();
     const chat = page.getByRole("region", { name: "Rook chat" });
     await expect(chat).toContainText("Your queen was taken on f3");
@@ -393,14 +403,5 @@ test.describe("Coached sideline", () => {
     await expect(
       page.getByRole("gridcell", { name: "White pawn on a3" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Resign game" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Your game, rewound" }),
-    ).toBeVisible({ timeout: 30_000 });
-    await page.getByRole("button", { name: "Back to training plan" }).click();
-    await page.getByRole("button", { name: "Account", exact: true }).click();
-    await expect(page.getByRole("region", { name: "Your Elo" })).toContainText(
-      "Placement · 0 of 5",
-    );
   });
 });

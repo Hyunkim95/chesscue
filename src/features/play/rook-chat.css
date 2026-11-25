@@ -9,6 +9,7 @@
 
 .rook-float {
   --cue-gold: #f5ce8f;
+  --rook-nav-clearance: 0px;
   position: fixed;
   z-index: 25;
 }
@@ -273,5 +274,11 @@
 
   .play-shell:has(.rook-float) {
     padding-bottom: 5rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .rook-float {
+    --rook-nav-clearance: 60px;
   }
 }
