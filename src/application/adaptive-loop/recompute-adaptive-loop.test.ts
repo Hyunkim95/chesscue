@@ -147,6 +147,25 @@ describe("adaptive-loop orchestration", () => {
     expect(result.issues).toMatchObject([{ code: "invalid-analysis-fact" }]);
   });
 
+  it("uses coached games as training evidence and excludes them from Elo outcomes", () => {
+    const rated = makeInput("rated", 20, "king-safety");
+    const converted = makeInput("converted", 21, "development");
+    const coached = makeInput("coached", 22, "hanging-piece");
+    const result = recompute([
+      rated,
+      { ...converted, game: { ...converted.game, coachJoinedAtPly: 2 } },
+      {
+        ...coached,
+        game: { ...coached.game, origin: { type: "tutor", mode: "coached" } },
+      },
+    ]);
+
+    expect(result.tutorGameOutcomes.map(({ id }) => id)).toEqual([
+      rated.game.id,
+    ]);
+    expect(result.contributingGames.tutor).toBe(3);
+  });
+
   it("uses review outcomes to emit deterministic success and weakness evidence", () => {
     const success = makeInput(
       "review-success",

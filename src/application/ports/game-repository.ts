@@ -1,4 +1,8 @@
-import type { GameId, GameRecord } from "../../domain/game/types";
+import type {
+  GameId,
+  GameRecord,
+  TutorGameMode,
+} from "../../domain/game/types";
 import type { Result } from "../../shared/result/result";
 
 export type RepositoryFailure =
@@ -9,6 +13,8 @@ export type RepositoryFailure =
 export interface GameRepository {
   get(id: GameId): Promise<Result<GameRecord | null, RepositoryFailure>>;
   put(record: GameRecord): Promise<Result<void, RepositoryFailure>>;
-  getLatestInProgress(): Promise<Result<GameRecord | null, RepositoryFailure>>;
+  getLatestInProgress(
+    mode?: TutorGameMode,
+  ): Promise<Result<GameRecord | null, RepositoryFailure>>;
   listCompleted(): Promise<Result<readonly GameRecord[], RepositoryFailure>>;
 }

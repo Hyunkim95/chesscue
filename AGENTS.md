@@ -8,7 +8,7 @@ These rules apply to the entire repository. See `docs/ENGINEERING.md` for the ar
 - The active-game path must never depend on Firebase or Gemini.
 - Stockfish and the chess rules library are authoritative for chess facts.
 - Gemini may explain validated facts but may not create moves, evaluations, or mastery evidence.
-- Do not expose hints, evaluations, candidate moves, or coaching during an active game.
+- Keep rated games unassisted. Only explicitly unrated coached games may show optional, collapsed notes about moves already played.
 - Completed games are immutable. Derived profiles must be reproducible from versioned evidence.
 - Imported PGNs may affect theme mastery and curriculum focus, but imported results and ratings must not directly adjust CPU Elo.
 - Lesson agents execute versioned teaching playbooks. Deterministic code selects the playbook and validates every transition.

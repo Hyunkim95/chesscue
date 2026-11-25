@@ -4,7 +4,12 @@ import type {
   GameRepository,
   RepositoryFailure,
 } from "../../application/ports/game-repository";
-import type { GameId, GameRecord } from "../../domain/game/types";
+import {
+  tutorGameMode,
+  type GameId,
+  type GameRecord,
+  type TutorGameMode,
+} from "../../domain/game/types";
 import { err, ok, type Result } from "../../shared/result/result";
 
 import {
@@ -88,9 +93,9 @@ export class IndexedDbGameRepository implements GameRepository {
     }
   }
 
-  async getLatestInProgress(): Promise<
-    Result<GameRecord | null, RepositoryFailure>
-  > {
+  async getLatestInProgress(
+    mode?: TutorGameMode,
+  ): Promise<Result<GameRecord | null, RepositoryFailure>> {
     try {
       const database = await this.#open();
       const values: readonly unknown[] = await database.getAll(GAME_STORE);
@@ -104,6 +109,7 @@ export class IndexedDbGameRepository implements GameRepository {
         .filter(
           (record) =>
             record.origin.type === "tutor" &&
+            (mode === undefined || tutorGameMode(record) === mode) &&
             record.completedAt === null &&
             record.result === null,
         )

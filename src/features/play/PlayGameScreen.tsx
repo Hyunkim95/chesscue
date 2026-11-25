@@ -9,6 +9,7 @@ import {
 } from "../../application/play-game/game-completion";
 import {
   acceptPlayerMove,
+  bringInCoach,
   requestCpuReply,
   resumeTutorGame,
   resignTutorGame,
@@ -20,7 +21,19 @@ import {
   focusOpeningCandidates,
   type CurriculumTheme,
 } from "../../domain/curriculum";
-import type { GameId, PositionId } from "../../domain/game/types";
+import {
+  savedCoachMoments,
+  type CoachMoment,
+} from "../../domain/game/coach-moments";
+import {
+  tutorGameMode,
+  type GameId,
+  type PositionId,
+  type TutorGameMode,
+} from "../../domain/game/types";
+import { ok } from "../../shared/result/result";
+import { RookChat } from "./RookChat";
+import { RookLauncher } from "./RookLauncher";
 import "./play-game.css";
 
 const BOARD_SQUARES: readonly Square[] = [
@@ -108,6 +121,10 @@ export interface PlayGameScreenProps {
   readonly focusTitle?: string;
   readonly focus?: string;
   readonly onGameCompleted?: GameCompletedCallback;
+  readonly mode?: TutorGameMode;
+  readonly resumeGameId?: GameId;
+  readonly onModeChange?: (mode: TutorGameMode) => void;
+  readonly onCoachJoined?: (gameId: GameId) => void;
 }
 
 export function PlayGameScreen({
@@ -121,12 +138,42 @@ export function PlayGameScreen({
   focusTitle = "Hold the center",
   focus = "Hold the center. Keep the tension before exchanging central pawns.",
   onGameCompleted,
+  mode,
+  resumeGameId,
+  onModeChange,
+  onCoachJoined,
 }: PlayGameScreenProps) {
+  const [launch] = useState(() => ({ mode, resumeGameId }));
+  const [modePickerOpen, setModePickerOpen] = useState(false);
+  const noteScope = "adaptive-chess-tutor";
   const [session, setSession] = useState<PlaySession | null>(null);
   const [engineStatus, setEngineStatus] = useState<EngineStatus>("starting");
   const [selected, setSelected] = useState<Square | null>(null);
   const [notice, setNotice] = useState("Preparing your opponent…");
   const [saving, setSaving] = useState(false);
+  const [coachNotesEnabled, setCoachNotesEnabled] = useState(() => {
+    try {
+      return localStorage.getItem("chesscue-coach-notes") !== "off";
+    } catch {
+      return true;
+    }
+  });
+  const [coachNotesOpen, setCoachNotesOpen] = useState(false);
+  const [readCoachPly, setReadCoachPly] = useState<{
+    gameId: GameId;
+    ply: number;
+  } | null>(null);
+  const rookToggle = useRef<HTMLButtonElement>(null);
+  const rookPanel = useRef<HTMLElement>(null);
+  const [coachNotes, setCoachNotes] = useState<{
+    readonly gameId: GameId;
+    readonly moments: readonly CoachMoment[];
+  } | null>(null);
+  const noteCache = useRef<{
+    readonly gameId: GameId;
+    readonly ply: number;
+    readonly moments: readonly CoachMoment[];
+  } | null>(null);
   const searchAbort = useRef<AbortController | null>(null);
   const [completionObserver] = useState(
     () => new OneShotGameCompletionObserver(onGameCompleted),
@@ -153,20 +200,71 @@ export function PlayGameScreen({
     [engine],
   );
 
-  const createNewGame = useCallback(
-    async (startNotice: string) => {
-      setSaving(true);
-      setSelected(null);
-      const started = await startTutorGame({
+  const start = useCallback(
+    (gameMode: TutorGameMode | undefined) =>
+      startTutorGame({
         id: createGameId(),
         playerColor: "white",
         curriculumVersion: "1.0.0",
         configurationVersion: "1.0.0",
-        trainingFocus: focusTheme,
-        openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
+        ...(gameMode === "rated"
+          ? {}
+          : {
+              trainingFocus: focusTheme,
+              openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
+            }),
+        ...(gameMode === undefined
+          ? {}
+          : { mode: gameMode, opponentElo: targetElo }),
         now: now(),
         repository,
-      });
+      }),
+    [createGameId, focusTheme, now, repository, targetElo],
+  );
+
+  const record = session?.record;
+  const currentMode =
+    mode === undefined || record === undefined ? mode : tutorGameMode(record);
+  useEffect(() => {
+    if (currentMode !== "coached" || !coachNotesEnabled || record === undefined)
+      return;
+    const timeout = window.setTimeout(() => {
+      const previous =
+        noteCache.current?.gameId === record.id ? noteCache.current : null;
+      if (previous === null) {
+        try {
+          const savedPly = Number(
+            localStorage.getItem(
+              `chesscue-rook-read:${noteScope}:${record.id}`,
+            ),
+          );
+          setReadCoachPly({
+            gameId: record.id,
+            ply: Number.isSafeInteger(savedPly) ? savedPly : 0,
+          });
+        } catch {
+          setReadCoachPly(null);
+        }
+      }
+      const moments = [
+        ...(previous?.moments ?? []),
+        ...savedCoachMoments(record, previous?.ply ?? 0),
+      ];
+      const found = { gameId: record.id, ply: record.moves.length, moments };
+      noteCache.current = found;
+      setCoachNotes(found);
+    }, 0);
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [coachNotesEnabled, currentMode, noteScope, record]);
+
+  const createNewGame = useCallback(
+    async (startNotice: string) => {
+      setSaving(true);
+      setSelected(null);
+      setCoachNotesOpen(false);
+      const started = await start(currentMode ?? undefined);
       setSaving(false);
       if (started.ok) {
         setSession(started.value);
@@ -177,7 +275,7 @@ export function PlayGameScreen({
         );
       }
     },
-    [createGameId, focusTheme, now, repository],
+    [currentMode, start],
   );
 
   const requestCpu = useCallback(
@@ -185,17 +283,24 @@ export function PlayGameScreen({
       const abort = new AbortController();
       searchAbort.current = abort;
       setNotice("CPU thinking…");
-      const openingCandidates = focusOpeningCandidates({
-        focus: focusTheme,
-        fen: current.state.fen,
-        moves: current.state.moves.map(({ uci }) => uci),
-      });
+      const origin = current.record.origin;
+      const openingCandidates =
+        origin.type === "tutor" && origin.mode === "rated"
+          ? []
+          : focusOpeningCandidates({
+              focus: focusTheme,
+              fen: current.state.fen,
+              moves: current.state.moves.map(({ uci }) => uci),
+            });
       const reply = await requestCpuReply({
         session: current,
         engine,
         repository,
         positionId: createPositionId(),
-        targetElo,
+        targetElo:
+          origin.type === "tutor"
+            ? (origin.opponentElo ?? targetElo)
+            : targetElo,
         timeBudgetMs: 1200,
         ...(openingCandidates.length === 0
           ? {}
@@ -230,7 +335,17 @@ export function PlayGameScreen({
     const isAborted = (): boolean => abort.signal.aborted;
     const bootstrap = async () => {
       const initializedPromise = engine.initialize(abort.signal);
-      const active = await repository.getLatestInProgress();
+      const requested =
+        launch.resumeGameId === undefined
+          ? ok(null)
+          : await repository.get(launch.resumeGameId);
+      const active = !requested.ok
+        ? requested
+        : requested.value !== null &&
+            requested.value.completedAt === null &&
+            tutorGameMode(requested.value) === launch.mode
+          ? requested
+          : await repository.getLatestInProgress(launch.mode);
       if (isAborted()) return;
       if (!active.ok) {
         setNotice("Your saved game could not be loaded. Try again.");
@@ -238,16 +353,7 @@ export function PlayGameScreen({
       }
       const started =
         active.value === null
-          ? await startTutorGame({
-              id: createGameId(),
-              playerColor: "white",
-              curriculumVersion: "1.0.0",
-              configurationVersion: "1.0.0",
-              trainingFocus: focusTheme,
-              openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
-              now: now(),
-              repository,
-            })
+          ? await start(launch.mode)
           : resumeTutorGame(active.value);
       const initialized = await initializedPromise;
       if (isAborted()) return;
@@ -277,7 +383,7 @@ export function PlayGameScreen({
       abort.abort();
       searchAbort.current?.abort();
     };
-  }, [createGameId, engine, focusTheme, now, repository, requestCpu]);
+  }, [engine, launch, repository, requestCpu, start]);
 
   const chooseSquare = async (square: Square) => {
     if (
@@ -373,20 +479,142 @@ export function PlayGameScreen({
     engineStatus === "ready" &&
     !saving;
 
+  const enableCoach = async () => {
+    if (!active || currentMode !== "rated") return;
+    setSaving(true);
+    const joined = await bringInCoach(session, repository);
+    setSaving(false);
+    if (!joined.ok) {
+      setNotice("Coach could not join. Try again.");
+      return;
+    }
+    setSession(joined.value);
+    setCoachNotesOpen(false);
+    setModePickerOpen(false);
+    setNotice("Rook joined. Your move.");
+    onCoachJoined?.(joined.value.record.id);
+  };
+  const notes =
+    coachNotesEnabled && coachNotes !== null && coachNotes.gameId === record?.id
+      ? coachNotes.moments
+      : [];
+  const showRook = currentMode === "coached" && record !== undefined;
+  const latestCoachPly = notes.at(-1)?.ply ?? 0;
+  const unreadRook =
+    !coachNotesOpen &&
+    latestCoachPly >
+      (readCoachPly?.gameId === record?.id ? (readCoachPly?.ply ?? 0) : 0);
+  useEffect(() => {
+    const panel = rookPanel.current;
+    if (!coachNotesOpen || panel === null) return;
+    const { top, bottom } = panel.getBoundingClientRect();
+    if (top >= window.innerHeight - 75 || bottom <= 0) {
+      panel.scrollIntoView({ block: "nearest" });
+    }
+    panel
+      .querySelector<HTMLButtonElement>("button")
+      ?.focus({ preventScroll: true });
+  }, [coachNotesOpen]);
+  function toggleRook(open: boolean) {
+    if (record === undefined) return;
+    setCoachNotesOpen(open);
+    setReadCoachPly((previous) => ({
+      gameId: record.id,
+      ply: Math.max(
+        previous?.gameId === record.id ? previous.ply : 0,
+        latestCoachPly,
+      ),
+    }));
+    if (!open) {
+      window.requestAnimationFrame(() => {
+        rookToggle.current?.focus({ preventScroll: true });
+      });
+    }
+    try {
+      const key = `chesscue-rook-read:${noteScope}:${record.id}`;
+      const stored = Number(localStorage.getItem(key));
+      localStorage.setItem(
+        key,
+        String(
+          Math.max(Number.isSafeInteger(stored) ? stored : 0, latestCoachPly),
+        ),
+      );
+    } catch {
+      /* Read state is still available in the current game. */
+    }
+  }
   return (
     <main className="play-shell">
       <header className="play-header">
         <div>
-          <p className="play-kicker">Focus game</p>
-          <h1>{focusTitle}</h1>
-          <p className="play-focus">{focus}</p>
+          <p className="play-kicker">
+            {currentMode === "coached"
+              ? "Coached game · Unrated"
+              : currentMode === "rated"
+                ? "Unassisted"
+                : "Focus game"}
+          </p>
+          <h1>
+            {currentMode === "coached"
+              ? "Play with Rook"
+              : currentMode === "rated"
+                ? "Rated game"
+                : focusTitle}
+          </h1>
+          {currentMode !== "rated" && record?.coachJoinedAtPly === undefined ? (
+            <p className="play-focus">{focus}</p>
+          ) : null}
+          {onModeChange && (
+            <div className="play-mode">
+              <button
+                type="button"
+                className="quiet-action"
+                aria-expanded={modePickerOpen}
+                disabled={!active}
+                onClick={() => {
+                  setModePickerOpen(!modePickerOpen);
+                }}
+              >
+                Change game mode
+              </button>
+              {modePickerOpen && (
+                <div
+                  className="play-mode__options"
+                  role="group"
+                  aria-label="Game mode"
+                >
+                  <button
+                    type="button"
+                    className="quiet-action"
+                    disabled={!active || currentMode === "rated"}
+                    onClick={() => {
+                      onModeChange("rated");
+                    }}
+                  >
+                    Rated
+                  </button>
+                  <button
+                    type="button"
+                    className="quiet-action"
+                    disabled={!active || currentMode === "coached"}
+                    onClick={() => {
+                      onModeChange("coached");
+                    }}
+                  >
+                    Coached
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <div
-          className="opponent-card"
-          aria-label={`Adaptive CPU rated ${targetElo.toString()}`}
-        >
+        <div className="opponent-card" aria-label="Adaptive CPU">
           <span>Adaptive CPU</span>
-          <strong>{targetElo}</strong>
+          <strong>
+            {record?.origin.type === "tutor"
+              ? (record.origin.opponentElo ?? targetElo)
+              : targetElo}
+          </strong>
         </div>
       </header>
 
@@ -440,6 +668,51 @@ export function PlayGameScreen({
           className="game-panel"
           aria-label="Game controls and move history"
         >
+          {currentMode === "rated" &&
+          session !== null &&
+          session.state.phase !== "completed" &&
+          session.state.phase !== "resigned" ? (
+            <button
+              type="button"
+              className="quiet-action coach-invitation"
+              disabled={!active}
+              onClick={() => {
+                void enableCoach();
+              }}
+            >
+              Continue unrated with Rook
+            </button>
+          ) : null}
+          {showRook && coachNotesOpen ? (
+            <section
+              ref={rookPanel}
+              id="active-rook-chat"
+              className="rook-chat"
+              aria-label="Rook chat"
+            >
+              <RookChat
+                key={record.id}
+                game={record}
+                moments={notes}
+                scope={noteScope}
+                observations={coachNotesEnabled}
+                onObservations={(enabled) => {
+                  setCoachNotesEnabled(enabled);
+                  try {
+                    localStorage.setItem(
+                      "chesscue-coach-notes",
+                      enabled ? "on" : "off",
+                    );
+                  } catch {
+                    /* The current game can still use the setting. */
+                  }
+                }}
+                onClose={() => {
+                  toggleRook(false);
+                }}
+              />
+            </section>
+          ) : null}
           <div className="move-list">
             <div className="panel-heading">
               <span>Moves</span>
@@ -492,6 +765,21 @@ export function PlayGameScreen({
           )}
         </aside>
       </section>
+      {showRook && (
+        <RookLauncher
+          buttonRef={rookToggle}
+          open={coachNotesOpen}
+          unread={unreadRook}
+          speech={
+            notes.at(-1)?.title ??
+            "I’m here if you want to talk through a move."
+          }
+          storageKey={`chesscue-rook-position:${noteScope}`}
+          onToggle={() => {
+            toggleRook(!coachNotesOpen);
+          }}
+        />
+      )}
     </main>
   );
 }
