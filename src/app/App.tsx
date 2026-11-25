@@ -268,7 +268,9 @@ export function App() {
       if (raceRoute(location.hash)) setAccessRequested(true);
     };
     window.addEventListener("hashchange", navigate);
-    return () => window.removeEventListener("hashchange", navigate);
+    return () => {
+      window.removeEventListener("hashchange", navigate);
+    };
   }, []);
   const account = useRaceAccount(accessRequested);
   return <PlayerApp key={account.history.name} account={account} hash={hash} />;
@@ -316,10 +318,11 @@ function PlayerApp({
     [session, history, refreshSync],
   );
   useEffect(() => {
-    void refreshGames();
     window.addEventListener("chesscue-history", refreshSync);
-    return () => window.removeEventListener("chesscue-history", refreshSync);
-  }, [refreshGames, refreshSync]);
+    return () => {
+      window.removeEventListener("chesscue-history", refreshSync);
+    };
+  }, [refreshSync]);
 
   useLayoutEffect(() => {
     if (view === "review") window.scrollTo(0, 0);
@@ -375,8 +378,9 @@ function PlayerApp({
       setProfile(result.value.profile);
       setContributingGames(result.value.contributingGames);
     }
+    await refreshGames();
     setProfileReady(true);
-  }, [repository, analysisRepository, reviewEvidenceRepository]);
+  }, [repository, analysisRepository, reviewEvidenceRepository, refreshGames]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
