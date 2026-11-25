@@ -183,6 +183,22 @@ describe("adaptive-loop orchestration", () => {
     expect(forward.acceptedGameIds).toEqual(["same"]);
   });
 
+  it("counts only distinct games that supplied card evidence", () => {
+    const tutor = makeInput(
+      "with-review",
+      20,
+      "king-safety",
+      reviewLog("king-safety", 85, "2026-11-21T12:00:00Z"),
+    );
+    const empty = {
+      ...makeInput("empty", 21, "king-safety"),
+      analysis: { facts: [], moments: [], analyzedPlayerMoves: 0 },
+    };
+    const result = recompute([empty, tutor, tutor]);
+    expect(result.acceptedGameIds).toContain("empty");
+    expect(result.evidence).toHaveLength(2);
+    expect(result.contributingGames).toEqual({ import: 0, tutor: 1 });
+  });
   it("lets imported evidence change focus without changing CPU Elo", () => {
     const tutor = makeInput("tutor-one", 20, "king-safety");
     const imported: CurriculumEvidence[] = [1, 2, 3].map((number) => ({
@@ -199,6 +215,7 @@ describe("adaptive-loop orchestration", () => {
     const withoutImport = recompute([tutor]);
     const withImport = recompute([tutor], imported);
 
+    expect(withImport.contributingGames).toEqual({ import: 3, tutor: 1 });
     expect(withImport.profile.nextGame.focus).toBe("hanging-piece");
     expect(withImport.profile.strength.targetElo).toBe(
       withoutImport.profile.strength.targetElo,
