@@ -9,6 +9,7 @@ import {
 } from "../../domain/curriculum/evidence-mapping";
 import type {
   CurriculumEvidence,
+  EvidenceOrigin,
   PlayerProfile,
   TutorGameOutcome,
 } from "../../domain/curriculum/types";
@@ -45,6 +46,7 @@ export interface AdaptiveLoopResult {
   readonly profile: PlayerProfile;
   readonly evidence: readonly CurriculumEvidence[];
   readonly tutorGameOutcomes: readonly TutorGameOutcome[];
+  readonly contributingGames: Readonly<Record<EvidenceOrigin, number>>;
   readonly acceptedGameIds: readonly string[];
   readonly issues: readonly AdaptiveLoopIssue[];
 }
@@ -263,6 +265,8 @@ export const recomputeAdaptiveLoop = (
   issues.push(...deduplicatedEvidence.issues);
   const tutorGameOutcomes = deduplicateTutorOutcomes(tutorOutcomes);
   const evidence = deduplicatedEvidence.evidence;
+  const sources = { import: new Set<string>(), tutor: new Set<string>() };
+  for (const item of evidence) sources[item.origin].add(item.sourceGameId);
   const profile = buildPlayerProfile({
     initialTargetElo: input.initialTargetElo,
     curriculumVersion: input.curriculumVersion,
@@ -275,6 +279,10 @@ export const recomputeAdaptiveLoop = (
     profile,
     evidence,
     tutorGameOutcomes,
+    contributingGames: {
+      import: sources.import.size,
+      tutor: sources.tutor.size,
+    },
     acceptedGameIds: acceptedGameIds.toSorted(),
     issues: issues.toSorted((left, right) => {
       const sourceDifference = left.sourceId.localeCompare(right.sourceId);

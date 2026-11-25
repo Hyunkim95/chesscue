@@ -140,6 +140,7 @@ The player state contains:
 - mastery evidence by theme
 - opening, middlegame, and endgame splits
 - evidence counts and recency
+- separate profile subtitle counts for distinct imported and tutor games that supplied mastery evidence
 - recent streak, resignation, and abandonment signals
 
 Weakness priority is based on impact, recurrence, uncertainty, and recency decay. The scheduler alternates focus games with consolidation games. Difficulty changes only after a three-game window and by no more than 50 Elo. The initial target is a 45 to 55 percent expected player score.
