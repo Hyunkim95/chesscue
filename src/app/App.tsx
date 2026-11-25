@@ -119,6 +119,10 @@ export function App() {
     status: "idle",
   });
   const [profile, setProfile] = useState<PlayerProfile>(initialProfile);
+  const [contributingGames, setContributingGames] = useState({
+    import: 0,
+    tutor: 0,
+  });
   const [profileReady, setProfileReady] = useState(false);
   const reviewCoachProvider = useReviewCoachProvider(view === "review");
   const activeNavigationView = view === "review" ? "training" : view;
@@ -134,7 +138,10 @@ export function App() {
       curriculumVersion: "1.0.0",
       computedAt: new Date().toISOString(),
     });
-    if (result.ok) setProfile(result.value.profile);
+    if (result.ok) {
+      setProfile(result.value.profile);
+      setContributingGames(result.value.contributingGames);
+    }
     setProfileReady(true);
   }, []);
 
@@ -353,7 +360,10 @@ export function App() {
             </button>
           </div>
           <div className="training-profile">
-            <ProfileOverview profile={profile} />
+            <ProfileOverview
+              profile={profile}
+              contributingGames={contributingGames}
+            />
           </div>
           <section className="review-card" aria-labelledby="review-card-title">
             <p className="section-kicker">Stockfish review</p>

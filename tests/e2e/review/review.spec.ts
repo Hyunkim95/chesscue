@@ -176,6 +176,8 @@ test("replays and compares a verified learning moment", async ({ page }) => {
   await expect(page.getByText(/%/)).toHaveCount(0);
 
   await page.getByRole("button", { name: "Back to training plan" }).click();
-  await expect(page.getByText("Evidence from 1 tutor games.")).toBeVisible();
+  await expect(
+    page.getByText("Evidence from 0 imported games and 1 tutor game."),
+  ).toBeVisible();
   await expect(page.getByText(/% mastery/).first()).toBeVisible();
 });

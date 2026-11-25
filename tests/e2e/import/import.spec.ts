@@ -30,6 +30,20 @@ test("imports a completed PGN and rejects the duplicate", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "0 accepted, 1 duplicate, 0 rejected" }),
   ).toBeVisible();
+
+  await page.getByRole("button", { name: "Training plan" }).click();
+  const profile = page.getByRole("region", { name: "Your training profile" });
+  await expect(profile).toContainText(
+    "Evidence from 0 imported games and 0 tutor games.",
+  );
+  await page.getByRole("button", { name: "Analyze latest game" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your game, rewound" }),
+  ).toBeVisible({ timeout: 30000 });
+  await page.getByRole("button", { name: "Back to training plan" }).click();
+  await expect(profile).toContainText(
+    "Evidence from 1 imported game and 0 tutor games.",
+  );
 });
 
 test("learner-color controls stay accessible on a narrow screen", async ({
