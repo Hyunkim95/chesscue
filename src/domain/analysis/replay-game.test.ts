@@ -74,4 +74,23 @@ describe("review replay builders", () => {
 
     expect(result).toMatchObject({ ok: false, message: /illegal/ });
   });
+
+  it("keeps both captured pawns after an even trade, including en passant", () => {
+    const replay = buildVariationFrames(new Chess().fen(), [
+      "e2e4",
+      "a7a6",
+      "e4e5",
+      "d7d5",
+      "e5d6",
+      "c7d6",
+    ]);
+    expect(replay.ok).toBe(true);
+    if (!replay.ok) return;
+    expect(replay.frames[4]?.captures).toEqual([]);
+    expect(replay.frames[5]?.captures).toEqual([{ by: "w", piece: "p" }]);
+    expect(replay.frames[6]?.captures).toEqual([
+      { by: "w", piece: "p" },
+      { by: "b", piece: "p" },
+    ]);
+  });
 });

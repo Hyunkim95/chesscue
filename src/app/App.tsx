@@ -5,6 +5,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
 } from "react";
@@ -21,6 +22,11 @@ import {
   type CompletedGameAnalysis,
 } from "../application/analyze-game/analyze-completed-game";
 import { importGames } from "../application/import-games/import-games";
+import { evaluateReviewReply } from "../application/analyze-game/analyze-review-reply";
+import {
+  assessPosition,
+  type AssessPosition,
+} from "../application/analyze-game/assess-position";
 import type { ReviewTrainingLog } from "../domain/analysis/review-training";
 import { buildPlayerProfile, type PlayerProfile } from "../domain/curriculum";
 import {
@@ -56,6 +62,18 @@ const analysisRepository = new IndexedDbAnalysisRepository();
 const reviewEvidenceRepository = new IndexedDbReviewEvidenceRepository();
 const engine = new StockfishGameEngine();
 const analysisEngine = new StockfishAnalysisEngine();
+const reviewReplyEngine = new StockfishAnalysisEngine();
+const loadReviewReply = (fen: string, signal: AbortSignal) =>
+  evaluateReviewReply(reviewReplyEngine, fen, signal);
+const readBoardPosition: AssessPosition = async (fen, signal) => {
+  const assessmentEngine = new StockfishAnalysisEngine();
+  try {
+    return await assessPosition(assessmentEngine, fen, signal);
+  } finally {
+    assessmentEngine.dispose();
+  }
+};
+
 const firebaseConfiguration = loadFirebaseClientConfig();
 
 const runningAnalyses = new Map<
@@ -173,6 +191,9 @@ function useReviewCoachProvider(
 
 export function App() {
   const [view, setView] = useState<AppView>("play");
+  useLayoutEffect(() => {
+    if (view === "review") window.scrollTo(0, 0);
+  }, [view]);
   const [analysis, setAnalysis] = useState<AnalysisViewState>({
     status: "idle",
   });
@@ -501,6 +522,9 @@ export function App() {
           {analysis.status === "ready" ? (
             <div className="review-page__experience">
               <GameReviewExperience
+                key={analysis.game.id}
+                analyzeReply={loadReviewReply}
+                assessPosition={readBoardPosition}
                 game={analysis.game}
                 analysis={analysis.analysis}
                 coachProvider={reviewCoachProvider}

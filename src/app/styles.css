@@ -447,3 +447,13 @@ button {
     font-size: 0.8rem;
   }
 }
+
+@media (min-width: 56.01rem) {
+  .content-shell.review-page {
+    padding-top: 1rem;
+    gap: 0.65rem;
+  }
+  .review-page__experience {
+    padding-top: 0.8rem;
+  }
+}
