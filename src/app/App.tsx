@@ -30,6 +30,7 @@ import {
 import type { ReviewTrainingLog } from "../domain/analysis/review-training";
 import { buildPlayerProfile, type PlayerProfile } from "../domain/curriculum";
 import {
+  tutorGameMode,
   createGameId,
   createPositionId,
   type GameId,
@@ -150,7 +151,11 @@ type AnalysisViewState =
       readonly game: GameRecord;
       readonly analysis: CompletedGameAnalysis;
     }
-  | { readonly status: "failed"; readonly message: string };
+  | {
+      readonly status: "failed";
+      readonly message: string;
+      readonly game?: GameRecord;
+    };
 
 const initialProfile = buildPlayerProfile({
   initialTargetElo: 1450,
@@ -433,7 +438,7 @@ function PlayerApp({
       setAnalysis({ status: "running", game });
       const result = await loadAnalysis(game);
       if (!result.ok) {
-        setAnalysis({ status: "failed", message: result.error });
+        setAnalysis({ status: "failed", message: result.error, game });
         return;
       }
       setAnalysis({ status: "ready", game, analysis: result.value });
@@ -480,6 +485,12 @@ function PlayerApp({
     if (persisted.ok) await refreshAdaptiveProfile();
   }
 
+  const reviewedGame = analysis.status === "idle" ? undefined : analysis.game;
+  const shareReviewedWin =
+    reviewedGame &&
+    tutorGameMode(reviewedGame) === "rated" &&
+    reviewedGame.playerColor !== null &&
+    reviewedGame.result === reviewedGame.playerColor + "-win";
   const header = (
     <header className="app-bar">
       <button
@@ -716,18 +727,16 @@ function PlayerApp({
           </Suspense>
         </main>
       )}
-      {view === "review" &&
-        wonGame &&
-        (analysis.status === "ready" || analysis.status === "running") &&
-        analysis.game.id === wonGame.id && (
-          <Suspense>
-            <ShareWin
-              game={wonGame}
-              session={session}
-              uid={user?.uid ?? null}
-            />
-          </Suspense>
-        )}
+      {view === "review" && shareReviewedWin && (
+        <Suspense>
+          <ShareWin
+            key={reviewedGame.id}
+            game={reviewedGame}
+            session={session}
+            uid={user?.uid ?? null}
+          />
+        </Suspense>
+      )}
       {view === "review" ? (
         <main className="content-shell review-page">
           <button
