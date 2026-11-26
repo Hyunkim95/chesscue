@@ -213,8 +213,8 @@ test("finds and reopens an older completed game offline from Review", async () =
     await expect(rook.getByLabel("Ask Rook")).toBeVisible({ timeout: 20000 });
     await expect(debrief).toHaveCount(0);
     await page
-      .getByRole("button", { name: "Back to game debrief", exact: true })
-      .click();
+      .getByRole("button", { name: "Game summary", exact: true })
+      .click({ timeout: 10000 });
 
     await expect(debrief).toBeVisible({ timeout: 20000 });
     const matchup = debrief.getByRole("heading", {
