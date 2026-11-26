@@ -257,6 +257,40 @@
   color: var(--cue-ink);
 }
 
-.shared-game-replay h2 {
+.shared-game-replay {
+  width: min(100%, 38rem);
+  align-content: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.shared-game-replay :is(h1, h2, p) {
+  margin: 0;
+  text-align: center;
   overflow-wrap: anywhere;
+}
+
+.shared-game-replay .chess-board {
+  width: min(100%, max(16rem, calc(100svh - 16rem)));
+  margin-block: 0.5rem;
+}
+
+.shared-game-replay__moves {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.shared-game-replay__moves button {
+  margin: 0;
+}
+
+.shared-game-replay details {
+  width: 100%;
+}
+
+.shared-game-replay summary {
+  min-height: 44px;
+  padding-block: 0.7rem;
+  cursor: pointer;
 }

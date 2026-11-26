@@ -63,9 +63,10 @@ export function SharedGameReplay({
                 " plies"
               : "Starting position"}
           </p>
-          <div className="import-panel__actions">
+          <div className="shared-game-replay__moves">
             <button
               type="button"
+              className="review-action"
               disabled={!ply}
               onClick={() => {
                 setPly(ply - 1);
@@ -75,6 +76,7 @@ export function SharedGameReplay({
             </button>
             <button
               type="button"
+              className="review-action"
               disabled={ply >= game.moves.length}
               onClick={() => {
                 setPly(ply + 1);
