@@ -76,7 +76,9 @@ export function reviewMistakePractice(mistake: ReviewMistake): {
     attemptedSan,
     exercise: {
       id: mistake.id,
-      theme: "other",
+      theme: board.moves().some((san) => san.endsWith("#"))
+        ? "one-move-threat"
+        : "other",
       fen: mistake.fen,
       acceptableMoves: [best],
       explanation:

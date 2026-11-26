@@ -2,7 +2,10 @@ import "fake-indexeddb/auto";
 import { Chess } from "chess.js";
 import { expect, it } from "vitest";
 
-import { reviewMistakeId } from "../../domain/analysis/review-mistake";
+import {
+  reviewMistakeId,
+  reviewMistakePractice,
+} from "../../domain/analysis/review-mistake";
 import { deleteChessTutorDatabase } from "./chess-tutor-database";
 import {
   completeReviewMistake,
@@ -33,9 +36,12 @@ it("keeps a completed review retry complete after the same position is tried aga
       saveReviewMistake(database, "game", evidence),
     ]);
     const id = reviewMistakeId("game", evidence.fen);
-    expect(await listReviewMistakes(database)).toEqual([
-      expect.objectContaining({ id, completed: false }),
-    ]);
+    const [mistake] = await listReviewMistakes(database);
+    expect(mistake).toMatchObject({ id, completed: false });
+    if (!mistake) throw new Error("Expected a saved review mistake");
+    expect(reviewMistakePractice(mistake)?.exercise.theme).toBe(
+      "one-move-threat",
+    );
     await completeReviewMistake(database, id);
     await saveReviewMistake(database, "game", evidence);
     expect(await listReviewMistakes(database)).toEqual([
