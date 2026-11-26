@@ -69,6 +69,25 @@ describe("game write policy", () => {
     });
   });
 
+  it("allows Coach to join at the current ply once and preserves the marker", () => {
+    const rated = game({
+      origin: { type: "tutor", mode: "rated", opponentElo: 1450 },
+    });
+    const withCoach = { ...rated, coachJoinedAtPly: rated.moves.length };
+    expect(decideGameWrite(rated, withCoach)).toEqual({
+      type: "replace-in-progress",
+    });
+    expect(
+      decideGameWrite(rated, { ...withCoach, coachJoinedAtPly: 0 }),
+    ).toMatchObject({ type: "conflict" });
+    expect(decideGameWrite(withCoach, rated)).toMatchObject({
+      type: "conflict",
+    });
+    expect(
+      decideGameWrite(withCoach, { ...withCoach, moves: [move(1), move(2)] }),
+    ).toEqual({ type: "replace-in-progress" });
+  });
+
   it("accepts an idempotent completed-game write", () => {
     const completed = game({
       completedAt: "2026-11-24T12:05:00.000Z",

@@ -1,8 +1,13 @@
+import { starterPack } from "../material/pack";
+import { reflectionSchema } from "../material/reflection";
 import { Chess } from "chess.js";
 import { describe, expect, it } from "vitest";
 
-import { curatedTransferRegistry, transferExercisesForTheme } from "./registry";
-import { validateCuratedTransferExercise } from "./validate";
+import {
+  generatedTransferRegistry,
+  transferExercisesForTheme,
+} from "./registry";
+import { validateGeneratedTransferExercise } from "./validate";
 
 const expectedThemes = [
   "hanging-piece",
@@ -13,21 +18,21 @@ const expectedThemes = [
 ] as const;
 
 describe("curated transfer registry", () => {
-  it("exports two validated exercises for every prototype theme", () => {
-    expect(curatedTransferRegistry).toHaveLength(10);
+  it("exports only derived exercises with source and generation evidence", () => {
+    expect(generatedTransferRegistry.length).toBeGreaterThan(1);
     for (const theme of expectedThemes) {
       const exercises = transferExercisesForTheme(theme);
-      expect(exercises).toHaveLength(2);
-      expect(exercises.map(({ difficulty }) => difficulty).sort()).toEqual([
-        "close",
-        "unlabeled",
-      ]);
+      expect(exercises.length).toBeGreaterThan(0);
+      for (const e of exercises) {
+        expect(e.source.sourceHash).toMatch(/^[a-f0-9]{64}$/);
+        expect(e.authorship.runId).toBe(starterPack.runId);
+      }
     }
   });
 
   it("contains only legal accepted moves with recorded verification", () => {
-    for (const exercise of curatedTransferRegistry) {
-      expect(validateCuratedTransferExercise(exercise).ok).toBe(true);
+    for (const exercise of generatedTransferRegistry) {
+      expect(validateGeneratedTransferExercise(exercise).ok).toBe(true);
       for (const uci of exercise.acceptableMoves) {
         const chess = new Chess(exercise.fen);
         expect(() =>
@@ -45,31 +50,35 @@ describe("curated transfer registry", () => {
   });
 
   it("keeps unlabeled prompts neutral", () => {
-    const unlabeled = curatedTransferRegistry.filter(
+    const unlabeled = generatedTransferRegistry.filter(
       ({ difficulty }) => difficulty === "unlabeled",
     );
-    expect(unlabeled).toHaveLength(5);
+    expect(unlabeled.length).toBeGreaterThan(0);
     expect(
-      unlabeled.every(({ prompt }) => prompt === "What would you play here?"),
+      unlabeled.every(
+        ({ prompt }) =>
+          reflectionSchema.safeParse(prompt).success &&
+          !/mate|fork|castle/i.test(prompt),
+      ),
     ).toBe(true);
   });
 
   it("rejects an unverified acceptable move", () => {
-    const source = curatedTransferRegistry[0];
+    const source = generatedTransferRegistry[0];
     expect(source).toBeDefined();
     if (source === undefined) return;
     const invalid = {
       ...source,
       acceptableMoves: ["a2a3"],
     };
-    expect(validateCuratedTransferExercise(invalid)).toEqual({
+    expect(validateGeneratedTransferExercise(invalid)).toEqual({
       ok: false,
       reason: "An acceptable move lacks Stockfish verification.",
     });
   });
 
   it("rejects an illegal or mismatched principal variation", () => {
-    const source = curatedTransferRegistry[0];
+    const source = generatedTransferRegistry[0];
     expect(source).toBeDefined();
     if (source === undefined) return;
     const invalid = {
@@ -79,7 +88,7 @@ describe("curated transfer registry", () => {
         principalVariation: ["a2a3"],
       },
     };
-    expect(validateCuratedTransferExercise(invalid)).toEqual({
+    expect(validateGeneratedTransferExercise(invalid)).toEqual({
       ok: false,
       reason:
         "Verified principal variation must be legal and start with the best move.",

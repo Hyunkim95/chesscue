@@ -10,6 +10,7 @@
   box-shadow: var(--cue-shadow);
 }
 
+.import-panel h1,
 .import-panel h2,
 .import-panel h3,
 .import-panel p {
@@ -19,6 +20,25 @@
 .import-panel h2,
 .import-panel h3 {
   font-family: var(--cue-display);
+}
+
+.import-panel h1 {
+  font: 600 clamp(2rem, 5vw, 3rem)/1.08 var(--cue-display);
+  scroll-margin-top: 8rem;
+}
+.import-panel__actions .primary-link {
+  display: inline-grid;
+  place-items: center;
+  text-decoration: none;
+  margin: 0;
+  color: var(--cue-action-ink);
+  background: transparent;
+}
+.import-panel .import-panel__counts {
+  color: var(--cue-muted);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 650;
 }
 
 .import-panel__intro {
@@ -57,7 +77,7 @@
 .import-panel textarea {
   width: 100%;
   color: inherit;
-  background: #fffaf1;
+  background: var(--cue-canvas);
   border: 1px solid var(--cue-line);
   border-radius: 0.7rem;
 }
@@ -206,6 +226,7 @@
   }
 
   .import-panel__actions,
+  .import-panel__actions .primary-link,
   .import-panel__actions button {
     width: 100%;
   }
@@ -218,4 +239,20 @@
     min-height: 7.5rem;
     height: 7.5rem;
   }
+}
+
+.import-panel__result li > :is(button, details, .import-panel__perspective) {
+  margin-top: 0.5rem;
+}
+
+.import-panel__perspective {
+  display: grid;
+  gap: 0.5rem;
+  padding-block: 0.4rem;
+}
+
+.import-panel__result summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--cue-ink);
 }

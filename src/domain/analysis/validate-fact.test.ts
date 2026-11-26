@@ -34,4 +34,15 @@ describe("validateMoveAnalysisFact", () => {
       fact: { impactCp: 0 },
     });
   });
+
+  it("accepts the full swing between encoded mate scores", () => {
+    expect(
+      validateMoveAnalysisFact({
+        ...improvedMoveFact,
+        evaluationBeforeCp: 99_999,
+        evaluationAfterCp: -99_998,
+        impactCp: 199_997,
+      }),
+    ).toMatchObject({ ok: true });
+  });
 });

@@ -1,5 +1,5 @@
-import { lessonPlaybookSchema } from "./schema";
-import type { LessonPlaybook } from "./types";
+import { lessonPlaybookSchema } from "../../domain/lessons/schema";
+import type { LessonPlaybook } from "../../domain/lessons/types";
 
 const candidate = {
   schemaVersion: 1,

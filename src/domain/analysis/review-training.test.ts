@@ -1,3 +1,4 @@
+import { generatedMove } from "../../test/generated-position";
 import { describe, expect, it } from "vitest";
 
 import { transferExercisesForTheme } from "../transfer";
@@ -64,13 +65,22 @@ describe("review training policy", () => {
     expect(unlabeled).toBeDefined();
     if (close === undefined || unlabeled === undefined) return;
 
-    expect(scoreTransferAttempt(close, "h5f7")).toMatchObject({
+    expect(
+      scoreTransferAttempt(close, close.verification.bestMoveUci),
+    ).toMatchObject({
       accepted: true,
     });
-    expect(scoreTransferAttempt(close, "h5g5")).toMatchObject({
+    expect(
+      scoreTransferAttempt(
+        close,
+        generatedMove("one-move-threat", "close", false).move.lan,
+      ),
+    ).toMatchObject({
       accepted: false,
     });
-    expect(scoreTransferAttempt(unlabeled, "e1e8")).toMatchObject({
+    expect(
+      scoreTransferAttempt(unlabeled, unlabeled.verification.bestMoveUci),
+    ).toMatchObject({
       accepted: true,
     });
   });
@@ -131,8 +141,7 @@ describe("review training policy", () => {
       }),
     ).toEqual({
       title: "Good move",
-      summary:
-        "You played Ba4. That moves your bishop out of attack before Black can win it.",
+      summary: "Played Ba4. Stockfish candidate: Ba4. Evaluation gap: 0 cp.",
     });
     expect(
       getAttemptFeedback({
@@ -149,8 +158,7 @@ describe("review training policy", () => {
       }),
     ).toEqual({
       title: "Try another move",
-      summary:
-        "You played d4. Your bishop on b5 is still attacked by Black's pawn on a6, so Black can win it next.",
+      summary: "Played d4. Stockfish candidate: Ba4.",
     });
   });
 });

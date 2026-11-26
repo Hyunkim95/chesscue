@@ -1,0 +1,6389 @@
+{
+  "schemaVersion": 1,
+  "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+  "generatedAt": "2026-11-26T10:00:14.715Z",
+  "input": {
+    "dataset": "https://database.lichess.org/#puzzles",
+    "sha256": "168b6383968bbc05d320717d87fe2daa076d11d1aa25c61a261049553b84993a",
+    "rows": 100000
+  },
+  "motifs": [
+    {
+      "schemaVersion": 1,
+      "id": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "name": "Advanced Pawn",
+      "version": 2,
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/lOElUViN#53",
+        "tags": [
+          "advancedPawn"
+        ]
+      },
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4cec9ff42d23ec5e477eb3678d13f022ecd2abd9d9f06ca190a10a5524510337",
+        "responseHash": "063c064c03229aa89350d44d459126e3c9de33f2f37a293703f40fd5ed2aa474"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "name": "Discovered Attack",
+      "version": 2,
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/TzYkLqbM/black#26",
+        "tags": [
+          "discoveredAttack"
+        ]
+      },
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4f3306a537a28d77f631577a6d3d1986166e17a74a9978aa1cde0f4c14d466d5",
+        "responseHash": "4e800210aa561929824d7ea34f70e6fff62b791d13728449100a1d4aacbd2699"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "name": "Attraction",
+      "version": 2,
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/rC7ryU9U#67",
+        "tags": [
+          "attraction"
+        ]
+      },
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "b0d654580e39c9fba7acef2be83d53b869f9b1393e20f491a07b28db3c5158d7",
+        "responseHash": "672b3694385aec976602ec7988ac9c2e49337b2d4b0f879ce6e374b5f3cd2239"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "name": "Deflection",
+      "version": 2,
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/ZlGdbISE#81",
+        "tags": [
+          "deflection"
+        ]
+      },
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "90b772fc255ab496d89978380ab1949260ba6030f9c6dd12a37b50d01deda164",
+        "responseHash": "c9efa5c25650d7d261248cbb8cabbc5fbdffdc9812a28a54a8a4f329c757165c"
+      }
+    }
+  ],
+  "puzzles": [
+    {
+      "schemaVersion": 1,
+      "id": "4bacfc822970b6f7812bc437bb3a9c0fecf3e1aa9aea68368c446402c8088fd5",
+      "fen": "8/8/3bP3/p4P2/4k3/8/P5Kp/8 w - - 0 54",
+      "acceptableMoves": [
+        "f5f6"
+      ],
+      "solution": [
+        "f5f6",
+        "h2h1q",
+        "g2h1",
+        "e4d5",
+        "e6e7"
+      ],
+      "rating": 1214,
+      "ratingDeviation": 74,
+      "explanation": "The checked solution begins with f6.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/YJdVuMyB/black#106",
+        "lichessId": "0Pv4u",
+        "sourceHash": "17c9b3ce82275c77fd48e9a07cf5b806cfaf4d7cb1f2e1ec555de35fa63a5688",
+        "pgnHash": "4abac3fb5d34941c95fd8f20793a8b0b4703b8dbb6b2d365eb8fe476c329b6a2",
+        "ply": 106,
+        "tags": [
+          "advancedPawn",
+          "bishopEndgame",
+          "crushing",
+          "endgame",
+          "long"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "f5f6",
+        "principalVariation": [
+          "f5f6",
+          "d6b4",
+          "e6e7",
+          "e4e5",
+          "e7e8q",
+          "e5f6",
+          "g2h2",
+          "f6g7",
+          "h2g3",
+          "g7h7",
+          "e8d7",
+          "h7g6"
+        ],
+        "candidates": [
+          {
+            "uci": "f5f6",
+            "evaluationCp": 664,
+            "principalVariation": [
+              "f5f6",
+              "d6b4",
+              "e6e7",
+              "e4e5",
+              "e7e8q",
+              "e5f6",
+              "g2h2",
+              "f6g7",
+              "h2g3",
+              "g7h7",
+              "e8d7",
+              "h7g6"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "g2h1",
+            "evaluationCp": -780,
+            "principalVariation": [
+              "g2h1",
+              "e4f5",
+              "h1g2",
+              "f5e6",
+              "g2h1",
+              "d6e5",
+              "h1g2",
+              "e6d5",
+              "g2h1",
+              "d5d4",
+              "a2a4",
+              "e5d6"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "e6e7",
+            "evaluationCp": -904,
+            "principalVariation": [
+              "e6e7",
+              "d6e7",
+              "g2h2",
+              "e4f5",
+              "h2g2",
+              "f5e4",
+              "g2g3",
+              "e4d3",
+              "g3f4",
+              "d3c2",
+              "f4e5",
+              "c2b2"
+            ],
+            "depth": 17
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "8/8/3bP3/p4P2/4k3/8/P5Kp/8 w - - 0 54",
+            "played": "f5f6",
+            "candidates": [
+              {
+                "uci": "f5f6",
+                "evaluationCp": 664,
+                "principalVariation": [
+                  "f5f6",
+                  "d6b4",
+                  "e6e7",
+                  "e4e5",
+                  "e7e8q",
+                  "e5f6",
+                  "g2h2",
+                  "f6g7",
+                  "h2g3",
+                  "g7h7",
+                  "e8d7",
+                  "h7g6"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "g2h1",
+                "evaluationCp": -780,
+                "principalVariation": [
+                  "g2h1",
+                  "e4f5",
+                  "h1g2",
+                  "f5e6",
+                  "g2h1",
+                  "d6e5",
+                  "h1g2",
+                  "e6d5",
+                  "g2h1",
+                  "d5d4",
+                  "a2a4",
+                  "e5d6"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "e6e7",
+                "evaluationCp": -904,
+                "principalVariation": [
+                  "e6e7",
+                  "d6e7",
+                  "g2h2",
+                  "e4f5",
+                  "h2g2",
+                  "f5e4",
+                  "g2g3",
+                  "e4d3",
+                  "g3f4",
+                  "d3c2",
+                  "f4e5",
+                  "c2b2"
+                ],
+                "depth": 17
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "8/8/3bPP2/p7/4k3/8/P5K1/7q w - - 0 55",
+            "played": "g2h1",
+            "candidates": [
+              {
+                "uci": "g2h1",
+                "evaluationCp": 722,
+                "principalVariation": [
+                  "g2h1",
+                  "e4f5",
+                  "e6e7",
+                  "f5f6",
+                  "e7e8q",
+                  "d6b4",
+                  "e8e4",
+                  "f6f7",
+                  "h1g2",
+                  "f7f6",
+                  "g2f3",
+                  "f6g5"
+                ],
+                "depth": 22
+              },
+              {
+                "uci": "g2f2",
+                "evaluationCp": -99997,
+                "principalVariation": [
+                  "g2f2",
+                  "h1h2",
+                  "f2e1",
+                  "e4e3",
+                  "e6e7",
+                  "h2e2"
+                ],
+                "depth": 22
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "8/8/3bPP2/p2k4/8/8/P7/7K w - - 1 56",
+            "played": "e6e7",
+            "candidates": [
+              {
+                "uci": "e6e7",
+                "evaluationCp": 780,
+                "principalVariation": [
+                  "e6e7",
+                  "d5e6",
+                  "e7e8q",
+                  "e6f6",
+                  "e8d8",
+                  "f6e5",
+                  "d8a5",
+                  "e5f4",
+                  "a2a4",
+                  "d6e5",
+                  "h1g2",
+                  "e5d4"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "h1g2",
+                "evaluationCp": -884,
+                "principalVariation": [
+                  "h1g2",
+                  "d5e6",
+                  "f6f7",
+                  "e6f7",
+                  "g2f3",
+                  "f7f6",
+                  "f3e4",
+                  "f6e6",
+                  "e4d4",
+                  "e6d7",
+                  "d4d5",
+                  "d6f8"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "f6f7",
+                "evaluationCp": -884,
+                "principalVariation": [
+                  "f6f7",
+                  "d5e6",
+                  "h1g2",
+                  "e6f7",
+                  "g2f3",
+                  "f7e7",
+                  "f3e4",
+                  "e7d7",
+                  "e4d5",
+                  "d6f8",
+                  "d5d4",
+                  "d7c6"
+                ],
+                "depth": 21
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "motifVersion": 2,
+      "question": "What squares can your forward pawn reach to increase activity?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4cec9ff42d23ec5e477eb3678d13f022ecd2abd9d9f06ca190a10a5524510337",
+        "responseHash": "063c064c03229aa89350d44d459126e3c9de33f2f37a293703f40fd5ed2aa474"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "81b8aa82d8b9f5f5df3dea2da4320c51d10d0341fb0626ce1e5b842e982547f7",
+      "fen": "r4bk1/p1p1nr1n/2Pp4/PP1Np3/2N1Pp1p/5Ppq/4B2R/R2Q2BK b - - 1 27",
+      "acceptableMoves": [
+        "g3g2"
+      ],
+      "solution": [
+        "g3g2"
+      ],
+      "rating": 1296,
+      "ratingDeviation": 75,
+      "explanation": "The checked solution begins with g2#.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/lOElUViN#53",
+        "lichessId": "0uPqG",
+        "sourceHash": "e75f72fd97454982569f1b259d032ee0713e80c803aae9eed96b6bfaa97dbb1b",
+        "pgnHash": "642c7a84c99a4ea4732e7e667fe23fbb453b2006d84ad9587d5da114fe5da043",
+        "ply": 53,
+        "tags": [
+          "advancedPawn",
+          "master",
+          "mate",
+          "mateIn1",
+          "middlegame",
+          "oneMove"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "g3g2",
+        "principalVariation": [
+          "g3g2"
+        ],
+        "candidates": [
+          {
+            "uci": "g3g2",
+            "evaluationCp": 99999,
+            "principalVariation": [
+              "g3g2"
+            ],
+            "depth": 24
+          },
+          {
+            "uci": "g3h2",
+            "evaluationCp": 113,
+            "principalVariation": [
+              "g3h2",
+              "g1f2",
+              "e7d5",
+              "e2f1",
+              "h3e6",
+              "d1d5",
+              "e6d5",
+              "e4d5",
+              "e5e4",
+              "f3e4",
+              "h7g5",
+              "a1e1"
+            ],
+            "depth": 24
+          },
+          {
+            "uci": "h3c8",
+            "evaluationCp": -316,
+            "principalVariation": [
+              "h3c8",
+              "c4d6",
+              "c7d6",
+              "h2h4",
+              "e7d5",
+              "d1d5",
+              "h7f6",
+              "d5b3",
+              "d6d5",
+              "h1g2",
+              "f7h7",
+              "h4h7"
+            ],
+            "depth": 23
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "r4bk1/p1p1nr1n/2Pp4/PP1Np3/2N1Pp1p/5Ppq/4B2R/R2Q2BK b - - 1 27",
+            "played": "g3g2",
+            "candidates": [
+              {
+                "uci": "g3g2",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "g3g2"
+                ],
+                "depth": 24
+              },
+              {
+                "uci": "g3h2",
+                "evaluationCp": 113,
+                "principalVariation": [
+                  "g3h2",
+                  "g1f2",
+                  "e7d5",
+                  "e2f1",
+                  "h3e6",
+                  "d1d5",
+                  "e6d5",
+                  "e4d5",
+                  "e5e4",
+                  "f3e4",
+                  "h7g5",
+                  "a1e1"
+                ],
+                "depth": 24
+              },
+              {
+                "uci": "h3c8",
+                "evaluationCp": -316,
+                "principalVariation": [
+                  "h3c8",
+                  "c4d6",
+                  "c7d6",
+                  "h2h4",
+                  "e7d5",
+                  "d1d5",
+                  "h7f6",
+                  "d5b3",
+                  "d6d5",
+                  "h1g2",
+                  "f7h7",
+                  "h4h7"
+                ],
+                "depth": 23
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "motifVersion": 2,
+      "question": "Which available square allows your advanced unit to step closer?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4cec9ff42d23ec5e477eb3678d13f022ecd2abd9d9f06ca190a10a5524510337",
+        "responseHash": "063c064c03229aa89350d44d459126e3c9de33f2f37a293703f40fd5ed2aa474"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "849a245b8bfaad59addf3eec1354efd95fde4f4736c52e187b749cad38a8db34",
+      "fen": "8/3P4/8/2k2pbP/8/5K2/8/8 w - - 0 52",
+      "acceptableMoves": [
+        "h5h6"
+      ],
+      "solution": [
+        "h5h6",
+        "c5c6",
+        "h6h7",
+        "c6d7",
+        "h7h8q"
+      ],
+      "rating": 1319,
+      "ratingDeviation": 75,
+      "explanation": "The checked solution begins with h6.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/51AxZaDj/black#102",
+        "lichessId": "018Iz",
+        "sourceHash": "9100beca78512f07be22ae605ba4e18f14cd157141ef709d2ab66a7a37723051",
+        "pgnHash": "6bab5b07c9bba8416b42827d3cc569c1e6c295fb02af65389aaf462883b0f680",
+        "ply": 102,
+        "tags": [
+          "advancedPawn",
+          "bishopEndgame",
+          "crushing",
+          "endgame",
+          "long",
+          "promotion"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "h5h6",
+        "principalVariation": [
+          "h5h6",
+          "c5d6",
+          "h6h7",
+          "d6d7",
+          "h7h8q",
+          "g5e7",
+          "f3f4",
+          "e7c5",
+          "f4f5",
+          "d7c6",
+          "f5e4",
+          "c5d6"
+        ],
+        "candidates": [
+          {
+            "uci": "h5h6",
+            "evaluationCp": 608,
+            "principalVariation": [
+              "h5h6",
+              "c5d6",
+              "h6h7",
+              "d6d7",
+              "h7h8q",
+              "g5e7",
+              "f3f4",
+              "e7c5",
+              "f4f5",
+              "d7c6",
+              "f5e4",
+              "c5d6"
+            ],
+            "depth": 20
+          },
+          {
+            "uci": "d7d8n",
+            "evaluationCp": 0,
+            "principalVariation": [
+              "d7d8n",
+              "g5d8",
+              "f3f4",
+              "c5d6",
+              "f4f5",
+              "d6e7",
+              "f5e4",
+              "e7f6",
+              "e4d3",
+              "d8a5",
+              "d3c4",
+              "f6f7"
+            ],
+            "depth": 20
+          },
+          {
+            "uci": "d7d8q",
+            "evaluationCp": 0,
+            "principalVariation": [
+              "d7d8q",
+              "g5d8",
+              "f3f4",
+              "c5d6",
+              "f4f5",
+              "d6e7",
+              "f5e4",
+              "e7f6",
+              "e4d3",
+              "d8a5",
+              "d3c4",
+              "f6f7"
+            ],
+            "depth": 20
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "8/3P4/8/2k2pbP/8/5K2/8/8 w - - 0 52",
+            "played": "h5h6",
+            "candidates": [
+              {
+                "uci": "h5h6",
+                "evaluationCp": 608,
+                "principalVariation": [
+                  "h5h6",
+                  "c5d6",
+                  "h6h7",
+                  "d6d7",
+                  "h7h8q",
+                  "g5e7",
+                  "f3f4",
+                  "e7c5",
+                  "f4f5",
+                  "d7c6",
+                  "f5e4",
+                  "c5d6"
+                ],
+                "depth": 20
+              },
+              {
+                "uci": "d7d8n",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "d7d8n",
+                  "g5d8",
+                  "f3f4",
+                  "c5d6",
+                  "f4f5",
+                  "d6e7",
+                  "f5e4",
+                  "e7f6",
+                  "e4d3",
+                  "d8a5",
+                  "d3c4",
+                  "f6f7"
+                ],
+                "depth": 20
+              },
+              {
+                "uci": "d7d8q",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "d7d8q",
+                  "g5d8",
+                  "f3f4",
+                  "c5d6",
+                  "f4f5",
+                  "d6e7",
+                  "f5e4",
+                  "e7f6",
+                  "e4d3",
+                  "d8a5",
+                  "d3c4",
+                  "f6f7"
+                ],
+                "depth": 20
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "8/3P4/2k4P/5pb1/8/5K2/8/8 w - - 1 53",
+            "played": "h6h7",
+            "candidates": [
+              {
+                "uci": "h6h7",
+                "evaluationCp": 610,
+                "principalVariation": [
+                  "h6h7",
+                  "c6d7",
+                  "h7h8q",
+                  "g5e7",
+                  "h8e5",
+                  "e7d6",
+                  "e5f5",
+                  "d7c6",
+                  "f3e4",
+                  "d6c7",
+                  "f5h7"
+                ],
+                "depth": 20
+              },
+              {
+                "uci": "d7d8q",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "d7d8q",
+                  "g5d8",
+                  "f3f4",
+                  "d8c7",
+                  "f4f5",
+                  "c6d5",
+                  "f5f6",
+                  "c7e5",
+                  "f6e7",
+                  "e5f4",
+                  "h6h7",
+                  "f4e5"
+                ],
+                "depth": 20
+              },
+              {
+                "uci": "d7d8n",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "d7d8n",
+                  "g5d8",
+                  "f3f4",
+                  "d8c7",
+                  "f4f5",
+                  "c6d5",
+                  "f5f6",
+                  "c7e5",
+                  "f6e7",
+                  "e5f4",
+                  "h6h7",
+                  "f4e5"
+                ],
+                "depth": 20
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "8/3k3P/8/5pb1/8/5K2/8/8 w - - 0 54",
+            "played": "h7h8q",
+            "candidates": [
+              {
+                "uci": "h7h8q",
+                "evaluationCp": 597,
+                "principalVariation": [
+                  "h7h8q",
+                  "g5e7",
+                  "h8g8",
+                  "e7d6",
+                  "g8f7",
+                  "d7c6",
+                  "f7f5",
+                  "d6c7",
+                  "f3e4",
+                  "c7b6",
+                  "f5d5",
+                  "c6c7"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "h7h8r",
+                "evaluationCp": 3,
+                "principalVariation": [
+                  "h7h8r",
+                  "d7e6",
+                  "h8e8",
+                  "e6f7",
+                  "e8a8",
+                  "f7e7"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "h7h8b",
+                "evaluationCp": -2,
+                "principalVariation": [
+                  "h7h8b",
+                  "d7c6",
+                  "h8c3",
+                  "c6c5",
+                  "c3e1",
+                  "c5d4",
+                  "e1a5",
+                  "g5h6",
+                  "f3e2"
+                ],
+                "depth": 17
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "motifVersion": 2,
+      "question": "What path helps your farthest runner march toward the last rank?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4cec9ff42d23ec5e477eb3678d13f022ecd2abd9d9f06ca190a10a5524510337",
+        "responseHash": "063c064c03229aa89350d44d459126e3c9de33f2f37a293703f40fd5ed2aa474"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "6f6c807450f1f1107e2465435a249b17687d631c6d043df0128ccf9f6dbd2555",
+      "fen": "8/pp6/4Pk2/3p1P1p/4n3/1P3N1P/5r2/4R1K1 w - - 5 48",
+      "acceptableMoves": [
+        "e1e4"
+      ],
+      "solution": [
+        "e1e4",
+        "f2f3",
+        "e6e7",
+        "d5e4",
+        "e7e8q"
+      ],
+      "rating": 1613,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with Rxe4.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/oe8ME3Lp/black#94",
+        "lichessId": "0szr7",
+        "sourceHash": "4229df8299e8d460caf20b000e0f424a408bc7b850309f1504abdf16d0de000c",
+        "pgnHash": "7697e6bfbeaee7ef952ca7d4cc1359d7afb86ec7b288204b9e793e207e3871f5",
+        "ply": 94,
+        "tags": [
+          "advancedPawn",
+          "advantage",
+          "endgame",
+          "long",
+          "promotion"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "e1e4",
+        "principalVariation": [
+          "e1e4",
+          "f2f3",
+          "e6e7",
+          "d5e4",
+          "e7e8q",
+          "f6f5",
+          "e8h5",
+          "f5f4",
+          "h5g4",
+          "f4e3",
+          "h3h4",
+          "a7a6"
+        ],
+        "candidates": [
+          {
+            "uci": "e1e4",
+            "evaluationCp": 480,
+            "principalVariation": [
+              "e1e4",
+              "f2f3",
+              "e6e7",
+              "d5e4",
+              "e7e8q",
+              "f6f5",
+              "e8h5",
+              "f5f4",
+              "h5g4",
+              "f4e3",
+              "h3h4",
+              "a7a6"
+            ],
+            "depth": 19
+          },
+          {
+            "uci": "f3d4",
+            "evaluationCp": -10,
+            "principalVariation": [
+              "f3d4",
+              "f2f4",
+              "e1f1",
+              "f4f1",
+              "g1f1",
+              "a7a6",
+              "f1e2",
+              "f6e5",
+              "e2d3",
+              "e4d6",
+              "d3e3",
+              "a6a5"
+            ],
+            "depth": 19
+          },
+          {
+            "uci": "e1e3",
+            "evaluationCp": -19,
+            "principalVariation": [
+              "e1e3",
+              "f2c2",
+              "e3d3",
+              "c2c5",
+              "f3d4",
+              "c5c8",
+              "g1g2",
+              "c8g8",
+              "g2f3",
+              "g8g3",
+              "f3e2",
+              "g3d3"
+            ],
+            "depth": 19
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "8/pp6/4Pk2/3p1P1p/4n3/1P3N1P/5r2/4R1K1 w - - 5 48",
+            "played": "e1e4",
+            "candidates": [
+              {
+                "uci": "e1e4",
+                "evaluationCp": 480,
+                "principalVariation": [
+                  "e1e4",
+                  "f2f3",
+                  "e6e7",
+                  "d5e4",
+                  "e7e8q",
+                  "f6f5",
+                  "e8h5",
+                  "f5f4",
+                  "h5g4",
+                  "f4e3",
+                  "h3h4",
+                  "a7a6"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "f3d4",
+                "evaluationCp": -10,
+                "principalVariation": [
+                  "f3d4",
+                  "f2f4",
+                  "e1f1",
+                  "f4f1",
+                  "g1f1",
+                  "a7a6",
+                  "f1e2",
+                  "f6e5",
+                  "e2d3",
+                  "e4d6",
+                  "d3e3",
+                  "a6a5"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "e1e3",
+                "evaluationCp": -19,
+                "principalVariation": [
+                  "e1e3",
+                  "f2c2",
+                  "e3d3",
+                  "c2c5",
+                  "f3d4",
+                  "c5c8",
+                  "g1g2",
+                  "c8g8",
+                  "g2f3",
+                  "g8g3",
+                  "f3e2",
+                  "g3d3"
+                ],
+                "depth": 19
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "8/pp6/4Pk2/3p1P1p/4R3/1P3r1P/8/6K1 w - - 0 49",
+            "played": "e6e7",
+            "candidates": [
+              {
+                "uci": "e6e7",
+                "evaluationCp": 490,
+                "principalVariation": [
+                  "e6e7",
+                  "d5e4",
+                  "e7e8q",
+                  "f3f5",
+                  "e8e4",
+                  "b7b6",
+                  "b3b4",
+                  "a7a5",
+                  "b4a5",
+                  "f5g5",
+                  "g1f2",
+                  "b6a5"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "e4e2",
+                "evaluationCp": 13,
+                "principalVariation": [
+                  "e4e2",
+                  "f3g3",
+                  "g1f2",
+                  "g3g8",
+                  "e2d2",
+                  "f6f5",
+                  "d2d5",
+                  "f5f6",
+                  "d5h5",
+                  "f6e6",
+                  "h5h7",
+                  "g8c8"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "e4e1",
+                "evaluationCp": 9,
+                "principalVariation": [
+                  "e4e1",
+                  "f3g3",
+                  "g1f2",
+                  "g3g8",
+                  "e1d1",
+                  "g8d8",
+                  "f2e3",
+                  "f6f5",
+                  "e6e7",
+                  "d8e8",
+                  "d1d5",
+                  "f5e6"
+                ],
+                "depth": 18
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "8/pp2P3/5k2/5P1p/4p3/1P3r1P/8/6K1 w - - 0 50",
+            "played": "e7e8q",
+            "candidates": [
+              {
+                "uci": "e7e8q",
+                "evaluationCp": 504,
+                "principalVariation": [
+                  "e7e8q",
+                  "f6f5",
+                  "e8h5",
+                  "f5f4",
+                  "h5g4",
+                  "f4e3",
+                  "h3h4",
+                  "b7b5",
+                  "h4h5",
+                  "a7a6",
+                  "h5h6",
+                  "f3f8"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "e7e8r",
+                "evaluationCp": -533,
+                "principalVariation": [
+                  "e7e8r",
+                  "f6f5",
+                  "e8f8",
+                  "f5e5",
+                  "f8e8",
+                  "e5d4",
+                  "e8d8",
+                  "d4c5",
+                  "g1g2",
+                  "h5h4",
+                  "b3b4",
+                  "c5b5"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "e7e8b",
+                "evaluationCp": -688,
+                "principalVariation": [
+                  "e7e8b",
+                  "f3h3",
+                  "e8b5",
+                  "h3d3",
+                  "b5e8",
+                  "f6f5",
+                  "g1f1",
+                  "f5e5",
+                  "f1g2",
+                  "e5d4",
+                  "e8h5",
+                  "d3c3"
+                ],
+                "depth": 19
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "motifVersion": 2,
+      "question": "Which exchange lets your advanced runner push deeper into the board?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4cec9ff42d23ec5e477eb3678d13f022ecd2abd9d9f06ca190a10a5524510337",
+        "responseHash": "063c064c03229aa89350d44d459126e3c9de33f2f37a293703f40fd5ed2aa474"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "edd2cb1b82a843b094aca36d2ef0f5aa4f742689ad00cf5f394d55b804c4edcd",
+      "fen": "8/pp3pp1/4k1p1/4p1PP/6P1/1P2K3/P7/8 w - - 1 39",
+      "acceptableMoves": [
+        "h5h6"
+      ],
+      "solution": [
+        "h5h6",
+        "g7h6",
+        "g5h6",
+        "e6f6",
+        "g4g5",
+        "f6g5",
+        "h6h7"
+      ],
+      "rating": 1721,
+      "ratingDeviation": 74,
+      "explanation": "The checked solution begins with h6.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/3umCD6Mx/black#76",
+        "lichessId": "0rL3W",
+        "sourceHash": "9ca2a124457b1ae28d787631857bd6f394c96b300ff7588ce319adabc93a7044",
+        "pgnHash": "c1b57cba0654ca1272d2113d1de689502565c4cd92106739740d37317d69df0c",
+        "ply": 76,
+        "tags": [
+          "advancedPawn",
+          "crushing",
+          "endgame",
+          "pawnEndgame",
+          "veryLong"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "h5h6",
+        "principalVariation": [
+          "h5h6",
+          "g7h6"
+        ],
+        "candidates": [
+          {
+            "uci": "h5h6",
+            "evaluationCp": 539,
+            "principalVariation": [
+              "h5h6",
+              "g7h6"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "e3e4",
+            "evaluationCp": -438,
+            "principalVariation": [
+              "e3e4",
+              "g6h5",
+              "g4h5",
+              "f7f6",
+              "g5f6",
+              "e6f6",
+              "a2a4",
+              "a7a5",
+              "b3b4",
+              "a5b4",
+              "a4a5",
+              "b4b3"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "h5g6",
+            "evaluationCp": -494,
+            "principalVariation": [
+              "h5g6",
+              "f7g6",
+              "e3e4",
+              "e6d6",
+              "e4d3",
+              "d6d5",
+              "d3e3",
+              "e5e4",
+              "a2a3",
+              "a7a6",
+              "b3b4"
+            ],
+            "depth": 16
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "8/pp3pp1/4k1p1/4p1PP/6P1/1P2K3/P7/8 w - - 1 39",
+            "played": "h5h6",
+            "candidates": [
+              {
+                "uci": "h5h6",
+                "evaluationCp": 539,
+                "principalVariation": [
+                  "h5h6",
+                  "g7h6"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "e3e4",
+                "evaluationCp": -438,
+                "principalVariation": [
+                  "e3e4",
+                  "g6h5",
+                  "g4h5",
+                  "f7f6",
+                  "g5f6",
+                  "e6f6",
+                  "a2a4",
+                  "a7a5",
+                  "b3b4",
+                  "a5b4",
+                  "a4a5",
+                  "b4b3"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "h5g6",
+                "evaluationCp": -494,
+                "principalVariation": [
+                  "h5g6",
+                  "f7g6",
+                  "e3e4",
+                  "e6d6",
+                  "e4d3",
+                  "d6d5",
+                  "d3e3",
+                  "e5e4",
+                  "a2a3",
+                  "a7a6",
+                  "b3b4"
+                ],
+                "depth": 16
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "8/pp3p2/4k1pp/4p1P1/6P1/1P2K3/P7/8 w - - 0 40",
+            "played": "g5h6",
+            "candidates": [
+              {
+                "uci": "g5h6",
+                "evaluationCp": 672,
+                "principalVariation": [
+                  "g5h6",
+                  "e6f6",
+                  "g4g5",
+                  "f6g5",
+                  "h6h7",
+                  "a7a5",
+                  "h7h8q",
+                  "f7f6",
+                  "h8c8",
+                  "b7b6",
+                  "e3d2",
+                  "g5h5"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "e3f2",
+                "evaluationCp": -322,
+                "principalVariation": [
+                  "e3f2"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "e3f3",
+                "evaluationCp": -545,
+                "principalVariation": [
+                  "e3f3",
+                  "h6h5",
+                  "f3g3",
+                  "h5g4",
+                  "g3g4",
+                  "e6d5",
+                  "b3b4",
+                  "d5e6",
+                  "a2a4",
+                  "e6d5",
+                  "a4a5",
+                  "e5e4"
+                ],
+                "depth": 18
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "8/pp3p2/5kpP/4p3/6P1/1P2K3/P7/8 w - - 1 41",
+            "played": "g4g5",
+            "candidates": [
+              {
+                "uci": "g4g5",
+                "evaluationCp": 859,
+                "principalVariation": [
+                  "g4g5",
+                  "f6g5",
+                  "h6h7",
+                  "f7f5",
+                  "h7h8q",
+                  "e5e4",
+                  "h8a8",
+                  "g5g4",
+                  "a8b7",
+                  "g4g3",
+                  "b7g7"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "e3d3",
+                "evaluationCp": 45,
+                "principalVariation": [
+                  "e3d3",
+                  "g6g5",
+                  "d3e4",
+                  "f6g6",
+                  "e4e5",
+                  "b7b6",
+                  "a2a3",
+                  "b6b5",
+                  "h6h7",
+                  "g6h7",
+                  "e5f6",
+                  "h7g8"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "e3f3",
+                "evaluationCp": 24,
+                "principalVariation": [
+                  "e3f3",
+                  "e5e4",
+                  "f3e3",
+                  "g6g5",
+                  "e3e4",
+                  "f6g6",
+                  "e4e5",
+                  "b7b6",
+                  "h6h7",
+                  "g6h7",
+                  "e5f6",
+                  "h7g8"
+                ],
+                "depth": 21
+              }
+            ]
+          },
+          {
+            "ply": 7,
+            "fen": "8/pp3p2/6pP/4p1k1/8/1P2K3/P7/8 w - - 0 42",
+            "played": "h6h7",
+            "candidates": [
+              {
+                "uci": "h6h7",
+                "evaluationCp": 863,
+                "principalVariation": [
+                  "h6h7",
+                  "b7b5",
+                  "h7h8q",
+                  "f7f6",
+                  "h8h7",
+                  "a7a6",
+                  "e3e4",
+                  "a6a5",
+                  "h7h1",
+                  "a5a4",
+                  "b3a4",
+                  "g5g4"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "a2a4",
+                "evaluationCp": -251,
+                "principalVariation": [
+                  "a2a4"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "e3e4",
+                "evaluationCp": -581,
+                "principalVariation": [
+                  "e3e4",
+                  "g5h6",
+                  "a2a4",
+                  "b7b6",
+                  "b3b4",
+                  "h6g5",
+                  "e4e3",
+                  "g5f6",
+                  "e3f3",
+                  "f6e7",
+                  "f3e3",
+                  "a7a5"
+                ],
+                "depth": 17
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "motifVersion": 2,
+      "question": "What tempo helps your furthest unit gain space on the flank?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4cec9ff42d23ec5e477eb3678d13f022ecd2abd9d9f06ca190a10a5524510337",
+        "responseHash": "063c064c03229aa89350d44d459126e3c9de33f2f37a293703f40fd5ed2aa474"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "eded7edd387a84f2064792fea3b6405c37f7fd3b850f515b69c881c200cdef68",
+      "fen": "8/6k1/8/7p/1p6/5PPP/r3RK2/8 b - - 0 48",
+      "acceptableMoves": [
+        "b4b3"
+      ],
+      "solution": [
+        "b4b3",
+        "e2a2",
+        "b3a2"
+      ],
+      "rating": 1742,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with b3.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/ApsDwLwu#95",
+        "lichessId": "0u23O",
+        "sourceHash": "1accbfab13a13e93adf84755d662544c519f0f5a4bfa26c63bba0ea305b63310",
+        "pgnHash": "2ea74220badfbce4236721fceb0a680ec81eafb726d4da9ca50f528490f9ddf6",
+        "ply": 95,
+        "tags": [
+          "advancedPawn",
+          "crushing",
+          "endgame",
+          "rookEndgame",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "b4b3",
+        "principalVariation": [
+          "b4b3",
+          "h3h4",
+          "g7f6",
+          "g3g4",
+          "a2e2",
+          "f2e2",
+          "b3b2",
+          "g4h5",
+          "b2b1q",
+          "h5h6",
+          "b1h7",
+          "f3f4"
+        ],
+        "candidates": [
+          {
+            "uci": "b4b3",
+            "evaluationCp": 810,
+            "principalVariation": [
+              "b4b3",
+              "h3h4",
+              "g7f6",
+              "g3g4",
+              "a2e2",
+              "f2e2",
+              "b3b2",
+              "g4h5",
+              "b2b1q",
+              "h5h6",
+              "b1h7",
+              "f3f4"
+            ],
+            "depth": 21
+          },
+          {
+            "uci": "a2a7",
+            "evaluationCp": -27,
+            "principalVariation": [
+              "a2a7",
+              "e2b2",
+              "a7b7",
+              "b2b3",
+              "g7f6",
+              "f2e3",
+              "f6e5",
+              "g3g4",
+              "e5d5",
+              "g4g5",
+              "d5e5",
+              "h3h4"
+            ],
+            "depth": 21
+          },
+          {
+            "uci": "a2a3",
+            "evaluationCp": -106,
+            "principalVariation": [
+              "a2a3",
+              "e2e7",
+              "g7f6",
+              "e7b7",
+              "b4b3",
+              "g3g4",
+              "h5h4",
+              "f3f4",
+              "f6e6",
+              "b7b5",
+              "e6f7",
+              "b5b6"
+            ],
+            "depth": 20
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "8/6k1/8/7p/1p6/5PPP/r3RK2/8 b - - 0 48",
+            "played": "b4b3",
+            "candidates": [
+              {
+                "uci": "b4b3",
+                "evaluationCp": 810,
+                "principalVariation": [
+                  "b4b3",
+                  "h3h4",
+                  "g7f6",
+                  "g3g4",
+                  "a2e2",
+                  "f2e2",
+                  "b3b2",
+                  "g4h5",
+                  "b2b1q",
+                  "h5h6",
+                  "b1h7",
+                  "f3f4"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "a2a7",
+                "evaluationCp": -27,
+                "principalVariation": [
+                  "a2a7",
+                  "e2b2",
+                  "a7b7",
+                  "b2b3",
+                  "g7f6",
+                  "f2e3",
+                  "f6e5",
+                  "g3g4",
+                  "e5d5",
+                  "g4g5",
+                  "d5e5",
+                  "h3h4"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "a2a3",
+                "evaluationCp": -106,
+                "principalVariation": [
+                  "a2a3",
+                  "e2e7",
+                  "g7f6",
+                  "e7b7",
+                  "b4b3",
+                  "g3g4",
+                  "h5h4",
+                  "f3f4",
+                  "f6e6",
+                  "b7b5",
+                  "e6f7",
+                  "b5b6"
+                ],
+                "depth": 20
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "8/6k1/8/7p/8/1p3PPP/R4K2/8 b - - 0 49",
+            "played": "b3a2",
+            "candidates": [
+              {
+                "uci": "b3a2",
+                "evaluationCp": 931,
+                "principalVariation": [
+                  "b3a2",
+                  "h3h4",
+                  "a2a1q",
+                  "g3g4",
+                  "g7f6",
+                  "f2e2",
+                  "a1c3",
+                  "f3f4",
+                  "c3c2",
+                  "e2e3",
+                  "h5g4",
+                  "e3d4"
+                ],
+                "depth": 22
+              },
+              {
+                "uci": "g7f7",
+                "evaluationCp": -863,
+                "principalVariation": [
+                  "g7f7",
+                  "a2b2",
+                  "f7e8",
+                  "h3h4",
+                  "e8d7",
+                  "g3g4",
+                  "h5g4",
+                  "f3g4",
+                  "d7c7",
+                  "b2b3",
+                  "c7d6",
+                  "h4h5"
+                ],
+                "depth": 22
+              },
+              {
+                "uci": "g7f6",
+                "evaluationCp": -927,
+                "principalVariation": [
+                  "g7f6",
+                  "a2b2"
+                ],
+                "depth": 22
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "motifVersion": 2,
+      "question": "What route enables your distant runner to advance safely?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4cec9ff42d23ec5e477eb3678d13f022ecd2abd9d9f06ca190a10a5524510337",
+        "responseHash": "063c064c03229aa89350d44d459126e3c9de33f2f37a293703f40fd5ed2aa474"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "a12093cce963fa2a13220ed3f521e30dfd7ce24427bf8d9498b97b673545de37",
+      "fen": "r3k2r/1b2bppp/p3pn2/1pn3B1/3q4/2NB4/PPP2PPP/2RQR1K1 w kq - 0 14",
+      "acceptableMoves": [
+        "d3b5"
+      ],
+      "solution": [
+        "d3b5",
+        "a6b5",
+        "d1d4"
+      ],
+      "rating": 1223,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with Bxb5+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/TzYkLqbM/black#26",
+        "lichessId": "0H6E1",
+        "sourceHash": "78546652383acfa2f297db8b93bfd807cba66507dd137f2a7f9cd035daed37f1",
+        "pgnHash": "8f8065fef350b69d2137f25717ed0b7851b220a1aff0a428bbb267f4d47f5d46",
+        "ply": 26,
+        "tags": [
+          "advantage",
+          "discoveredAttack",
+          "middlegame",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "d3b5",
+        "principalVariation": [
+          "d3b5",
+          "a6b5",
+          "d1d4",
+          "e8g8",
+          "g5f6",
+          "g7f6",
+          "c1d1",
+          "g8h8",
+          "g2g3",
+          "b7f3"
+        ],
+        "candidates": [
+          {
+            "uci": "d3b5",
+            "evaluationCp": 503,
+            "principalVariation": [
+              "d3b5",
+              "a6b5",
+              "d1d4",
+              "e8g8",
+              "g5f6",
+              "g7f6",
+              "c1d1",
+              "g8h8",
+              "g2g3",
+              "b7f3"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "c3e4",
+            "evaluationCp": -508,
+            "principalVariation": [
+              "c3e4",
+              "d4d5",
+              "g5f6",
+              "g7f6",
+              "c2c4",
+              "d5d3",
+              "e4c5",
+              "d3d1",
+              "e1d1",
+              "e7c5",
+              "c4b5",
+              "a8c8"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "c3b5",
+            "evaluationCp": -537,
+            "principalVariation": [
+              "c3b5",
+              "d4d7",
+              "g5f6",
+              "g7f6",
+              "d3f1",
+              "a6b5",
+              "d1d7",
+              "c5d7",
+              "c1d1"
+            ],
+            "depth": 17
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "r3k2r/1b2bppp/p3pn2/1pn3B1/3q4/2NB4/PPP2PPP/2RQR1K1 w kq - 0 14",
+            "played": "d3b5",
+            "candidates": [
+              {
+                "uci": "d3b5",
+                "evaluationCp": 503,
+                "principalVariation": [
+                  "d3b5",
+                  "a6b5",
+                  "d1d4",
+                  "e8g8",
+                  "g5f6",
+                  "g7f6",
+                  "c1d1",
+                  "g8h8",
+                  "g2g3",
+                  "b7f3"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "c3e4",
+                "evaluationCp": -508,
+                "principalVariation": [
+                  "c3e4",
+                  "d4d5",
+                  "g5f6",
+                  "g7f6",
+                  "c2c4",
+                  "d5d3",
+                  "e4c5",
+                  "d3d1",
+                  "e1d1",
+                  "e7c5",
+                  "c4b5",
+                  "a8c8"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "c3b5",
+                "evaluationCp": -537,
+                "principalVariation": [
+                  "c3b5",
+                  "d4d7",
+                  "g5f6",
+                  "g7f6",
+                  "d3f1",
+                  "a6b5",
+                  "d1d7",
+                  "c5d7",
+                  "c1d1"
+                ],
+                "depth": 17
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "r3k2r/1b2bppp/4pn2/1pn3B1/3q4/2N5/PPP2PPP/2RQR1K1 w kq - 0 15",
+            "played": "d1d4",
+            "candidates": [
+              {
+                "uci": "d1d4",
+                "evaluationCp": 495,
+                "principalVariation": [
+                  "d1d4",
+                  "e8g8",
+                  "g5f6",
+                  "g7f6",
+                  "b2b4",
+                  "f6f5",
+                  "d4e3",
+                  "c5e4",
+                  "c3e4",
+                  "g8h8",
+                  "e4f6",
+                  "e7f6"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "a2a3",
+                "evaluationCp": -704,
+                "principalVariation": [
+                  "a2a3",
+                  "d4d7",
+                  "g5f6",
+                  "d7d1",
+                  "c1d1",
+                  "e7f6",
+                  "c3b5",
+                  "e8g8",
+                  "b2b4",
+                  "c5a4",
+                  "c2c4",
+                  "b7c6"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "c3b5",
+                "evaluationCp": -711,
+                "principalVariation": [
+                  "c3b5",
+                  "d4d1",
+                  "c1d1",
+                  "e8g8",
+                  "b5c7",
+                  "a8c8",
+                  "c7b5",
+                  "c8b8",
+                  "c2c4",
+                  "c5a6"
+                ],
+                "depth": 16
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "motifVersion": 2,
+      "question": "What happens if the piece in the center moves away from the line?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4f3306a537a28d77f631577a6d3d1986166e17a74a9978aa1cde0f4c14d466d5",
+        "responseHash": "4e800210aa561929824d7ea34f70e6fff62b791d13728449100a1d4aacbd2699"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "043eccadbfb3f023f5796999f9fb5a8bedca0bdbb9067e0ad22622f570d483f6",
+      "fen": "r5r1/3qpp1k/p2p3B/1p2b2Q/8/P1P4P/1P3PK1/2R2R2 w - - 3 22",
+      "acceptableMoves": [
+        "h6g5"
+      ],
+      "solution": [
+        "h6g5",
+        "h7g7",
+        "h5h6"
+      ],
+      "rating": 1267,
+      "ratingDeviation": 75,
+      "explanation": "The checked solution begins with Bg5+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/NLzIGtTx/black#42",
+        "lichessId": "0Y1Dp",
+        "sourceHash": "2740d4f62bbc80d235b9053e8b8281c629b1e3eb4186117555a294cca96b4e11",
+        "pgnHash": "44b959727915f2a383b73ad16a9f18d03b94aca513ea98243e792809f31f0a08",
+        "ply": 42,
+        "tags": [
+          "discoveredAttack",
+          "mate",
+          "mateIn2",
+          "middlegame",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "h6g5",
+        "principalVariation": [
+          "h6g5",
+          "h7g7",
+          "h5h6"
+        ],
+        "candidates": [
+          {
+            "uci": "h6g5",
+            "evaluationCp": 99998,
+            "principalVariation": [
+              "h6g5",
+              "h7g7",
+              "h5h6"
+            ],
+            "depth": 26
+          },
+          {
+            "uci": "g2h1",
+            "evaluationCp": -4,
+            "principalVariation": [
+              "g2h1",
+              "g8g6",
+              "h6f4",
+              "h7g7",
+              "f4e5",
+              "d6e5",
+              "f1g1",
+              "d7d5",
+              "h1h2",
+              "d5e4",
+              "g1g4",
+              "g6g4"
+            ],
+            "depth": 25
+          },
+          {
+            "uci": "g2f3",
+            "evaluationCp": -30,
+            "principalVariation": [
+              "g2f3",
+              "d7c6",
+              "f3e2",
+              "c6c4",
+              "e2e3",
+              "g8g6",
+              "h6f4",
+              "h7g8",
+              "f4e5",
+              "d6e5",
+              "h5f5",
+              "e5e4"
+            ],
+            "depth": 25
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "r5r1/3qpp1k/p2p3B/1p2b2Q/8/P1P4P/1P3PK1/2R2R2 w - - 3 22",
+            "played": "h6g5",
+            "candidates": [
+              {
+                "uci": "h6g5",
+                "evaluationCp": 99998,
+                "principalVariation": [
+                  "h6g5",
+                  "h7g7",
+                  "h5h6"
+                ],
+                "depth": 26
+              },
+              {
+                "uci": "g2h1",
+                "evaluationCp": -4,
+                "principalVariation": [
+                  "g2h1",
+                  "g8g6",
+                  "h6f4",
+                  "h7g7",
+                  "f4e5",
+                  "d6e5",
+                  "f1g1",
+                  "d7d5",
+                  "h1h2",
+                  "d5e4",
+                  "g1g4",
+                  "g6g4"
+                ],
+                "depth": 25
+              },
+              {
+                "uci": "g2f3",
+                "evaluationCp": -30,
+                "principalVariation": [
+                  "g2f3",
+                  "d7c6",
+                  "f3e2",
+                  "c6c4",
+                  "e2e3",
+                  "g8g6",
+                  "h6f4",
+                  "h7g8",
+                  "f4e5",
+                  "d6e5",
+                  "h5f5",
+                  "e5e4"
+                ],
+                "depth": 25
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "r5r1/3qppk1/p2p4/1p2b1BQ/8/P1P4P/1P3PK1/2R2R2 w - - 5 23",
+            "played": "h5h6",
+            "candidates": [
+              {
+                "uci": "h5h6",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "h5h6"
+                ],
+                "depth": 22
+              },
+              {
+                "uci": "f2f4",
+                "evaluationCp": 6,
+                "principalVariation": [
+                  "f2f4",
+                  "g8h8",
+                  "h5f3",
+                  "e5f6",
+                  "g2h2",
+                  "d7f5",
+                  "c1e1",
+                  "a8c8",
+                  "f1g1",
+                  "g7f8",
+                  "g1g3",
+                  "d6d5"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "f1g1",
+                "evaluationCp": -31,
+                "principalVariation": [
+                  "f1g1",
+                  "g7f8",
+                  "g2f1",
+                  "g8h8",
+                  "h5g4",
+                  "d7g4",
+                  "h3g4",
+                  "a8c8",
+                  "g5e3",
+                  "c8c4",
+                  "f1e2",
+                  "e5f4"
+                ],
+                "depth": 21
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "motifVersion": 2,
+      "question": "Which piece can step aside to open a new line of attack?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4f3306a537a28d77f631577a6d3d1986166e17a74a9978aa1cde0f4c14d466d5",
+        "responseHash": "4e800210aa561929824d7ea34f70e6fff62b791d13728449100a1d4aacbd2699"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "3935617951a4275569ae3e1c05569e20fea0c7f02bdae4afa16a6fa2d09e5835",
+      "fen": "r1bq1r2/pp3ppk/2n1p3/6b1/5P1P/2p5/PP4P1/R1BQK2R w KQ - 0 14",
+      "acceptableMoves": [
+        "h4g5"
+      ],
+      "solution": [
+        "h4g5",
+        "h7g8",
+        "d1h5"
+      ],
+      "rating": 1491,
+      "ratingDeviation": 75,
+      "explanation": "The checked solution begins with hxg5+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/OGezo0Fn/black#26",
+        "lichessId": "0aOi9",
+        "sourceHash": "8231fdfb86a8e0d77c17b569aa5313d650d3a7225f55f41a8cb9c03514b2ea94",
+        "pgnHash": "c8c0ce0de89ee30cb1635a2b6d02cf690e9b813e3fad9f69918e8a4629f2dca9",
+        "ply": 26,
+        "tags": [
+          "crushing",
+          "discoveredAttack",
+          "middlegame",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "h4g5",
+        "principalVariation": [
+          "h4g5",
+          "h7g6",
+          "d1h5",
+          "g6f5",
+          "h5h7",
+          "g7g6",
+          "h7h3",
+          "f5e4",
+          "h3f3",
+          "e4d4",
+          "f3c3",
+          "d4d5"
+        ],
+        "candidates": [
+          {
+            "uci": "h4g5",
+            "evaluationCp": 605,
+            "principalVariation": [
+              "h4g5",
+              "h7g6",
+              "d1h5",
+              "g6f5",
+              "h5h7",
+              "g7g6",
+              "h7h3",
+              "f5e4",
+              "h3f3",
+              "e4d4",
+              "f3c3",
+              "d4d5"
+            ],
+            "depth": 15
+          },
+          {
+            "uci": "d1c2",
+            "evaluationCp": -347,
+            "principalVariation": [
+              "d1c2",
+              "f7f5",
+              "h4g5",
+              "h7g6",
+              "c1e3",
+              "f8h8",
+              "e1f2",
+              "c6b4",
+              "c2c3",
+              "b4d5",
+              "c3e5",
+              "h8h1"
+            ],
+            "depth": 15
+          },
+          {
+            "uci": "f4g5",
+            "evaluationCp": -657,
+            "principalVariation": [
+              "f4g5",
+              "d8d1",
+              "e1d1",
+              "c3c2",
+              "d1e1",
+              "e6e5",
+              "h4h5",
+              "c8f5",
+              "g5g6",
+              "f7g6"
+            ],
+            "depth": 15
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "r1bq1r2/pp3ppk/2n1p3/6b1/5P1P/2p5/PP4P1/R1BQK2R w KQ - 0 14",
+            "played": "h4g5",
+            "candidates": [
+              {
+                "uci": "h4g5",
+                "evaluationCp": 605,
+                "principalVariation": [
+                  "h4g5",
+                  "h7g6",
+                  "d1h5",
+                  "g6f5",
+                  "h5h7",
+                  "g7g6",
+                  "h7h3",
+                  "f5e4",
+                  "h3f3",
+                  "e4d4",
+                  "f3c3",
+                  "d4d5"
+                ],
+                "depth": 15
+              },
+              {
+                "uci": "d1c2",
+                "evaluationCp": -347,
+                "principalVariation": [
+                  "d1c2",
+                  "f7f5",
+                  "h4g5",
+                  "h7g6",
+                  "c1e3",
+                  "f8h8",
+                  "e1f2",
+                  "c6b4",
+                  "c2c3",
+                  "b4d5",
+                  "c3e5",
+                  "h8h1"
+                ],
+                "depth": 15
+              },
+              {
+                "uci": "f4g5",
+                "evaluationCp": -657,
+                "principalVariation": [
+                  "f4g5",
+                  "d8d1",
+                  "e1d1",
+                  "c3c2",
+                  "d1e1",
+                  "e6e5",
+                  "h4h5",
+                  "c8f5",
+                  "g5g6",
+                  "f7g6"
+                ],
+                "depth": 15
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "r1bq1rk1/pp3pp1/2n1p3/6P1/5P2/2p5/PP4P1/R1BQK2R w KQ - 1 15",
+            "played": "d1h5",
+            "candidates": [
+              {
+                "uci": "d1h5",
+                "evaluationCp": 892,
+                "principalVariation": [
+                  "d1h5",
+                  "d8d1",
+                  "e1d1",
+                  "f8d8",
+                  "d1e1",
+                  "g8f8",
+                  "b2c3",
+                  "b7b5",
+                  "h5h8",
+                  "f8e7",
+                  "h8g7",
+                  "b5b4"
+                ],
+                "depth": 15
+              },
+              {
+                "uci": "d1c2",
+                "evaluationCp": 106,
+                "principalVariation": [
+                  "d1c2"
+                ],
+                "depth": 15
+              },
+              {
+                "uci": "d1f3",
+                "evaluationCp": -206,
+                "principalVariation": [
+                  "d1f3",
+                  "d8a5",
+                  "b2c3",
+                  "c6e7",
+                  "f3h5",
+                  "a5c3",
+                  "e1f2",
+                  "c3c2",
+                  "f2e1",
+                  "c2g2"
+                ],
+                "depth": 15
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "motifVersion": 2,
+      "question": "What can you uncover by moving the active unit?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4f3306a537a28d77f631577a6d3d1986166e17a74a9978aa1cde0f4c14d466d5",
+        "responseHash": "4e800210aa561929824d7ea34f70e6fff62b791d13728449100a1d4aacbd2699"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "e30b549a82fc3d17aaee76cb1d8c20099cd57a569f7620cd7e60be973ad9a80c",
+      "fen": "6rk/1p4qn/p1n1N2p/3pP3/2p2P2/P1P3rP/1P1RQ1BK/6R1 b - - 0 32",
+      "acceptableMoves": [
+        "g3h3"
+      ],
+      "solution": [
+        "g3h3",
+        "g2h3",
+        "g7g1"
+      ],
+      "rating": 1531,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with Rxh3+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/ucTf7nq4#63",
+        "lichessId": "0Oukr",
+        "sourceHash": "f9422bcc551e5b8c775867473027efef7a8828d4c3f6d7ddbb08390ce8253a77",
+        "pgnHash": "af4766d205ba1dce8631b89d41c76ba89994c3f6d548ba94084219a750ed3d88",
+        "ply": 63,
+        "tags": [
+          "discoveredAttack",
+          "mate",
+          "mateIn2",
+          "middlegame",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "g3h3",
+        "principalVariation": [
+          "g3h3",
+          "h2h3",
+          "g7g3"
+        ],
+        "candidates": [
+          {
+            "uci": "g3h3",
+            "evaluationCp": 99998,
+            "principalVariation": [
+              "g3h3",
+              "h2h3",
+              "g7g3"
+            ],
+            "depth": 31
+          },
+          {
+            "uci": "g7f7",
+            "evaluationCp": 22,
+            "principalVariation": [
+              "g7f7",
+              "e2f1",
+              "f7e6",
+              "g2d5",
+              "g3g1",
+              "f1g1",
+              "e6h3",
+              "h2h3",
+              "g8g1",
+              "d5c6",
+              "b7c6",
+              "d2d6"
+            ],
+            "depth": 30
+          },
+          {
+            "uci": "g7g6",
+            "evaluationCp": 17,
+            "principalVariation": [
+              "g7g6",
+              "e2f1",
+              "g6e6",
+              "g2d5",
+              "g3g1",
+              "f1g1",
+              "e6h3",
+              "h2h3",
+              "g8g1",
+              "d5c6",
+              "b7c6",
+              "d2d6"
+            ],
+            "depth": 30
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "6rk/1p4qn/p1n1N2p/3pP3/2p2P2/P1P3rP/1P1RQ1BK/6R1 b - - 0 32",
+            "played": "g3h3",
+            "candidates": [
+              {
+                "uci": "g3h3",
+                "evaluationCp": 99998,
+                "principalVariation": [
+                  "g3h3",
+                  "h2h3",
+                  "g7g3"
+                ],
+                "depth": 31
+              },
+              {
+                "uci": "g7f7",
+                "evaluationCp": 22,
+                "principalVariation": [
+                  "g7f7",
+                  "e2f1",
+                  "f7e6",
+                  "g2d5",
+                  "g3g1",
+                  "f1g1",
+                  "e6h3",
+                  "h2h3",
+                  "g8g1",
+                  "d5c6",
+                  "b7c6",
+                  "d2d6"
+                ],
+                "depth": 30
+              },
+              {
+                "uci": "g7g6",
+                "evaluationCp": 17,
+                "principalVariation": [
+                  "g7g6",
+                  "e2f1",
+                  "g6e6",
+                  "g2d5",
+                  "g3g1",
+                  "f1g1",
+                  "e6h3",
+                  "h2h3",
+                  "g8g1",
+                  "d5c6",
+                  "b7c6",
+                  "d2d6"
+                ],
+                "depth": 30
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "6rk/1p4qn/p1n1N2p/3pP3/2p2P2/P1P4B/1P1RQ2K/6R1 b - - 0 33",
+            "played": "g7g1",
+            "candidates": [
+              {
+                "uci": "g7g1",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "g7g1"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "g7f7",
+                "evaluationCp": -933,
+                "principalVariation": [
+                  "g7f7",
+                  "g1g8",
+                  "h8g8",
+                  "e2g4",
+                  "h7g5",
+                  "e6g5",
+                  "h6g5",
+                  "g4g5",
+                  "g8f8",
+                  "g5h4",
+                  "d5d4",
+                  "d2g2"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "c6d4",
+                "evaluationCp": -1154,
+                "principalVariation": [
+                  "c6d4",
+                  "g1g7",
+                  "d4e2",
+                  "g7g8",
+                  "h8g8",
+                  "d2e2",
+                  "b7b6",
+                  "h2g3",
+                  "h7f8",
+                  "e6d4",
+                  "g8g7",
+                  "d4f5"
+                ],
+                "depth": 21
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "motifVersion": 2,
+      "question": "Which defender can step away to reveal a hidden threat?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4f3306a537a28d77f631577a6d3d1986166e17a74a9978aa1cde0f4c14d466d5",
+        "responseHash": "4e800210aa561929824d7ea34f70e6fff62b791d13728449100a1d4aacbd2699"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "6179aaeed377f24a6132bf0d0e198765b51cece471de0ee00eeb91b45a152c90",
+      "fen": "rb2Q3/p5Bk/1p2p3/2pq1r2/3pN3/P2P3P/1Pn3P1/1R3RK1 b - - 0 21",
+      "acceptableMoves": [
+        "b8h2"
+      ],
+      "solution": [
+        "b8h2",
+        "g1h2",
+        "a8e8"
+      ],
+      "rating": 1763,
+      "ratingDeviation": 74,
+      "explanation": "The checked solution begins with Bh2+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/nIdYrlmT#41",
+        "lichessId": "06Ees",
+        "sourceHash": "7a28fdb7cd516d1a866b249c141e1cc67386e2898f1747c7d728849eb1396287",
+        "pgnHash": "203d4ef66110a798d76697291310f950e627d0803a2de45fd3e2e1a0c539a639",
+        "ply": 41,
+        "tags": [
+          "crushing",
+          "discoveredAttack",
+          "middlegame",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "b8h2",
+        "principalVariation": [
+          "b8h2",
+          "g1h2"
+        ],
+        "candidates": [
+          {
+            "uci": "b8h2",
+            "evaluationCp": 602,
+            "principalVariation": [
+              "b8h2",
+              "g1h2"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "f5f1",
+            "evaluationCp": 7,
+            "principalVariation": [
+              "f5f1",
+              "g1f1",
+              "b8d6",
+              "e8f7",
+              "d5f5",
+              "f7f5",
+              "e6f5",
+              "e4d6",
+              "c2e3",
+              "f1e2",
+              "h7g7",
+              "b2b4"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "b8e5",
+            "evaluationCp": 0,
+            "principalVariation": [
+              "b8e5",
+              "e8e7",
+              "e5g7",
+              "f1f5",
+              "d5f5",
+              "b1f1",
+              "f5e5",
+              "f1f3",
+              "c2e3",
+              "e4g5",
+              "h7g6",
+              "g5f7"
+            ],
+            "depth": 16
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "rb2Q3/p5Bk/1p2p3/2pq1r2/3pN3/P2P3P/1Pn3P1/1R3RK1 b - - 0 21",
+            "played": "b8h2",
+            "candidates": [
+              {
+                "uci": "b8h2",
+                "evaluationCp": 602,
+                "principalVariation": [
+                  "b8h2",
+                  "g1h2"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "f5f1",
+                "evaluationCp": 7,
+                "principalVariation": [
+                  "f5f1",
+                  "g1f1",
+                  "b8d6",
+                  "e8f7",
+                  "d5f5",
+                  "f7f5",
+                  "e6f5",
+                  "e4d6",
+                  "c2e3",
+                  "f1e2",
+                  "h7g7",
+                  "b2b4"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "b8e5",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "b8e5",
+                  "e8e7",
+                  "e5g7",
+                  "f1f5",
+                  "d5f5",
+                  "b1f1",
+                  "f5e5",
+                  "f1f3",
+                  "c2e3",
+                  "e4g5",
+                  "h7g6",
+                  "g5f7"
+                ],
+                "depth": 16
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "r3Q3/p5Bk/1p2p3/2pq1r2/3pN3/P2P3P/1Pn3PK/1R3R2 b - - 0 22",
+            "played": "a8e8",
+            "candidates": [
+              {
+                "uci": "a8e8",
+                "evaluationCp": 570,
+                "principalVariation": [
+                  "a8e8",
+                  "g7d4",
+                  "c5d4",
+                  "h2g1",
+                  "e8f8",
+                  "f1c1",
+                  "h7g6",
+                  "c1c2",
+                  "a7a5",
+                  "c2f2",
+                  "f5f2",
+                  "e4f2"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "h7g7",
+                "evaluationCp": -318,
+                "principalVariation": [
+                  "h7g7",
+                  "e8e7"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "c2e3",
+                "evaluationCp": -495,
+                "principalVariation": [
+                  "c2e3",
+                  "f1f5",
+                  "a8e8",
+                  "e4f6",
+                  "h7g7",
+                  "f6e8",
+                  "g7g6",
+                  "f5d5",
+                  "e6d5",
+                  "e8c7",
+                  "c5c4",
+                  "d3c4"
+                ],
+                "depth": 16
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "motifVersion": 2,
+      "question": "What changes if the bishop moves along the diagonal?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4f3306a537a28d77f631577a6d3d1986166e17a74a9978aa1cde0f4c14d466d5",
+        "responseHash": "4e800210aa561929824d7ea34f70e6fff62b791d13728449100a1d4aacbd2699"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "3deff1868a32ffc764c2e730b3a7ca4aede43bcee4108cdc42ca14fdc32887f1",
+      "fen": "r3kqr1/p4p1Q/2p1pnp1/1p2P3/3R2p1/P7/1PP2P1P/1K2R3 w q - 0 23",
+      "acceptableMoves": [
+        "e5f6"
+      ],
+      "solution": [
+        "e5f6",
+        "a8d8",
+        "e1e6",
+        "f7e6",
+        "f6f7",
+        "f8f7",
+        "d4d8",
+        "e8d8",
+        "h7f7"
+      ],
+      "rating": 2110,
+      "ratingDeviation": 77,
+      "explanation": "The checked solution begins with exf6.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/BWR8JQBQ/black#44",
+        "lichessId": "0U0yt",
+        "sourceHash": "867d3a287b409f8d0e1a0690beeccbb8313041ba4123959be88f76bd00ee37c4",
+        "pgnHash": "3525dd44c1e2baee601c4b1805407c6ca71a692047e400604fa0c0a0afdc76cf",
+        "ply": 44,
+        "tags": [
+          "advancedPawn",
+          "crushing",
+          "discoveredAttack",
+          "fork",
+          "middlegame",
+          "veryLong"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "e5f6",
+        "principalVariation": [
+          "e5f6",
+          "a8d8",
+          "e1e6",
+          "f7e6",
+          "f6f7",
+          "f8f7",
+          "d4d8",
+          "e8d8",
+          "h7f7",
+          "g8e8",
+          "b1a2",
+          "e8g8"
+        ],
+        "candidates": [
+          {
+            "uci": "e5f6",
+            "evaluationCp": 672,
+            "principalVariation": [
+              "e5f6",
+              "a8d8",
+              "e1e6",
+              "f7e6",
+              "f6f7",
+              "f8f7",
+              "d4d8",
+              "e8d8",
+              "h7f7",
+              "g8e8",
+              "b1a2",
+              "e8g8"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "h7h4",
+            "evaluationCp": -479,
+            "principalVariation": [
+              "h7h4",
+              "f6d5",
+              "d4d5",
+              "c6d5",
+              "e1e3",
+              "f8e7",
+              "h4g4",
+              "g8h8",
+              "e3h3",
+              "h8h3",
+              "g4h3",
+              "e8c8"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "h7f7",
+            "evaluationCp": -561,
+            "principalVariation": [
+              "h7f7",
+              "e8f7"
+            ],
+            "depth": 17
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "r3kqr1/p4p1Q/2p1pnp1/1p2P3/3R2p1/P7/1PP2P1P/1K2R3 w q - 0 23",
+            "played": "e5f6",
+            "candidates": [
+              {
+                "uci": "e5f6",
+                "evaluationCp": 672,
+                "principalVariation": [
+                  "e5f6",
+                  "a8d8",
+                  "e1e6",
+                  "f7e6",
+                  "f6f7",
+                  "f8f7",
+                  "d4d8",
+                  "e8d8",
+                  "h7f7",
+                  "g8e8",
+                  "b1a2",
+                  "e8g8"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "h7h4",
+                "evaluationCp": -479,
+                "principalVariation": [
+                  "h7h4",
+                  "f6d5",
+                  "d4d5",
+                  "c6d5",
+                  "e1e3",
+                  "f8e7",
+                  "h4g4",
+                  "g8h8",
+                  "e3h3",
+                  "h8h3",
+                  "g4h3",
+                  "e8c8"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "h7f7",
+                "evaluationCp": -561,
+                "principalVariation": [
+                  "h7f7",
+                  "e8f7"
+                ],
+                "depth": 17
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "3rkqr1/p4p1Q/2p1pPp1/1p6/3R2p1/P7/1PP2P1P/1K2R3 w - - 1 24",
+            "played": "e1e6",
+            "candidates": [
+              {
+                "uci": "e1e6",
+                "evaluationCp": 675,
+                "principalVariation": [
+                  "e1e6",
+                  "f7e6",
+                  "f6f7",
+                  "f8f7",
+                  "d4d8",
+                  "e8d8",
+                  "h7f7",
+                  "g8e8",
+                  "b1c1",
+                  "e6e5",
+                  "f7g6",
+                  "e8f8"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "d4e4",
+                "evaluationCp": 184,
+                "principalVariation": [
+                  "d4e4"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "d4d8",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "d4d8",
+                  "e8d8",
+                  "e1d1",
+                  "d8c8",
+                  "h7h4",
+                  "f8c5",
+                  "h4g3",
+                  "g8h8",
+                  "g3d3",
+                  "c5d5",
+                  "d3e2",
+                  "d5f3"
+                ],
+                "depth": 18
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "3rkqr1/p6Q/2p1pPp1/1p6/3R2p1/P7/1PP2P1P/1K6 w - - 0 25",
+            "played": "f6f7",
+            "candidates": [
+              {
+                "uci": "f6f7",
+                "evaluationCp": 671,
+                "principalVariation": [
+                  "f6f7",
+                  "f8f7",
+                  "d4d8",
+                  "e8d8",
+                  "h7f7",
+                  "g8e8",
+                  "b1c1",
+                  "e8e7",
+                  "f7f8",
+                  "d8d7",
+                  "f8f6"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "d4d8",
+                "evaluationCp": -98,
+                "principalVariation": [
+                  "d4d8"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "d4e4",
+                "evaluationCp": -455,
+                "principalVariation": [
+                  "d4e4",
+                  "f8f7",
+                  "h7h4",
+                  "g6g5",
+                  "h4g4",
+                  "e8d7",
+                  "h2h3",
+                  "f7f6",
+                  "e4d4",
+                  "d7e8",
+                  "d4d8",
+                  "e8d8"
+                ],
+                "depth": 17
+              }
+            ]
+          },
+          {
+            "ply": 7,
+            "fen": "3rk1r1/p4q1Q/2p1p1p1/1p6/3R2p1/P7/1PP2P1P/1K6 w - - 0 26",
+            "played": "d4d8",
+            "candidates": [
+              {
+                "uci": "d4d8",
+                "evaluationCp": 680,
+                "principalVariation": [
+                  "d4d8",
+                  "e8d8",
+                  "h7f7",
+                  "g8e8",
+                  "f7a7",
+                  "e6e5",
+                  "a7b8",
+                  "d8d7",
+                  "b8b7",
+                  "d7d6",
+                  "b7f7",
+                  "e8d8"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "h7f7",
+                "evaluationCp": -539,
+                "principalVariation": [
+                  "h7f7",
+                  "e8f7"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "h7h4",
+                "evaluationCp": -830,
+                "principalVariation": [
+                  "h7h4",
+                  "d8d4",
+                  "h4g3",
+                  "g8f8",
+                  "h2h3",
+                  "g4h3",
+                  "g3h3",
+                  "d4d1",
+                  "b1a2",
+                  "d1d7",
+                  "h3h2",
+                  "f7f6"
+                ],
+                "depth": 17
+              }
+            ]
+          },
+          {
+            "ply": 9,
+            "fen": "3k2r1/p4q1Q/2p1p1p1/1p6/6p1/P7/1PP2P1P/1K6 w - - 0 27",
+            "played": "h7f7",
+            "candidates": [
+              {
+                "uci": "h7f7",
+                "evaluationCp": 683,
+                "principalVariation": [
+                  "h7f7",
+                  "g8e8",
+                  "f7a7",
+                  "e6e5",
+                  "a3a4",
+                  "g4g3",
+                  "h2g3",
+                  "e8e7",
+                  "a7b6",
+                  "e7c7",
+                  "a4b5"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "h7h6",
+                "evaluationCp": -454,
+                "principalVariation": [
+                  "h7h6"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "h7h4",
+                "evaluationCp": -522,
+                "principalVariation": [
+                  "h7h4",
+                  "f7e7",
+                  "h4g4",
+                  "d8c8",
+                  "f2f3",
+                  "g8d8",
+                  "g4e4",
+                  "e7d7",
+                  "e4e5",
+                  "g6g5",
+                  "b2b4",
+                  "d8e8"
+                ],
+                "depth": 17
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "motifVersion": 2,
+      "question": "Which pawn move opens up the position for your pieces?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4f3306a537a28d77f631577a6d3d1986166e17a74a9978aa1cde0f4c14d466d5",
+        "responseHash": "4e800210aa561929824d7ea34f70e6fff62b791d13728449100a1d4aacbd2699"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "b7c8a91624f1e23fa639a50eb5a28bd308724845ec7774bcf252cbcf37855eab",
+      "fen": "5rk1/p5p1/1n5p/1p4NQ/3P4/4q1P1/P5KP/5R2 w - - 5 32",
+      "acceptableMoves": [
+        "f1f8"
+      ],
+      "solution": [
+        "f1f8",
+        "g8f8",
+        "h5f7"
+      ],
+      "rating": 1061,
+      "ratingDeviation": 77,
+      "explanation": "The checked solution begins with Rxf8+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/e0N5808F/black#62",
+        "lichessId": "0TKtQ",
+        "sourceHash": "dc8befa54acdf4d3c724b8bc5a2f35e6f01b2bf6fb880c5615f9f2b5a17665a5",
+        "pgnHash": "286de4d10276e0d01d24ff036890374f4df5a4453ddf684a0ac36b981b473acf",
+        "ply": 62,
+        "tags": [
+          "attraction",
+          "endgame",
+          "mate",
+          "mateIn2",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "f1f8",
+        "principalVariation": [
+          "f1f8",
+          "g8f8",
+          "h5f7"
+        ],
+        "candidates": [
+          {
+            "uci": "f1f8",
+            "evaluationCp": 99998,
+            "principalVariation": [
+              "f1f8",
+              "g8f8",
+              "h5f7"
+            ],
+            "depth": 19
+          },
+          {
+            "uci": "g5f3",
+            "evaluationCp": -74,
+            "principalVariation": [
+              "g5f3",
+              "e3d3",
+              "h5c5",
+              "f8f6",
+              "c5h5",
+              "b5b4",
+              "f1e1",
+              "d3c2",
+              "g2h3",
+              "c2a2",
+              "e1e8",
+              "f6f8"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "g5f7",
+            "evaluationCp": -235,
+            "principalVariation": [
+              "g5f7",
+              "e3e8",
+              "f7h6",
+              "g7h6",
+              "f1f8",
+              "e8f8",
+              "h5b5",
+              "f8a8",
+              "g2f2",
+              "a8e4",
+              "b5e5",
+              "e4e5"
+            ],
+            "depth": 18
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "5rk1/p5p1/1n5p/1p4NQ/3P4/4q1P1/P5KP/5R2 w - - 5 32",
+            "played": "f1f8",
+            "candidates": [
+              {
+                "uci": "f1f8",
+                "evaluationCp": 99998,
+                "principalVariation": [
+                  "f1f8",
+                  "g8f8",
+                  "h5f7"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "g5f3",
+                "evaluationCp": -74,
+                "principalVariation": [
+                  "g5f3",
+                  "e3d3",
+                  "h5c5",
+                  "f8f6",
+                  "c5h5",
+                  "b5b4",
+                  "f1e1",
+                  "d3c2",
+                  "g2h3",
+                  "c2a2",
+                  "e1e8",
+                  "f6f8"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "g5f7",
+                "evaluationCp": -235,
+                "principalVariation": [
+                  "g5f7",
+                  "e3e8",
+                  "f7h6",
+                  "g7h6",
+                  "f1f8",
+                  "e8f8",
+                  "h5b5",
+                  "f8a8",
+                  "g2f2",
+                  "a8e4",
+                  "b5e5",
+                  "e4e5"
+                ],
+                "depth": 18
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "5k2/p5p1/1n5p/1p4NQ/3P4/4q1P1/P5KP/8 w - - 0 33",
+            "played": "h5f7",
+            "candidates": [
+              {
+                "uci": "h5f7",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "h5f7"
+                ],
+                "depth": 25
+              },
+              {
+                "uci": "g5f3",
+                "evaluationCp": -40,
+                "principalVariation": [
+                  "g5f3",
+                  "e3e2",
+                  "g2g1",
+                  "f8g8",
+                  "h5f5",
+                  "e2a2",
+                  "f5b5",
+                  "a2d5",
+                  "b5e8",
+                  "g8h7",
+                  "g1f2",
+                  "d5a2"
+                ],
+                "depth": 24
+              },
+              {
+                "uci": "g5h3",
+                "evaluationCp": -53,
+                "principalVariation": [
+                  "g5h3",
+                  "e3e4",
+                  "h5f3",
+                  "e4f3",
+                  "g2f3",
+                  "b6a4",
+                  "h3f4",
+                  "a4c3",
+                  "f4e6",
+                  "f8f7",
+                  "e6d8",
+                  "f7f6"
+                ],
+                "depth": 24
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "motifVersion": 2,
+      "question": "What happens when you draw the defending king onto a square where it faces immediate pressure?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "b0d654580e39c9fba7acef2be83d53b869f9b1393e20f491a07b28db3c5158d7",
+        "responseHash": "672b3694385aec976602ec7988ac9c2e49337b2d4b0f879ce6e374b5f3cd2239"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "03b7a7a4b00531b05983b683418c06b798844ed2c63d1291d53e48f029083e00",
+      "fen": "5rk1/7p/6pP/p5r1/P4R2/2P2K2/8/5R2 b - - 0 34",
+      "acceptableMoves": [
+        "f8f4"
+      ],
+      "solution": [
+        "f8f4",
+        "f3f4",
+        "g5f5",
+        "f4g4",
+        "f5f1"
+      ],
+      "rating": 1291,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with Rxf4+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/rC7ryU9U#67",
+        "lichessId": "0uvx3",
+        "sourceHash": "2e92370085bd5838ee9d856f4427e54f418aa79f74037f379e2db3a61441e7e3",
+        "pgnHash": "ba65151946f6b7bdbf4a71d10161d5116dbb7ace8b572516894ad771509e5da3",
+        "ply": 67,
+        "tags": [
+          "attraction",
+          "crushing",
+          "endgame",
+          "exposedKing",
+          "long",
+          "rookEndgame",
+          "skewer"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "f8f4",
+        "principalVariation": [
+          "f8f4",
+          "f3f4",
+          "g5f5",
+          "f4e4",
+          "f5f1",
+          "c3c4",
+          "f1d1",
+          "e4e5",
+          "g8f7"
+        ],
+        "candidates": [
+          {
+            "uci": "f8f4",
+            "evaluationCp": 695,
+            "principalVariation": [
+              "f8f4",
+              "f3f4",
+              "g5f5",
+              "f4e4",
+              "f5f1",
+              "c3c4",
+              "f1d1",
+              "e4e5",
+              "g8f7"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "f8d8",
+            "evaluationCp": 174,
+            "principalVariation": [
+              "f8d8"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "g5h5",
+            "evaluationCp": 50,
+            "principalVariation": [
+              "g5h5",
+              "f4f8",
+              "g8f8",
+              "f3e4",
+              "f8e7",
+              "c3c4",
+              "h5h6",
+              "e4d4",
+              "g6g5"
+            ],
+            "depth": 18
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "5rk1/7p/6pP/p5r1/P4R2/2P2K2/8/5R2 b - - 0 34",
+            "played": "f8f4",
+            "candidates": [
+              {
+                "uci": "f8f4",
+                "evaluationCp": 695,
+                "principalVariation": [
+                  "f8f4",
+                  "f3f4",
+                  "g5f5",
+                  "f4e4",
+                  "f5f1",
+                  "c3c4",
+                  "f1d1",
+                  "e4e5",
+                  "g8f7"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "f8d8",
+                "evaluationCp": 174,
+                "principalVariation": [
+                  "f8d8"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "g5h5",
+                "evaluationCp": 50,
+                "principalVariation": [
+                  "g5h5",
+                  "f4f8",
+                  "g8f8",
+                  "f3e4",
+                  "f8e7",
+                  "c3c4",
+                  "h5h6",
+                  "e4d4",
+                  "g6g5"
+                ],
+                "depth": 18
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "6k1/7p/6pP/p5r1/P4K2/2P5/8/5R2 b - - 0 35",
+            "played": "g5f5",
+            "candidates": [
+              {
+                "uci": "g5f5",
+                "evaluationCp": 791,
+                "principalVariation": [
+                  "g5f5",
+                  "f4e4",
+                  "f5f1",
+                  "e4d5",
+                  "g6g5",
+                  "c3c4",
+                  "f1c1",
+                  "c4c5",
+                  "g5g4",
+                  "d5d6",
+                  "g4g3",
+                  "c5c6"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "g5h5",
+                "evaluationCp": 9,
+                "principalVariation": [
+                  "g5h5",
+                  "f4e4"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "g5c5",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "g5c5",
+                  "f1b1",
+                  "c5c3",
+                  "b1b8",
+                  "g8f7",
+                  "b8b7",
+                  "f7f6",
+                  "b7h7",
+                  "g6g5",
+                  "f4g4",
+                  "c3c4",
+                  "g4g3"
+                ],
+                "depth": 18
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "6k1/7p/6pP/p4r2/P5K1/2P5/8/5R2 b - - 2 36",
+            "played": "f5f1",
+            "candidates": [
+              {
+                "uci": "f5f1",
+                "evaluationCp": 882,
+                "principalVariation": [
+                  "f5f1",
+                  "c3c4",
+                  "g8f7",
+                  "g4g3",
+                  "f7e6",
+                  "g3g4",
+                  "f1h1",
+                  "g4g5",
+                  "h1c1",
+                  "g5f4",
+                  "c1c4",
+                  "f4e3"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "f5h5",
+                "evaluationCp": 284,
+                "principalVariation": [
+                  "f5h5"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "f5c5",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "f5c5",
+                  "f1b1",
+                  "c5c3",
+                  "b1b7",
+                  "c3c4",
+                  "g4g5",
+                  "c4a4",
+                  "b7g7",
+                  "g8h8",
+                  "g7a7",
+                  "h8g8"
+                ],
+                "depth": 16
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "motifVersion": 2,
+      "question": "Which exchange pulls the rival piece into a position where you can follow up with a decisive line?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "b0d654580e39c9fba7acef2be83d53b869f9b1393e20f491a07b28db3c5158d7",
+        "responseHash": "672b3694385aec976602ec7988ac9c2e49337b2d4b0f879ce6e374b5f3cd2239"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "67c1d2d5b238831b3691b0515412a37f425790826a39dc5b781ade2e2754888a",
+      "fen": "r2r4/7k/p3Q2p/3q2p1/4N1Pn/1P6/2P2P1P/5R1K w - - 5 31",
+      "acceptableMoves": [
+        "e6d5"
+      ],
+      "solution": [
+        "e6d5",
+        "d8d5",
+        "e4f6",
+        "h7g7",
+        "f6d5"
+      ],
+      "rating": 1461,
+      "ratingDeviation": 74,
+      "explanation": "The checked solution begins with Qxd5.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/fHku21es/black#60",
+        "lichessId": "0gFpU",
+        "sourceHash": "f17ebd2b12f84ea1f269fa656dc58329fda37d7c1127dc2bbdb00320395b56fa",
+        "pgnHash": "27cd54d7a7fcce47fe42d02780add2a84b2ac34a737f9f69eaf48e5c2b0f6eb1",
+        "ply": 60,
+        "tags": [
+          "advantage",
+          "attraction",
+          "fork",
+          "long",
+          "middlegame"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "e6d5",
+        "principalVariation": [
+          "e6d5",
+          "d8d5",
+          "e4f6",
+          "h7g6",
+          "f6d5",
+          "h6h5",
+          "g4h5",
+          "g6h5",
+          "c2c4",
+          "h5g4",
+          "c4c5",
+          "a8c8"
+        ],
+        "candidates": [
+          {
+            "uci": "e6d5",
+            "evaluationCp": 244,
+            "principalVariation": [
+              "e6d5",
+              "d8d5",
+              "e4f6",
+              "h7g6",
+              "f6d5",
+              "h6h5",
+              "g4h5",
+              "g6h5",
+              "c2c4",
+              "h5g4",
+              "c4c5",
+              "a8c8"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "e6e7",
+            "evaluationCp": -417,
+            "principalVariation": [
+              "e6e7",
+              "h7h8",
+              "e7f6",
+              "h8g8",
+              "f2f3",
+              "d8e8",
+              "e4d6",
+              "d5e6",
+              "d6e8",
+              "a8e8",
+              "f6e6",
+              "e8e6"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "e6f6",
+            "evaluationCp": -719,
+            "principalVariation": [
+              "e6f6",
+              "d5e4",
+              "f2f3",
+              "e4g6",
+              "f6g6",
+              "h4g6",
+              "c2c4",
+              "g6f4",
+              "c4c5",
+              "a6a5",
+              "c5c6",
+              "d8f8"
+            ],
+            "depth": 16
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "r2r4/7k/p3Q2p/3q2p1/4N1Pn/1P6/2P2P1P/5R1K w - - 5 31",
+            "played": "e6d5",
+            "candidates": [
+              {
+                "uci": "e6d5",
+                "evaluationCp": 244,
+                "principalVariation": [
+                  "e6d5",
+                  "d8d5",
+                  "e4f6",
+                  "h7g6",
+                  "f6d5",
+                  "h6h5",
+                  "g4h5",
+                  "g6h5",
+                  "c2c4",
+                  "h5g4",
+                  "c4c5",
+                  "a8c8"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "e6e7",
+                "evaluationCp": -417,
+                "principalVariation": [
+                  "e6e7",
+                  "h7h8",
+                  "e7f6",
+                  "h8g8",
+                  "f2f3",
+                  "d8e8",
+                  "e4d6",
+                  "d5e6",
+                  "d6e8",
+                  "a8e8",
+                  "f6e6",
+                  "e8e6"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "e6f6",
+                "evaluationCp": -719,
+                "principalVariation": [
+                  "e6f6",
+                  "d5e4",
+                  "f2f3",
+                  "e4g6",
+                  "f6g6",
+                  "h4g6",
+                  "c2c4",
+                  "g6f4",
+                  "c4c5",
+                  "a6a5",
+                  "c5c6",
+                  "d8f8"
+                ],
+                "depth": 16
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "r7/7k/p6p/3r2p1/4N1Pn/1P6/2P2P1P/5R1K w - - 0 32",
+            "played": "e4f6",
+            "candidates": [
+              {
+                "uci": "e4f6",
+                "evaluationCp": 236,
+                "principalVariation": [
+                  "e4f6",
+                  "h7g7",
+                  "f6d5",
+                  "a8f8",
+                  "h2h3",
+                  "a6a5",
+                  "f2f4",
+                  "f8e8",
+                  "f1f2",
+                  "e8e4",
+                  "f4g5",
+                  "h6g5"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "h2h3",
+                "evaluationCp": -521,
+                "principalVariation": [
+                  "h2h3",
+                  "h7h8",
+                  "f1a1",
+                  "d5d8",
+                  "h1h2",
+                  "d8f8",
+                  "h2g1",
+                  "a8a7",
+                  "e4c5",
+                  "f8e8"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "f2f4",
+                "evaluationCp": -544,
+                "principalVariation": [
+                  "f2f4",
+                  "d5d4"
+                ],
+                "depth": 16
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "r7/6k1/p4N1p/3r2p1/6Pn/1P6/2P2P1P/5R1K w - - 2 33",
+            "played": "f6d5",
+            "candidates": [
+              {
+                "uci": "f6d5",
+                "evaluationCp": 246,
+                "principalVariation": [
+                  "f6d5",
+                  "a8f8",
+                  "h2h3",
+                  "a6a5",
+                  "h1g1",
+                  "h4f3",
+                  "g1g2",
+                  "f3h4",
+                  "g2h2",
+                  "f8c8",
+                  "d5e3",
+                  "c8f8"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "c2c4",
+                "evaluationCp": -502,
+                "principalVariation": [
+                  "c2c4",
+                  "d5d2",
+                  "f6e4",
+                  "d2d7",
+                  "h2h3",
+                  "g7h8",
+                  "h1g1",
+                  "d7e7"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "f6h5",
+                "evaluationCp": -521,
+                "principalVariation": [
+                  "f6h5",
+                  "g7h8",
+                  "h1g1",
+                  "d5d2",
+                  "h5g3",
+                  "a8e8",
+                  "f1a1",
+                  "e8f8",
+                  "g3e4",
+                  "h4f3",
+                  "g1g2",
+                  "d2c2"
+                ],
+                "depth": 18
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "motifVersion": 2,
+      "question": "What targets emerge after you draw the central defender toward a square of your choosing?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "b0d654580e39c9fba7acef2be83d53b869f9b1393e20f491a07b28db3c5158d7",
+        "responseHash": "672b3694385aec976602ec7988ac9c2e49337b2d4b0f879ce6e374b5f3cd2239"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "aea88e46c98c69b3fb55411861e3aae1fd05b4ede8618a832e3a9eebe5f17b38",
+      "fen": "4k3/4q3/8/1P1pp1QK/4p1B1/4P1P1/P4n1P/8 b - - 0 43",
+      "acceptableMoves": [
+        "e7h7"
+      ],
+      "solution": [
+        "e7h7",
+        "g5h6",
+        "h7h6",
+        "h5h6",
+        "f2g4"
+      ],
+      "rating": 1512,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with Qh7+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/vydL3xX6#85",
+        "lichessId": "06a9D",
+        "sourceHash": "901eb740d93509d3c32149f4dd95210de86d67bbe6f3bb3faa8d2543cd958bc8",
+        "pgnHash": "acb4676069161d9d1e93dd19c58a0791de1458ed71809c4e2db8004408effd4c",
+        "ply": 85,
+        "tags": [
+          "advantage",
+          "attraction",
+          "endgame",
+          "long"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "e7h7",
+        "principalVariation": [
+          "e7h7",
+          "g5h6",
+          "h7h6",
+          "h5h6",
+          "f2g4",
+          "h6g7",
+          "e8d7",
+          "h2h4",
+          "g4e3",
+          "h4h5"
+        ],
+        "candidates": [
+          {
+            "uci": "e7h7",
+            "evaluationCp": 316,
+            "principalVariation": [
+              "e7h7",
+              "g5h6",
+              "h7h6",
+              "h5h6",
+              "f2g4",
+              "h6g7",
+              "e8d7",
+              "h2h4",
+              "g4e3",
+              "h4h5"
+            ],
+            "depth": 15
+          },
+          {
+            "uci": "e7f7",
+            "evaluationCp": -283,
+            "principalVariation": [
+              "e7f7",
+              "h5h4",
+              "f2g4",
+              "h4g4",
+              "f7d7",
+              "g5f5",
+              "d7b5",
+              "f5e5",
+              "e8d7",
+              "e5f5",
+              "d7e7",
+              "f5g5"
+            ],
+            "depth": 15
+          },
+          {
+            "uci": "e7g5",
+            "evaluationCp": -292,
+            "principalVariation": [
+              "e7g5",
+              "h5g5"
+            ],
+            "depth": 15
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "4k3/4q3/8/1P1pp1QK/4p1B1/4P1P1/P4n1P/8 b - - 0 43",
+            "played": "e7h7",
+            "candidates": [
+              {
+                "uci": "e7h7",
+                "evaluationCp": 316,
+                "principalVariation": [
+                  "e7h7",
+                  "g5h6",
+                  "h7h6",
+                  "h5h6",
+                  "f2g4",
+                  "h6g7",
+                  "e8d7",
+                  "h2h4",
+                  "g4e3",
+                  "h4h5"
+                ],
+                "depth": 15
+              },
+              {
+                "uci": "e7f7",
+                "evaluationCp": -283,
+                "principalVariation": [
+                  "e7f7",
+                  "h5h4",
+                  "f2g4",
+                  "h4g4",
+                  "f7d7",
+                  "g5f5",
+                  "d7b5",
+                  "f5e5",
+                  "e8d7",
+                  "e5f5",
+                  "d7e7",
+                  "f5g5"
+                ],
+                "depth": 15
+              },
+              {
+                "uci": "e7g5",
+                "evaluationCp": -292,
+                "principalVariation": [
+                  "e7g5",
+                  "h5g5"
+                ],
+                "depth": 15
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "4k3/7q/7Q/1P1pp2K/4p1B1/4P1P1/P4n1P/8 b - - 2 44",
+            "played": "h7h6",
+            "candidates": [
+              {
+                "uci": "h7h6",
+                "evaluationCp": 322,
+                "principalVariation": [
+                  "h7h6",
+                  "h5h6"
+                ],
+                "depth": 14
+              },
+              {
+                "uci": "f2g4",
+                "evaluationCp": -231,
+                "principalVariation": [
+                  "f2g4",
+                  "h6h7",
+                  "g4f6",
+                  "h5g5",
+                  "f6h7",
+                  "g5f5",
+                  "d5d4",
+                  "f5e4",
+                  "h7f6",
+                  "e4d3",
+                  "d4e3",
+                  "d3e3"
+                ],
+                "depth": 14
+              },
+              {
+                "uci": "h7f7",
+                "evaluationCp": -266,
+                "principalVariation": [
+                  "h7f7",
+                  "h5h4",
+                  "f2g4",
+                  "h4g4",
+                  "f7d7",
+                  "g4h4",
+                  "d5d4",
+                  "h6g6",
+                  "d7f7",
+                  "g6c6",
+                  "e8f8",
+                  "b5b6"
+                ],
+                "depth": 14
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "4k3/8/7K/1P1pp3/4p1B1/4P1P1/P4n1P/8 b - - 0 45",
+            "played": "f2g4",
+            "candidates": [
+              {
+                "uci": "f2g4",
+                "evaluationCp": 356,
+                "principalVariation": [
+                  "f2g4",
+                  "h6g5",
+                  "g4e3",
+                  "b5b6",
+                  "e8d7",
+                  "g3g4",
+                  "e3c4",
+                  "b6b7",
+                  "d7c7",
+                  "g5h4",
+                  "e4e3",
+                  "h4g3"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "d5d4",
+                "evaluationCp": -379,
+                "principalVariation": [
+                  "d5d4",
+                  "g4h5",
+                  "e8d7",
+                  "h6g6",
+                  "d4d3",
+                  "g6f5",
+                  "d3d2",
+                  "a2a4",
+                  "d2d1b",
+                  "h5d1",
+                  "f2d1",
+                  "f5e5"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "e8e7",
+                "evaluationCp": -416,
+                "principalVariation": [
+                  "e8e7",
+                  "g4h5",
+                  "e7d6",
+                  "a2a4",
+                  "d6c5",
+                  "h6g5",
+                  "f2d3",
+                  "g5f5",
+                  "d3e1",
+                  "f5e5",
+                  "e1f3",
+                  "e5f4"
+                ],
+                "depth": 18
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "motifVersion": 2,
+      "question": "What options open up once you force the opposing monarch onto a vulnerable rank?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "b0d654580e39c9fba7acef2be83d53b869f9b1393e20f491a07b28db3c5158d7",
+        "responseHash": "672b3694385aec976602ec7988ac9c2e49337b2d4b0f879ce6e374b5f3cd2239"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "222893cb58af5354fe86157fb233704020a85ab7a85eec7f1d5e6f15e0cf841b",
+      "fen": "2r3k1/5p1p/3Qbqp1/1B6/PP3PP1/8/P6P/1K1R4 b - - 0 32",
+      "acceptableMoves": [
+        "e6a2"
+      ],
+      "solution": [
+        "e6a2",
+        "b1a2",
+        "c8c2",
+        "a2b3",
+        "f6b2"
+      ],
+      "rating": 1724,
+      "ratingDeviation": 75,
+      "explanation": "The checked solution begins with Bxa2+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/EaOZOMsJ#63",
+        "lichessId": "0RRXu",
+        "sourceHash": "149eef16fe8864fc71c8f15183c88b1d9c40f23a49a548ee5c6063f4182cb4b7",
+        "pgnHash": "14889f7bff7dfef4c59a7f38012c1c7123b17e81d71893bdacee4ef8246c39cc",
+        "ply": 63,
+        "tags": [
+          "attraction",
+          "endgame",
+          "long",
+          "mate",
+          "mateIn3",
+          "sacrifice"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "e6a2",
+        "principalVariation": [
+          "e6a2",
+          "b1a2",
+          "c8c2",
+          "a2a3",
+          "f6c3"
+        ],
+        "candidates": [
+          {
+            "uci": "e6a2",
+            "evaluationCp": 99997,
+            "principalVariation": [
+              "e6a2",
+              "b1a2",
+              "c8c2",
+              "a2a3",
+              "f6c3"
+            ],
+            "depth": 25
+          },
+          {
+            "uci": "c8c1",
+            "evaluationCp": 0,
+            "principalVariation": [
+              "c8c1",
+              "b1c1",
+              "f6c3",
+              "c1b1",
+              "e6a2",
+              "b1a2",
+              "c3c2",
+              "a2a1",
+              "c2c3",
+              "a1b1",
+              "c3b3",
+              "b1c1"
+            ],
+            "depth": 25
+          },
+          {
+            "uci": "f6c3",
+            "evaluationCp": -130,
+            "principalVariation": [
+              "f6c3",
+              "d6d2",
+              "c3a3",
+              "d2b2",
+              "a3f3",
+              "b5e2",
+              "f3f4",
+              "a4a5",
+              "e6g4",
+              "e2g4",
+              "f4g4",
+              "b2d2"
+            ],
+            "depth": 24
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "2r3k1/5p1p/3Qbqp1/1B6/PP3PP1/8/P6P/1K1R4 b - - 0 32",
+            "played": "e6a2",
+            "candidates": [
+              {
+                "uci": "e6a2",
+                "evaluationCp": 99997,
+                "principalVariation": [
+                  "e6a2",
+                  "b1a2",
+                  "c8c2",
+                  "a2a3",
+                  "f6c3"
+                ],
+                "depth": 25
+              },
+              {
+                "uci": "c8c1",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "c8c1",
+                  "b1c1",
+                  "f6c3",
+                  "c1b1",
+                  "e6a2",
+                  "b1a2",
+                  "c3c2",
+                  "a2a1",
+                  "c2c3",
+                  "a1b1",
+                  "c3b3",
+                  "b1c1"
+                ],
+                "depth": 25
+              },
+              {
+                "uci": "f6c3",
+                "evaluationCp": -130,
+                "principalVariation": [
+                  "f6c3",
+                  "d6d2",
+                  "c3a3",
+                  "d2b2",
+                  "a3f3",
+                  "b5e2",
+                  "f3f4",
+                  "a4a5",
+                  "e6g4",
+                  "e2g4",
+                  "f4g4",
+                  "b2d2"
+                ],
+                "depth": 24
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "2r3k1/5p1p/3Q1qp1/1B6/PP3PP1/8/K6P/3R4 b - - 0 33",
+            "played": "c8c2",
+            "candidates": [
+              {
+                "uci": "c8c2",
+                "evaluationCp": 99998,
+                "principalVariation": [
+                  "c8c2",
+                  "a2b3",
+                  "f6c3"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "f6h4",
+                "evaluationCp": -686,
+                "principalVariation": [
+                  "f6h4",
+                  "d6d3",
+                  "h4g4",
+                  "a2b3",
+                  "g4f4",
+                  "b5c4",
+                  "f4g4",
+                  "d1d2",
+                  "g4f4",
+                  "d3d4",
+                  "f4f3",
+                  "b3a2"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "f6c3",
+                "evaluationCp": -700,
+                "principalVariation": [
+                  "f6c3",
+                  "d6d2",
+                  "c3h3",
+                  "d2d3",
+                  "h3h4",
+                  "a2b3",
+                  "h4e7",
+                  "a4a5",
+                  "c8b8",
+                  "b3a3",
+                  "h7h6",
+                  "d3d4"
+                ],
+                "depth": 17
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "6k1/5p1p/3Q1qp1/1B6/PP3PP1/1K6/2r4P/3R4 b - - 2 34",
+            "played": "f6b2",
+            "candidates": [
+              {
+                "uci": "f6b2",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "f6b2"
+                ],
+                "depth": 30
+              },
+              {
+                "uci": "f6c3",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "f6c3"
+                ],
+                "depth": 30
+              },
+              {
+                "uci": "c2b2",
+                "evaluationCp": -618,
+                "principalVariation": [
+                  "c2b2",
+                  "b3c4",
+                  "b2c2",
+                  "c4d5",
+                  "f6h4",
+                  "d6b8",
+                  "g8g7",
+                  "b5d3",
+                  "c2h2",
+                  "b8e5",
+                  "g7g8",
+                  "d5c4"
+                ],
+                "depth": 29
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "motifVersion": 2,
+      "question": "Which path draws the defending pieces away from their coordination and exposes their king?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "b0d654580e39c9fba7acef2be83d53b869f9b1393e20f491a07b28db3c5158d7",
+        "responseHash": "672b3694385aec976602ec7988ac9c2e49337b2d4b0f879ce6e374b5f3cd2239"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "c12c619413aa5bd703ea0fad58556ad2cf3121bbaa584d522a4ba64181a06efe",
+      "fen": "2r5/p1p2k1p/2R3p1/5pK1/4r2P/P3P1P1/5P2/2R5 b - - 4 28",
+      "acceptableMoves": [
+        "h7h6"
+      ],
+      "solution": [
+        "h7h6",
+        "g5h6",
+        "c8h8",
+        "h6g5",
+        "e4g4"
+      ],
+      "rating": 2044,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with h6+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/pAlnZIGd#55",
+        "lichessId": "0Iwtn",
+        "sourceHash": "5fb830b802a460f38a14add6433592de7d971d8e9b6b507fac565ee59b86b3b9",
+        "pgnHash": "d522e8baf07b897139bc788e2cd0ac52491b2291a8da8e590d796e761886edde",
+        "ply": 55,
+        "tags": [
+          "attraction",
+          "endgame",
+          "long",
+          "mate",
+          "mateIn3",
+          "rookEndgame"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "h7h6",
+        "principalVariation": [
+          "h7h6",
+          "g5h6",
+          "c8h8",
+          "h6g5",
+          "e4g4"
+        ],
+        "candidates": [
+          {
+            "uci": "h7h6",
+            "evaluationCp": 99997,
+            "principalVariation": [
+              "h7h6",
+              "g5h6",
+              "c8h8",
+              "h6g5",
+              "e4g4"
+            ],
+            "depth": 21
+          },
+          {
+            "uci": "e4e7",
+            "evaluationCp": -337,
+            "principalVariation": [
+              "e4e7",
+              "h4h5",
+              "h7h6",
+              "g5f4",
+              "e7e4",
+              "f4f3",
+              "g6h5",
+              "c1c5",
+              "e4e6",
+              "c5f5",
+              "f7g6",
+              "c6c5"
+            ],
+            "depth": 21
+          },
+          {
+            "uci": "c8d8",
+            "evaluationCp": -440,
+            "principalVariation": [
+              "c8d8",
+              "c6c7",
+              "f7e6",
+              "c7h7",
+              "e4g4",
+              "g5h6",
+              "d8g8",
+              "h7a7",
+              "e6d5",
+              "c1c7",
+              "g8e8",
+              "c7f7"
+            ],
+            "depth": 21
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "2r5/p1p2k1p/2R3p1/5pK1/4r2P/P3P1P1/5P2/2R5 b - - 4 28",
+            "played": "h7h6",
+            "candidates": [
+              {
+                "uci": "h7h6",
+                "evaluationCp": 99997,
+                "principalVariation": [
+                  "h7h6",
+                  "g5h6",
+                  "c8h8",
+                  "h6g5",
+                  "e4g4"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "e4e7",
+                "evaluationCp": -337,
+                "principalVariation": [
+                  "e4e7",
+                  "h4h5",
+                  "h7h6",
+                  "g5f4",
+                  "e7e4",
+                  "f4f3",
+                  "g6h5",
+                  "c1c5",
+                  "e4e6",
+                  "c5f5",
+                  "f7g6",
+                  "c6c5"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "c8d8",
+                "evaluationCp": -440,
+                "principalVariation": [
+                  "c8d8",
+                  "c6c7",
+                  "f7e6",
+                  "c7h7",
+                  "e4g4",
+                  "g5h6",
+                  "d8g8",
+                  "h7a7",
+                  "e6d5",
+                  "c1c7",
+                  "g8e8",
+                  "c7f7"
+                ],
+                "depth": 21
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "2r5/p1p2k2/2R3pK/5p2/4r2P/P3P1P1/5P2/2R5 b - - 0 29",
+            "played": "c8h8",
+            "candidates": [
+              {
+                "uci": "c8h8",
+                "evaluationCp": 99998,
+                "principalVariation": [
+                  "c8h8",
+                  "h6g5",
+                  "e4g4"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "e4e7",
+                "evaluationCp": -568,
+                "principalVariation": [
+                  "e4e7",
+                  "h6g5",
+                  "e7d7",
+                  "c1c5",
+                  "d7d2",
+                  "f2f4",
+                  "d2g2",
+                  "c6c7",
+                  "c8c7",
+                  "c5c7",
+                  "f7e6",
+                  "c7c6"
+                ],
+                "depth": 21
+              },
+              {
+                "uci": "e4a4",
+                "evaluationCp": -587,
+                "principalVariation": [
+                  "e4a4",
+                  "c6c7",
+                  "c8c7",
+                  "c1c7",
+                  "f7e6",
+                  "c7c6",
+                  "e6d5",
+                  "c6f6",
+                  "d5e4",
+                  "h6g6",
+                  "a4a3",
+                  "h4h5"
+                ],
+                "depth": 21
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "7r/p1p2k2/2R3p1/5pK1/4r2P/P3P1P1/5P2/2R5 b - - 2 30",
+            "played": "e4g4",
+            "candidates": [
+              {
+                "uci": "e4g4",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "e4g4"
+                ],
+                "depth": 23
+              },
+              {
+                "uci": "h8h5",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "h8h5"
+                ],
+                "depth": 23
+              },
+              {
+                "uci": "h8g8",
+                "evaluationCp": -604,
+                "principalVariation": [
+                  "h8g8",
+                  "c6f6",
+                  "f7e8",
+                  "c1c7",
+                  "e4g4",
+                  "g5h6",
+                  "a7a5",
+                  "c7a7",
+                  "g6g5",
+                  "f6e6",
+                  "e8f8",
+                  "h4h5"
+                ],
+                "depth": 22
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "motifVersion": 2,
+      "question": "What king movement pattern allows you to pull the opponent into a tight net?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "b0d654580e39c9fba7acef2be83d53b869f9b1393e20f491a07b28db3c5158d7",
+        "responseHash": "672b3694385aec976602ec7988ac9c2e49337b2d4b0f879ce6e374b5f3cd2239"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "e56d83918c975c1b96f5ebe47ad8df02d68ad584ce12d33c86871db1d1beb6d1",
+      "fen": "1q3r2/1Q3pk1/3pr1p1/p1p5/2P5/2P3RP/6P1/5RK1 w - - 1 52",
+      "acceptableMoves": [
+        "f1f7"
+      ],
+      "solution": [
+        "f1f7",
+        "f8f7",
+        "b7b8"
+      ],
+      "rating": 1226,
+      "ratingDeviation": 75,
+      "explanation": "The checked solution begins with Rxf7+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/0IG6WobL/black#102",
+        "lichessId": "0auUK",
+        "sourceHash": "9ad36090b3ccc768feab22e8a527a48cc7c30a9a8bf29be0544ef5c17b164a2a",
+        "pgnHash": "7af5f62a9ae3b0d1f886c4ff33fa6b0112cefbb9c14629c526e1de3674a2654f",
+        "ply": 102,
+        "tags": [
+          "crushing",
+          "deflection",
+          "endgame",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "f1f7",
+        "principalVariation": [
+          "f1f7",
+          "f8f7",
+          "b7b8",
+          "a5a4",
+          "g1h2",
+          "a4a3",
+          "b8a8",
+          "e6e1",
+          "a8a3",
+          "f7f1",
+          "a3a7",
+          "f1f7"
+        ],
+        "candidates": [
+          {
+            "uci": "f1f7",
+            "evaluationCp": 595,
+            "principalVariation": [
+              "f1f7",
+              "f8f7",
+              "b7b8",
+              "a5a4",
+              "g1h2",
+              "a4a3",
+              "b8a8",
+              "e6e1",
+              "a8a3",
+              "f7f1",
+              "a3a7",
+              "f1f7"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "b7b5",
+            "evaluationCp": 40,
+            "principalVariation": [
+              "b7b5"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "b7d7",
+            "evaluationCp": -219,
+            "principalVariation": [
+              "b7d7",
+              "b8e8",
+              "d7c7",
+              "a5a4",
+              "g1h2",
+              "a4a3",
+              "c7a7",
+              "e6e1",
+              "f1e1",
+              "e8e1",
+              "a7a3",
+              "f8b8"
+            ],
+            "depth": 17
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "1q3r2/1Q3pk1/3pr1p1/p1p5/2P5/2P3RP/6P1/5RK1 w - - 1 52",
+            "played": "f1f7",
+            "candidates": [
+              {
+                "uci": "f1f7",
+                "evaluationCp": 595,
+                "principalVariation": [
+                  "f1f7",
+                  "f8f7",
+                  "b7b8",
+                  "a5a4",
+                  "g1h2",
+                  "a4a3",
+                  "b8a8",
+                  "e6e1",
+                  "a8a3",
+                  "f7f1",
+                  "a3a7",
+                  "f1f7"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "b7b5",
+                "evaluationCp": 40,
+                "principalVariation": [
+                  "b7b5"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "b7d7",
+                "evaluationCp": -219,
+                "principalVariation": [
+                  "b7d7",
+                  "b8e8",
+                  "d7c7",
+                  "a5a4",
+                  "g1h2",
+                  "a4a3",
+                  "c7a7",
+                  "e6e1",
+                  "f1e1",
+                  "e8e1",
+                  "a7a3",
+                  "f8b8"
+                ],
+                "depth": 17
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "1q6/1Q3rk1/3pr1p1/p1p5/2P5/2P3RP/6P1/6K1 w - - 0 53",
+            "played": "b7b8",
+            "candidates": [
+              {
+                "uci": "b7b8",
+                "evaluationCp": 564,
+                "principalVariation": [
+                  "b7b8",
+                  "e6e1",
+                  "g1h2",
+                  "f7f1",
+                  "b8b7",
+                  "g7h6",
+                  "g3f3",
+                  "a5a4",
+                  "f3f1",
+                  "e1f1",
+                  "b7a6",
+                  "f1a1"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "g3g6",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "g3g6",
+                  "e6g6",
+                  "b7b8",
+                  "f7e7",
+                  "b8b5",
+                  "e7e2",
+                  "g2g4",
+                  "e2e1",
+                  "g1g2",
+                  "e1e2"
+                ],
+                "depth": 19
+              },
+              {
+                "uci": "b7b5",
+                "evaluationCp": -732,
+                "principalVariation": [
+                  "b7b5",
+                  "b8b5",
+                  "c4b5",
+                  "d6d5",
+                  "g3d3",
+                  "f7d7",
+                  "g1f2",
+                  "a5a4",
+                  "d3d1",
+                  "d5d4",
+                  "d1a1"
+                ],
+                "depth": 19
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "motifVersion": 2,
+      "question": "What defender can you draw away from guarding vital material?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "90b772fc255ab496d89978380ab1949260ba6030f9c6dd12a37b50d01deda164",
+        "responseHash": "c9efa5c25650d7d261248cbb8cabbc5fbdffdc9812a28a54a8a4f329c757165c"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "be56cc0dd07ce9419d2dfdbc4d7e3a734197835805ce339ae14b284a3b8d491d",
+      "fen": "5k2/8/7p/1B2n1p1/P4P2/6PK/1r5P/5R2 b - - 0 41",
+      "acceptableMoves": [
+        "g5g4"
+      ],
+      "solution": [
+        "g5g4",
+        "h3h4",
+        "b2h2"
+      ],
+      "rating": 1265,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with g4+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/ZlGdbISE#81",
+        "lichessId": "0OIxJ",
+        "sourceHash": "d7f892252b90468322bdb7266406b1752094993b33e4f384b968e0be5005f2ff",
+        "pgnHash": "97579f82be50712159ab98d6d177e3f45ee74de35d9d85c9ed1cb8a720a3896e",
+        "ply": 81,
+        "tags": [
+          "deflection",
+          "endgame",
+          "mate",
+          "mateIn2",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "g5g4",
+        "principalVariation": [
+          "g5g4",
+          "h3h4",
+          "b2h2"
+        ],
+        "candidates": [
+          {
+            "uci": "g5g4",
+            "evaluationCp": 99998,
+            "principalVariation": [
+              "g5g4",
+              "h3h4",
+              "b2h2"
+            ],
+            "depth": 24
+          },
+          {
+            "uci": "g5f4",
+            "evaluationCp": -318,
+            "principalVariation": [
+              "g5f4",
+              "f1f4",
+              "f8g7",
+              "b5c4",
+              "h6h5",
+              "c4e6",
+              "b2e2",
+              "a4a5",
+              "e5d3",
+              "f4f3",
+              "d3f2",
+              "h3h4"
+            ],
+            "depth": 23
+          },
+          {
+            "uci": "e5f7",
+            "evaluationCp": -495,
+            "principalVariation": [
+              "e5f7",
+              "f4g5",
+              "f8g7",
+              "g5h6",
+              "f7h6",
+              "f1e1",
+              "g7f6",
+              "e1e2",
+              "b2b4",
+              "b5d7",
+              "h6f7",
+              "h3g2"
+            ],
+            "depth": 23
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "5k2/8/7p/1B2n1p1/P4P2/6PK/1r5P/5R2 b - - 0 41",
+            "played": "g5g4",
+            "candidates": [
+              {
+                "uci": "g5g4",
+                "evaluationCp": 99998,
+                "principalVariation": [
+                  "g5g4",
+                  "h3h4",
+                  "b2h2"
+                ],
+                "depth": 24
+              },
+              {
+                "uci": "g5f4",
+                "evaluationCp": -318,
+                "principalVariation": [
+                  "g5f4",
+                  "f1f4",
+                  "f8g7",
+                  "b5c4",
+                  "h6h5",
+                  "c4e6",
+                  "b2e2",
+                  "a4a5",
+                  "e5d3",
+                  "f4f3",
+                  "d3f2",
+                  "h3h4"
+                ],
+                "depth": 23
+              },
+              {
+                "uci": "e5f7",
+                "evaluationCp": -495,
+                "principalVariation": [
+                  "e5f7",
+                  "f4g5",
+                  "f8g7",
+                  "g5h6",
+                  "f7h6",
+                  "f1e1",
+                  "g7f6",
+                  "e1e2",
+                  "b2b4",
+                  "b5d7",
+                  "h6f7",
+                  "h3g2"
+                ],
+                "depth": 23
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "5k2/8/7p/1B2n3/P4PpK/6P1/1r5P/5R2 b - - 1 42",
+            "played": "b2h2",
+            "candidates": [
+              {
+                "uci": "b2h2",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "b2h2"
+                ],
+                "depth": 24
+              },
+              {
+                "uci": "e5f3",
+                "evaluationCp": -426,
+                "principalVariation": [
+                  "e5f3",
+                  "h4h5",
+                  "f8f7",
+                  "f1d1",
+                  "b2h2",
+                  "h5g4",
+                  "f3d2",
+                  "d1c1",
+                  "d2e4",
+                  "a4a5",
+                  "h6h5",
+                  "g4f3"
+                ],
+                "depth": 24
+              },
+              {
+                "uci": "e5f7",
+                "evaluationCp": -477,
+                "principalVariation": [
+                  "e5f7",
+                  "f1h1",
+                  "f7d6",
+                  "h4g4",
+                  "d6b5",
+                  "a4b5",
+                  "b2b5",
+                  "h1a1",
+                  "f8g7",
+                  "a1a2",
+                  "b5b7",
+                  "a2a5"
+                ],
+                "depth": 23
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "motifVersion": 2,
+      "question": "Which square requires attention after luring the opposing monarch?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "90b772fc255ab496d89978380ab1949260ba6030f9c6dd12a37b50d01deda164",
+        "responseHash": "c9efa5c25650d7d261248cbb8cabbc5fbdffdc9812a28a54a8a4f329c757165c"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "ae7dad46bafec1afb94580967f1c6c25ae1dc542b74c06545c044412a90c2ddc",
+      "fen": "3B4/3R2p1/3p2kp/2pPpn2/r1P1K2P/2P2P2/8/8 w - - 4 38",
+      "acceptableMoves": [
+        "h4h5"
+      ],
+      "solution": [
+        "h4h5",
+        "g6h5",
+        "e4f5"
+      ],
+      "rating": 1305,
+      "ratingDeviation": 75,
+      "explanation": "The checked solution begins with h5+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/DpuA5XUc/black#74",
+        "lichessId": "0Yshf",
+        "sourceHash": "d746cba60e9b6e158254abf70540045e923ed2f9d3845610a124bc272e78bb7a",
+        "pgnHash": "dbd6865ea9a305aa28181a12a59abd46f549306a128bf40cecfce29da94b0940",
+        "ply": 74,
+        "tags": [
+          "crushing",
+          "deflection",
+          "endgame",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "h4h5",
+        "principalVariation": [
+          "h4h5",
+          "g6h5",
+          "e4f5",
+          "g7g6",
+          "f5e6",
+          "a4c4",
+          "d8e7",
+          "e5e4",
+          "f3e4",
+          "c4e4",
+          "e6d6",
+          "g6g5"
+        ],
+        "candidates": [
+          {
+            "uci": "h4h5",
+            "evaluationCp": 554,
+            "principalVariation": [
+              "h4h5",
+              "g6h5",
+              "e4f5",
+              "g7g6",
+              "f5e6",
+              "a4c4",
+              "d8e7",
+              "e5e4",
+              "f3e4",
+              "c4e4",
+              "e6d6",
+              "g6g5"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "d8e7",
+            "evaluationCp": 63,
+            "principalVariation": [
+              "d8e7"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "e4d3",
+            "evaluationCp": -45,
+            "principalVariation": [
+              "e4d3",
+              "g6h5",
+              "d7f7",
+              "g7g6",
+              "f7f6",
+              "a4a7",
+              "f6e6",
+              "a7d7",
+              "d8f6",
+              "d7b7",
+              "f6d8",
+              "b7f7"
+            ],
+            "depth": 17
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "3B4/3R2p1/3p2kp/2pPpn2/r1P1K2P/2P2P2/8/8 w - - 4 38",
+            "played": "h4h5",
+            "candidates": [
+              {
+                "uci": "h4h5",
+                "evaluationCp": 554,
+                "principalVariation": [
+                  "h4h5",
+                  "g6h5",
+                  "e4f5",
+                  "g7g6",
+                  "f5e6",
+                  "a4c4",
+                  "d8e7",
+                  "e5e4",
+                  "f3e4",
+                  "c4e4",
+                  "e6d6",
+                  "g6g5"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "d8e7",
+                "evaluationCp": 63,
+                "principalVariation": [
+                  "d8e7"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "e4d3",
+                "evaluationCp": -45,
+                "principalVariation": [
+                  "e4d3",
+                  "g6h5",
+                  "d7f7",
+                  "g7g6",
+                  "f7f6",
+                  "a4a7",
+                  "f6e6",
+                  "a7d7",
+                  "d8f6",
+                  "d7b7",
+                  "f6d8",
+                  "b7f7"
+                ],
+                "depth": 17
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "3B4/3R2p1/3p3p/2pPpn1k/r1P1K3/2P2P2/8/8 w - - 0 39",
+            "played": "e4f5",
+            "candidates": [
+              {
+                "uci": "e4f5",
+                "evaluationCp": 555,
+                "principalVariation": [
+                  "e4f5",
+                  "g7g6",
+                  "f5e6",
+                  "g6g5",
+                  "e6d6",
+                  "a4c4",
+                  "d8a5",
+                  "c4f4",
+                  "d6c5",
+                  "f4a4",
+                  "d7a7",
+                  "e5e4"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "d8c7",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "d8c7",
+                  "f5g3",
+                  "e4d3",
+                  "a4a7",
+                  "d7g7",
+                  "g3f5",
+                  "g7d7",
+                  "a7b7",
+                  "d3e4",
+                  "f5g3",
+                  "e4d3"
+                ],
+                "depth": 17
+              },
+              {
+                "uci": "f3f4",
+                "evaluationCp": -24,
+                "principalVariation": [
+                  "f3f4",
+                  "f5g3",
+                  "e4f3",
+                  "e5f4",
+                  "f3f4",
+                  "g3e2",
+                  "f4e3",
+                  "e2c3",
+                  "d7d6",
+                  "c3d1",
+                  "e3e2",
+                  "d1b2"
+                ],
+                "depth": 17
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "motifVersion": 2,
+      "question": "What active resource lets you alter the balance of power?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "90b772fc255ab496d89978380ab1949260ba6030f9c6dd12a37b50d01deda164",
+        "responseHash": "c9efa5c25650d7d261248cbb8cabbc5fbdffdc9812a28a54a8a4f329c757165c"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "a8034b272fb18a7d1e74361ca3d65c9a3a80118260ff1affbd5f6e6a7bfa1558",
+      "fen": "rn3rk1/ppp2ppp/5n2/3q4/P5P1/2P1bNP1/1P2PP2/R1BQKB1R b KQ - 2 13",
+      "acceptableMoves": [
+        "e3f2"
+      ],
+      "solution": [
+        "e3f2",
+        "e1f2",
+        "d5d1"
+      ],
+      "rating": 1379,
+      "ratingDeviation": 77,
+      "explanation": "The checked solution begins with Bxf2+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/mot6nmXZ#25",
+        "lichessId": "0uans",
+        "sourceHash": "51c5f885f8ca48f0f9e168f8f16c9ffe3633dc70fc6154ad0cec22eba238dd5d",
+        "pgnHash": "1ab2d15a5cc80df11f0225e2232b174d9f3c14acf93ada6f0d9227e5f199465c",
+        "ply": 25,
+        "tags": [
+          "attackingF2F7",
+          "crushing",
+          "deflection",
+          "opening",
+          "short"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "e3f2",
+        "principalVariation": [
+          "e3f2",
+          "e1f2",
+          "d5d1",
+          "f2g1",
+          "d1d6",
+          "f3d4",
+          "f8e8",
+          "f1g2",
+          "b8c6",
+          "d4f5",
+          "d6c5",
+          "c1e3"
+        ],
+        "candidates": [
+          {
+            "uci": "e3f2",
+            "evaluationCp": 599,
+            "principalVariation": [
+              "e3f2",
+              "e1f2",
+              "d5d1",
+              "f2g1",
+              "d1d6",
+              "f3d4",
+              "f8e8",
+              "f1g2",
+              "b8c6",
+              "d4f5",
+              "d6c5",
+              "c1e3"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "d5d1",
+            "evaluationCp": 78,
+            "principalVariation": [
+              "d5d1",
+              "e1d1",
+              "e3f2",
+              "g4g5",
+              "f6e4",
+              "d1c2",
+              "f2g3",
+              "a4a5"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "e3c1",
+            "evaluationCp": -249,
+            "principalVariation": [
+              "e3c1",
+              "d1d5",
+              "f6d5",
+              "a1c1",
+              "a7a5",
+              "f1g2",
+              "d5b6",
+              "b2b3",
+              "b8d7",
+              "f3d4",
+              "c7c6",
+              "g4g5"
+            ],
+            "depth": 16
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "rn3rk1/ppp2ppp/5n2/3q4/P5P1/2P1bNP1/1P2PP2/R1BQKB1R b KQ - 2 13",
+            "played": "e3f2",
+            "candidates": [
+              {
+                "uci": "e3f2",
+                "evaluationCp": 599,
+                "principalVariation": [
+                  "e3f2",
+                  "e1f2",
+                  "d5d1",
+                  "f2g1",
+                  "d1d6",
+                  "f3d4",
+                  "f8e8",
+                  "f1g2",
+                  "b8c6",
+                  "d4f5",
+                  "d6c5",
+                  "c1e3"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "d5d1",
+                "evaluationCp": 78,
+                "principalVariation": [
+                  "d5d1",
+                  "e1d1",
+                  "e3f2",
+                  "g4g5",
+                  "f6e4",
+                  "d1c2",
+                  "f2g3",
+                  "a4a5"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "e3c1",
+                "evaluationCp": -249,
+                "principalVariation": [
+                  "e3c1",
+                  "d1d5",
+                  "f6d5",
+                  "a1c1",
+                  "a7a5",
+                  "f1g2",
+                  "d5b6",
+                  "b2b3",
+                  "b8d7",
+                  "f3d4",
+                  "c7c6",
+                  "g4g5"
+                ],
+                "depth": 16
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "rn3rk1/ppp2ppp/5n2/3q4/P5P1/2P2NP1/1P2PK2/R1BQ1B1R b - - 0 14",
+            "played": "d5d1",
+            "candidates": [
+              {
+                "uci": "d5d1",
+                "evaluationCp": 612,
+                "principalVariation": [
+                  "d5d1",
+                  "g4g5",
+                  "f6g4",
+                  "f2g1",
+                  "b8c6",
+                  "h1h4",
+                  "d1c2",
+                  "h4g4",
+                  "a8e8",
+                  "g4h4",
+                  "c6e5",
+                  "f3d4"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "f6g4",
+                "evaluationCp": -59,
+                "principalVariation": [
+                  "f6g4",
+                  "f2e1",
+                  "d5d1",
+                  "e1d1",
+                  "g4f2",
+                  "d1e1",
+                  "f2h1",
+                  "c1f4",
+                  "f7f6",
+                  "g3g4",
+                  "g7g5",
+                  "f4c7"
+                ],
+                "depth": 16
+              },
+              {
+                "uci": "f6e4",
+                "evaluationCp": -231,
+                "principalVariation": [
+                  "f6e4",
+                  "f2e1"
+                ],
+                "depth": 16
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "motifVersion": 2,
+      "question": "Which opponent piece can be pulled away from its defensive duty?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "90b772fc255ab496d89978380ab1949260ba6030f9c6dd12a37b50d01deda164",
+        "responseHash": "c9efa5c25650d7d261248cbb8cabbc5fbdffdc9812a28a54a8a4f329c757165c"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "e1e93a457ce71e70cf0f9a836865f25aad02526883d5d277c75123c80fb80b94",
+      "fen": "6k1/1p3pp1/2b4p/p7/P1BN4/2PNq1nP/1P3bPK/3Q4 b - - 6 35",
+      "acceptableMoves": [
+        "g3f1"
+      ],
+      "solution": [
+        "g3f1",
+        "d1f1",
+        "e3g3",
+        "h2h1",
+        "g3h3"
+      ],
+      "rating": 1727,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with Nf1+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/inc4mHnN#69",
+        "lichessId": "0vzp6",
+        "sourceHash": "c5868322816620ae35dff434056a2868d72f10386d17fce8e48fa13cb86f04a3",
+        "pgnHash": "be2a09544574c88577c1fcc08fdfb256c2ded1a643c109714f909bdacafd7089",
+        "ply": 69,
+        "tags": [
+          "clearance",
+          "deflection",
+          "long",
+          "mate",
+          "mateIn3",
+          "middlegame",
+          "pin",
+          "sacrifice"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "g3f1",
+        "principalVariation": [
+          "g3f1",
+          "d1f1",
+          "e3g3",
+          "h2h1",
+          "g3h3"
+        ],
+        "candidates": [
+          {
+            "uci": "g3f1",
+            "evaluationCp": 99997,
+            "principalVariation": [
+              "g3f1",
+              "d1f1",
+              "e3g3",
+              "h2h1",
+              "g3h3"
+            ],
+            "depth": 23
+          },
+          {
+            "uci": "g3e4",
+            "evaluationCp": 17,
+            "principalVariation": [
+              "g3e4",
+              "d4c6",
+              "f2g3",
+              "h2h1",
+              "b7c6",
+              "d1f3",
+              "e4f2",
+              "h1g1",
+              "f2h3",
+              "g1f1",
+              "e3f3",
+              "g2f3"
+            ],
+            "depth": 23
+          },
+          {
+            "uci": "c6a4",
+            "evaluationCp": 14,
+            "principalVariation": [
+              "c6a4",
+              "b2b3",
+              "g3e4",
+              "b3a4",
+              "e3g3",
+              "h2h1",
+              "g3c7",
+              "c4f7",
+              "g8h8",
+              "d4f5",
+              "c7f7",
+              "f5d6"
+            ],
+            "depth": 23
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "6k1/1p3pp1/2b4p/p7/P1BN4/2PNq1nP/1P3bPK/3Q4 b - - 6 35",
+            "played": "g3f1",
+            "candidates": [
+              {
+                "uci": "g3f1",
+                "evaluationCp": 99997,
+                "principalVariation": [
+                  "g3f1",
+                  "d1f1",
+                  "e3g3",
+                  "h2h1",
+                  "g3h3"
+                ],
+                "depth": 23
+              },
+              {
+                "uci": "g3e4",
+                "evaluationCp": 17,
+                "principalVariation": [
+                  "g3e4",
+                  "d4c6",
+                  "f2g3",
+                  "h2h1",
+                  "b7c6",
+                  "d1f3",
+                  "e4f2",
+                  "h1g1",
+                  "f2h3",
+                  "g1f1",
+                  "e3f3",
+                  "g2f3"
+                ],
+                "depth": 23
+              },
+              {
+                "uci": "c6a4",
+                "evaluationCp": 14,
+                "principalVariation": [
+                  "c6a4",
+                  "b2b3",
+                  "g3e4",
+                  "b3a4",
+                  "e3g3",
+                  "h2h1",
+                  "g3c7",
+                  "c4f7",
+                  "g8h8",
+                  "d4f5",
+                  "c7f7",
+                  "f5d6"
+                ],
+                "depth": 23
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "6k1/1p3pp1/2b4p/p7/P1BN4/2PNq2P/1P3bPK/5Q2 b - - 0 36",
+            "played": "e3g3",
+            "candidates": [
+              {
+                "uci": "e3g3",
+                "evaluationCp": 99998,
+                "principalVariation": [
+                  "e3g3",
+                  "h2h1",
+                  "g3h3"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "f2g3",
+                "evaluationCp": -522,
+                "principalVariation": [
+                  "f2g3",
+                  "h2h1",
+                  "e3e7",
+                  "d4c6",
+                  "b7c6",
+                  "f1f3",
+                  "g3b8",
+                  "h1g1",
+                  "b8a7",
+                  "g1f1",
+                  "e7e3",
+                  "f3f7"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "c6a4",
+                "evaluationCp": -661,
+                "principalVariation": [
+                  "c6a4",
+                  "f1f2",
+                  "e3f2",
+                  "d3f2",
+                  "h6h5",
+                  "f2d3",
+                  "a4d7",
+                  "d3e5",
+                  "d7e8",
+                  "c4e2",
+                  "a5a4",
+                  "h3h4"
+                ],
+                "depth": 18
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "6k1/1p3pp1/2b4p/p7/P1BN4/2PN2qP/1P3bP1/5Q1K b - - 2 37",
+            "played": "g3h3",
+            "candidates": [
+              {
+                "uci": "g3h3",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "g3h3"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "f2d4",
+                "evaluationCp": -461,
+                "principalVariation": [
+                  "f2d4",
+                  "c3d4",
+                  "g3h3",
+                  "h1g1",
+                  "h3e3",
+                  "f1f2",
+                  "e3f2",
+                  "g1f2",
+                  "g8f8",
+                  "b2b3",
+                  "f8e7",
+                  "d3c5"
+                ],
+                "depth": 18
+              },
+              {
+                "uci": "c6a4",
+                "evaluationCp": -644,
+                "principalVariation": [
+                  "c6a4",
+                  "f1f2",
+                  "g3c7",
+                  "c4a2",
+                  "a4e8",
+                  "f2e2",
+                  "c7d8",
+                  "d3f2"
+                ],
+                "depth": 18
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "motifVersion": 2,
+      "question": "What sequence draws a defender away from the main target area?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "90b772fc255ab496d89978380ab1949260ba6030f9c6dd12a37b50d01deda164",
+        "responseHash": "c9efa5c25650d7d261248cbb8cabbc5fbdffdc9812a28a54a8a4f329c757165c"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "69effda444455906366e33fef850494b9949f08efa94595096e8a3c7ab3edca1",
+      "fen": "4R3/5ppk/p1q3bp/4B3/3p4/1P5P/n1PQ3K/8 w - - 1 34",
+      "acceptableMoves": [
+        "e8h8"
+      ],
+      "solution": [
+        "e8h8",
+        "h7h8",
+        "d2h6",
+        "h8g8",
+        "h6g7"
+      ],
+      "rating": 1940,
+      "ratingDeviation": 76,
+      "explanation": "The checked solution begins with Rh8+.",
+      "source": {
+        "dataset": "https://database.lichess.org/#puzzles",
+        "game": "https://lichess.org/game/g13Rmgqq/black#66",
+        "lichessId": "0oTBo",
+        "sourceHash": "5320eb85fbd89f585a41be4f9e8729a7bfdac292a7fd71819745e6a87db6c78e",
+        "pgnHash": "1b9f609a1c4b99aaedc05aae322c53dcbab61d73a790a895ce467ba40b37583b",
+        "ply": 66,
+        "tags": [
+          "attraction",
+          "deflection",
+          "endgame",
+          "long",
+          "mate",
+          "mateIn3",
+          "pin",
+          "sacrifice"
+        ]
+      },
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "bestMoveUci": "e8h8",
+        "principalVariation": [
+          "e8h8",
+          "h7h8",
+          "d2h6",
+          "g6h7",
+          "h6g7"
+        ],
+        "candidates": [
+          {
+            "uci": "e8h8",
+            "evaluationCp": 99997,
+            "principalVariation": [
+              "e8h8",
+              "h7h8",
+              "d2h6",
+              "g6h7",
+              "h6g7"
+            ],
+            "depth": 24
+          },
+          {
+            "uci": "e8d8",
+            "evaluationCp": 0,
+            "principalVariation": [
+              "e8d8",
+              "f7f6",
+              "e5g3",
+              "d4d3",
+              "c2d3",
+              "a2c1",
+              "b3b4",
+              "c1b3",
+              "d2e2",
+              "b3c1",
+              "e2d2"
+            ],
+            "depth": 24
+          },
+          {
+            "uci": "e5g7",
+            "evaluationCp": -30,
+            "principalVariation": [
+              "e5g7",
+              "h7g7",
+              "d2d4",
+              "f7f6",
+              "e8e7",
+              "g6f7",
+              "c2c4",
+              "a2b4",
+              "e7d7",
+              "a6a5",
+              "d4g4",
+              "g7f8"
+            ],
+            "depth": 23
+          }
+        ],
+        "checkedSteps": [
+          {
+            "ply": 1,
+            "fen": "4R3/5ppk/p1q3bp/4B3/3p4/1P5P/n1PQ3K/8 w - - 1 34",
+            "played": "e8h8",
+            "candidates": [
+              {
+                "uci": "e8h8",
+                "evaluationCp": 99997,
+                "principalVariation": [
+                  "e8h8",
+                  "h7h8",
+                  "d2h6",
+                  "g6h7",
+                  "h6g7"
+                ],
+                "depth": 24
+              },
+              {
+                "uci": "e8d8",
+                "evaluationCp": 0,
+                "principalVariation": [
+                  "e8d8",
+                  "f7f6",
+                  "e5g3",
+                  "d4d3",
+                  "c2d3",
+                  "a2c1",
+                  "b3b4",
+                  "c1b3",
+                  "d2e2",
+                  "b3c1",
+                  "e2d2"
+                ],
+                "depth": 24
+              },
+              {
+                "uci": "e5g7",
+                "evaluationCp": -30,
+                "principalVariation": [
+                  "e5g7",
+                  "h7g7",
+                  "d2d4",
+                  "f7f6",
+                  "e8e7",
+                  "g6f7",
+                  "c2c4",
+                  "a2b4",
+                  "e7d7",
+                  "a6a5",
+                  "d4g4",
+                  "g7f8"
+                ],
+                "depth": 23
+              }
+            ]
+          },
+          {
+            "ply": 3,
+            "fen": "7k/5pp1/p1q3bp/4B3/3p4/1P5P/n1PQ3K/8 w - - 0 35",
+            "played": "d2h6",
+            "candidates": [
+              {
+                "uci": "d2h6",
+                "evaluationCp": 99998,
+                "principalVariation": [
+                  "d2h6",
+                  "g6h7",
+                  "h6g7"
+                ],
+                "depth": 20
+              },
+              {
+                "uci": "c2c3",
+                "evaluationCp": -620,
+                "principalVariation": [
+                  "c2c3",
+                  "h8h7",
+                  "d2a2",
+                  "d4c3",
+                  "a2g2",
+                  "c6c5",
+                  "e5f4",
+                  "c5b4",
+                  "g2g3",
+                  "b4b3",
+                  "f4d2",
+                  "b3d5"
+                ],
+                "depth": 20
+              },
+              {
+                "uci": "c2c4",
+                "evaluationCp": -682,
+                "principalVariation": [
+                  "c2c4",
+                  "f7f6",
+                  "e5d4",
+                  "c6d6",
+                  "h2g2",
+                  "h8h7",
+                  "g2g1",
+                  "a2b4",
+                  "d2f2",
+                  "b4c2",
+                  "d4c5",
+                  "d6d3"
+                ],
+                "depth": 20
+              }
+            ]
+          },
+          {
+            "ply": 5,
+            "fen": "6k1/5pp1/p1q3bQ/4B3/3p4/1P5P/n1P4K/8 w - - 1 36",
+            "played": "h6g7",
+            "candidates": [
+              {
+                "uci": "h6g7",
+                "evaluationCp": 99999,
+                "principalVariation": [
+                  "h6g7"
+                ],
+                "depth": 23
+              },
+              {
+                "uci": "e5g7",
+                "evaluationCp": -616,
+                "principalVariation": [
+                  "e5g7",
+                  "c6c2",
+                  "h2g3",
+                  "c2d3",
+                  "g3h4",
+                  "d3e4",
+                  "h4g3",
+                  "e4e3",
+                  "h6e3",
+                  "d4e3",
+                  "g7b2",
+                  "e3e2"
+                ],
+                "depth": 23
+              },
+              {
+                "uci": "h6d2",
+                "evaluationCp": -681,
+                "principalVariation": [
+                  "h6d2",
+                  "c6c2",
+                  "d2c2",
+                  "g6c2",
+                  "e5d4",
+                  "c2b3",
+                  "h2g3",
+                  "a2b4",
+                  "d4c3",
+                  "b4d5",
+                  "c3d2",
+                  "g8h7"
+                ],
+                "depth": 22
+              }
+            ]
+          }
+        ]
+      },
+      "motifId": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "motifVersion": 2,
+      "question": "Which piece can be diverted to clear the path for an attack?",
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "90b772fc255ab496d89978380ab1949260ba6030f9c6dd12a37b50d01deda164",
+        "responseHash": "c9efa5c25650d7d261248cbb8cabbc5fbdffdc9812a28a54a8a4f329c757165c"
+      }
+    }
+  ],
+  "curricula": [
+    {
+      "schemaVersion": 1,
+      "id": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "version": 2,
+      "motifId": "ae5464c0386317a32203c12251df1c59414771d29df53dc210d7a81d7a6b58ae",
+      "motifVersion": 2,
+      "title": "Advanced Pawn Breakthroughs",
+      "goal": "Push deep pawns forward to create threats and secure promotion",
+      "puzzleIds": [
+        "4bacfc822970b6f7812bc437bb3a9c0fecf3e1aa9aea68368c446402c8088fd5",
+        "81b8aa82d8b9f5f5df3dea2da4320c51d10d0341fb0626ce1e5b842e982547f7",
+        "849a245b8bfaad59addf3eec1354efd95fde4f4736c52e187b749cad38a8db34",
+        "6f6c807450f1f1107e2465435a249b17687d631c6d043df0128ccf9f6dbd2555",
+        "edd2cb1b82a843b094aca36d2ef0f5aa4f742689ad00cf5f394d55b804c4edcd",
+        "eded7edd387a84f2064792fea3b6405c37f7fd3b850f515b69c881c200cdef68"
+      ],
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4cec9ff42d23ec5e477eb3678d13f022ecd2abd9d9f06ca190a10a5524510337",
+        "responseHash": "063c064c03229aa89350d44d459126e3c9de33f2f37a293703f40fd5ed2aa474"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "version": 2,
+      "motifId": "78b945d17fd5421a20296961350eccf6640c1143d633e95288571df1938de545",
+      "motifVersion": 2,
+      "title": "Discovered Attacks",
+      "goal": "Uncover hidden lines of fire by moving a piece out of the way.",
+      "puzzleIds": [
+        "a12093cce963fa2a13220ed3f521e30dfd7ce24427bf8d9498b97b673545de37",
+        "043eccadbfb3f023f5796999f9fb5a8bedca0bdbb9067e0ad22622f570d483f6",
+        "3935617951a4275569ae3e1c05569e20fea0c7f02bdae4afa16a6fa2d09e5835",
+        "e30b549a82fc3d17aaee76cb1d8c20099cd57a569f7620cd7e60be973ad9a80c",
+        "6179aaeed377f24a6132bf0d0e198765b51cece471de0ee00eeb91b45a152c90",
+        "3deff1868a32ffc764c2e730b3a7ca4aede43bcee4108cdc42ca14fdc32887f1"
+      ],
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "4f3306a537a28d77f631577a6d3d1986166e17a74a9978aa1cde0f4c14d466d5",
+        "responseHash": "4e800210aa561929824d7ea34f70e6fff62b791d13728449100a1d4aacbd2699"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "version": 2,
+      "motifId": "c930614bf594ae01b3ad07872ecebc150206fd29cc51e2830bd95c2012946416",
+      "motifVersion": 2,
+      "title": "Attraction Tactics",
+      "goal": "Lure enemy pieces onto squares that expose their king or material to tactical strikes.",
+      "puzzleIds": [
+        "b7c8a91624f1e23fa639a50eb5a28bd308724845ec7774bcf252cbcf37855eab",
+        "03b7a7a4b00531b05983b683418c06b798844ed2c63d1291d53e48f029083e00",
+        "67c1d2d5b238831b3691b0515412a37f425790826a39dc5b781ade2e2754888a",
+        "aea88e46c98c69b3fb55411861e3aae1fd05b4ede8618a832e3a9eebe5f17b38",
+        "222893cb58af5354fe86157fb233704020a85ab7a85eec7f1d5e6f15e0cf841b",
+        "c12c619413aa5bd703ea0fad58556ad2cf3121bbaa584d522a4ba64181a06efe"
+      ],
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "b0d654580e39c9fba7acef2be83d53b869f9b1393e20f491a07b28db3c5158d7",
+        "responseHash": "672b3694385aec976602ec7988ac9c2e49337b2d4b0f879ce6e374b5f3cd2239"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "version": 2,
+      "motifId": "ab0e425620f9d916c91d584dc100b9361df5a1ad3e4ce941833cb1cc51861f88",
+      "motifVersion": 2,
+      "title": "Deflection Tactics",
+      "goal": "Lure defending pieces away from key squares to create decisive opportunities.",
+      "puzzleIds": [
+        "e56d83918c975c1b96f5ebe47ad8df02d68ad584ce12d33c86871db1d1beb6d1",
+        "be56cc0dd07ce9419d2dfdbc4d7e3a734197835805ce339ae14b284a3b8d491d",
+        "ae7dad46bafec1afb94580967f1c6c25ae1dc542b74c06545c044412a90c2ddc",
+        "a8034b272fb18a7d1e74361ca3d65c9a3a80118260ff1affbd5f6e6a7bfa1558",
+        "e1e93a457ce71e70cf0f9a836865f25aad02526883d5d277c75123c80fb80b94",
+        "69effda444455906366e33fef850494b9949f08efa94595096e8a3c7ab3edca1"
+      ],
+      "authorship": {
+        "model": "gemini-3.5-flash-lite",
+        "route": "cloud",
+        "runId": "93252ef4-f2e9-43d0-b7c6-3780b512163b",
+        "promptVersion": "lichess-curriculum-cloud-v2",
+        "promptHash": "90b772fc255ab496d89978380ab1949260ba6030f9c6dd12a37b50d01deda164",
+        "responseHash": "c9efa5c25650d7d261248cbb8cabbc5fbdffdc9812a28a54a8a4f329c757165c"
+      }
+    }
+  ]
+}

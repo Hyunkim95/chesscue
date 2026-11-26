@@ -1,0 +1,452 @@
+{
+  "version": 1,
+  "model": "OpenAI GPT-6.2 Sol (Codex)",
+  "stages": [
+    {
+      "id": "play-safely",
+      "title": "Play safely",
+      "units": [
+        {
+          "id": "read-the-board",
+          "title": "Read the board",
+          "goal": "Recognize a legal special move and check what it changes.",
+          "exercises": [
+            {
+              "line": ["e4", "e5", "Nf3", "Nc6", "Bb5", "Nf6"],
+              "question": "Which move brings the king and rook into play together?",
+              "explanation": "Castling moves the king and rook together. Before doing it, inspect the squares the king crosses.",
+              "requiredMoves": ["e1g1"]
+            },
+            {
+              "fen": "7k/P7/6K1/8/8/8/8/8 w - - 0 1",
+              "question": "Which promotion ends the game immediately?",
+              "explanation": "Look at the king’s escapes before choosing a promotion. More than one piece can end this game immediately.",
+              "requiredMoves": ["a7a8q", "a7a8r"]
+            }
+          ]
+        },
+        {
+          "id": "get-out-of-check",
+          "title": "Get out of check",
+          "goal": "Trace the checking line and find a legal evasion before looking for threats.",
+          "exercises": [
+            {
+              "fen": "k7/8/8/8/1b6/8/8/4K2r w - - 0 1",
+              "question": "Which square lets the king leave both attacks?",
+              "explanation": "Two different pieces are giving check here. Trace both attacks before choosing a destination for the king."
+            },
+            {
+              "fen": "4kr2/1b6/8/8/8/6Q1/5KP1/8 w - - 0 1",
+              "question": "Which king move avoids offering the queen to the rook?",
+              "explanation": "Compare moving the king with blocking on the rook’s file. Count the pieces lost in any capture and recapture."
+            }
+          ]
+        },
+        {
+          "id": "count-captures",
+          "title": "Count the cost of a capture",
+          "goal": "Check attackers, defenders and the order of exchanges.",
+          "exercises": [
+            {
+              "tag": "hangingPiece",
+              "question": "Which capture works once you follow the reply as well?",
+              "explanation": "Compare the material before and after the full sequence. The first capture alone does not tell you how the exchange ends.",
+              "id": "00BJm"
+            },
+            {
+              "tag": "hangingPiece",
+              "question": "Which capture leaves you ahead after the opponent answers?",
+              "explanation": "Identify what the opponent can take back before choosing the capture. Check the result on the board after their reply."
+            }
+          ]
+        },
+        {
+          "id": "see-the-threat",
+          "title": "See the opponent’s next threat",
+          "goal": "Scan the opponent’s immediate threat before choosing your own move.",
+          "exercises": [
+            {
+              "tag": "defensiveMove",
+              "question": "Which response deals with the most urgent danger?",
+              "explanation": "Start by checking what the opponent can do on their very next move. Compare the available defensive replies."
+            },
+            {
+              "tag": "defensiveMove",
+              "question": "What can you change before the opponent continues their attack?",
+              "explanation": "Try both an active reply and a direct defence in your head. Then test which one holds up on this board."
+            }
+          ]
+        },
+        {
+          "id": "simple-mates",
+          "title": "Deliver a simple mate",
+          "goal": "Check the king’s escape squares, possible captures and blocks.",
+          "exercises": [
+            {
+              "tag": "mateIn1",
+              "question": "Which move ends the game by covering the king’s remaining exits?",
+              "explanation": "After giving check, count the king’s usable squares and test whether another piece can capture or block.",
+              "id": "009J1"
+            },
+            {
+              "tag": "mateIn2",
+              "question": "Which first check lets you cover the king’s remaining exits on the next move?",
+              "explanation": "Look one reply ahead. Make sure the king has no safe escape after your follow-up."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "create-and-answer-threats",
+      "title": "Create and answer threats",
+      "units": [
+        {
+          "id": "develop-with-purpose",
+          "title": "Develop with a purpose",
+          "goal": "Develop a piece or support the centre while keeping the king safe.",
+          "exercises": [
+            {
+              "line": ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5"],
+              "question": "Which move improves your opening position while keeping the king safe?",
+              "explanation": "Compare moves that support the centre with castling. Several plans can be sound at this stage."
+            },
+            {
+              "line": [
+                "d4",
+                "d5",
+                "c4",
+                "e6",
+                "Nc3",
+                "Nf6",
+                "Bg5",
+                "Be7",
+                "e3",
+                "O-O",
+                "Nf3",
+                "h6",
+                "Bh4",
+                "b6"
+              ],
+              "question": "Which move helps a piece take on a useful job?",
+              "explanation": "Compare which pieces can become more useful before you start forcing exchanges."
+            }
+          ]
+        },
+        {
+          "id": "mating-patterns",
+          "title": "Recognize a mating pattern",
+          "goal": "Spot the back-rank pattern and account for escape squares.",
+          "exercises": [
+            {
+              "tag": "backRankMate",
+              "question": "Which move takes advantage of the king’s lack of an exit?",
+              "explanation": "Check whether a pawn or piece blocks the king’s escape before trying the back-rank pattern."
+            },
+            {
+              "tag": "backRankMate",
+              "question": "Where can the king escape after your first check?",
+              "explanation": "Consider the pieces that can intervene and the squares they stop the king from reaching."
+            }
+          ]
+        },
+        {
+          "id": "double-attack",
+          "title": "Attack two targets",
+          "goal": "Find a move or preparation that attacks two targets.",
+          "exercises": [
+            {
+              "tag": "fork",
+              "question": "Which move sets up threats against two targets?",
+              "explanation": "Name both targets before you play, then check which one survives the strongest reply.",
+              "id": "0pwjJ"
+            },
+            {
+              "tag": "fork",
+              "question": "Which checks could change which pieces are available to attack?",
+              "explanation": "Watch how the targets change after the opponent answers a check.",
+              "id": "0tMv4"
+            }
+          ]
+        },
+        {
+          "id": "line-tactics",
+          "title": "Exploit or escape a line tactic",
+          "goal": "Trace the piece in front and the more valuable target behind it.",
+          "exercises": [
+            {
+              "tag": "pin",
+              "question": "Which move takes advantage of the defender’s limited movement?",
+              "explanation": "Trace the attack along the line and check whether the front piece can legally respond.",
+              "id": "0Svc3"
+            },
+            {
+              "tag": "skewer",
+              "question": "What becomes exposed when the first target moves?",
+              "explanation": "Follow the attack through the front target and see what is left behind it."
+            }
+          ]
+        },
+        {
+          "id": "open-attack-line",
+          "title": "Open an attack line",
+          "goal": "Notice the piece that becomes active when another moves out of its way.",
+          "exercises": [
+            {
+              "tag": "discoveredAttack",
+              "question": "Which move opens a line while creating a second problem?",
+              "explanation": "Look behind the moving piece. Check what the piece on the opened line can attack."
+            },
+            {
+              "tag": "doubleCheck",
+              "question": "Which move can let two pieces attack the king at once?",
+              "explanation": "Trace the new attack from the moving piece and the attack it uncovers."
+            }
+          ]
+        },
+        {
+          "id": "passed-pawn-race",
+          "title": "Race a passed pawn",
+          "goal": "Count promotion moves and account for the opponent’s checks and king route.",
+          "exercises": [
+            {
+              "fen": "8/7p/8/P7/4k3/8/8/4K3 w - - 0 1",
+              "question": "Which move gives your pawn the best head start?",
+              "explanation": "Count each pawn’s moves to promotion. Check whether the opposing king can get into the pawn’s path.",
+              "requiredMoves": ["a5a6"]
+            },
+            {
+              "tag": "pawnEndgame",
+              "question": "Which first move changes the outcome of the pawn race?",
+              "explanation": "Count the promotion moves for both players and look for checks that interrupt either race.",
+              "id": "019Qi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculate-and-convert",
+      "title": "Calculate and convert",
+      "units": [
+        {
+          "id": "calculate-replies",
+          "title": "Look one reply deeper",
+          "goal": "Compare tempting moves against the opponent’s strongest response.",
+          "exercises": [
+            {
+              "tag": "defensiveMove",
+              "question": "Which check changes the order of threats after the reply?",
+              "explanation": "Follow the checks and promotion in order. Stop only after you have looked at the opponent’s next reply.",
+              "id": "004LZ"
+            },
+            {
+              "tag": "quietMove",
+              "question": "What can you improve before making a forcing move?",
+              "explanation": "Compare a preparatory move with the tempting immediate check. Give the opponent a chance to reply to both."
+            }
+          ]
+        },
+        {
+          "id": "change-the-defender",
+          "title": "Change what the defender can do",
+          "goal": "Move, remove or distract a defender before acting on the target it protects.",
+          "exercises": [
+            {
+              "tag": "deflection",
+              "question": "What could make a defender leave its current job?",
+              "explanation": "Watch what stops being protected after the defending piece changes squares."
+            },
+            {
+              "tag": "attraction",
+              "question": "Which move draws a piece onto a square where you can use it as a target?",
+              "explanation": "Follow where the defender lands and test your next move from that new position.",
+              "id": "00TJN"
+            }
+          ]
+        },
+        {
+          "id": "test-a-sacrifice",
+          "title": "Decide whether a sacrifice works",
+          "goal": "Compare taking the offer with declining it and identify the concrete payoff.",
+          "exercises": [
+            {
+              "tag": "sacrifice",
+              "question": "What could change around the king if the opponent accepts the capture?",
+              "explanation": "Count what you offer, then see what the sequence gains. Consider a reply that declines the offer too.",
+              "id": "0twue"
+            },
+            {
+              "tag": "sacrifice",
+              "question": "Which reply would you check before offering material?",
+              "explanation": "Follow the opponent’s strongest response before deciding whether the material is worth offering.",
+              "id": "0YTZr"
+            }
+          ]
+        },
+        {
+          "id": "pawn-ending",
+          "title": "Win or hold a pawn ending",
+          "goal": "Use king position and tempo to steer a pawn ending.",
+          "exercises": [
+            {
+              "fen": "8/4k3/8/4K3/4P3/8/8/8 w - - 0 1",
+              "question": "Which king move keeps you in front of your pawn?",
+              "explanation": "Compare the king routes and count whose turn it will be when the kings face each other.",
+              "requiredMoves": ["e5d5", "e5f5"]
+            },
+            {
+              "tag": "pawnEndgame",
+              "question": "Which king route gives your pawn the best chance to advance?",
+              "explanation": "Check the king’s path before pushing. In a pawn ending a single tempo can change which squares you can reach."
+            }
+          ]
+        },
+        {
+          "id": "choose-trades",
+          "title": "Convert material and choose trades",
+          "goal": "Compare what remains after an exchange against keeping the pieces.",
+          "exercises": [
+            {
+              "fen": "4k3/8/4K3/4P3/8/8/3r4/3R4 w - - 0 1",
+              "question": "Which capture leaves you with the simplest position to finish?",
+              "explanation": "After each candidate, identify exactly which pieces remain. A simple capture can leave the opponent with far fewer resources.",
+              "requiredMoves": ["d1d2"]
+            },
+            {
+              "tag": "endgame",
+              "question": "Which continuation makes your advantage easier to use?",
+              "explanation": "Compare simplifying with keeping pieces. Play out the opponent’s reply before deciding which position you prefer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "make-a-plan",
+      "title": "Make a plan",
+      "units": [
+        {
+          "id": "activate-a-piece",
+          "title": "Activate the least useful piece",
+          "goal": "Find a practical destination and compare how the opponent can respond.",
+          "exercises": [
+            {
+              "line": [
+                "e4",
+                "e5",
+                "Nf3",
+                "Nc6",
+                "Bb5",
+                "a6",
+                "Bxc6",
+                "dxc6",
+                "O-O",
+                "f6",
+                "d4",
+                "exd4",
+                "Nxd4"
+              ],
+              "question": "Which move helps development or challenges the centre?",
+              "explanation": "Compare which pieces can join the game and what each candidate does to the contested squares."
+            },
+            {
+              "tag": "quietMove",
+              "question": "Which quiet move helps you prepare before making a direct threat?",
+              "explanation": "Look for a way to improve the position before starting a forcing line. Compare the next useful move after each candidate."
+            }
+          ]
+        },
+        {
+          "id": "pawn-breaks",
+          "title": "Read pawn structure and choose a break",
+          "goal": "Find the contact point and check what opens when pawns exchange.",
+          "exercises": [
+            {
+              "line": ["e4", "e6", "d4", "d5", "e5"],
+              "question": "Which pawn move challenges the centre from the side?",
+              "explanation": "Compare the break with leaving the pawn chain intact. Trace which lines open after an exchange.",
+              "requiredMoves": ["c7c5"]
+            },
+            {
+              "line": [
+                "d4",
+                "d5",
+                "c4",
+                "e6",
+                "Nc3",
+                "Nf6",
+                "Nf3",
+                "Be7",
+                "Bg5",
+                "O-O",
+                "e3",
+                "Nbd7",
+                "Rc1",
+                "c6",
+                "Bd3"
+              ],
+              "question": "Which pawn move changes the central tension now?",
+              "explanation": "Look for a pawn you can challenge and note what would become available to each side if they trade.",
+              "requiredMoves": ["d5c4", "c6c5"]
+            }
+          ]
+        },
+        {
+          "id": "king-attack-plan",
+          "title": "Attack or defend the king with a plan",
+          "goal": "Compare the king’s exits and the number of useful attacking pieces.",
+          "exercises": [
+            {
+              "tag": "kingsideAttack",
+              "question": "Which move makes it hardest for the king to escape?",
+              "explanation": "Map the exits and the pieces that cover them. Check how the opponent can interpose or take.",
+              "id": "0Qp6f"
+            },
+            {
+              "tag": "kingsideAttack",
+              "question": "What can you play to leave the king with fewer safe squares?",
+              "explanation": "After your move, check the king’s available exits and trace what your queen controls on the new square.",
+              "id": "0mKLS"
+            }
+          ]
+        },
+        {
+          "id": "rook-ending",
+          "title": "Convert or defend a rook ending",
+          "goal": "Compare rook activity, king placement and passed-pawn progress.",
+          "exercises": [
+            {
+              "tag": "rookEndgame",
+              "question": "Which move makes the passed pawn harder to stop?",
+              "explanation": "Before giving check, compare what your rook and king can do to help the pawn advance.",
+              "id": "008tL"
+            },
+            {
+              "tag": "rookEndgame",
+              "question": "Where can your rook become active without ignoring the pawns?",
+              "explanation": "Compare checks from a distance with moving behind the pawn. Follow the reply before committing."
+            }
+          ]
+        },
+        {
+          "id": "opening-structure",
+          "title": "Recognize a familiar opening structure",
+          "goal": "Recognize the pawn structure and compare moves that fit it.",
+          "exercises": [
+            {
+              "line": ["d4", "Nf6", "c4", "e6", "Nc3", "d5"],
+              "question": "Which move fits the pawn structure you have reached?",
+              "explanation": "Compare the pieces that need developing and the central tension. The structure matters even when the move order changes."
+            },
+            {
+              "line": ["e4", "c6", "d4", "d5", "e5", "Bf5", "Nf3", "e6"],
+              "question": "Which move fits this centre while keeping development flexible?",
+              "explanation": "Compare how each candidate changes the centre or helps a piece develop. Look for the opponent’s likely pawn break."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

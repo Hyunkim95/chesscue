@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { hangingPiecePlaybook } from "./hanging-piece";
+import { hangingPiecePlaybook } from "../../test/fixtures/hanging-piece";
 import {
   hangingPieceFacts,
   hangingPieceSelectionEvidence,
-} from "./lesson-test-fixtures";
-import { lessonPlaybookRegistry } from "./registry";
+} from "../../test/fixtures/lesson-test-fixtures";
+const lessonPlaybookRegistry = [hangingPiecePlaybook];
 import { startLessonRun, submitLessonAnswer } from "./run-lesson";
 import { selectLessonPlaybook } from "./select-playbook";
 import { validateLessonFacts } from "./validate-facts";

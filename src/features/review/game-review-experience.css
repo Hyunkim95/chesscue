@@ -54,74 +54,8 @@
   gap: 0.8rem;
 }
 
-.game-review-board-wrap {
-  width: min(100%, 44rem);
+.review-board {
   margin-inline: auto;
-  padding: clamp(0.45rem, 1.4vw, 0.8rem);
-  background: var(--cue-ink);
-  border: 1px solid var(--cue-line);
-  border-radius: 1rem;
-  box-shadow: var(--cue-shadow);
-}
-
-.game-review-board {
-  display: grid;
-  overflow: hidden;
-  aspect-ratio: 1;
-  grid-template-rows: repeat(8, minmax(0, 1fr));
-  border-radius: 0.55rem;
-}
-
-.game-review-board__row {
-  display: grid;
-  min-height: 0;
-  grid-template-columns: repeat(8, 1fr);
-}
-
-.game-review-square {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  place-items: center;
-  isolation: isolate;
-}
-
-.game-review-square--light {
-  background: #e8dfca;
-}
-
-.game-review-square--dark {
-  background: #7f9a84;
-}
-
-.game-review-square--last::after {
-  position: absolute;
-  inset: 8%;
-  z-index: -1;
-  content: "";
-  border: 3px solid var(--cue-coral);
-  border-radius: 0.35rem;
-}
-
-.game-review-piece {
-  color: var(--cue-ink);
-  font-family: var(--cue-chess-font);
-  font-size: clamp(1.65rem, 6.5vw, 4.25rem);
-  line-height: 1;
-  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 35%));
-}
-
-.game-review-coordinate {
-  position: absolute;
-  right: 0.2rem;
-  bottom: 0.12rem;
-  color: var(--cue-ink);
-  font-size: clamp(0.45rem, 1.1vw, 0.68rem);
-  font-weight: 800;
-}
-
-.game-review-square--dark .game-review-coordinate {
-  color: var(--cue-paper);
 }
 
 .game-review__board-status {
@@ -178,7 +112,7 @@
   gap: 0.55rem;
 }
 
-.game-review button:not(.game-review-square),
+.game-review button:not(.chess-board__square),
 .game-review__tabs button {
   min-height: 2.75rem;
   padding: 0.65rem 0.9rem;
@@ -189,53 +123,6 @@
   border: 1px solid var(--cue-line);
   border-radius: 0.7rem;
   cursor: pointer;
-}
-
-.game-review-square:is(button) {
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  cursor: pointer;
-}
-
-.game-review-square--selected {
-  outline: 4px double var(--cue-ink);
-  outline-offset: -6px;
-}
-
-.game-review-square--target::before {
-  position: absolute;
-  z-index: 2;
-  width: 28%;
-  aspect-ratio: 1;
-  border: 2px solid var(--cue-ink);
-  border-radius: 50%;
-  background: rgb(223 118 91 / 75%);
-  content: "";
-}
-
-.game-review-square__marker {
-  position: absolute;
-  z-index: 3;
-  top: 0.12rem;
-  left: 0.2rem;
-  color: var(--cue-ink);
-  font-size: clamp(0.55rem, 1.4vw, 0.85rem);
-  font-weight: 900;
-}
-
-.game-review button:disabled {
-  cursor: not-allowed;
-  opacity: 0.42;
-}
-
-.game-review button:focus-visible,
-.game-review summary:focus-visible,
-.game-review input:focus-visible {
-  outline: 3px solid var(--cue-coral);
-  outline-offset: 3px;
 }
 
 .game-review__tabs button {
@@ -255,12 +142,6 @@
   background: var(--cue-pine);
   border-color: var(--cue-pine);
   box-shadow: inset 0 0 0 2px var(--cue-pine-dark);
-}
-
-.game-review .game-review__practice {
-  color: var(--cue-ink);
-  background: var(--cue-coral);
-  border-color: var(--cue-coral);
 }
 
 .game-review__practice-unavailable {
@@ -320,6 +201,18 @@
   min-width: 0;
 }
 
+.game-review__board-stage .board-balance,
+.game-review__replay-content > .board-balance {
+  width: min(100%, 44rem);
+  margin-inline: auto;
+}
+
+@media (min-width: 56.01rem) {
+  .game-review__board-stage :is(.review-board, .board-balance) {
+    max-width: max(22rem, calc(100svh - 19rem));
+  }
+}
+
 .game-review__prompt {
   display: grid;
   gap: 1rem;
@@ -351,32 +244,19 @@
 }
 
 .game-review__feedback-controls {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.game-review__learning-cue {
-  padding-left: 1rem;
-  border-left: 3px solid var(--cue-coral);
-}
-
-.game-review__learning-cue strong {
-  color: var(--cue-ink);
-}
-
-.game-review__learning-cue p {
-  margin-top: 0.35rem;
-  color: var(--cue-muted);
-  line-height: 1.55;
+.game-review__step {
+  display: grid;
+  gap: 0.5rem;
 }
 
 .game-review__coach-note {
   display: grid;
   gap: 0.35rem;
-  padding: 0.85rem 1rem;
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--cue-pine) 7%, transparent);
 }
 
 .game-review__coach-note p {
@@ -401,28 +281,16 @@
   font-size: 0.9rem;
 }
 
-.game-review button.game-review__line-next {
-  min-height: 2.4rem;
-  padding-inline: 0;
-  color: var(--cue-pine-dark);
-  background: transparent;
-  border-color: transparent;
-}
-
 .game-review__optional-actions {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.2rem;
   padding-top: 0.35rem;
   border-top: 1px solid var(--cue-line);
 }
 
-.game-review__optional-actions > div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--cue-muted);
-  font-size: 0.9rem;
+.game-review__optional-actions button.game-review__quiet-action {
+  padding-inline: 0.45rem;
 }
 
 .game-review button.game-review__quiet-action {
@@ -481,7 +349,7 @@
 .game-review__reinforcement {
   padding: 1rem 1.1rem;
   border-left: 3px solid var(--cue-coral);
-  background: rgb(223 118 91 / 8%);
+  background: color-mix(in srgb, var(--cue-coral) 9%, transparent);
 }
 
 .game-review__reinforcement strong {
@@ -537,12 +405,6 @@
     flex-direction: column;
   }
 
-  .game-review-board-wrap {
-    width: calc(100% + 1rem);
-    margin-left: -0.5rem;
-    border-radius: 0.6rem;
-  }
-
   .game-review__replay-actions button,
   .game-review__line-controls button,
   .game-review__moment-nav button {
@@ -554,11 +416,152 @@
     gap: 0.2rem;
   }
 
-  .game-review__feedback-controls {
-    grid-template-columns: 1fr;
-  }
-
   .game-review__summary dl {
     grid-template-columns: 1fr;
   }
+}
+
+.game-review__turn {
+  padding-bottom: 0.5rem;
+  color: var(--cue-pine);
+  font-weight: 750;
+  text-align: center;
+}
+.game-review__observations {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  line-height: 1.5;
+}
+.game-review__observations strong {
+  margin-right: 0.25rem;
+}
+
+.game-review__continuation .game-review__board-stage {
+  align-self: start;
+}
+
+.game-review--debrief {
+  gap: 0.85rem;
+}
+
+.game-review__debrief {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(15rem, 0.8fr);
+  gap: clamp(0.75rem, 3vw, 2rem);
+  align-items: start;
+}
+
+.game-review__debrief-board {
+  min-width: 0;
+}
+
+.game-review__debrief-replay {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.game-review__debrief-replay > div {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  color: var(--cue-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+}
+
+.game-review__debrief-replay .review-action {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 1.25rem;
+}
+
+.game-review__debrief-replay input {
+  width: 100%;
+  margin: 0;
+  min-height: 24px;
+  accent-color: var(--cue-pine);
+}
+
+.game-review__debrief-notes,
+.game-review__debrief-explanation {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.game-review__debrief-caption {
+  text-transform: none;
+}
+
+.game-review__debrief-explanation h3 {
+  font: 650 1.25rem/1.2 var(--cue-display);
+}
+
+.game-review__debrief-explanation p {
+  line-height: 1.5;
+}
+
+.game-review__debrief-findings,
+.game-review__debrief-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.game-review__debrief-findings button,
+.game-review__debrief-actions button,
+.game-review__debrief-notes > button {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.game-review__debrief-findings button[aria-pressed="true"],
+.game-review__debrief-actions .game-review__debrief-explore {
+  border-color: var(--cue-gold);
+  color: var(--cue-gold);
+}
+
+@media (max-width: 56rem) {
+  .game-review__debrief {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.chesscue-sidebar .game-review__debrief {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.chesscue-sidebar .game-review__debrief-board .review-board,
+.chesscue-sidebar .game-review__debrief-replay {
+  max-width: max(13rem, calc(100svh - 27rem));
+  margin-inline: auto;
+}
+
+.review-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: 0.5rem;
+}
+
+.review-navigation__icon {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--cue-ink);
+  cursor: pointer;
+  font-size: 1.25rem;
+}
+
+.review-navigation__icon[aria-pressed="true"] {
+  color: var(--cue-gold);
+  border-color: var(--cue-line);
 }

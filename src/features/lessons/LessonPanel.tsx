@@ -58,7 +58,7 @@ export function LessonPanel({
             ✓
           </span>
           <p className="lesson-experience__eyebrow">Playbook complete</p>
-          <h2 id="lesson-complete-title">You spotted the loose piece</h2>
+          <h2 id="lesson-complete-title">Lesson complete</h2>
           <p>
             {feedback?.message ??
               "You completed every verified step and transferred the idea to a related position."}
@@ -91,11 +91,8 @@ export function LessonPanel({
             ↻
           </span>
           <p className="lesson-experience__eyebrow">Review before advancing</p>
-          <h2 id="lesson-remediate-title">Reset the threat scan</h2>
-          <p>
-            Start with attacks, then defenders, then forcing captures. The same
-            playbook will retry with verified wording.
-          </p>
+          <h2 id="lesson-remediate-title">Review this lesson</h2>
+          <p>{playbook.objective}</p>
           <div className="lesson-reinforcement">
             <strong>Still in your plan</strong>
             <span>{run.reinforcement.description}</span>
@@ -188,7 +185,7 @@ export function LessonPanel({
               autoComplete="off"
               placeholder={
                 step.kind === "recognize"
-                  ? "For example: b5"
+                  ? "Enter a square"
                   : "Enter your answer"
               }
             />

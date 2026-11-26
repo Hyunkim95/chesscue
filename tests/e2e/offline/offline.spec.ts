@@ -33,6 +33,13 @@ test("keeps the installed app and engine available after the network is lost", a
     return response.ok;
   });
   expect(offlineEngineAvailable).toBe(true);
+
+  await expect(page.getByRole("status")).toHaveText("Your move");
+  await page.getByRole("gridcell", { name: "White pawn on e2" }).click();
+  await page.getByRole("gridcell", { name: "Empty e4" }).click();
+  await expect(
+    page.getByRole("list", { name: "Move history" }).getByRole("listitem"),
+  ).toHaveCount(2);
 });
 
 test("publishes an installable manifest", async ({ page }) => {

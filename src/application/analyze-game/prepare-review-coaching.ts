@@ -24,7 +24,6 @@ export const buildReviewCoachingRequest = (input: {
   readonly score: MoveAttemptScore;
   readonly deterministicExplanation: string;
 }): LessonContentRequest => {
-  const bestDestination = input.score.bestMoveUci.slice(2, 4);
   const acceptableMoves = [
     input.score.bestMoveUci,
     ...(input.score.accepted ? [input.score.attemptedMoveUci] : []),
@@ -48,8 +47,9 @@ export const buildReviewCoachingRequest = (input: {
       theme: mapLearningTheme(input.theme),
       fen: input.fen,
       sourceGameIds: [input.gameId],
-      endangeredSquare: bestDestination.length === 2 ? bestDestination : "none",
-      threatenedMove: input.score.bestMoveUci,
+      kind: "review",
+      bestMove: input.score.bestMoveUci,
+      playedMove: input.score.attemptedMoveUci,
       acceptableMoves,
       reasonCodes: [input.theme, input.score.accepted ? "accepted" : "retry"],
       transferMoves: [],
@@ -58,6 +58,10 @@ export const buildReviewCoachingRequest = (input: {
   };
 };
 
+const requestFallback = (request: LessonContentRequest, accepted: boolean) =>
+  accepted
+    ? request.step.fallbackCorrectFeedback
+    : request.step.fallbackIncorrectFeedback;
 export const prepareReviewCoaching = async (input: {
   readonly request: LessonContentRequest;
   readonly accepted: boolean;
@@ -86,9 +90,12 @@ export const prepareReviewCoaching = async (input: {
       generatedProvenance: generated.provenance,
     });
     return {
-      note: input.accepted
-        ? resolved.content.correctFeedback
-        : resolved.content.incorrectFeedback,
+      note:
+        resolved.provenance === "deterministic"
+          ? requestFallback(input.request, input.accepted)
+          : requestFallback(input.request, input.accepted) +
+            " " +
+            resolved.content.prompt,
       provenance: resolved.provenance,
       validationFailure: resolved.validationFailure,
     };

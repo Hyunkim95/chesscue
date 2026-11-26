@@ -1,0 +1,215 @@
+.rook-chat__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--cue-line);
+}
+
+.rook-chat__header > div > h2 {
+  margin: 0;
+  font: 600 1.5rem/1.1 var(--cue-display);
+}
+
+.rook-chat__header > div > p {
+  margin: 0.15rem 0 0.25rem;
+  color: var(--cue-muted);
+  font-size: 0.76rem;
+}
+
+.rook-chat__messages {
+  display: flex;
+  max-height: 15rem;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding-block: 0.5rem;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.rook-chat__turn {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.4rem;
+  max-width: 100%;
+}
+
+.rook-chat__avatar {
+  width: 1.75rem;
+  height: 2.25rem;
+  object-fit: contain;
+}
+
+.rook-chat__turn .rook-chat__message {
+  position: relative;
+  margin: 0;
+  border-radius: 0 5px 5px;
+}
+
+.rook-chat__turn .rook-chat__message::before {
+  position: absolute;
+  top: 0.35rem;
+  left: -0.4rem;
+  width: 0.4rem;
+  height: 0.6rem;
+  background: var(--cue-gold);
+  clip-path: polygon(100% 0, 100% 100%, 0 30%);
+  content: "";
+}
+
+.rook-chat__message {
+  display: grid;
+  max-width: 100%;
+  gap: 0.2rem;
+  padding: 0.4rem 0.45rem;
+  border-inline-start: 2px solid var(--cue-gold);
+  background: var(--cue-canvas);
+  font-size: 0.94rem;
+  line-height: 1.45;
+  color: var(--cue-ink);
+  overflow-wrap: anywhere;
+}
+
+.rook-chat__message--player {
+  align-self: flex-end;
+  border-inline-start-color: var(--cue-pine);
+  background: var(--cue-paper-deep);
+}
+
+.rook-chat__message:has(audio) {
+  width: 100%;
+}
+
+.rook-chat__turn .rook-chat__message > p,
+.rook-chat__message--player > p {
+  color: var(--cue-ink);
+  margin: 0.15rem 0 0;
+}
+
+.rook-chat__composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
+  gap: 0.2rem;
+}
+
+.rook-chat__composer input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.35rem 0.42rem;
+  border: 1px solid var(--cue-line);
+  border-radius: 2px;
+  background: var(--cue-canvas);
+  color: var(--cue-ink);
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.rook-chat__send {
+  min-height: 44px;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding-inline: 0.65rem;
+  background: var(--cue-action-fill);
+  color: var(--cue-action-ink);
+  clip-path: var(--cue-button-cut);
+}
+
+.rook-chat__send:focus-visible {
+  outline-offset: -4px;
+}
+
+.rook-chat__message-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.rook-chat__timestamp {
+  color: var(--cue-muted);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rook-chat__byline {
+  color: var(--cue-gold);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+.rook-chat__message--player .rook-chat__byline,
+.rook-chat__message small {
+  color: var(--cue-muted);
+}
+.rook-chat__source {
+  margin-top: 0.65rem;
+  color: var(--cue-muted);
+  font-size: 0.85rem;
+}
+.rook-chat__source summary {
+  cursor: pointer;
+}
+.rook-chat__composer button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.rook-chat__source summary:focus-visible,
+.rook-chat__composer input:focus-visible {
+  outline: 2px solid var(--cue-gold);
+}
+
+.rook-chat__mic {
+  position: relative;
+  display: block;
+  width: 1rem;
+  height: 1.25rem;
+  background: linear-gradient(currentColor, currentColor) center bottom / 1px
+    5px no-repeat;
+}
+
+.rook-chat__mic::before,
+.rook-chat__mic::after {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  content: "";
+}
+
+.rook-chat__mic::before {
+  top: 0;
+  width: 0.48rem;
+  height: 0.72rem;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+}
+
+.rook-chat__mic::after {
+  bottom: 4px;
+  width: 0.86rem;
+  height: 0.56rem;
+  border: 1px solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.rook-chat__stop {
+  display: inline-block;
+  width: 0.7rem;
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--cue-coral);
+}
+
+button.rook-send-icon {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+}

@@ -88,6 +88,7 @@ export function importGames(input: ImportGamesInput): ImportGamesResult {
     if (seen.has(game.fingerprint)) {
       items.push({
         status: "duplicate",
+        originalPgn: game.originalPgn,
         index: game.index,
         fingerprint: game.fingerprint,
         issue: {
@@ -103,6 +104,7 @@ export function importGames(input: ImportGamesInput): ImportGamesResult {
       status: "accepted",
       index: game.index,
       game: {
+        originalPgn: game.originalPgn,
         record: toRecord(game, input, importedAt),
         headers: game.headers,
       },

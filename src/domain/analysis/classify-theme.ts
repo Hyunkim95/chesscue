@@ -7,6 +7,7 @@ export interface ThemeClassificationInput {
   readonly playedMoveUci: string;
   readonly ply: number;
   readonly impactCp: number;
+  readonly bestMoveUci?: string;
 }
 
 const CENTRAL_SQUARES = new Set(["d4", "e4", "d5", "e5"]);
@@ -24,6 +25,9 @@ export function classifyLearningTheme(
   });
 
   if (
+    input.bestMoveUci !== undefined &&
+    input.bestMoveUci !== input.playedMoveUci &&
+    input.impactCp > 35 &&
     input.ply <= 20 &&
     move.piece === "p" &&
     move.isCapture() &&

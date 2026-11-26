@@ -13,7 +13,13 @@ afterEach(cleanup);
 
 describe("ImportGamesPanel", () => {
   it("keeps the primary action disabled until PGN and learner color are present", () => {
-    render(<ImportGamesPanel onImport={vi.fn()} />);
+    render(
+      <ImportGamesPanel
+        onReview={vi.fn()}
+        onViewPlan={vi.fn()}
+        onImport={vi.fn()}
+      />,
+    );
 
     expect(screen.getByRole("button", { name: "Import games" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Paste completed PGN games"), {
@@ -26,6 +32,7 @@ describe("ImportGamesPanel", () => {
 
   it("shows clear accepted, duplicate, and rejected outcomes", async () => {
     const onImport = vi.fn().mockResolvedValue({
+      savedGames: new Map(),
       acceptedCount: 1,
       duplicateCount: 1,
       rejectedCount: 1,
@@ -54,7 +61,13 @@ describe("ImportGamesPanel", () => {
         },
       ],
     });
-    render(<ImportGamesPanel onImport={onImport} />);
+    render(
+      <ImportGamesPanel
+        onReview={vi.fn()}
+        onViewPlan={vi.fn()}
+        onImport={onImport}
+      />,
+    );
 
     fireEvent.change(screen.getByLabelText("Paste completed PGN games"), {
       target: { value: '[Event "Practice"]' },
@@ -75,7 +88,7 @@ describe("ImportGamesPanel", () => {
       playerColor: "white",
     });
     expect(
-      screen.getByText(/influence weakness evidence and lesson focus/),
+      screen.getByRole("heading", { name: "Game added to your training plan" }),
     ).toBeVisible();
     expect(
       screen.getByText("Game 2 is already in your library."),
@@ -86,7 +99,13 @@ describe("ImportGamesPanel", () => {
 
   it("retains the text and learner color after a recoverable error", async () => {
     const onImport = vi.fn().mockRejectedValue(new Error("temporary failure"));
-    render(<ImportGamesPanel onImport={onImport} />);
+    render(
+      <ImportGamesPanel
+        onReview={vi.fn()}
+        onViewPlan={vi.fn()}
+        onImport={onImport}
+      />,
+    );
 
     const text = screen.getByLabelText("Paste completed PGN games");
     const black = screen.getByRole("radio", { name: "I played Black" });

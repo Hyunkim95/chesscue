@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title id="title">ChessCue</title>
-  <rect width="512" height="512" rx="112" fill="#f8f1e5" />
-  <path d="M104 224V112h120" fill="none" stroke="#3d6b5a" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M408 288v112H288" fill="none" stroke="#df765b" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="256" cy="256" r="36" fill="#292a27" />
+  <rect width="512" height="512" rx="112" fill="#091715" />
+  <path d="M104 224V112h120" fill="none" stroke="#8cc6aa" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M408 288v112H288" fill="none" stroke="#dfc397" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="256" cy="256" r="36" fill="#f9efda" />
 </svg>

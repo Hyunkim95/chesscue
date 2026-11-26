@@ -1,5 +1,5 @@
 import { canonicalHangingPieceFacts } from "./canonical-hanging-piece";
-import type { LessonSelectionEvidence } from "./types";
+import type { LessonSelectionEvidence } from "../../domain/lessons/types";
 
 export const hangingPieceFacts = canonicalHangingPieceFacts;
 

@@ -9,6 +9,7 @@ describe("classifyLearningTheme", () => {
         fenBefore:
           "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
         playedMoveUci: "e4d5",
+        bestMoveUci: "b1c3",
         ply: 3,
         impactCp: 80,
       }),

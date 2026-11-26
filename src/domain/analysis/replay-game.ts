@@ -1,12 +1,16 @@
 import { Chess } from "chess.js";
 
+import { collectCapture, type BoardCapture } from "../game/board-balance";
 import type { GameRecord } from "../game/types";
+
+export const MAX_GUIDED_PLIES = 4;
 
 export interface ReplayFrame {
   readonly ply: number;
   readonly fen: string;
   readonly lastMoveUci: string | null;
   readonly lastMoveSan: string | null;
+  readonly captures: readonly BoardCapture[];
 }
 
 export type ReplayBuildResult =
@@ -21,8 +25,15 @@ export function buildGameReplay(game: GameRecord): ReplayBuildResult {
     return { ok: false, message: "The saved initial position is invalid." };
   }
 
+  let captures: readonly BoardCapture[] = [];
   const frames: ReplayFrame[] = [
-    { ply: 0, fen: chess.fen(), lastMoveUci: null, lastMoveSan: null },
+    {
+      ply: 0,
+      fen: chess.fen(),
+      lastMoveUci: null,
+      lastMoveSan: null,
+      captures,
+    },
   ];
   for (const recordedMove of game.moves) {
     try {
@@ -39,11 +50,13 @@ export function buildGameReplay(game: GameRecord): ReplayBuildResult {
           message: `Move ${String(recordedMove.ply)} does not match its saved position.`,
         };
       }
+      captures = collectCapture(captures, move);
       frames.push({
         ply: recordedMove.ply,
         fen: move.after,
         lastMoveUci: recordedMove.uci,
-        lastMoveSan: recordedMove.san,
+        lastMoveSan: move.san,
+        captures,
       });
     } catch {
       return {
@@ -58,6 +71,7 @@ export function buildGameReplay(game: GameRecord): ReplayBuildResult {
 export function buildVariationFrames(
   initialFen: string,
   moves: readonly string[],
+  initialCaptures: readonly BoardCapture[] = [],
 ): ReplayBuildResult {
   let chess: Chess;
   try {
@@ -66,8 +80,15 @@ export function buildVariationFrames(
     return { ok: false, message: "The selected review position is invalid." };
   }
 
+  let captures = initialCaptures;
   const frames: ReplayFrame[] = [
-    { ply: 0, fen: chess.fen(), lastMoveUci: null, lastMoveSan: null },
+    {
+      ply: 0,
+      fen: chess.fen(),
+      lastMoveUci: null,
+      lastMoveSan: null,
+      captures,
+    },
   ];
   for (const [index, uci] of moves.entries()) {
     try {
@@ -76,11 +97,13 @@ export function buildVariationFrames(
         to: uci.slice(2, 4),
         ...(uci.length === 5 ? { promotion: uci.slice(4, 5) } : {}),
       });
+      captures = collectCapture(captures, move);
       frames.push({
         ply: index + 1,
         fen: move.after,
         lastMoveUci: uci,
         lastMoveSan: move.san,
+        captures,
       });
     } catch {
       return {

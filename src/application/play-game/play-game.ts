@@ -1,3 +1,10 @@
+import {
+  beginnerSearchMoves,
+  STOCKFISH_ELO_FLOOR,
+  MIN_PLAYER_ELO,
+} from "../../domain/game/beginner-opponent";
+import { ratedOpponentElo } from "../../domain/game/rating";
+import { tutorGameMode } from "../../domain/game/types";
 import type { EngineFailure, GameEngine } from "../ports/game-engine";
 import type {
   GameRepository,
@@ -18,6 +25,7 @@ import type {
   GameRecord,
   PlayerColor,
   PositionId,
+  TutorGameMode,
 } from "../../domain/game/types";
 import type { Result } from "../../shared/result/result";
 import { err, ok } from "../../shared/result/result";
@@ -52,6 +60,9 @@ export interface StartTutorGameInput {
   readonly configurationVersion: string;
   readonly trainingFocus?: string;
   readonly openingPolicyVersion?: string;
+  readonly mode?: TutorGameMode;
+  readonly opponentElo?: number;
+  readonly coachNotesAtStart?: boolean;
   readonly now: string;
   readonly repository: GameRepository;
   readonly initialFen?: string;
@@ -66,6 +77,10 @@ export async function startTutorGame(
   });
   if (!created.ok) return err({ code: "rule", cause: created.error });
 
+  const matchRating =
+    input.opponentElo === undefined
+      ? undefined
+      : Math.max(MIN_PLAYER_ELO, Math.round(input.opponentElo));
   const session: PlaySession = {
     state: created.value,
     record: {
@@ -73,6 +88,18 @@ export async function startTutorGame(
       id: input.id,
       origin: {
         type: "tutor",
+        ...(input.mode === undefined ? {} : { mode: input.mode }),
+        ...(matchRating === undefined
+          ? {}
+          : { opponentElo: ratedOpponentElo(matchRating) }),
+        ...(input.mode === "rated" &&
+        matchRating !== undefined &&
+        matchRating < STOCKFISH_ELO_FLOOR
+          ? { beginnerOpponent: { version: 1 as const, target: matchRating } }
+          : {}),
+        ...(input.coachNotesAtStart === undefined
+          ? {}
+          : { coachNotesAtStart: input.coachNotesAtStart }),
         ...(input.trainingFocus === undefined
           ? {}
           : { trainingFocus: input.trainingFocus }),
@@ -121,6 +148,35 @@ export function resumeTutorGame(
     : err({ code: "rule", cause: restored.error });
 }
 
+export async function bringInCoach(
+  session: PlaySession,
+  repository: GameRepository,
+): Promise<Result<PlaySession, PlayFailure>> {
+  if (
+    session.record.origin.type !== "tutor" ||
+    session.record.origin.mode !== "rated" ||
+    session.record.coachJoinedAtPly !== undefined ||
+    session.state.phase !== "player-turn"
+  ) {
+    return err({
+      code: "rule",
+      cause: {
+        code: "invalid-position",
+        message: "Coach can join on your turn in a rated game.",
+      },
+      session,
+    });
+  }
+  const record = {
+    ...session.record,
+    coachJoinedAtPly: session.record.moves.length,
+  };
+  const persisted = await repository.put(record);
+  return persisted.ok
+    ? ok({ state: session.state, record })
+    : err({ code: "storage", cause: persisted.error, session });
+}
+
 export async function acceptPlayerMove(input: {
   readonly session: PlaySession;
   readonly move: MoveInput;
@@ -152,15 +208,16 @@ export async function requestCpuReply(input: {
   readonly signal: AbortSignal;
   readonly completionObserver?: GameCompletionObserver;
 }): Promise<Result<PlaySession, PlayFailure>> {
+  const searchMoves =
+    beginnerSearchMoves(input.session.record, input.session.state.fen) ??
+    input.searchMoves;
   const move = await input.engine.chooseMove({
     positionId: input.positionId,
     fen: input.session.state.fen,
     moves: input.session.state.moves.map(({ uci }) => uci),
     targetElo: input.targetElo,
     timeBudgetMs: input.timeBudgetMs,
-    ...(input.searchMoves === undefined
-      ? {}
-      : { searchMoves: input.searchMoves }),
+    ...(searchMoves === undefined ? {} : { searchMoves }),
     signal: input.signal,
   });
   if (!move.ok)
@@ -205,6 +262,9 @@ async function persistState(
   const terminal = state.phase === "completed" || state.phase === "resigned";
   const record: GameRecord = {
     ...previous,
+    ...(terminal && tutorGameMode(previous) === "rated"
+      ? { ratingPolicy: "placement-v1" as const }
+      : {}),
     moves: state.moves,
     pgn: state.pgn,
     result: state.result,

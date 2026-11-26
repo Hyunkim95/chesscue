@@ -1,0 +1,71 @@
+.board-balance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 1rem;
+  margin-block: 0.45rem 0;
+  color: var(--cue-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.board-balance__entry[hidden] {
+  display: none;
+}
+
+.board-balance__material,
+.board-balance__side {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.board-balance__material {
+  gap: 0.15rem 0.75rem;
+}
+
+.board-balance__side {
+  gap: 0.25rem;
+}
+
+.board-balance__pieces {
+  display: inline-flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  color: var(--cue-ink);
+  font: 400 1.2rem/1 var(--cue-chess-font);
+}
+
+.board-balance__score {
+  font-variant-numeric: tabular-nums;
+}
+
+.board-balance__score[data-balance="ahead"] {
+  color: var(--cue-pine-dark);
+}
+
+.board-balance__score[data-balance="behind"] {
+  color: var(--cue-coral-dark);
+}
+
+.board-balance__entry strong {
+  color: var(--cue-ink);
+  font-weight: 750;
+}
+
+.board-balance button.board-balance__check {
+  min-height: 44px;
+  padding: 0 0.15rem;
+  border: 0;
+  background: transparent;
+  color: var(--cue-pine-dark);
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.board-balance button.board-balance__check:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

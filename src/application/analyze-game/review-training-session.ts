@@ -1,3 +1,4 @@
+import { sameTransferPosition } from "../../domain/transfer/validate";
 import {
   buildReviewTrainingLog,
   scoreMoveAttempt,
@@ -11,15 +12,15 @@ import type {
 } from "../../domain/analysis/types";
 import {
   transferExercisesForTheme,
-  type CuratedTransferExercise,
+  type VerifiedTransferExercise,
 } from "../../domain/transfer";
 import type { CompletedGameAnalysis } from "./analyze-completed-game";
 
 interface ReviewTrainingBase {
   readonly primaryFact: MoveAnalysisFact;
   readonly primaryMoment: LearningMoment;
-  readonly closeExercise: CuratedTransferExercise | null;
-  readonly unlabeledExercise: CuratedTransferExercise | null;
+  readonly closeExercise: VerifiedTransferExercise | null;
+  readonly unlabeledExercise: VerifiedTransferExercise | null;
   readonly originalScore: MoveAttemptScore | null;
   readonly closeScore: MoveAttemptScore | null;
   readonly unlabeledScore: MoveAttemptScore | null;
@@ -63,21 +64,22 @@ export const startReviewTraining = (
       fact.gameId === primaryMoment.gameId && fact.ply === primaryMoment.ply,
   );
   if (primaryFact === undefined) return null;
-  const transferExercises = transferExercisesForTheme(primaryFact.theme);
+  const transferExercises = transferExercisesForTheme(primaryFact.theme).filter(
+    (item) => !sameTransferPosition(item.fen, primaryFact.fenBefore),
+  );
   const closeExercise =
     transferExercises.find((exercise) => exercise.difficulty === "close") ??
     null;
   const unlabeledExercise =
     transferExercises.find((exercise) => exercise.difficulty === "unlabeled") ??
     null;
-  const completePack = closeExercise !== null && unlabeledExercise !== null;
 
   return {
     stage: "original-move",
     primaryFact,
     primaryMoment,
-    closeExercise: completePack ? closeExercise : null,
-    unlabeledExercise: completePack ? unlabeledExercise : null,
+    closeExercise,
+    unlabeledExercise,
     originalScore: null,
     closeScore: null,
     unlabeledScore: null,
@@ -120,7 +122,7 @@ export const continueAfterOriginalFeedback = (
   completedAt: string,
 ): ReviewTrainingState => {
   if (state.stage !== "original-feedback") return state;
-  return state.closeExercise === null || state.unlabeledExercise === null
+  return state.closeExercise === null
     ? complete(state, completedAt)
     : { ...state, stage: "close-move" };
 };

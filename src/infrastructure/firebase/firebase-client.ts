@@ -4,8 +4,12 @@ import {
   type AppCheck,
 } from "firebase/app-check";
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
+import {
+  getFirestore,
+  connectFirestoreEmulator,
+  type Firestore,
+} from "firebase/firestore";
 
 import { loadFirebaseClientConfig } from "../config/firebase-environment";
 
@@ -22,6 +26,7 @@ export type FirebaseClientAvailability =
   | { readonly status: "failed"; readonly message: string };
 
 export interface InitializeFirebaseOptions {
+  readonly guestSubmissions?: boolean;
   readonly environment?: unknown;
   readonly enableAppCheck?: boolean;
   readonly appCheckDebug?: boolean;
@@ -48,10 +53,18 @@ export const initializeFirebaseClient = (
   }
 
   try {
-    if (options.appCheckDebug === true) {
-      globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    if (
+      options.appCheckDebug === true ||
+      (options.enableAppCheck === true &&
+        import.meta.env.MODE === "extension" &&
+        import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG === "true")
+    ) {
+      globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN ??= true;
     }
-    const existingApp = getApps().find((app) => app.name === APP_NAME);
+    const appName = options.guestSubmissions
+      ? APP_NAME + "-submissions"
+      : APP_NAME;
+    const existingApp = getApps().find((app) => app.name === appName);
     const app =
       existingApp ??
       initializeApp(
@@ -66,10 +79,25 @@ export const initializeFirebaseClient = (
             ? {}
             : { measurementId: configResult.value.measurementId }),
         },
-        APP_NAME,
+        appName,
       );
 
+    const auth = getAuth(app);
+    const firestore = getFirestore(app);
+    const emulated =
+      import.meta.env.VITE_ACCOUNT_EMULATORS === "true" &&
+      configResult.value.projectId.startsWith("demo-") &&
+      (globalThis.location.hostname === "127.0.0.1" ||
+        globalThis.location.protocol === "chrome-extension:");
+    if (emulated && existingApp === undefined) {
+      connectAuthEmulator(auth, "http://127.0.0.1:9099", {
+        disableWarnings: true,
+      });
+      connectFirestoreEmulator(firestore, "127.0.0.1", 8080);
+    }
+
     const appCheck =
+      !emulated &&
       options.enableAppCheck === true &&
       configResult.value.appCheckSiteKey !== undefined
         ? initializeAppCheck(app, {
@@ -83,9 +111,9 @@ export const initializeFirebaseClient = (
     return {
       status: "ready",
       services: {
-        app: existingApp === undefined ? app : getApp(APP_NAME),
-        auth: getAuth(app),
-        firestore: getFirestore(app),
+        app: existingApp === undefined ? app : getApp(appName),
+        auth,
+        firestore,
         appCheck,
       },
     };

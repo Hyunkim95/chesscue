@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { hangingPiecePlaybook } from "../../domain/lessons/hanging-piece";
-import { hangingPieceFacts } from "../../domain/lessons/lesson-test-fixtures";
+import { hangingPiecePlaybook } from "../../test/fixtures/hanging-piece";
+import { hangingPieceFacts } from "../../test/fixtures/lesson-test-fixtures";
 import {
   startLessonRun,
   submitLessonAnswer,

@@ -1,7 +1,8 @@
-import { Chess, type Color, type PieceSymbol, type Square } from "chess.js";
+import { Chess, type Square } from "chess.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { GameEngine } from "../../application/ports/game-engine";
+import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import type { GameRepository } from "../../application/ports/game-repository";
 import {
   OneShotGameCompletionObserver,
@@ -9,6 +10,7 @@ import {
 } from "../../application/play-game/game-completion";
 import {
   acceptPlayerMove,
+  bringInCoach,
   requestCpuReply,
   resumeTutorGame,
   resignTutorGame,
@@ -17,82 +19,29 @@ import {
 } from "../../application/play-game/play-game";
 import {
   FOCUS_OPENING_POLICY_VERSION,
+  curriculumThemes,
   focusOpeningCandidates,
   type CurriculumTheme,
 } from "../../domain/curriculum";
-import type { GameId, PositionId } from "../../domain/game/types";
+import {
+  savedCoachMoments,
+  type CoachMoment,
+} from "../../domain/game/coach-moments";
+import { STOCKFISH_ELO_FLOOR } from "../../domain/game/beginner-opponent";
+import { PLACEMENT_GAMES } from "../../domain/game/rating";
+import {
+  tutorGameMode,
+  type GameId,
+  type PositionId,
+  type TutorGameMode,
+} from "../../domain/game/types";
+import { ok } from "../../shared/result/result";
+import { ChessBoard } from "../board/ChessBoard";
+import { BoardBalance } from "../board/BoardBalance";
+import { pieceNames } from "../board/board-pieces";
+import { RookChat } from "./RookChat";
+import { RookLauncher } from "./RookLauncher";
 import "./play-game.css";
-
-const BOARD_SQUARES: readonly Square[] = [
-  "a8",
-  "b8",
-  "c8",
-  "d8",
-  "e8",
-  "f8",
-  "g8",
-  "h8",
-  "a7",
-  "b7",
-  "c7",
-  "d7",
-  "e7",
-  "f7",
-  "g7",
-  "h7",
-  "a6",
-  "b6",
-  "c6",
-  "d6",
-  "e6",
-  "f6",
-  "g6",
-  "h6",
-  "a5",
-  "b5",
-  "c5",
-  "d5",
-  "e5",
-  "f5",
-  "g5",
-  "h5",
-  "a4",
-  "b4",
-  "c4",
-  "d4",
-  "e4",
-  "f4",
-  "g4",
-  "h4",
-  "a3",
-  "b3",
-  "c3",
-  "d3",
-  "e3",
-  "f3",
-  "g3",
-  "h3",
-  "a2",
-  "b2",
-  "c2",
-  "d2",
-  "e2",
-  "f2",
-  "g2",
-  "h2",
-  "a1",
-  "b1",
-  "c1",
-  "d1",
-  "e1",
-  "f1",
-  "g1",
-  "h1",
-];
-
-const BOARD_ROWS = Array.from({ length: 8 }, (_, rowIndex) =>
-  BOARD_SQUARES.slice(rowIndex * 8, rowIndex * 8 + 8),
-);
 
 type EngineStatus = "starting" | "ready" | "failed";
 const systemNow = () => new Date().toISOString();
@@ -108,6 +57,14 @@ export interface PlayGameScreenProps {
   readonly focusTitle?: string;
   readonly focus?: string;
   readonly onGameCompleted?: GameCompletedCallback;
+  readonly mode?: TutorGameMode;
+  readonly assessPosition?: AssessPosition | null;
+  readonly onChangeMode?: () => void;
+  readonly resumeGameId?: GameId | undefined;
+  readonly onCoachJoined?: (gameId: GameId) => void;
+  readonly readyToStart?: boolean;
+  readonly placementCount?: number | null;
+  readonly noteScope?: string;
 }
 
 export function PlayGameScreen({
@@ -118,15 +75,54 @@ export function PlayGameScreen({
   now = systemNow,
   targetElo = 1480,
   focusTheme = "development",
-  focusTitle = "Hold the center",
-  focus = "Hold the center. Keep the tension before exchanging central pawns.",
+  focusTitle = "Training focus",
+  focus = "",
   onGameCompleted,
+  mode,
+  assessPosition = null,
+  onChangeMode,
+  resumeGameId,
+  onCoachJoined,
+  readyToStart = true,
+  placementCount = null,
+  noteScope = "adaptive-chess-tutor",
 }: PlayGameScreenProps) {
+  const [launch] = useState(() => ({ mode, resumeGameId }));
   const [session, setSession] = useState<PlaySession | null>(null);
   const [engineStatus, setEngineStatus] = useState<EngineStatus>("starting");
   const [selected, setSelected] = useState<Square | null>(null);
+  const [promotionTo, setPromotionTo] = useState<Square | null>(null);
+  const boardStage = useRef<HTMLDivElement>(null);
+  const promotionGroup = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (promotionTo) promotionGroup.current?.querySelector("button")?.focus();
+  }, [promotionTo]);
   const [notice, setNotice] = useState("Preparing your opponent…");
   const [saving, setSaving] = useState(false);
+  const [coachNotesEnabled, setCoachNotesEnabled] = useState(() => {
+    try {
+      return localStorage.getItem("chesscue-coach-notes") !== "off";
+    } catch {
+      return true;
+    }
+  });
+  const [coachNotesOpen, setCoachNotesOpen] = useState(false);
+  const [readCoachPly, setReadCoachPly] = useState<{
+    gameId: GameId;
+    ply: number;
+  } | null>(null);
+  const rookToggle = useRef<HTMLButtonElement>(null);
+  const rookPanel = useRef<HTMLElement>(null);
+  const coachNotesPreference = useRef(coachNotesEnabled);
+  const [coachNotes, setCoachNotes] = useState<{
+    readonly gameId: GameId;
+    readonly moments: readonly CoachMoment[];
+  } | null>(null);
+  const noteCache = useRef<{
+    readonly gameId: GameId;
+    readonly ply: number;
+    readonly moments: readonly CoachMoment[];
+  } | null>(null);
   const searchAbort = useRef<AbortController | null>(null);
   const [completionObserver] = useState(
     () => new OneShotGameCompletionObserver(onGameCompleted),
@@ -153,20 +149,75 @@ export function PlayGameScreen({
     [engine],
   );
 
-  const createNewGame = useCallback(
-    async (startNotice: string) => {
-      setSaving(true);
-      setSelected(null);
-      const started = await startTutorGame({
+  const start = useCallback(
+    () =>
+      startTutorGame({
         id: createGameId(),
         playerColor: "white",
         curriculumVersion: "1.0.0",
         configurationVersion: "1.0.0",
-        trainingFocus: focusTheme,
-        openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
+        ...(launch.mode === "rated"
+          ? {}
+          : {
+              trainingFocus: focusTheme,
+              openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
+            }),
+        ...(launch.mode === undefined
+          ? {}
+          : { mode: launch.mode, opponentElo: targetElo }),
+        ...(launch.mode === "coached"
+          ? { coachNotesAtStart: coachNotesPreference.current }
+          : {}),
         now: now(),
         repository,
-      });
+      }),
+    [createGameId, focusTheme, launch.mode, now, repository, targetElo],
+  );
+
+  const record = session?.record;
+  const currentMode =
+    mode === undefined || record === undefined ? mode : tutorGameMode(record);
+  useEffect(() => {
+    if (currentMode !== "coached" || !coachNotesEnabled || record === undefined)
+      return;
+    const timeout = window.setTimeout(() => {
+      const previous =
+        noteCache.current?.gameId === record.id ? noteCache.current : null;
+      if (previous === null) {
+        try {
+          const savedPly = Number(
+            localStorage.getItem(
+              `chesscue-rook-read:${noteScope}:${record.id}`,
+            ),
+          );
+          setReadCoachPly({
+            gameId: record.id,
+            ply: Number.isSafeInteger(savedPly) ? savedPly : 0,
+          });
+        } catch {
+          setReadCoachPly(null);
+        }
+      }
+      const moments = [
+        ...(previous?.moments ?? []),
+        ...savedCoachMoments(record, previous?.ply ?? 0),
+      ];
+      const found = { gameId: record.id, ply: record.moves.length, moments };
+      noteCache.current = found;
+      setCoachNotes(found);
+    }, 0);
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [coachNotesEnabled, currentMode, noteScope, record]);
+
+  const createNewGame = useCallback(
+    async (startNotice: string) => {
+      setSaving(true);
+      setSelected(null);
+      setPromotionTo(null);
+      setCoachNotesOpen(false);
+      const started = await start();
       setSaving(false);
       if (started.ok) {
         setSession(started.value);
@@ -177,7 +228,7 @@ export function PlayGameScreen({
         );
       }
     },
-    [createGameId, focusTheme, now, repository],
+    [start],
   );
 
   const requestCpu = useCallback(
@@ -185,17 +236,32 @@ export function PlayGameScreen({
       const abort = new AbortController();
       searchAbort.current = abort;
       setNotice("CPU thinking…");
-      const openingCandidates = focusOpeningCandidates({
-        focus: focusTheme,
-        fen: current.state.fen,
-        moves: current.state.moves.map(({ uci }) => uci),
-      });
+      const origin = current.record.origin;
+      const storedFocus =
+        origin.type === "tutor" ? origin.trainingFocus : undefined;
+      const openingCandidates =
+        origin.type === "tutor" && origin.mode === "rated"
+          ? []
+          : focusOpeningCandidates({
+              focus:
+                curriculumThemes.find((theme) => theme === storedFocus) ??
+                focusTheme,
+              ...(origin.type === "tutor" &&
+              origin.openingPolicyVersion !== undefined
+                ? { policyVersion: origin.openingPolicyVersion }
+                : {}),
+              fen: current.state.fen,
+              moves: current.state.moves.map(({ uci }) => uci),
+            });
       const reply = await requestCpuReply({
         session: current,
         engine,
         repository,
         positionId: createPositionId(),
-        targetElo,
+        targetElo:
+          origin.type === "tutor"
+            ? (origin.opponentElo ?? targetElo)
+            : targetElo,
         timeBudgetMs: 1200,
         ...(openingCandidates.length === 0
           ? {}
@@ -226,30 +292,29 @@ export function PlayGameScreen({
   );
 
   useEffect(() => {
+    if (!readyToStart) return;
     const abort = new AbortController();
     const isAborted = (): boolean => abort.signal.aborted;
     const bootstrap = async () => {
       const initializedPromise = engine.initialize(abort.signal);
-      const active = await repository.getLatestInProgress();
+      const requested =
+        launch.resumeGameId === undefined
+          ? ok(null)
+          : await repository.get(launch.resumeGameId);
+      const active = !requested.ok
+        ? requested
+        : requested.value !== null &&
+            requested.value.completedAt === null &&
+            tutorGameMode(requested.value) === launch.mode
+          ? requested
+          : await repository.getLatestInProgress(launch.mode);
       if (isAborted()) return;
       if (!active.ok) {
         setNotice("Your saved game could not be loaded. Try again.");
         return;
       }
       const started =
-        active.value === null
-          ? await startTutorGame({
-              id: createGameId(),
-              playerColor: "white",
-              curriculumVersion: "1.0.0",
-              configurationVersion: "1.0.0",
-              trainingFocus: focusTheme,
-              openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
-              now: now(),
-              repository,
-            })
-          : resumeTutorGame(active.value);
-      const initialized = await initializedPromise;
+        active.value === null ? await start() : resumeTutorGame(active.value);
       if (isAborted()) return;
       if (!started.ok) {
         setNotice(
@@ -260,6 +325,8 @@ export function PlayGameScreen({
         return;
       }
       setSession(started.value);
+      const initialized = await initializedPromise;
+      if (isAborted()) return;
       if (initialized.ok) {
         setEngineStatus("ready");
         if (started.value.state.phase === "cpu-turn") {
@@ -277,9 +344,21 @@ export function PlayGameScreen({
       abort.abort();
       searchAbort.current?.abort();
     };
-  }, [createGameId, engine, focusTheme, now, repository, requestCpu]);
+  }, [engine, launch, readyToStart, repository, requestCpu, start]);
 
-  const chooseSquare = async (square: Square) => {
+  function cancelPromotion() {
+    setPromotionTo(null);
+    setNotice("Your move");
+    requestAnimationFrame(() => {
+      boardStage.current
+        ?.querySelector<HTMLElement>('[aria-selected="true"]')
+        ?.focus();
+    });
+  }
+  const chooseSquare = async (
+    square: Square,
+    promotion?: "q" | "r" | "b" | "n",
+  ) => {
     if (
       session?.state.phase !== "player-turn" ||
       engineStatus !== "ready" ||
@@ -292,24 +371,35 @@ export function PlayGameScreen({
     if (selected === null) {
       if (piece?.color === "w") {
         setSelected(square);
-        setNotice(`${pieceName(piece.type)} selected on ${square}`);
+        setNotice(`${pieceNames[piece.type]} selected on ${square}`);
       }
       return;
     }
 
     if (piece?.color === "w") {
       setSelected(square);
-      setNotice(`${pieceName(piece.type)} selected on ${square}`);
+      setNotice(`${pieceNames[piece.type]} selected on ${square}`);
       return;
     }
 
+    if (
+      !promotion &&
+      game
+        .moves({ square: selected, verbose: true })
+        .some((move) => move.to === square && move.promotion)
+    ) {
+      setPromotionTo(square);
+      setNotice("Choose a promotion piece.");
+      return;
+    }
+    setPromotionTo(null);
     setSaving(true);
     const moved = await acceptPlayerMove({
       session,
       move: {
         from: selected,
         to: square,
-        ...(needsPromotion(game, selected, square) ? { promotion: "q" } : {}),
+        ...(promotion ? { promotion } : {}),
       },
       now: now(),
       repository,
@@ -367,79 +457,269 @@ export function PlayGameScreen({
     if (ready && session?.state.phase === "cpu-turn") await requestCpu(session);
   };
 
-  const game = new Chess(session?.state.fen);
   const active =
     session?.state.phase === "player-turn" &&
     engineStatus === "ready" &&
     !saving;
+  const enableCoach = async () => {
+    if (!active || currentMode !== "rated") return;
+    setSaving(true);
+    const joined = await bringInCoach(session, repository);
+    setSaving(false);
+    if (!joined.ok) {
+      setNotice("Coach could not join. Try again.");
+      return;
+    }
+    setSession(joined.value);
+    setCoachNotesOpen(false);
+    setNotice("Rook joined. Your move.");
+    onCoachJoined?.(joined.value.record.id);
+  };
+  const notes =
+    coachNotesEnabled && coachNotes !== null && coachNotes.gameId === record?.id
+      ? coachNotes.moments
+      : [];
+  const showRook = currentMode === "coached" && record !== undefined;
+  const latestCoachPly = notes.at(-1)?.ply ?? 0;
+  const unreadRook =
+    !coachNotesOpen &&
+    latestCoachPly >
+      (readCoachPly?.gameId === record?.id ? (readCoachPly?.ply ?? 0) : 0);
+  useEffect(() => {
+    const panel = rookPanel.current;
+    if (!coachNotesOpen || panel === null) return;
+    const { top, bottom } = panel.getBoundingClientRect();
+    if (top >= window.innerHeight - 75 || bottom <= 0) {
+      panel.scrollIntoView({ block: "nearest" });
+    }
+    panel
+      .querySelector<HTMLButtonElement>("button")
+      ?.focus({ preventScroll: true });
+  }, [coachNotesOpen]);
+  function toggleRook(open: boolean) {
+    if (record === undefined) return;
+    setCoachNotesOpen(open);
+    setReadCoachPly((previous) => ({
+      gameId: record.id,
+      ply: Math.max(
+        previous?.gameId === record.id ? previous.ply : 0,
+        latestCoachPly,
+      ),
+    }));
+    if (!open) {
+      window.requestAnimationFrame(() => {
+        rookToggle.current?.focus({ preventScroll: true });
+      });
+    }
+    try {
+      const key = `chesscue-rook-read:${noteScope}:${record.id}`;
+      const stored = Number(localStorage.getItem(key));
+      localStorage.setItem(
+        key,
+        String(
+          Math.max(Number.isSafeInteger(stored) ? stored : 0, latestCoachPly),
+        ),
+      );
+    } catch {
+      /* Read state is still available in the current game. */
+    }
+  }
+  const opponentElo =
+    record?.origin.type === "tutor"
+      ? (record.origin.opponentElo ?? targetElo)
+      : targetElo;
+
+  const beginner =
+    record?.origin.type === "tutor"
+      ? record.origin.beginnerOpponent !== undefined
+      : mode === "rated" && targetElo < STOCKFISH_ELO_FLOOR;
+  const opponentLabel = beginner
+    ? "Beginner CPU"
+    : currentMode === "rated" && placementCount !== null
+      ? "Placement CPU"
+      : String(opponentElo) + " Elo";
 
   return (
     <main className="play-shell">
       <header className="play-header">
         <div>
-          <p className="play-kicker">Focus game</p>
-          <h1>{focusTitle}</h1>
-          <p className="play-focus">{focus}</p>
-        </div>
-        <div
-          className="opponent-card"
-          aria-label={`Adaptive CPU rated ${targetElo.toString()}`}
-        >
-          <span>Adaptive CPU</span>
-          <strong>{targetElo}</strong>
+          <p className="play-kicker">
+            {currentMode === "rated"
+              ? "Unassisted"
+              : currentMode === "coached"
+                ? "Coached game · Unrated"
+                : "Focus game"}
+          </p>
+          <h1>
+            {currentMode === "rated"
+              ? "Rated game"
+              : currentMode === "coached"
+                ? "Play with Rook"
+                : focusTitle}
+          </h1>
+          {currentMode === "rated" && placementCount !== null && (
+            <p className="play-focus">
+              Placement game {placementCount + 1} of {PLACEMENT_GAMES}
+            </p>
+          )}
+          {currentMode !== "rated" && record?.coachJoinedAtPly === undefined ? (
+            <p className="play-focus">
+              {currentMode === "coached"
+                ? `Working on ${focusTitle.toLowerCase()}`
+                : focus}
+            </p>
+          ) : null}
+          {onChangeMode === undefined ? null : (
+            <button
+              type="button"
+              className="play-mode-link"
+              disabled={
+                saving ||
+                engineStatus === "starting" ||
+                (session?.state.phase === "cpu-turn" &&
+                  engineStatus === "ready")
+              }
+              onClick={onChangeMode}
+            >
+              Change game mode
+            </button>
+          )}
         </div>
       </header>
 
       <section className="game-layout" aria-label="Chess game">
-        <div>
-          <div className="turn-status" role="status" aria-live="polite">
-            <span
-              className={`status-dot status-${engineStatus}`}
-              aria-hidden="true"
+        <div className="play-board-stage" ref={boardStage}>
+          <div className="play-board-meta">
+            <div className="turn-status" role="status" aria-live="polite">
+              <span
+                className={`status-dot status-${engineStatus}`}
+                aria-hidden="true"
+              />
+              {notice}
+            </div>
+            <div
+              className="opponent-card"
+              aria-label={"Opponent: " + opponentLabel}
+            >
+              <span>Adaptive CPU</span>
+              <strong>{opponentLabel}</strong>
+            </div>
+          </div>
+          <ChessBoard
+            className="play-board"
+            fen={session?.state.fen}
+            label="Chess board, White side"
+            selectedSquare={selected}
+            disabled={!active || promotionTo !== null}
+            onSquareSelect={(square) => {
+              void chooseSquare(square);
+            }}
+          />
+          {active && promotionTo && (
+            <div
+              ref={promotionGroup}
+              className="play-promotion"
+              role="group"
+              aria-label="Choose promotion"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  cancelPromotion();
+                }
+              }}
+            >
+              <strong>Promote to</strong>
+              {(["q", "r", "b", "n"] as const).map((piece) => (
+                <button
+                  type="button"
+                  className="quiet-action"
+                  key={piece}
+                  onClick={() => {
+                    void chooseSquare(promotionTo, piece);
+                  }}
+                >
+                  {pieceNames[piece][0]?.toUpperCase()}
+                  {pieceNames[piece].slice(1)}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="quiet-action"
+                onClick={cancelPromotion}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          {session !== null ? (
+            <BoardBalance
+              fen={session.state.fen}
+              captures={session.state.captures}
+              position={
+                currentMode === "coached" && assessPosition !== null
+                  ? {
+                      assess: assessPosition,
+                      onDemand: true,
+                      available: active,
+                    }
+                  : undefined
+              }
             />
-            {notice}
-          </div>
-          <div
-            className="chessboard"
-            role="grid"
-            aria-label="Chess board, White side"
-          >
-            {BOARD_ROWS.map((row, rowIndex) => (
-              <div className="board-row" role="row" key={row[0]}>
-                {row.map((square, columnIndex) => {
-                  const piece = game.get(square);
-                  const dark = (rowIndex + columnIndex) % 2 === 1;
-                  return (
-                    <button
-                      type="button"
-                      role="gridcell"
-                      key={square}
-                      className={`board-square ${dark ? "square-dark" : "square-light"} ${selected === square ? "square-selected" : ""}`}
-                      aria-label={squareLabel(square, piece)}
-                      aria-selected={selected === square}
-                      disabled={!active}
-                      onClick={() => {
-                        void chooseSquare(square);
-                      }}
-                    >
-                      <span className="piece" aria-hidden="true">
-                        {pieceGlyph(piece)}
-                      </span>
-                      <span className="coordinate" aria-hidden="true">
-                        {square}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+          ) : null}
         </div>
 
+        {showRook ? (
+          <section
+            ref={rookPanel}
+            id="active-rook-chat"
+            className="rook-chat"
+            aria-label="Rook chat"
+            hidden={!coachNotesOpen}
+          >
+            {coachNotesOpen && (
+              <RookChat
+                key={record.id}
+                game={record}
+                moments={notes}
+                scope={noteScope}
+                observations={coachNotesEnabled}
+                onObservations={(enabled) => {
+                  coachNotesPreference.current = enabled;
+                  setCoachNotesEnabled(enabled);
+                  try {
+                    localStorage.setItem(
+                      "chesscue-coach-notes",
+                      enabled ? "on" : "off",
+                    );
+                  } catch {
+                    /* The current game can still use the setting. */
+                  }
+                }}
+                onClose={() => {
+                  toggleRook(false);
+                }}
+              />
+            )}
+          </section>
+        ) : null}
         <aside
           className="game-panel"
           aria-label="Game controls and move history"
         >
+          {currentMode === "rated" &&
+          session !== null &&
+          session.state.phase !== "completed" &&
+          session.state.phase !== "resigned" ? (
+            <button
+              type="button"
+              className="quiet-action coach-invitation"
+              disabled={!active}
+              onClick={() => {
+                void enableCoach();
+              }}
+            >
+              Continue unrated with Rook
+            </button>
+          ) : null}
           <div className="move-list">
             <div className="panel-heading">
               <span>Moves</span>
@@ -492,13 +772,23 @@ export function PlayGameScreen({
           )}
         </aside>
       </section>
+      {showRook && (
+        <RookLauncher
+          buttonRef={rookToggle}
+          open={coachNotesOpen}
+          unread={unreadRook}
+          speech={
+            notes.at(-1)?.title ??
+            "I’m here if you want to talk through a move."
+          }
+          storageKey={`chesscue-rook-position:${noteScope}`}
+          onToggle={() => {
+            toggleRook(!coachNotesOpen);
+          }}
+        />
+      )}
     </main>
   );
-}
-
-function needsPromotion(game: Chess, from: Square, to: Square): boolean {
-  const piece = game.get(from);
-  return piece?.type === "p" && (to.endsWith("8") || to.endsWith("1"));
 }
 
 function statusFor(session: PlaySession): string {
@@ -509,35 +799,4 @@ function statusFor(session: PlaySession): string {
   }
   if (session.state.phase === "resigned") return "Game resigned";
   return session.state.phase === "player-turn" ? "Your move" : "CPU thinking…";
-}
-
-function squareLabel(
-  square: Square,
-  piece: { readonly color: Color; readonly type: PieceSymbol } | undefined,
-): string {
-  if (piece === undefined) return `Empty ${square}`;
-  return `${piece.color === "w" ? "White" : "Black"} ${pieceName(piece.type)} on ${square}`;
-}
-
-function pieceName(piece: PieceSymbol): string {
-  const names: Record<PieceSymbol, string> = {
-    p: "pawn",
-    n: "knight",
-    b: "bishop",
-    r: "rook",
-    q: "queen",
-    k: "king",
-  };
-  return names[piece];
-}
-
-function pieceGlyph(
-  piece: { readonly color: Color; readonly type: PieceSymbol } | undefined,
-): string {
-  if (piece === undefined) return "";
-  const glyphs: Record<Color, Record<PieceSymbol, string>> = {
-    w: { k: "♔", q: "♕", r: "♖", b: "♗", n: "♘", p: "♙" },
-    b: { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" },
-  };
-  return glyphs[piece.color][piece.type];
 }

@@ -30,7 +30,9 @@ describe("review coaching preparation", () => {
       facts: {
         theme: "development",
         sourceGameIds: ["game-1"],
-        threatenedMove: "g1f3",
+        kind: "review",
+        bestMove: "g1f3",
+        playedMove: "g1f3",
         acceptableMoves: ["g1f3"],
         allowedNumbers: [],
       },
@@ -44,7 +46,7 @@ describe("review coaching preparation", () => {
           provenance: "on-device",
           value: {
             stepId: "explain-attempt",
-            prompt: "What did Nf3 improve?",
+            prompt: "Which options did you consider?",
             correctFeedback:
               "Nf3 develops a piece while keeping the position coordinated.",
             incorrectFeedback: "Try the move again.",
@@ -63,7 +65,9 @@ describe("review coaching preparation", () => {
         signal: new AbortController().signal,
       }),
     ).resolves.toEqual({
-      note: "Nf3 develops a piece while keeping the position coordinated.",
+      note:
+        request.step.fallbackCorrectFeedback +
+        " Which options did you consider?",
       provenance: "on-device",
       validationFailure: null,
     });

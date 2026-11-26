@@ -1,0 +1,114 @@
+.chess-board {
+  --board-ink: #192925;
+  width: min(100%, 44rem);
+  min-width: 0;
+  border: 3px solid #ac8e5b;
+  border-radius: 5px;
+  box-shadow:
+    0 0 0 4px #162921,
+    0 0 0 5px #a5895366,
+    var(--cue-shadow);
+}
+
+.chess-board__grid {
+  display: grid;
+  aspect-ratio: 1;
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  overflow: hidden;
+  border-radius: 2px;
+  container-type: inline-size;
+}
+
+.chess-board__row {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.chess-board__square {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: #ded7bb;
+  color: var(--board-ink);
+  line-height: 1;
+}
+
+.chess-board__square--dark {
+  background: #789988;
+}
+
+button.chess-board__square:not(:disabled) {
+  cursor: pointer;
+}
+
+.chess-board__square:disabled {
+  opacity: 1;
+}
+
+.chess-board__square:focus-visible {
+  z-index: 2;
+  outline: 3px solid #285842;
+  outline-offset: -3px;
+}
+
+.chess-board__square--highlighted:not(.chess-board__square--focus)::after {
+  position: absolute;
+  inset: 8%;
+  border: 3px solid #8d472e;
+  border-radius: 4px;
+  content: "";
+  pointer-events: none;
+}
+
+.chess-board__square--target::before {
+  position: absolute;
+  z-index: 1;
+  width: 22%;
+  aspect-ratio: 1;
+  border: 1px solid #f7efda;
+  border-radius: 50%;
+  background: #285842;
+  content: "";
+  pointer-events: none;
+}
+
+.chess-board__piece {
+  font-family: var(--cue-chess-font);
+  font-size: 10.2cqw;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.chess-board__piece--white {
+  color: #fff2d4;
+  -webkit-text-stroke: clamp(1.3px, 0.45cqw, 2.7px) var(--board-ink);
+  paint-order: stroke fill;
+}
+
+.chess-board__coordinate {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font-size: clamp(0.45rem, 2.1cqw, 0.68rem);
+  font-weight: 800;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .chess-board__coordinate {
+    display: none;
+  }
+}
+
+.chess-board__square--focus {
+  box-shadow:
+    inset 0 0 0 3px #ffc86a,
+    inset 0 0 0 5px #49330d;
+}

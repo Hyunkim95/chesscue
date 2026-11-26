@@ -23,6 +23,7 @@
     "vitest.config.ts",
     "vitest.integration.config.ts",
     "playwright.config.ts",
+    "extension/**/*.ts",
     "eslint.config.js",
     "tools",
     "firebase/tests"

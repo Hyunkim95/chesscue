@@ -14,6 +14,10 @@ ChessCue redistributes Stockfish 19 Lite as a separate Web Worker build.
 
 The public repository contains the corresponding integration source and the exact redistributed asset checksums.
 
+## Chess positions and game scores
+
+The generated starter material includes positions sourced from the [Lichess open puzzle database](https://database.lichess.org/#puzzles) and scores from the [PGN Mentor archive mirrored by ChessData](https://github.com/rozim/ChessData/tree/master/PgnMentor). Each item carries its source reference. The demo PGN preserves the original game headers and moves. Gemini authored the questions and selected evidence for display. Stockfish evaluated the positions.
+
 ## Fonts
 
 DM Sans and Newsreader are distributed through Fontsource packages under the SIL Open Font License 1.1.

@@ -1,0 +1,87 @@
+name: Sync puzzle library
+
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: chesscue-puzzle-library
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GEMINI_API_KEY: ${{ secrets.LIBRARY_GEMINI_API_KEY }}
+      LIBRARY_FIREBASE_PROJECT: ${{ vars.LIBRARY_FIREBASE_PROJECT }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check publisher configuration
+        id: config
+        env:
+          PUBLISHER: ${{ secrets.LIBRARY_FIRESTORE_SERVICE_ACCOUNT }}
+          PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+        run: |
+          if [[ -n "$LIBRARY_FIREBASE_PROJECT" && -n "$PUBLISHER" && -n "$PROVIDER" ]]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '::notice::Puzzle publication is waiting for the Firestore publisher configuration.'
+          fi
+          if [[ -n "$GEMINI_API_KEY" ]]; then
+            echo 'gemini=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '::notice::Incremental puzzle generation is waiting for LIBRARY_GEMINI_API_KEY.'
+          fi
+      - if: steps.config.outputs.ready == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - if: steps.config.outputs.ready == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.config.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Authenticate the library publisher
+        id: auth
+        if: steps.config.outputs.ready == 'true'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.LIBRARY_FIRESTORE_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: false
+      - name: Archive submitted games and verify puzzle candidates
+        if: steps.config.outputs.ready == 'true'
+        env:
+          LIBRARY_FIRESTORE_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: node scripts/material/mine-submissions.mjs
+      - name: Publish the verified starter library if needed
+        if: steps.config.outputs.ready == 'true'
+        env:
+          LIBRARY_FIRESTORE_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: node scripts/material/publish-seed.mjs scripts/material/library-seed.generated.json
+      - name: Verify and publish next Lichess batch
+        if: steps.config.outputs.ready == 'true' && steps.config.outputs.gemini == 'true'
+        env:
+          LIBRARY_FIRESTORE_TOKEN: ${{ steps.auth.outputs.access_token }}
+        shell: bash
+        run: |
+          set +e
+          curl --fail --silent --show-error --max-time 720 https://database.lichess.org/lichess_db_puzzle.csv.zst |
+            zstd --quiet --decompress --stdout |
+            node scripts/material/sync-library.mjs
+          statuses=("${PIPESTATUS[@]}")
+          # The bounded importer can close the pipe before the full dump is consumed.
+          if [[ "${statuses[2]}" -ne 0 ]]; then exit "${statuses[2]}"; fi
+          if [[ "${statuses[0]}" -eq 0 && "${statuses[1]}" -eq 0 ]]; then exit 0; fi
+          if [[ "${statuses[0]}" -eq 23 && ( "${statuses[1]}" -eq 70 || "${statuses[1]}" -eq 141 ) ]]; then exit 0; fi
+          exit 1

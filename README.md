@@ -60,3 +60,21 @@ The Firestore rules integration suite additionally requires Java 21 and the Fire
 Apache-2.0. See [LICENSE](LICENSE).
 
 Third-party components retain their own licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Account sync
+
+Account uses Google sign-in and displays the provider name and email. Enable Google in Firebase Authentication, authorize the hosting domain, and deploy the repository's Firestore rules for the target project. Hosting allows the configured ChessCue Firebase auth iframe and the Google popup. Set the auth iframe origin in `firebase.json` when targeting another project.
+
+Run the two-browser account journey and SLO-007 emulator workload with Java 21 and Chromium installed:
+
+```sh
+pnpm exec firebase emulators:exec --only auth,firestore --project demo-chesscue-account 'VITE_ACCOUNT_EMULATORS=true pnpm exec playwright test tests/e2e/account'
+```
+
+## Desktop Chrome extension
+
+Run `pnpm build:extension`, open `chrome://extensions`, enable Developer mode, and choose **Load unpacked**. Select `extension/dist`. Click the ChessCue toolbar icon to play in the Chrome side panel. On a finished Lichess game, **Practise this game** opens its Stockfish review alongside the game. If you are viewing someone else's game or playing anonymously, choose the side to review. Previously imported games can be reopened from ChessCue offline. The extension has its own local history.
+
+For a hackathon cloud demo, configure the Firebase web variables in `.env.local` and set `VITE_FIREBASE_APP_CHECK_DEBUG=true` before building. In the dedicated demo Chrome profile, open a review, then register the Firebase-generated debug token from the extension page's DevTools console under **Firebase Console → App Check → web app → Manage debug tokens**. Keep the token private and revoke it after filming. Registration is per profile and extension ID. Production attestation for a public store release remains outstanding. In review, try a move and expand **Why this matters** to see the coaching source.
+
+`pnpm test:extension` builds the unpacked extension and tests the Lichess handoff, repeat visits, active-game rejection and offline play using Chromium.

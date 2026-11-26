@@ -1,5 +1,12 @@
 import "fake-indexeddb/auto";
 
+import { loadAdaptiveProfile } from "../../app/adaptive-profile";
+import {
+  availableGuestGames,
+  copyGuestGames,
+  guestHistory,
+  PlayerHistory,
+} from "./player-history";
 import { openDB } from "idb";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -146,6 +153,85 @@ const track = <
 };
 
 describe("adaptive IndexedDB records", () => {
+  it("counts independently imported copies of a PGN once and retains evidence from both IDs", async () => {
+    const name = createDatabaseName();
+    const games = track(new IndexedDbGameRepository(name));
+    const analyses = track(new IndexedDbAnalysisRepository(name));
+    const reviews = track(new IndexedDbReviewEvidenceRepository(name));
+    const original = {
+      ...gameRecord("a"),
+      origin: { type: "pgn-paste" } as const,
+      fingerprint: "same-fingerprint",
+    };
+    const duplicate = { ...original, id: gameRecord("b").id };
+    await games.put(original);
+    await games.put(duplicate);
+    await analyses.put(analysisRecord("a"));
+    await reviews.put({
+      ...reviewEvidence("review-b", "b"),
+      theme: "development",
+    });
+    expect(await games.listCompleted()).toEqual({
+      ok: true,
+      value: [original],
+    });
+    expect(await games.listCompletedSources()).toEqual({
+      ok: true,
+      value: [original, duplicate],
+    });
+    const merged = await loadAdaptiveProfile({
+      games,
+      analyses,
+      reviews,
+      initialTargetElo: 1450,
+      curriculumVersion: "1.0.0",
+      computedAt: "2026-11-25T12:00:00.000Z",
+    });
+    if (!merged.ok) throw new Error(merged.error);
+    expect(merged.value.contributingGames).toEqual({ import: 1, tutor: 0 });
+    expect(merged.value.profile.mastery.development.evidenceCount).toBe(2);
+    expect(merged.value.profile.strength.targetElo).toBe(1450);
+  });
+
+  it("resumes a reserved guest copy after reload and isolates a conflicting game", async () => {
+    const local = guestHistory;
+    const owner = new PlayerHistory(crypto.randomUUID());
+    for (const history of [local, owner]) {
+      track(history.games);
+      track(history.analyses);
+      track(history.reviews);
+      databaseNames.push(history.name);
+    }
+    const first = gameRecord("first"),
+      second = gameRecord("second");
+    await local.games.put(first);
+    await local.games.put(second);
+    await owner.games.put({ ...first, result: "draw" });
+    const db = await openChessTutorDatabase(local.name);
+    await db.put(
+      "guestClaims",
+      { uid: owner.uid ?? "", copied: false },
+      second.id,
+    );
+    db.close();
+    expect((await availableGuestGames("another")).map((g) => g.id)).toEqual([
+      first.id,
+    ]);
+    expect(
+      await copyGuestGames(owner, await availableGuestGames(owner.uid ?? "")),
+    ).toEqual([first.id]);
+    expect(await owner.games.get(second.id)).toEqual({
+      ok: true,
+      value: second,
+    });
+    expect(await owner.games.get(first.id)).toEqual({
+      ok: true,
+      value: { ...first, result: "draw" },
+    });
+    expect(await local.games.get(first.id)).toEqual({ ok: true, value: first });
+    expect(await availableGuestGames("another")).toEqual([]);
+  });
+
   it("returns only the newest unfinished tutor game for resume", async () => {
     const repository = track(new IndexedDbGameRepository(createDatabaseName()));
     const older: GameRecord = {
@@ -225,12 +311,16 @@ describe("adaptive IndexedDB records", () => {
     });
 
     const database = await openChessTutorDatabase(databaseName);
-    expect([...database.objectStoreNames]).toEqual([
+    const storeNames = [...database.objectStoreNames];
+    database.close();
+    expect(storeNames).toEqual([
       "analyses",
       "games",
+      "guestClaims",
       "reviewEvidence",
+      "reviewMistakes",
+      "syncReceipts",
     ]);
-    database.close();
   });
 
   it("keeps analysis versions immutable, idempotent, and listable for recomputation", async () => {

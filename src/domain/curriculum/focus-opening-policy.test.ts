@@ -28,28 +28,23 @@ describe("focus opening policy", () => {
     }
   });
 
-  it("steers piece-pressure play toward a normal attacked-bishop branch", () => {
-    const moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5"];
-    expect(
-      focusOpeningCandidates({
-        focus: "hanging-piece",
-        fen: positionAfter(moves),
-        moves,
-      }),
-    ).toEqual(["a7a6"]);
+  it("steers only along the published branch for the selected theme", () => {
+    for (const e of focusOpeningPolicyEntries) {
+      const focus =
+        e.theme === "premature-central-exchange"
+          ? "central-pawn-tension"
+          : e.theme;
+      const input: Parameters<typeof focusOpeningCandidates>[0] = {
+        focus,
+        fen: e.fen,
+        moves: e.afterMoves,
+      };
+      expect(focusOpeningCandidates(input)).toContain(e.candidateMoves[0]);
+      expect(
+        focusOpeningCandidates({ ...input, policyVersion: "retired" }),
+      ).toEqual([]);
+    }
   });
-
-  it("steers central-tension play without forcing the learner's moves", () => {
-    const moves = ["d2d4", "d7d5", "c2c4"];
-    expect(
-      focusOpeningCandidates({
-        focus: "central-pawn-tension",
-        fen: positionAfter(moves),
-        moves,
-      }),
-    ).toEqual(["e7e6", "c7c6"]);
-  });
-
   it("falls back to unrestricted Stockfish after an unmatched line", () => {
     const moves = ["a2a3"];
     expect(

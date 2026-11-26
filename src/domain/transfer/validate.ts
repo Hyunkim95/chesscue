@@ -1,13 +1,12 @@
 import { Chess, type Square } from "chess.js";
 
 import type {
-  CuratedTransferExercise,
+  VerifiedTransferExercise,
   TransferExerciseValidation,
 } from "./types";
 
 const UCI_PATTERN = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
-const UNLABELED_PROMPT = "What would you play here?";
 
 const isSquare = (value: string): value is Square => /^[a-h][1-8]$/.test(value);
 
@@ -50,11 +49,19 @@ const legalVariation = (fen: string, moves: readonly string[]): boolean => {
   }
 };
 
+// FEN move counters do not make a fresh transfer position.
+export function sameTransferPosition(left: string, right: string) {
+  return (
+    left.split(" ").slice(0, 4).join(" ") ===
+    right.split(" ").slice(0, 4).join(" ")
+  );
+}
+
 const unique = (values: readonly string[]): boolean =>
   new Set(values).size === values.length;
 
-export const validateCuratedTransferExercise = (
-  input: CuratedTransferExercise,
+export const validateGeneratedTransferExercise = (
+  input: VerifiedTransferExercise,
 ): TransferExerciseValidation => {
   if (input.schemaVersion !== 1 || !VERSION_PATTERN.test(input.version)) {
     return { ok: false, reason: "Exercise schema or version is invalid." };
@@ -62,7 +69,12 @@ export const validateCuratedTransferExercise = (
   if (input.id.trim().length === 0 || input.prompt.trim().length === 0) {
     return { ok: false, reason: "Exercise identity and prompt are required." };
   }
-  if (input.difficulty === "unlabeled" && input.prompt !== UNLABELED_PROMPT) {
+  if (
+    input.difficulty === "unlabeled" &&
+    /mate|rook|pawn|king|bishop|knight|queen|check|capture|fork|castle|defend|exchange|develop|attack/i.test(
+      input.prompt,
+    )
+  ) {
     return {
       ok: false,
       reason: "Unlabeled exercises must use the neutral prompt.",
@@ -88,9 +100,15 @@ export const validateCuratedTransferExercise = (
   }
   if (
     input.verification.engine !== "Stockfish 19 Lite WASM" ||
-    input.verification.moveTimeMs !== 700 ||
-    input.verification.multiPv !== 3 ||
-    input.verification.verifiedAt !== "2026-11-24" ||
+    !Number.isInteger(input.verification.moveTimeMs) ||
+    input.verification.moveTimeMs <= 0 ||
+    !Number.isInteger(input.verification.multiPv) ||
+    input.verification.multiPv < 1 ||
+    input.verification.multiPv > 5 ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(input.verification.verifiedAt) ||
+    !input.authorship.runId ||
+    !/^[a-f0-9]{64}$/.test(input.authorship.responseHash) ||
+    !/^[a-f0-9]{64}$/.test(input.source.sourceHash) ||
     input.verification.toleranceCp < 0
   ) {
     return { ok: false, reason: "Stockfish verification metadata is invalid." };
@@ -122,6 +140,17 @@ export const validateCuratedTransferExercise = (
       reason:
         "Verified principal variation must be legal and start with the best move.",
     };
+  }
+  if (input.theme === "one-move-threat") {
+    const mates = new Chess(input.fen)
+      .moves({ verbose: true })
+      .filter((move) => move.san.endsWith("#"));
+    if (
+      mates.length &&
+      (mates.length !== input.acceptableMoves.length ||
+        mates.some((m) => !input.acceptableMoves.includes(m.lan)))
+    )
+      return { ok: false, reason: "All legal mates in one must be accepted." };
   }
   for (const acceptable of input.acceptableMoves) {
     const candidate = candidates.find(({ uci }) => uci === acceptable);

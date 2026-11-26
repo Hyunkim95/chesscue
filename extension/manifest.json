@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "ChessCue",
+  "version": "0.1.0",
+  "description": "Explore moves with Rook, an on-device chess coach for completed Lichess games.",
+  "action": {
+    "default_title": "Open ChessCue",
+    "default_icon": "chesscue.png"
+  },
+  "host_permissions": ["https://lichess.org/*"],
+  "background": {
+    "service_worker": "action.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://lichess.org/*"],
+      "js": ["lichess-page.js"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  },
+  "icons": {
+    "128": "chesscue.png"
+  },
+  "permissions": ["sidePanel"],
+  "minimum_chrome_version": "116",
+  "side_panel": {
+    "default_path": "index.html?panel=1"
+  }
+}

@@ -90,7 +90,10 @@ const mapProvenance = (
 
 const buildPrompt = (request: LessonContentRequest): string => {
   const prompt = JSON.stringify({
-    instruction: "Fill only the bounded lesson content slots for this step.",
+    instruction:
+      "kind" in request.facts
+        ? "Author a short open-ended reflection question in the prompt field about the learner’s reasoning. Write no move notation or square names in the question. Moves and evaluation are rendered independently from the supplied engine facts."
+        : "Fill only the bounded lesson content slots for this step.",
     playbook: {
       id: request.playbookId,
       version: request.playbookVersion,
@@ -104,8 +107,15 @@ const buildPrompt = (request: LessonContentRequest): string => {
     allowedFacts: {
       theme: request.facts.theme,
       fen: request.facts.fen,
-      endangeredSquare: request.facts.endangeredSquare,
-      threatenedMove: request.facts.threatenedMove,
+      ...("kind" in request.facts
+        ? {
+            playedMove: request.facts.playedMove,
+            bestMove: request.facts.bestMove,
+          }
+        : {
+            endangeredSquare: request.facts.endangeredSquare,
+            threatenedMove: request.facts.threatenedMove,
+          }),
       acceptableMoves: request.facts.acceptableMoves,
       reasonCodes: request.facts.reasonCodes,
       transferMoves: request.facts.transferMoves,

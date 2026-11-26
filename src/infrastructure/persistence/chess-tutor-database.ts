@@ -5,12 +5,19 @@ import type { ReviewEvidenceRecord } from "../../application/ports/review-eviden
 import type { LearningTheme } from "../../domain/analysis/types";
 import type { GameRecord } from "../../domain/game/types";
 
-export const DATABASE_VERSION = 2;
+import type { ReviewMistake } from "../../domain/analysis/review-mistake";
+
+export const DATABASE_VERSION = 4;
 export const GAME_STORE = "games";
 export const ANALYSIS_STORE = "analyses";
 export const REVIEW_EVIDENCE_STORE = "reviewEvidence";
 
 export interface ChessTutorDatabase extends DBSchema {
+  guestClaims: { key: string; value: { uid: string; copied: boolean } };
+  syncReceipts: {
+    key: string;
+    value: { queuedAt: number; acknowledgedAt: number | null };
+  };
   games: {
     key: string;
     value: GameRecord;
@@ -20,6 +27,7 @@ export interface ChessTutorDatabase extends DBSchema {
     value: AnalysisRecord;
     indexes: { "by-game-id": string };
   };
+  reviewMistakes: { key: string; value: ReviewMistake };
   reviewEvidence: {
     key: string;
     value: ReviewEvidenceRecord;
@@ -41,6 +49,13 @@ export const openChessTutorDatabase = (
 ): Promise<IDBPDatabase<ChessTutorDatabase>> =>
   openDB<ChessTutorDatabase>(databaseName, DATABASE_VERSION, {
     upgrade(database, oldVersion) {
+      if (oldVersion < 4) {
+        database.createObjectStore("reviewMistakes", { keyPath: "id" });
+      }
+      if (oldVersion < 3) {
+        database.createObjectStore("guestClaims");
+        database.createObjectStore("syncReceipts");
+      }
       if (oldVersion < 1 && !database.objectStoreNames.contains(GAME_STORE)) {
         database.createObjectStore(GAME_STORE, { keyPath: "id" });
       }

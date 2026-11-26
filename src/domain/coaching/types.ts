@@ -14,7 +14,13 @@ export interface LessonContentRequest {
   readonly playbookId: string;
   readonly playbookVersion: string;
   readonly step: LessonStepDefinition;
-  readonly facts: LessonFactPacket;
+  readonly facts:
+    | LessonFactPacket
+    | (Omit<LessonFactPacket, "endangeredSquare" | "threatenedMove"> & {
+        readonly kind: "review";
+        readonly bestMove: string;
+        readonly playedMove: string;
+      });
 }
 
 export type CoachingProvenance = "on-device" | "cloud" | "deterministic";

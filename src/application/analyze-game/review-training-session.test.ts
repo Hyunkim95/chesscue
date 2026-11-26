@@ -1,3 +1,4 @@
+import { generatedMove } from "../../test/generated-position";
 import { describe, expect, it } from "vitest";
 
 import type { MoveAnalysisFact } from "../../domain/analysis/types";
@@ -82,9 +83,15 @@ describe("review training session", () => {
       original,
       "2026-11-24T12:00:00.000Z",
     );
-    const closeScored = commitCloseMove(close, "h5f7");
+    const closeScored = commitCloseMove(
+      close,
+      generatedMove("one-move-threat", "close").move.lan,
+    );
     const unlabeled = continueAfterCloseFeedback(closeScored);
-    const unlabeledScored = commitUnlabeledMove(unlabeled, "e1e8");
+    const unlabeledScored = commitUnlabeledMove(
+      unlabeled,
+      generatedMove("one-move-threat", "unlabeled").move.lan,
+    );
     const completed = completeAfterUnlabeled(
       unlabeledScored,
       "2026-11-24T12:00:00.000Z",
@@ -146,7 +153,10 @@ describe("review training session", () => {
       original,
       "2026-11-24T12:00:00.000Z",
     );
-    const closeScored = commitCloseMove(close, "h5f7");
+    const closeScored = commitCloseMove(
+      close,
+      generatedMove("one-move-threat", "close").move.lan,
+    );
     const completed = completeAfterCloseFeedback(
       closeScored,
       "2026-11-24T12:00:00.000Z",
@@ -175,7 +185,10 @@ describe("review training session", () => {
       commitOriginalMove(originalRetry, "d2d4"),
       "2026-11-24T12:00:00.000Z",
     );
-    const closeFeedback = commitCloseMove(close, "h5g5");
+    const closeFeedback = commitCloseMove(
+      close,
+      generatedMove("one-move-threat", "close", false).move.lan,
+    );
     expect(retryCurrentMove(closeFeedback)).toMatchObject({
       stage: "close-move",
       closeScore: null,

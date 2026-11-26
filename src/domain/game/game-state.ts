@@ -2,6 +2,7 @@ import { Chess, type Color, type Square } from "chess.js";
 
 import type { Result } from "../../shared/result/result";
 import { err, ok } from "../../shared/result/result";
+import { collectCapture, type BoardCapture } from "./board-balance";
 import type { GameRecord, GameResult, RecordedMove } from "./types";
 
 export type GamePhase = "player-turn" | "cpu-turn" | "completed" | "resigned";
@@ -11,6 +12,7 @@ export interface GameState {
   readonly fen: string;
   readonly pgn: string;
   readonly moves: readonly RecordedMove[];
+  readonly captures: readonly BoardCapture[];
   readonly playerColor: Color;
   readonly phase: GamePhase;
   readonly result: GameResult | null;
@@ -50,6 +52,7 @@ export function createGameState(
       fen: game.fen(),
       pgn: game.pgn(),
       moves: [],
+      captures: [],
       playerColor,
       phase: game.turn() === playerColor ? "player-turn" : "cpu-turn",
       result: null,
@@ -77,10 +80,12 @@ export function restoreGameState(
   }
   try {
     const game = new Chess(record.initialFen);
+    let captures: readonly BoardCapture[] = [];
     for (const [index, recorded] of record.moves.entries()) {
       const parsed = parseUciMove(recorded.uci);
       if (!parsed.ok) return parsed;
       const applied = game.move(parsed.value);
+      captures = collectCapture(captures, applied);
       if (
         recorded.ply !== index + 1 ||
         applied.san !== recorded.san ||
@@ -104,6 +109,7 @@ export function restoreGameState(
       fen: game.fen(),
       pgn: game.pgn(),
       moves: [...record.moves],
+      captures,
       playerColor,
       phase: game.turn() === playerColor ? "player-turn" : "cpu-turn",
       result: null,
@@ -180,6 +186,7 @@ function applyMove(
     fen: game.fen(),
     pgn: game.pgn(),
     moves: [...state.moves, recordedMove],
+    captures: collectCapture(state.captures, applied),
     phase:
       result === null
         ? game.turn() === state.playerColor

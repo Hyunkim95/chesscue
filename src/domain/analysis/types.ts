@@ -34,7 +34,7 @@ export const moveAnalysisFactSchema = z
     playedMoveSan: z.string().min(1).max(24),
     evaluationBeforeCp: z.number().int().min(-100_000).max(100_000),
     evaluationAfterCp: z.number().int().min(-100_000).max(100_000),
-    impactCp: z.number().int().min(0).max(100_000),
+    impactCp: z.number().int().min(0).max(200_000),
     phase: z.enum(["opening", "middlegame", "endgame"]),
     theme: learningThemeSchema,
     recurrence: z.number().int().min(0).max(100),

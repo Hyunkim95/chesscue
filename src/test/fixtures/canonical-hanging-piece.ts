@@ -1,4 +1,4 @@
-import type { LessonFactPacket } from "./types";
+import type { LessonFactPacket } from "../../domain/lessons/types";
 
 export const canonicalHangingPieceFacts: LessonFactPacket = Object.freeze({
   packetId: "canonical-hanging-piece-ruy-lopez",

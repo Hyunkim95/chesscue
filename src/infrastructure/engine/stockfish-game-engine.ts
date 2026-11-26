@@ -4,6 +4,7 @@ import type {
   EngineMoveRequest,
   GameEngine,
 } from "../../application/ports/game-engine";
+import { ratedOpponentElo } from "../../domain/game/rating";
 import type { Result } from "../../shared/result/result";
 import { err, ok } from "../../shared/result/result";
 
@@ -36,8 +37,6 @@ interface PendingSearch {
 }
 
 const DEFAULT_ASSET_URL = "/stockfish/stockfish-19-lite-single.js";
-const MIN_STOCKFISH_ELO = 1320;
-const MAX_STOCKFISH_ELO = 3190;
 const UCI_MOVE_PATTERN = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
 
 export class StockfishGameEngine implements GameEngine {
@@ -128,10 +127,7 @@ export class StockfishGameEngine implements GameEngine {
       };
       request.signal.addEventListener("abort", onAbort, { once: true });
 
-      const targetElo = Math.max(
-        MIN_STOCKFISH_ELO,
-        Math.min(MAX_STOCKFISH_ELO, request.targetElo),
-      );
+      const targetElo = ratedOpponentElo(request.targetElo);
       worker.postMessage("setoption name UCI_LimitStrength value true");
       worker.postMessage(
         `setoption name UCI_Elo value ${targetElo.toString()}`,

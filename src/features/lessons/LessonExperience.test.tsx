@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { hangingPiecePlaybook } from "../../domain/lessons/hanging-piece";
-import { hangingPieceFacts } from "../../domain/lessons/lesson-test-fixtures";
+import { hangingPiecePlaybook } from "../../test/fixtures/hanging-piece";
+import { hangingPieceFacts } from "../../test/fixtures/lesson-test-fixtures";
 import type { LessonRun } from "../../domain/lessons/types";
 import type { LessonContentProvider } from "../../infrastructure/ai/lesson-content-provider";
 import { LessonExperience } from "./LessonExperience";
@@ -94,7 +94,7 @@ describe("LessonExperience", () => {
     answerCurrentStep("a1");
 
     expect(
-      screen.getByRole("heading", { name: "Reset the threat scan" }),
+      screen.getByRole("heading", { name: "Review this lesson" }),
     ).toBeVisible();
     expect(screen.getByText("Still in your plan")).toBeVisible();
     fireEvent.click(
@@ -118,7 +118,7 @@ describe("LessonExperience", () => {
     }
 
     expect(
-      screen.getByRole("heading", { name: "You spotted the loose piece" }),
+      screen.getByRole("heading", { name: "Lesson complete" }),
     ).toBeVisible();
     expect(screen.getByText("Your next game")).toBeVisible();
     expect(

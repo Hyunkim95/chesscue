@@ -1,0 +1,313 @@
+.study-shell {
+  max-width: 72rem;
+}
+.study-shell h1 {
+  font: 600 clamp(2.25rem, 5vw, 3.5rem)/1.1 var(--cue-display);
+  margin: 0.3rem 0 1.3rem;
+}
+.study-shell h2 {
+  font: 600 1.8rem/1.15 var(--cue-display);
+  margin: 0 0 0.75rem;
+}
+.study-shell h3 {
+  font: 600 1.32rem/1.15 var(--cue-display);
+  margin: 0.3rem 0;
+}
+.study-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: start;
+}
+.study-workbench {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr);
+}
+.study-panel {
+  padding: clamp(1rem, 3vw, 1.8rem);
+  background: var(--cue-paper);
+  border: 1px solid var(--cue-line);
+  border-radius: 10px;
+}
+.study-shell p {
+  line-height: 1.45;
+  color: var(--cue-muted);
+}
+.study-shell label {
+  display: grid;
+  gap: 0.45rem;
+  font-weight: 650;
+  margin: 1rem 0;
+}
+.study-shell select,
+.study-shell textarea {
+  font: inherit;
+  padding: 0.7rem 0.8rem;
+  width: 100%;
+  color: var(--cue-ink);
+  background: var(--cue-canvas);
+  border: 1px solid var(--cue-line);
+  border-radius: 5px;
+}
+.study-shell textarea {
+  resize: vertical;
+}
+.study-shell a,
+.study-back {
+  color: var(--cue-gold);
+}
+.study-back {
+  border: 0;
+  padding: 0.4rem 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+.study-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin: 0.8rem 0;
+}
+.study-actions .primary-link,
+.study-panel > .primary-link {
+  margin: 0;
+}
+.study-lessons {
+  padding-left: 1.6rem;
+}
+.study-lessons li {
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--cue-line);
+}
+.study-lessons li::marker {
+  color: var(--cue-gold);
+}
+.study-lessons p {
+  margin: 0.5rem 0;
+}
+.study-saved {
+  margin-top: 1.5rem;
+}
+.study-saved button {
+  margin: 0.4rem 0.4rem 0 0;
+}
+.study-board {
+  min-width: 0;
+}
+.study-board .chess-board {
+  max-width: 100%;
+}
+.study-shell button:focus-visible,
+.study-shell textarea:focus-visible,
+.study-shell select:focus-visible {
+  outline: 2px solid var(--cue-gold);
+  outline-offset: 2px;
+}
+@media (max-width: 740px) {
+  .study-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .study-shell h1 {
+    margin-bottom: 0.7rem;
+  }
+}
+
+.study-preview {
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  max-width: 23rem;
+  margin: 1rem auto;
+}
+.study-preview .chess-board {
+  width: 100%;
+}
+.study-preview .primary-link {
+  margin: 0;
+}
+.study-lessons small {
+  color: var(--cue-gold);
+}
+
+@media (max-width: 740px) and (max-height: 650px) {
+  .study-preview {
+    max-width: 12rem;
+    margin: 0.5rem auto;
+    gap: 0.5rem;
+  }
+}
+
+.historical-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 1rem;
+  overflow-wrap: anywhere;
+}
+.historical-sources p {
+  width: 100%;
+  margin: 0;
+}
+
+.skill-challenge-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+.skill-challenge-list li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--cue-line);
+}
+.skill-challenge-list li > div {
+  min-width: 0;
+}
+.skill-challenge-list h3 {
+  font: 600 1.2rem/1.15 var(--cue-display);
+  margin: 0 0 0.2rem;
+}
+.skill-challenge-list p {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--cue-muted);
+}
+.skill-challenge-list button {
+  margin: 0;
+  flex-shrink: 0;
+  min-height: 44px;
+  min-width: 76px;
+  padding: 0.55rem 0.8rem;
+}
+.skill-study-options {
+  border-top: 1px solid var(--cue-line);
+  font-size: 0.82rem;
+  color: var(--cue-muted);
+}
+.skill-study-options summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: list-item;
+  align-content: center;
+}
+.skill-study-options > a {
+  display: block;
+  margin: 0.5rem 0;
+}
+.skill-study-options label {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.skill-study-options select {
+  max-width: 100%;
+  font: inherit;
+  padding: 0.5rem;
+  color: var(--cue-ink);
+  background: var(--cue-canvas);
+  border: 1px solid var(--cue-line);
+}
+@media (max-width: 420px) {
+  .skill-challenge-list li {
+    gap: 0.6rem;
+    padding: 0.65rem 0;
+  }
+  .skill-challenge-list h3 {
+    font-size: 1.1rem;
+  }
+  .skill-detail {
+    padding: 0.85rem 1rem;
+  }
+}
+
+.personal-position-picker {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.personal-position-picker label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--cue-muted);
+}
+.personal-position-picker select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  background: var(--cue-canvas);
+  color: var(--cue-ink);
+  border: 1px solid var(--cue-line);
+  font: inherit;
+  padding: 0.5rem;
+}
+.personal-position-picker > button {
+  justify-self: start;
+  margin: 0.25rem 0;
+}
+
+.study-sidebar {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.study-connection {
+  border-top: 2px solid var(--cue-gold);
+}
+.study-connection h3 {
+  margin: 0;
+}
+.study-connection small {
+  display: block;
+  color: var(--cue-muted);
+  margin-top: 0.35rem;
+}
+.study-connection p {
+  margin: 0.5rem 0 0;
+}
+.study-connection strong {
+  color: var(--cue-ink);
+}
+.study-connection p + h3 {
+  margin-top: 1.25rem;
+}
+
+.study-shell label.study-origin-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+@media (max-width: 740px) {
+  .study-workbench:has(.study-connection) .study-board,
+  .study-workbench:has(.study-connection) .study-sidebar {
+    display: contents;
+  }
+  .study-workbench:has(.study-connection) .chess-board {
+    order: -2;
+  }
+  .study-workbench .study-connection {
+    order: -1;
+  }
+}
+
+.study-move-link {
+  border: 0;
+  padding: 0.25rem 0.15rem;
+  background: transparent;
+  color: var(--cue-gold);
+  font: inherit;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.historical-study .study-shell > h2 {
+  scroll-margin-top: 8rem;
+}

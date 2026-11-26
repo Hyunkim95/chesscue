@@ -224,40 +224,40 @@ export async function analyzeCompletedGame(
     }
     if (!isPlayerMove || before === null) continue;
 
-    const afterResult = await analyzePosition(
-      input.engine,
-      chess.fen(),
-      input.timeBudgetPerPositionMs,
-      input.signal,
-    );
-    if (!afterResult.ok)
-      return err(engineFailure(afterResult.error, provisionalFacts));
-
     const beforeCandidates = validatedCandidates(
       before,
       fenBefore,
       turnBefore,
       player,
     );
-    const afterCandidates = validatedCandidates(
-      afterResult.value,
-      chess.fen(),
-      chess.turn(),
-      player,
-    );
     const bestBefore = beforeCandidates[0];
-    const bestAfter = afterCandidates[0];
-    if (bestBefore === undefined || bestAfter === undefined) {
+    let evaluationAfterCp: number | undefined;
+    if (chess.isGameOver()) {
+      evaluationAfterCp = chess.isCheckmate() ? 99_999 : 0;
+    } else {
+      const afterResult = await analyzePosition(
+        input.engine,
+        chess.fen(),
+        input.timeBudgetPerPositionMs,
+        input.signal,
+      );
+      if (!afterResult.ok)
+        return err(engineFailure(afterResult.error, provisionalFacts));
+      evaluationAfterCp = validatedCandidates(
+        afterResult.value,
+        chess.fen(),
+        chess.turn(),
+        player,
+      )[0]?.evaluationCp;
+    }
+    if (bestBefore === undefined || evaluationAfterCp === undefined) {
       return err({
         code: "invalid-fact",
         message: `Stockfish returned no fully legal line for move ${String(recordedMove.ply)}.`,
       });
     }
 
-    const impactCp = Math.max(
-      0,
-      bestBefore.evaluationCp - bestAfter.evaluationCp,
-    );
+    const impactCp = Math.max(0, bestBefore.evaluationCp - evaluationAfterCp);
     const fact: MoveAnalysisFact = {
       schemaVersion: 1,
       gameId: input.game.id,
@@ -266,7 +266,7 @@ export async function analyzeCompletedGame(
       playedMoveUci: recordedMove.uci,
       playedMoveSan: recordedMove.san,
       evaluationBeforeCp: bestBefore.evaluationCp,
-      evaluationAfterCp: bestAfter.evaluationCp,
+      evaluationAfterCp,
       impactCp,
       phase:
         recordedMove.ply <= 20
@@ -275,6 +275,7 @@ export async function analyzeCompletedGame(
             ? "middlegame"
             : "endgame",
       theme: classifyLearningTheme({
+        bestMoveUci: bestBefore.uci,
         fenBefore,
         playedMoveUci: recordedMove.uci,
         ply: recordedMove.ply,

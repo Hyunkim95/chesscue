@@ -1,3 +1,4 @@
+import { reflectionSchema } from "../material/reflection-schema";
 import { generatedLessonContentSchema } from "./schema";
 import type {
   CoachingProvenance,
@@ -22,7 +23,9 @@ const fallbackContent = (
 
 const allowedMoves = (request: LessonContentRequest): readonly string[] =>
   unique([
-    request.facts.threatenedMove,
+    ...("kind" in request.facts
+      ? [request.facts.bestMove, request.facts.playedMove]
+      : [request.facts.threatenedMove]),
     ...request.facts.acceptableMoves,
     ...request.facts.transferMoves,
   ]).map((move) => move.toLowerCase());
@@ -34,6 +37,10 @@ const containsOnlyAllowedFacts = (
   if (content.stepId !== request.step.id) return "step-id-mismatch";
 
   const moves = allowedMoves(request);
+  const squares =
+    "kind" in request.facts
+      ? moves.flatMap((m) => [m.slice(0, 2), m.slice(2, 4)])
+      : [request.facts.endangeredSquare];
   if (
     content.referencedMoves.some((move) => !moves.includes(move.toLowerCase()))
   ) {
@@ -41,8 +48,7 @@ const containsOnlyAllowedFacts = (
   }
   if (
     content.referencedSquares.some(
-      (square) =>
-        square.toLowerCase() !== request.facts.endangeredSquare.toLowerCase(),
+      (square) => !squares.includes(square.toLowerCase()),
     )
   ) {
     return "unsupported-square-reference";
@@ -55,18 +61,18 @@ const containsOnlyAllowedFacts = (
     return "unsupported-number-reference";
   }
 
+  if (
+    "kind" in request.facts &&
+    !reflectionSchema.safeParse(content.prompt).success
+  )
+    return "unsupported-reflection";
   const prose = `${content.prompt} ${content.correctFeedback} ${content.incorrectFeedback}`;
   const proseMoves = prose.match(/\b[a-h][1-8][a-h][1-8][qrbn]?\b/gi) ?? [];
   if (proseMoves.some((move) => !moves.includes(move.toLowerCase()))) {
     return "unsupported-move-in-prose";
   }
   const proseSquares = prose.match(/\b[a-h][1-8]\b/gi) ?? [];
-  if (
-    proseSquares.some(
-      (square) =>
-        square.toLowerCase() !== request.facts.endangeredSquare.toLowerCase(),
-    )
-  ) {
+  if (proseSquares.some((square) => !squares.includes(square.toLowerCase()))) {
     return "unsupported-square-in-prose";
   }
   const proseNumbers = (prose.match(/\b\d+(?:\.\d+)?\b/g) ?? []).map(Number);

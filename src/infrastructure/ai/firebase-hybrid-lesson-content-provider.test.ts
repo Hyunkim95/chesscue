@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { hangingPieceFacts } from "../../domain/lessons/lesson-test-fixtures";
-import { hangingPiecePlaybook } from "../../domain/lessons/hanging-piece";
+import { hangingPieceFacts } from "../../test/fixtures/lesson-test-fixtures";
+import { hangingPiecePlaybook } from "../../test/fixtures/hanging-piece";
 import type { LessonContentRequest } from "../../domain/coaching/types";
 
 import {

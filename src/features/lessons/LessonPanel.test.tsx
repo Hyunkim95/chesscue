@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { deterministicLessonContent } from "../../domain/coaching/resolve-content";
-import { hangingPiecePlaybook } from "../../domain/lessons/hanging-piece";
-import { hangingPieceFacts } from "../../domain/lessons/lesson-test-fixtures";
+import { hangingPiecePlaybook } from "../../test/fixtures/hanging-piece";
+import { hangingPieceFacts } from "../../test/fixtures/lesson-test-fixtures";
 import { startLessonRun } from "../../domain/lessons/run-lesson";
 import { LessonPanel } from "./LessonPanel";
 

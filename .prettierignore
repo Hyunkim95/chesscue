@@ -4,3 +4,8 @@ playwright-report
 test-results
 pnpm-lock.yaml
 public/stockfish/**
+
+src/domain/material/starter.generated.json
+scripts/material/library-seed.generated.json
+scripts/material/library-expansion.generated.json
+scripts/material/curriculum.generated.json

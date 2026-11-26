@@ -30,6 +30,7 @@ export interface ParsedPgnGame {
   readonly index: number;
   readonly headers: Readonly<Record<string, string>>;
   readonly initialFen: string;
+  readonly originalPgn: string;
   readonly canonicalPgn: string;
   readonly result: "white-win" | "black-win" | "draw";
   readonly moves: readonly ParsedPgnMove[];
@@ -49,6 +50,7 @@ export type PgnBatchParseResult =
   | { readonly ok: false; readonly issue: PgnImportIssue };
 
 export interface ImportedGame {
+  readonly originalPgn: string;
   readonly record: GameRecord;
   readonly headers: Readonly<Record<string, string>>;
 }
@@ -61,6 +63,7 @@ export type ImportGameItemResult =
     }
   | {
       readonly status: "duplicate";
+      readonly originalPgn: string;
       readonly index: number;
       readonly fingerprint: string;
       readonly issue: PgnImportIssue;

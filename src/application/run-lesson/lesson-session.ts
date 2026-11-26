@@ -1,5 +1,4 @@
 import type { LessonContentRequest } from "../../domain/coaching/types";
-import { lessonPlaybookRegistry } from "../../domain/lessons/registry";
 import { startLessonRun } from "../../domain/lessons/run-lesson";
 import { selectLessonPlaybook } from "../../domain/lessons/select-playbook";
 import type {
@@ -22,12 +21,9 @@ export const startSelectedLesson = (input: {
   readonly runId: string;
   readonly startedAt: string;
   readonly evidence: readonly LessonSelectionEvidence[];
-  readonly registry?: readonly LessonPlaybook[];
+  readonly registry: readonly LessonPlaybook[];
 }): StartLessonResult => {
-  const selected = selectLessonPlaybook(
-    input.registry ?? lessonPlaybookRegistry,
-    input.evidence,
-  );
+  const selected = selectLessonPlaybook(input.registry, input.evidence);
   if (selected === null) return { status: "not-eligible" };
 
   return {

@@ -1,3 +1,7 @@
+import { generatedMove, squareLabel } from "../../test/generated-position";
+import { cachedReflection } from "../../domain/material/reflection";
+import type { ReviewReply } from "../../application/analyze-game/analyze-review-reply";
+import type { AnalyzeReply } from "./GuidedMoveFeedback";
 import { Chess } from "chess.js";
 import {
   cleanup,
@@ -20,6 +24,7 @@ import {
   type RecordedMove,
 } from "../../domain/game/types";
 import type { LessonContentProvider } from "../../infrastructure/ai/lesson-content-provider";
+import { ReviewContinuation } from "./ReviewContinuation";
 import { GameReviewExperience } from "./GameReviewExperience";
 
 afterEach(cleanup);
@@ -121,12 +126,17 @@ function reviewFixture(theme: LearningTheme = "one-move-threat"): {
 }
 
 const playBoardMove = (fromLabel: RegExp, toLabel: RegExp): void => {
+  const explore = screen.queryByRole("button", {
+    name: "Explore the turning point",
+  });
+  if (explore) fireEvent.click(explore);
   const board = screen.getByRole("grid", {
     name: "Training board, White side",
   });
   fireEvent.click(within(board).getByRole("gridcell", { name: fromLabel }));
   fireEvent.click(within(board).getByRole("gridcell", { name: toLabel }));
-  fireEvent.click(screen.getByRole("button", { name: "Play this move" }));
+  const commit = screen.queryByRole("button", { name: "Play this move" });
+  if (commit !== null) fireEvent.click(commit);
 };
 
 const playOriginalBest = (): void => {
@@ -134,51 +144,272 @@ const playOriginalBest = (): void => {
 };
 
 describe("GameReviewExperience transfer set", () => {
-  it("starts with an exact board retry and hides the pattern until commitment", () => {
-    const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} />);
-
+  it("shows the debrief before opening the critical position without revealing the engine move", () => {
+    render(<GameReviewExperience {...reviewFixture()} />);
+    expect(screen.getByRole("heading", { name: "Game debrief" })).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: "Play it differently." }),
+      screen.getByRole("heading", { name: "What cost you" }),
     ).toBeVisible();
-    expect(screen.queryByText(/Set 1 of/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/one-move threat/i)).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Explore the turning point" }),
+    );
+    expect(
+      screen.getByRole("region", { name: "Rook commentary" }),
+    ).toHaveTextContent("In your game you played Nf3 here.");
+    expect(screen.getByText("Your move")).toBeVisible();
     expect(screen.queryByText("d2d4")).not.toBeInTheDocument();
-    playOriginalBest();
+  });
 
-    expect(screen.getByRole("heading", { name: "Good move" })).toBeVisible();
-    expect(screen.getByText(/You played d4/)).toBeVisible();
+  it("switches findings and reveals the recorded reply on one board", () => {
+    const fixture = reviewFixture();
+    const [turningPoint] = fixture.analysis.facts;
+    if (!turningPoint) throw new Error("Missing turning point fixture.");
+    const strongMove = {
+      ...turningPoint,
+      ply: 1,
+      fenBefore: fixture.game.initialFen,
+      playedMoveUci: "e2e4",
+      playedMoveSan: "e4",
+      evaluationBeforeCp: 25,
+      evaluationAfterCp: 25,
+      impactCp: 0,
+      candidates: [
+        {
+          uci: "e2e4",
+          san: "e4",
+          evaluationCp: 25,
+          principalVariation: ["e2e4"],
+        },
+      ],
+    };
+    render(
+      <GameReviewExperience
+        {...fixture}
+        analysis={{
+          ...fixture.analysis,
+          facts: [strongMove, turningPoint],
+        }}
+      />,
+    );
+    const board = screen.getByRole("grid", {
+      name: "Review board, White side",
+    });
     expect(
-      screen.getByText(/immediate checks, captures, and direct threats/),
+      within(board).getByRole("gridcell", { name: /White knight on f3/ }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Show the reply" }));
+    expect(
+      within(board).getByRole("gridcell", {
+        name: /Black knight on c6, last move ended here/,
+      }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Strong move" }));
+    expect(
+      screen.getByRole("heading", { name: "What you did well" }),
+    ).toBeVisible();
+    expect(
+      within(board).getByRole("gridcell", {
+        name: /White pawn on e4, last move ended here/,
+      }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Turning point" }));
+    expect(
+      within(board).getByRole("gridcell", { name: /Black knight on b8/ }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Show the reply" }),
     ).toBeVisible();
   });
 
-  it("gives deterministic correction for an incorrect legal original move", () => {
-    const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} />);
+  it("replies to successive choices outside the recorded line and comments on the board", async () => {
+    const analyzeReply = vi
+      .fn()
+      .mockResolvedValueOnce({ line: ["g8f6"], evaluationCpFromSideToMove: 0 })
+      .mockResolvedValueOnce({ line: ["f6e4"], evaluationCpFromSideToMove: 0 });
+    render(
+      <GameReviewExperience {...reviewFixture()} analyzeReply={analyzeReply} />,
+    );
     playBoardMove(/White bishop on f1/, /Empty c4, legal destination/);
-
     expect(
-      screen.getByRole("heading", { name: "Try another move" }),
+      await screen.findByRole("gridcell", {
+        name: /Black knight on f6, last move ended here/,
+      }),
     ).toBeVisible();
-    expect(screen.getByText(/You played Bc4/)).toBeVisible();
+    playBoardMove(/White pawn on a2/, /Empty a3, legal destination/);
     expect(
-      screen.getByText(/immediate forcing threat unanswered/),
+      await screen.findByRole("gridcell", {
+        name: /Black knight on e4, last move ended here/,
+      }),
     ).toBeVisible();
     expect(
-      screen.getByRole("button", { name: "Undo and try again" }),
-    ).toBeVisible();
+      screen.getByRole("region", { name: "Rook commentary" }),
+    ).toHaveTextContent(
+      "Your last move left the pawn on e4 under attack. After this capture you have no immediate recapture there. Black is a pawn ahead.",
+    );
+    expect(analyzeReply).toHaveBeenCalledTimes(2);
   });
 
-  it("accepts a verified alternative original move inside tolerance", () => {
-    const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} />);
-    playBoardMove(/White knight on b1/, /Empty c3, legal destination/);
+  it("retains the position after a bad reply and retries from the same FEN", async () => {
+    const analyzeReply = vi
+      .fn()
+      .mockResolvedValueOnce({ line: ["e1e8"], evaluationCpFromSideToMove: 0 })
+      .mockResolvedValueOnce({ line: ["e5d4"], evaluationCpFromSideToMove: 0 });
+    render(
+      <GameReviewExperience {...reviewFixture()} analyzeReply={analyzeReply} />,
+    );
+    playOriginalBest();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Retry CPU reply" }),
+    );
+    expect(
+      await screen.findByRole("gridcell", {
+        name: /Black pawn on d4, last move ended here/,
+      }),
+    ).toBeVisible();
+    expect(analyzeReply.mock.calls[0]?.[0]).toEqual(
+      analyzeReply.mock.calls[1]?.[0],
+    );
+  });
 
-    expect(screen.getByRole("heading", { name: "Good move" })).toBeVisible();
-    expect(screen.getByText(/You played Nc3/)).toBeVisible();
-    fireEvent.click(screen.getByText("Technical details"));
-    expect(screen.getByText("35 centipawns")).toBeVisible();
+  it.each(["Undo my move", "Rewind again"])(
+    "cancels a pending reply and keeps the first attempt when clicking %s",
+    async (action) => {
+      let answer: (reply: ReviewReply | null) => void = () => undefined;
+      const analyzeReply = vi.fn<AnalyzeReply>(
+        () =>
+          new Promise<ReviewReply | null>((resolve) => {
+            answer = resolve;
+          }),
+      );
+      const onTrainingComplete = vi.fn();
+      render(
+        <GameReviewExperience
+          {...reviewFixture()}
+          analyzeReply={analyzeReply}
+          onTrainingComplete={onTrainingComplete}
+        />,
+      );
+      playOriginalBest();
+      fireEvent.click(screen.getByRole("button", { name: action }));
+      expect(analyzeReply.mock.calls[0]?.[1].aborted).toBe(true);
+      answer({ line: ["e5d4"], evaluationCpFromSideToMove: 0 });
+      await Promise.resolve();
+      expect(
+        within(screen.getByRole("grid", { name: /Training board/ })).getByRole(
+          "gridcell",
+          { name: /White pawn on d2/ },
+        ),
+      ).toBeVisible();
+      playBoardMove(/White pawn on a2/, /Empty a3, legal destination/);
+      fireEvent.click(screen.getByRole("button", { name: "Finish review" }));
+      expect(onTrainingComplete).toHaveBeenCalledWith(
+        expect.objectContaining({ originalAttemptScore: 100 }),
+      );
+      expect(analyzeReply.mock.calls[1]?.[1].aborted).toBe(true);
+    },
+  );
+
+  it("brings back the queen-check choices after taking back the learner’s reply", async () => {
+    const position = new Chess();
+    for (const move of [
+      "e4",
+      "e5",
+      "Nf3",
+      "Nc6",
+      "Bb5",
+      "a6",
+      "Bxc6",
+      "dxc6",
+      "Nxe5",
+      "Qd4",
+    ])
+      position.move(move);
+    const analyzeReply = vi
+      .fn<AnalyzeReply>()
+      .mockResolvedValueOnce({
+        line: ["d4e4", "d1e2", "e4e2"],
+        evaluationCpFromSideToMove: 58,
+      })
+      .mockResolvedValueOnce({
+        line: ["e4e2", "e1e2"],
+        evaluationCpFromSideToMove: 60,
+      });
+    render(
+      <ReviewContinuation
+        game={{
+          ...reviewFixture().game,
+          initialFen: position.fen(),
+          moves: [],
+        }}
+        ply={1}
+        analyzeReply={analyzeReply}
+        onFirstMove={vi.fn()}
+      >
+        {null}
+      </ReviewContinuation>,
+    );
+    playBoardMove(/White knight on e5/, /Empty f3, legal destination/);
+    const commentary = within(
+      screen.getByRole("region", { name: "Rook commentary" }),
+    );
+    expect(
+      await commentary.findByText("You have 2 legal replies to this check."),
+    ).toBeVisible();
+    expect(
+      commentary.getByText(/Qxe2\+ Kxe2, you lose castling rights/),
+    ).toBeVisible();
+    expect(
+      commentary.getByText(/moving your king gives up castling/),
+    ).toBeVisible();
+    playBoardMove(/White queen on d1/, /Empty e2, legal destination/);
+    await screen.findByRole("gridcell", {
+      name: /Black queen on e2, last move ended here/,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Undo my move" }));
+    expect(
+      commentary.getByText("You have 2 legal replies to this check."),
+    ).toBeVisible();
+    expect(analyzeReply).toHaveBeenCalledTimes(2);
+  });
+
+  it("lets Black underpromote and stops on a drawn board without a CPU search", () => {
+    const { game } = reviewFixture();
+    const analyzeReply = vi.fn();
+    const onFirstMove = vi.fn();
+    render(
+      <ReviewContinuation
+        game={{
+          ...game,
+          initialFen: "7K/8/8/8/8/8/p7/7k b - - 0 1",
+          moves: [],
+          playerColor: "black",
+        }}
+        ply={1}
+        analyzeReply={analyzeReply}
+        onFirstMove={onFirstMove}
+      >
+        {null}
+      </ReviewContinuation>,
+    );
+    const board = within(
+      screen.getByRole("grid", { name: "Training board, Black side" }),
+    );
+    fireEvent.click(board.getByRole("gridcell", { name: "Black pawn on a2" }));
+    fireEvent.click(
+      board.getByRole("gridcell", { name: /Empty a1, legal destination/ }),
+    );
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Promote pawn" })).getByRole(
+        "button",
+        { name: "knight" },
+      ),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Draw.");
+    expect(
+      board.getByRole("gridcell", { name: /Black knight on a1/ }),
+    ).toBeDisabled();
+    expect(analyzeReply).not.toHaveBeenCalled();
+    expect(onFirstMove).toHaveBeenCalledWith("a2a1n");
   });
 
   it("runs close and unlabeled curated transfers before logging", () => {
@@ -192,11 +423,16 @@ describe("GameReviewExperience transfer set", () => {
       />,
     );
     playOriginalBest();
-    fireEvent.click(screen.getByRole("button", { name: "Practice this idea" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Try a similar position" }),
+    );
     expect(
       screen.getByRole("heading", { name: "Spot it again?" }),
     ).toBeVisible();
-    playBoardMove(/White queen on h5/, /Black pawn on f7, legal destination/);
+    {
+      const { move } = generatedMove("one-move-threat", "close", true);
+      playBoardMove(squareLabel(move.from), squareLabel(move.to));
+    }
     fireEvent.click(
       screen.getByRole("button", { name: "Practice without a hint" }),
     );
@@ -205,7 +441,10 @@ describe("GameReviewExperience transfer set", () => {
       screen.getByRole("heading", { name: "One more position?" }),
     ).toBeVisible();
     expect(screen.queryByText(/one-move threat/i)).not.toBeInTheDocument();
-    playBoardMove(/White rook on e1/, /Empty e8, legal destination/);
+    {
+      const { move } = generatedMove("one-move-threat", "unlabeled", true);
+      playBoardMove(squareLabel(move.from), squareLabel(move.to));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Finish review" }));
 
     expect(
@@ -224,12 +463,15 @@ describe("GameReviewExperience transfer set", () => {
     const fixture = reviewFixture();
     render(<GameReviewExperience {...fixture} />);
     playOriginalBest();
-    fireEvent.click(screen.getByRole("button", { name: "Practice this idea" }));
-    playBoardMove(/White queen on h5/, /Empty g5, legal destination/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Try a similar position" }),
+    );
+    {
+      const { move } = generatedMove("one-move-threat", "close", false);
+      playBoardMove(squareLabel(move.from), squareLabel(move.to));
+    }
 
-    expect(
-      screen.getByRole("heading", { name: "Try another move" }),
-    ).toBeVisible();
+    expect(screen.getByText("Try another move")).toBeVisible();
     expect(
       screen.queryByRole("button", { name: "Practice without a hint" }),
     ).not.toBeInTheDocument();
@@ -250,19 +492,37 @@ describe("GameReviewExperience transfer set", () => {
     playOriginalBest();
     fireEvent.click(screen.getByRole("button", { name: "Finish review" }));
 
-    expect(
-      screen.getByText(/The next game will include one forcing decision/),
-    ).toBeVisible();
+    expect(screen.getByText(cachedReflection("calculation"))).toBeVisible();
   });
 
-  it("keeps replay and engine data collapsed as secondary references", () => {
-    const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} />);
-
-    expect(
-      screen.getByText("Replay the full game").closest("details"),
-    ).not.toHaveAttribute("open");
+  it("navigates every saved position on the debrief board and keeps technical details secondary", () => {
+    render(<GameReviewExperience {...reviewFixture()} />);
     expect(screen.queryByText("Technical details")).not.toBeInTheDocument();
+    const controls = screen.getByRole("group", { name: "Replay controls" });
+    const seek = within(controls).getByRole("slider", {
+      name: "Move through the game",
+    });
+    fireEvent.change(seek, { target: { value: "0" } });
+    expect(
+      within(controls).getByRole("button", { name: "Previous move" }),
+    ).toBeDisabled();
+    fireEvent.click(
+      within(controls).getByRole("button", { name: "Next move" }),
+    );
+    expect(screen.getByText(/Position 1 of/)).toBeVisible();
+    expect(
+      screen.getAllByRole("grid", { name: "Review board, White side" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("gridcell", {
+        name: /White pawn on e4, last move ended here/,
+      }),
+    ).toBeVisible();
+    fireEvent.change(seek, { target: { value: "4" } });
+    expect(
+      within(controls).getByRole("button", { name: "Next move" }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /^Turning point$/ }));
     playOriginalBest();
     expect(
       screen.getByText("Technical details").closest("details"),
@@ -294,32 +554,23 @@ describe("GameReviewExperience transfer set", () => {
     );
   });
 
-  it("plays through the coach line to show the opponent reply", () => {
-    const fixture = reviewFixture();
-    render(<GameReviewExperience {...fixture} />);
-    playOriginalBest();
-
-    fireEvent.click(screen.getByRole("button", { name: "Show coach move" }));
-    expect(screen.getByText("Move 1 of 3")).toBeVisible();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Show the opponent's reply" }),
-    );
-
-    expect(screen.getByText(/Move 2 of 3 - opponent's reply/)).toBeVisible();
-  });
-
   it("shows the opponent reply in an optional similar position", () => {
     const fixture = reviewFixture("development");
     render(<GameReviewExperience {...fixture} />);
     playOriginalBest();
-    fireEvent.click(screen.getByRole("button", { name: "Practice this idea" }));
-    playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
-    fireEvent.click(screen.getByRole("button", { name: "Show coach move" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Show the opponent's reply" }),
+      screen.getByRole("button", { name: "Try a similar position" }),
     );
+    {
+      const { move } = generatedMove("development", "close", true);
+      playBoardMove(squareLabel(move.from), squareLabel(move.to));
+    }
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show Stockfish move" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Play their reply" }));
 
-    expect(screen.getByText(/Move 2 of 3 - opponent's reply/)).toBeVisible();
+    expect(screen.getByText(/Move 2 of/)).toBeVisible();
   });
 
   it("calls Firebase hybrid coaching after a user gesture and shows provenance", async () => {
@@ -346,11 +597,8 @@ describe("GameReviewExperience transfer set", () => {
     playOriginalBest();
 
     expect(initializeDeviceModel).toHaveBeenCalledOnce();
-    expect(
-      await screen.findByText(
-        "That move improves coordination before the position opens.",
-      ),
-    ).toBeVisible();
+    fireEvent.click(screen.getByText("Why this matters"));
+    expect(await screen.findByText(/What improved\?$/)).toBeVisible();
     expect(
       screen.getByText("Feedback source: Gemini Nano on device"),
     ).toBeVisible();

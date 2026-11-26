@@ -10,40 +10,76 @@ const foolsMate = `[Event "Imported training game"]
 
 1. f3 e5 2. g4 Qh4# 0-1`;
 
-test("imports a completed PGN and rejects the duplicate", async ({ page }) => {
+test("reopens a saved review, offers the other side, and links duplicates in a batch", async ({
+  page,
+}) => {
+  const openImport = () =>
+    page
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Import games", exact: true })
+      .click();
+  const submit = async (side: "White" | "Black", pgn = foolsMate) => {
+    await page.getByLabel("Paste completed PGN games").fill(pgn);
+    await page.getByRole("radio", { name: "I played " + side }).check();
+    await page
+      .getByRole("main")
+      .getByRole("button", { name: "Import games", exact: true })
+      .click();
+  };
+  const debrief = page.getByRole("heading", { name: "Game debrief" });
+  await page.setViewportSize({ width: 375, height: 667 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Bring games" }).click();
+  await openImport();
+  await submit("White");
+  await expect(debrief).toBeVisible({ timeout: 30_000 });
+  const original = page.url();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
-  const input = page.getByLabel("Paste completed PGN games");
-  await input.fill(foolsMate);
-  await page.getByRole("radio", { name: "I played White" }).check();
-  await page.getByRole("button", { name: "Import games" }).click();
-
-  await expect(
-    page.getByRole("heading", { name: "1 accepted, 0 duplicate, 0 rejected" }),
-  ).toBeVisible();
-
-  await page.getByRole("button", { name: "Import more games" }).click();
-  await input.fill(foolsMate);
-  await page.getByRole("button", { name: "Import games" }).click();
-
-  await expect(
-    page.getByRole("heading", { name: "0 accepted, 1 duplicate, 0 rejected" }),
-  ).toBeVisible();
-
-  await page.getByRole("button", { name: "Training plan" }).click();
-  const profile = page.getByRole("region", { name: "Your training profile" });
-  await expect(profile).toContainText(
-    "Evidence from 0 imported games and 0 tutor games.",
+  await openImport();
+  const annotated = foolsMate.replace(
+    "f3 e5",
+    "f3 { [%clk 0:03:00] } { Opening note } e5",
   );
-  await page.getByRole("button", { name: "Analyze latest game" }).click();
+  await submit("White", annotated);
+  await expect(page).toHaveURL(original);
+  await expect(page.getByText("Opened your saved review.")).toBeVisible();
+  await expect(debrief).toBeVisible();
+
+  await openImport();
+  await submit("Black");
   await expect(
-    page.getByRole("heading", { name: "Your game, rewound" }),
-  ).toBeVisible({ timeout: 30000 });
-  await page.getByRole("button", { name: "Back to training plan" }).click();
-  await expect(profile).toContainText(
-    "Evidence from 1 imported game and 0 tutor games.",
-  );
+    page.getByText("Which side would you like to review?"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Open saved White review" }).click();
+  await expect(page).toHaveURL(original);
+
+  await openImport();
+  await submit("Black");
+  await page.getByRole("button", { name: "Analyze Black moves" }).click();
+  await expect(page).toHaveURL(original + "/black");
+  await expect(debrief).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Reviewing Black’s moves.")).toBeVisible();
+  await page.getByRole("button", { name: "Strong move", exact: true }).click();
+  const blackBoard = page.getByRole("grid", {
+    name: "Review board, Black side",
+  });
+  await expect(
+    blackBoard.getByRole("gridcell", {
+      name: /Black queen on h4.*last move ended here/,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(/no legal way to save the king/)).toBeVisible();
+
+  await openImport();
+  await submit("White", foolsMate + "\n\n" + foolsMate);
+  await expect(
+    page.getByRole("heading", { name: "0 accepted, 2 duplicate, 0 rejected" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Open review", exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(original);
 });
 
 test("learner-color controls stay accessible on a narrow screen", async ({
@@ -51,11 +87,17 @@ test("learner-color controls stay accessible on a narrow screen", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Bring games" }).click();
+  await page
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("button", { name: "Import games", exact: true })
+    .click();
 
   const group = page.getByRole("group", {
     name: "Which side did you play in these games?",
   });
+  await expect(
+    page.getByText(/including player names, comments and variations/),
+  ).toBeVisible();
   await expect(group).toBeVisible();
   await expect(
     group.getByRole("radio", { name: "I played White" }),
@@ -74,16 +116,16 @@ test("shows the deterministic training plan", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", { name: "Your Training Profile" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Start playbook lesson" }),
   ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Play this focus game" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(
+      "Play or import a completed game to get your first recommendation.",
+    ),
   ).toBeVisible();
-
-  await page.getByRole("button", { name: "Analyze latest game" }).click();
-  await expect(page.getByRole("alert")).toHaveText(
-    "Finish a tutor game or import a completed game with your color before requesting a review.",
-  );
 });

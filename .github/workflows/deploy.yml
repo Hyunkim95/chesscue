@@ -69,7 +69,7 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
       - run: pnpm install --frozen-lockfile
-      - name: Deploy immutable rules and indexes
+      - name: Deploy rules and indexes
         run: pnpm exec firebase deploy --project "${{ inputs.environment }}" --only firestore:rules,firestore:indexes --non-interactive
       - name: Deploy verified Hosting artifact
         run: pnpm exec firebase deploy --project "${{ inputs.environment }}" --only hosting --non-interactive

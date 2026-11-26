@@ -1,0 +1,57 @@
+{
+  "model": "OpenAI GPT-6.2 Sol (Codex)",
+  "courses": {
+    "fork": {
+      "motif": "Fork",
+      "title": "Attack two targets at once",
+      "goal": "Identify two targets, then find a move or short sequence that attacks both before your opponent can defend them.",
+      "questions": {
+        "0pwjJ": "Which targets could become vulnerable after the next exchange?",
+        "0tMv4": "What checks could change which pieces are available to attack?",
+        "0bg6I": "Which move could create a piece that threatens more than one target?",
+        "0Jalw": "What can you prepare now so a later threat attacks more than one target?",
+        "00rw0": "Which replies would you check before committing to a tactical sequence?",
+        "0Ozbu": "What can a series of checks do to the position of the targets?"
+      }
+    },
+    "sacrifice": {
+      "motif": "Sacrifice",
+      "title": "Give up material for a concrete gain",
+      "goal": "Calculate the opponent’s best reply before offering material and identify what you gain by the end of the line.",
+      "questions": {
+        "0twue": "What could change around the king if your opponent accepts a capture?",
+        "0GrCZ": "Which check could change the defender’s role after a recapture?",
+        "07KFG": "What would you look for after drawing a defender away?",
+        "0YTZr": "How would you tell whether an early offer pays off a few moves later?",
+        "0sfEC": "Which escape squares would you track as the king moves?",
+        "0Hk7S": "What would your opponent have to cover if the first offer is accepted?"
+      }
+    },
+    "pin": {
+      "motif": "Pin",
+      "title": "Use the piece that cannot move freely",
+      "goal": "Trace the line through a potentially pinned piece to the target behind it, then check which replies remain legal or worthwhile.",
+      "questions": {
+        "0tEtC": "Which exchanges could leave a defender tied to a more important target?",
+        "0LmpF": "What would a defender expose by leaving its line?",
+        "0Svc3": "Which replies could a piece still make while it is tied to the king?",
+        "0iVzE": "Which capture would you reconsider after tracing the defenders along the line?",
+        "0RCJD": "What changes if a defender has to choose between two duties?",
+        "0oBJd": "Which apparent defensive moves should you test before choosing a check?"
+      }
+    },
+    "kingsideAttack": {
+      "motif": "Kingside attack",
+      "title": "Calculate an attack on the kingside",
+      "goal": "Map the king’s exits and its defenders, then compare checks and captures by calculating the opponent’s strongest reply.",
+      "questions": {
+        "0L6uG": "Which nearby squares can the king use if it comes under attack?",
+        "0Qp6f": "What would you look for if a check draws a defender away?",
+        "0mKLS": "Which squares would the king still have after each check?",
+        "0Ntdw": "What other ways of giving check should you compare besides moving a major piece?",
+        "0xqrT": "How can you keep track of the king’s exits through a series of checks?",
+        "00TJN": "Which reply would you calculate first before continuing the attack?"
+      }
+    }
+  }
+}

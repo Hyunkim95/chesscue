@@ -29,7 +29,18 @@ export const decideGameWrite = (
 
   if (
     existing.createdAt !== incoming.createdAt ||
-    existing.origin.type !== incoming.origin.type
+    existing.origin.type !== incoming.origin.type ||
+    (existing.origin.type === "tutor" &&
+      incoming.origin.type === "tutor" &&
+      (existing.origin.mode !== incoming.origin.mode ||
+        existing.origin.opponentElo !== incoming.origin.opponentElo ||
+        existing.origin.beginnerOpponent?.target !==
+          incoming.origin.beginnerOpponent?.target ||
+        existing.origin.coachNotesAtStart !==
+          incoming.origin.coachNotesAtStart ||
+        existing.origin.trainingFocus !== incoming.origin.trainingFocus ||
+        existing.origin.openingPolicyVersion !==
+          incoming.origin.openingPolicyVersion))
   ) {
     return {
       type: "conflict",
@@ -42,6 +53,23 @@ export const decideGameWrite = (
       type: "conflict",
       reason: "An in-progress update cannot remove persisted moves.",
     };
+  }
+
+  if (existing.coachJoinedAtPly !== incoming.coachJoinedAtPly) {
+    const canJoin =
+      existing.coachJoinedAtPly === undefined &&
+      existing.origin.type === "tutor" &&
+      existing.origin.mode === "rated" &&
+      incoming.coachJoinedAtPly === existing.moves.length &&
+      incoming.moves.length === existing.moves.length &&
+      incoming.completedAt === null &&
+      incoming.result === null;
+    if (!canJoin)
+      return {
+        type: "conflict",
+        reason:
+          "Coach can only join once, at the current move in an unfinished rated game.",
+      };
   }
 
   for (const [index, move] of existing.moves.entries()) {

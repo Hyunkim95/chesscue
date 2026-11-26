@@ -1,0 +1,2028 @@
+{
+  "version": 2,
+  "generatedAt": "2026-11-26T08:13:41.127Z",
+  "inputs": {
+    "pgnHash": "2a57414e815d6a4b9261473ab927dd333a2c1cb18cdfa0736bc8041a619273d1",
+    "puzzleSampleHash": "b210492698d21e4a6d0e8fef972cf1e517ac8173365f6836893d681b3474f34b"
+  },
+  "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+  "positions": [
+    {
+      "id": "hanging-piece-705406cad3af",
+      "theme": "hanging-piece",
+      "fen": "r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2b1/PqP3PP/7K w - - 0 25",
+      "source": {
+        "url": "https://lichess.org/game/787zsVup/black#48",
+        "id": "00008",
+        "ply": 48,
+        "sourceHash": "ede71eadf8034b36852b0c9bf79418c56732c83075ba436bec9621b4b9da8480"
+      },
+      "acceptableMoves": [
+        "e6e7"
+      ],
+      "difficulty": "close",
+      "bestSan": "Rxe7",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "e6e7",
+        "principalVariation": [
+          "e6e7",
+          "b2b1",
+          "b3c1",
+          "b1c1",
+          "h6c1",
+          "g3d6",
+          "e7d7",
+          "d6f8",
+          "c1f4",
+          "f8g7",
+          "f4c7",
+          "a8g8"
+        ],
+        "candidates": [
+          {
+            "uci": "e6e7",
+            "evaluationCp": 811
+          },
+          {
+            "uci": "h2g3",
+            "evaluationCp": -665
+          },
+          {
+            "uci": "d3d4",
+            "evaluationCp": -786
+          }
+        ]
+      },
+      "title": "hanging piece",
+      "question": "Do you see any pieces that could be captured now?",
+      "insight": "Stockfish’s highest-scoring checked move was Rxe7.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "4ba9c3a70b3d52de80034e1abd5af8853ebc5948f19c697ca69d9185a6f03a5d",
+        "responseHash": "2e957be57517dec54f3d0b2c73dc422058028ae1b2e66993f49b94064584f891"
+      }
+    },
+    {
+      "id": "hanging-piece-7766a78a838b",
+      "theme": "hanging-piece",
+      "fen": "3r3r/pQNk1ppp/1qnR1n2/1B6/8/8/PPP3PP/5R1K b - - 0 19",
+      "source": {
+        "url": "https://lichess.org/game/vaqz2bx6#37",
+        "id": "000lC",
+        "ply": 37,
+        "sourceHash": "2a09edb7408830eead3bcc070ba71839148a9349eb9853087b9663f812fcbd93"
+      },
+      "acceptableMoves": [
+        "d7d6"
+      ],
+      "difficulty": "unlabeled",
+      "bestSan": "Kxd6",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "d7d6",
+        "principalVariation": [
+          "d7d6",
+          "f1d1",
+          "c6d4",
+          "b7b6",
+          "a7b6",
+          "c7a6",
+          "d6e7",
+          "a6b4",
+          "e7f8",
+          "c2c3",
+          "d4e6",
+          "d1d8"
+        ],
+        "candidates": [
+          {
+            "uci": "d7d6",
+            "evaluationCp": 509
+          },
+          {
+            "uci": "d7e7",
+            "evaluationCp": -1084
+          }
+        ]
+      },
+      "title": "hanging piece",
+      "question": "What do you want to do now?",
+      "insight": "Stockfish’s highest-scoring checked move was Kxd6.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "3efe1f14a47b32a2a22e7140f2e830f36d26e5959bb77f8aa40ec8728a286fec",
+        "responseHash": "bec273d7eba71100449a57e4434f6a7650dc65492f791fd6f39a5cef922e402e"
+      }
+    },
+    {
+      "id": "one-move-threat-f0f9b433dc7e",
+      "theme": "one-move-threat",
+      "fen": "5r1k/pp4pp/2p5/6q1/5R2/2P5/P1P2PPP/3rR1K1 w - - 0 28",
+      "source": {
+        "url": "https://lichess.org/game/h21VtqGG/black#54",
+        "id": "00465",
+        "ply": 54,
+        "sourceHash": "648e701f23c9dfc4cbc233ea525cc63a444deffc94231a7e96208a22b63edcdb"
+      },
+      "acceptableMoves": [
+        "f4f8"
+      ],
+      "difficulty": "close",
+      "bestSan": "Rxf8#",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "f4f8",
+        "principalVariation": [
+          "f4f8"
+        ],
+        "candidates": [
+          {
+            "uci": "f4f8",
+            "evaluationCp": 99999
+          },
+          {
+            "uci": "e1d1",
+            "evaluationCp": -849
+          },
+          {
+            "uci": "e1f1",
+            "evaluationCp": -1578
+          }
+        ]
+      },
+      "title": "one move threat",
+      "question": "Do you see any possible threats right now?",
+      "insight": "Stockfish’s highest-scoring checked move was Rxf8#.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "ec99fb335fda1533276dd1b6fdfa57da4c635ac8dfae2bb2bed26da13bf551d8",
+        "responseHash": "8f4b40c55f8db09dd15d9757deb337cbebff38b58aa965a6f570dc5b2769a65c"
+      }
+    },
+    {
+      "id": "one-move-threat-d8640cf9acb8",
+      "theme": "one-move-threat",
+      "fen": "6k1/2p2ppp/pnp5/B7/2P3PP/1P2PPR1/r3b2r/3R2K1 w - - 2 30",
+      "source": {
+        "url": "https://lichess.org/game/HNU4zavC/black#58",
+        "id": "008Nz",
+        "ply": 58,
+        "sourceHash": "95375a84a82e72bc1f64962e4c1383d35fdbf00c140fb9d7e99a92fbc2edd83a"
+      },
+      "acceptableMoves": [
+        "d1d8"
+      ],
+      "difficulty": "unlabeled",
+      "bestSan": "Rd8#",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "d1d8",
+        "principalVariation": [
+          "d1d8"
+        ],
+        "candidates": [
+          {
+            "uci": "d1d8",
+            "evaluationCp": 99999
+          },
+          {
+            "uci": "d1d4",
+            "evaluationCp": 84
+          },
+          {
+            "uci": "d1e1",
+            "evaluationCp": -474
+          }
+        ]
+      },
+      "title": "one move threat",
+      "question": "What do you want to do now?",
+      "insight": "Stockfish’s highest-scoring checked move was Rd8#.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "3efe1f14a47b32a2a22e7140f2e830f36d26e5959bb77f8aa40ec8728a286fec",
+        "responseHash": "bec273d7eba71100449a57e4434f6a7650dc65492f791fd6f39a5cef922e402e"
+      }
+    },
+    {
+      "id": "development-4263f01cff2e",
+      "theme": "development",
+      "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Casas, Fernando vs. Keres, Paul · Mar del Plata, 1957",
+        "sourceHash": "26edaf969fc24ebf1258e471eb893981da82f06779342c049047092b9bde143b",
+        "ply": 2
+      },
+      "acceptableMoves": [
+        "g8f6"
+      ],
+      "difficulty": "close",
+      "bestSan": "Nf6",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "g8f6",
+        "principalVariation": [
+          "g8f6",
+          "c2c4",
+          "e7e6",
+          "g1f3",
+          "b7b6",
+          "b1c3",
+          "c8b7",
+          "e2e3",
+          "f8e7",
+          "d4d5",
+          "e6d5",
+          "c4d5"
+        ],
+        "candidates": [
+          {
+            "uci": "g8f6",
+            "evaluationCp": -20
+          },
+          {
+            "uci": "d7d5",
+            "evaluationCp": -23
+          },
+          {
+            "uci": "e7e6",
+            "evaluationCp": -32
+          }
+        ]
+      },
+      "title": "development",
+      "question": "Are you examining the board carefully?",
+      "insight": "Stockfish’s highest-scoring checked move was Nf6.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "79a8a1155bd61ebbf62711e33207fc58c183185fe990dc032b4bbf299a3d4d80",
+        "responseHash": "15d241c1b66e83a7340d28c1270b31435f8b23625cbee3e14f234d15a21fe858"
+      }
+    },
+    {
+      "id": "development-a292ffb701b0",
+      "theme": "development",
+      "fen": "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Casas, Fernando vs. Keres, Paul · Mar del Plata, 1957",
+        "sourceHash": "26edaf969fc24ebf1258e471eb893981da82f06779342c049047092b9bde143b",
+        "ply": 5
+      },
+      "acceptableMoves": [
+        "b1c3",
+        "g1f3"
+      ],
+      "difficulty": "unlabeled",
+      "bestSan": "Nc3",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "b1c3",
+        "principalVariation": [
+          "b1c3",
+          "f8b4"
+        ],
+        "candidates": [
+          {
+            "uci": "b1c3",
+            "evaluationCp": 20
+          },
+          {
+            "uci": "g1f3",
+            "evaluationCp": 13
+          },
+          {
+            "uci": "e2e3",
+            "evaluationCp": 10
+          }
+        ]
+      },
+      "title": "development",
+      "question": "What are you planning to do next?",
+      "insight": "Stockfish’s highest-scoring checked move was Nc3.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "3efe1f14a47b32a2a22e7140f2e830f36d26e5959bb77f8aa40ec8728a286fec",
+        "responseHash": "0fdf630110f4e62a99e354fbc7925a43301faa25ccbd1da57481e617355b6d55"
+      }
+    },
+    {
+      "id": "king-safety-9d9bf6609ed7",
+      "theme": "king-safety",
+      "fen": "r1bqkbnr/pp3ppp/2n1p3/3pP3/3p4/3B1N2/PPP2PPP/RNBQK2R w KQkq - 0 6",
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Sanguineti, Raul vs. Albert, E. · Mar del Plata, 1957",
+        "sourceHash": "489318e01ee80a463c02cba159794533416864c476d8537a50740f61cbd096e5",
+        "ply": 11
+      },
+      "acceptableMoves": [
+        "e1g1"
+      ],
+      "difficulty": "close",
+      "bestSan": "O-O",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "e1g1",
+        "principalVariation": [
+          "e1g1",
+          "g8e7",
+          "f1e1",
+          "e7g6",
+          "b1d2",
+          "d8c7",
+          "d3g6",
+          "h7g6",
+          "d2b3",
+          "f7f6",
+          "c1f4"
+        ],
+        "candidates": [
+          {
+            "uci": "e1g1",
+            "evaluationCp": -14
+          },
+          {
+            "uci": "d1e2",
+            "evaluationCp": -24
+          },
+          {
+            "uci": "c2c3",
+            "evaluationCp": -37
+          }
+        ]
+      },
+      "title": "king safety",
+      "question": "Are you looking at the board to plan your next step?",
+      "insight": "Stockfish’s highest-scoring checked move was O-O.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "c390c3b9925da7a25e827c1b75b72c238548f2f27e0ebfe530452fd0e10917fa",
+        "responseHash": "6889a8b9c69a7d9da23e63d71ba1c03684531aa5b5561e92cd2f044523886787"
+      }
+    },
+    {
+      "id": "king-safety-93c52efc1d83",
+      "theme": "king-safety",
+      "fen": "rnbqk2r/ppppppbp/5np1/8/2P5/5NP1/PP1PPPBP/RNBQK2R b KQkq - 2 4",
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Incutto, Carlos vs. Eliskases, Erich Gottlieb · Mar del Plata, 1957",
+        "sourceHash": "135445a26fafdc82f2aa37ee49759160346c3b51d923c3e9f5337195303fbdd3",
+        "ply": 8
+      },
+      "acceptableMoves": [
+        "e8g8"
+      ],
+      "difficulty": "unlabeled",
+      "bestSan": "O-O",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "e8g8",
+        "principalVariation": [
+          "e8g8",
+          "d2d4",
+          "c7c6",
+          "c1f4",
+          "d7d5",
+          "b1d2",
+          "a7a5",
+          "e1g1",
+          "c8f5",
+          "d1b3",
+          "d8c8",
+          "a1c1"
+        ],
+        "candidates": [
+          {
+            "uci": "e8g8",
+            "evaluationCp": -20
+          },
+          {
+            "uci": "c7c6",
+            "evaluationCp": -20
+          },
+          {
+            "uci": "c7c5",
+            "evaluationCp": -31
+          }
+        ]
+      },
+      "title": "king safety",
+      "question": "What do you choose to do next?",
+      "insight": "Stockfish’s highest-scoring checked move was O-O.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "3efe1f14a47b32a2a22e7140f2e830f36d26e5959bb77f8aa40ec8728a286fec",
+        "responseHash": "d93b87175b6a4e39d199497f4186b26e6ca9abf56e8930fc8611b1033e1bc09a"
+      }
+    },
+    {
+      "id": "premature-central-exchange-31963434e647",
+      "theme": "premature-central-exchange",
+      "fen": "rnbqk2r/pp3ppp/4pn2/2pp4/1bPP4/P1N1P3/1P2NPPP/R1BQKB1R b KQkq - 0 6",
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Lombardy, William James vs. Kotov, Alexander · Mar del Plata, 1957",
+        "sourceHash": "8945b93ec80d3f8a0e5bfa6422cae893e1e7db408117bffb05d086cbaa1623c6",
+        "ply": 12
+      },
+      "rejectedExchange": {
+        "uci": "c5d4",
+        "evaluationCp": -59,
+        "principalVariation": [
+          "c5d4",
+          "a3b4"
+        ],
+        "depth": 21
+      },
+      "acceptableMoves": [
+        "b4a5",
+        "b4c3"
+      ],
+      "difficulty": "close",
+      "bestSan": "Ba5",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "toleranceCp": 35,
+        "bestMoveUci": "b4a5",
+        "principalVariation": [
+          "b4a5",
+          "d4c5",
+          "d5c4",
+          "c1d2",
+          "e8g8",
+          "e2g3",
+          "b7b6",
+          "f1c4",
+          "b6c5",
+          "d1f3",
+          "d8b6",
+          "b2b4"
+        ],
+        "candidates": [
+          {
+            "uci": "b4a5",
+            "evaluationCp": -14
+          },
+          {
+            "uci": "b4c3",
+            "evaluationCp": -22
+          },
+          {
+            "uci": "c5d4",
+            "evaluationCp": -52
+          }
+        ]
+      },
+      "title": "premature central exchange",
+      "question": "Are you considering the squares around your pieces?",
+      "insight": "Stockfish’s highest-scoring checked move was Ba5.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "d333c30531262b5d7c4c530a4b1ca2296f6e30234735e8cbec8cc2f9df5e8c44",
+        "responseHash": "fa138ab125e88fbb7cec9adca2d14b39076950dc8737d406c33f29c39dce6997"
+      }
+    }
+  ],
+  "historical": {
+    "rook": [
+      {
+        "fen": "4r2k/p7/3p4/p1pPr3/4P2p/1R5P/1P3K2/R7 b - - 0 48",
+        "source": {
+          "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+          "game": "Incutto, Carlos vs. Eliskases, Erich Gottlieb · Mar del Plata, 1957",
+          "sourceHash": "135445a26fafdc82f2aa37ee49759160346c3b51d923c3e9f5337195303fbdd3",
+          "ply": 96
+        },
+        "continuation": [
+          "Rxe4",
+          "Rxa5"
+        ],
+        "bestSan": "Rxe4",
+        "verification": {
+          "engine": "Stockfish 19 Lite WASM",
+          "moveTimeMs": 700,
+          "multiPv": 3,
+          "verifiedAt": "2026-11-26",
+          "candidates": [
+            {
+              "uci": "e5e4",
+              "evaluationCp": 73,
+              "principalVariation": [
+                "e5e4",
+                "a1a5",
+                "e8e7",
+                "a5a6",
+                "e7d7",
+                "b3e3",
+                "e4d4",
+                "b2b3",
+                "h8g7",
+                "f2e2",
+                "g7f7",
+                "e2f3"
+              ],
+              "depth": 17
+            },
+            {
+              "uci": "e8e7",
+              "evaluationCp": 52,
+              "principalVariation": [
+                "e8e7"
+              ],
+              "depth": 17
+            },
+            {
+              "uci": "h8h7",
+              "evaluationCp": 42,
+              "principalVariation": [
+                "h8h7",
+                "a1a5",
+                "e5e4",
+                "a5a6",
+                "e4e2",
+                "f2f3",
+                "h7g6",
+                "a6d6",
+                "g6f5",
+                "d6h6",
+                "f5g5",
+                "h6a6"
+              ],
+              "depth": 16
+            }
+          ]
+        },
+        "title": "Move 48 · Black to play",
+        "question": "Do you want to capture a piece on the board?",
+        "insight": "The recorded game continued with Rxe4, Rxa5.",
+        "authorship": {
+          "model": "Gemini Nano",
+          "route": "on-device",
+          "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+          "promptVersion": "grounded-question-v2",
+          "promptHash": "e5c1478d84551b05a2616cdbb5178c4159b8ec5b3822cd3b528daa7b5448eacb",
+          "responseHash": "58cdab733f4820ae7fdbb426345040ac8473dc239b81b594a8738150cc6bb84d"
+        }
+      },
+      {
+        "fen": "4r2k/R7/3p4/2pP4/3r3p/1R5P/1P3K2/8 b - - 0 50",
+        "source": {
+          "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+          "game": "Incutto, Carlos vs. Eliskases, Erich Gottlieb · Mar del Plata, 1957",
+          "sourceHash": "135445a26fafdc82f2aa37ee49759160346c3b51d923c3e9f5337195303fbdd3",
+          "ply": 100
+        },
+        "continuation": [
+          "Rxd5",
+          "Rbb7"
+        ],
+        "bestSan": "Rxd5",
+        "verification": {
+          "engine": "Stockfish 19 Lite WASM",
+          "moveTimeMs": 700,
+          "multiPv": 3,
+          "verifiedAt": "2026-11-26",
+          "candidates": [
+            {
+              "uci": "d4d5",
+              "evaluationCp": 2,
+              "principalVariation": [
+                "d4d5",
+                "f2f3"
+              ],
+              "depth": 21
+            },
+            {
+              "uci": "h8g8",
+              "evaluationCp": 0,
+              "principalVariation": [
+                "h8g8",
+                "b3b7",
+                "d4f4",
+                "f2g1",
+                "e8e1",
+                "g1g2",
+                "e1e2",
+                "g2g1"
+              ],
+              "depth": 20
+            },
+            {
+              "uci": "e8f8",
+              "evaluationCp": 0,
+              "principalVariation": [
+                "e8f8",
+                "f2e3",
+                "f8e8",
+                "e3f3",
+                "e8f8"
+              ],
+              "depth": 20
+            }
+          ]
+        },
+        "title": "Move 50 · Black to play",
+        "question": "Are you ready to make your move?",
+        "insight": "The recorded game continued with Rxd5, Rbb7.",
+        "authorship": {
+          "model": "Gemini Nano",
+          "route": "on-device",
+          "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+          "promptVersion": "grounded-question-v2",
+          "promptHash": "5de12f4c2debaa174117c695c72ef744baeb5a14af610cab7fb63e207546af04",
+          "responseHash": "9385fa6eab82829430cee88996079c2b841cd1ebaf8ec3978fc4cb0a3b12f147"
+        }
+      },
+      {
+        "fen": "4r2k/RR6/3p4/2p2r2/7p/7P/1P4K1/8 b - - 3 52",
+        "source": {
+          "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+          "game": "Incutto, Carlos vs. Eliskases, Erich Gottlieb · Mar del Plata, 1957",
+          "sourceHash": "135445a26fafdc82f2aa37ee49759160346c3b51d923c3e9f5337195303fbdd3",
+          "ply": 104
+        },
+        "continuation": [
+          "Rg5+",
+          "Kf3"
+        ],
+        "bestSan": "Rg5+",
+        "verification": {
+          "engine": "Stockfish 19 Lite WASM",
+          "moveTimeMs": 700,
+          "multiPv": 3,
+          "verifiedAt": "2026-11-26",
+          "candidates": [
+            {
+              "uci": "e8e2",
+              "evaluationCp": 6,
+              "principalVariation": [
+                "e8e2",
+                "g2g1",
+                "e2f2",
+                "a7a8",
+                "f5f8",
+                "b2b4",
+                "f2f1",
+                "g1g2",
+                "f8a8",
+                "g2f1",
+                "a8a1",
+                "f1e2"
+              ],
+              "depth": 21
+            },
+            {
+              "uci": "f5g5",
+              "evaluationCp": 5,
+              "principalVariation": [
+                "f5g5",
+                "g2f3",
+                "e8f8",
+                "f3e3",
+                "d6d5",
+                "b7h7",
+                "h8g8",
+                "h7h4",
+                "g5g3",
+                "e3e2",
+                "f8b8",
+                "h4h7"
+              ],
+              "depth": 21
+            },
+            {
+              "uci": "h8g8",
+              "evaluationCp": 0,
+              "principalVariation": [
+                "h8g8",
+                "b7g7",
+                "g8f8",
+                "g7h7",
+                "e8e2",
+                "g2g1",
+                "f8g8",
+                "h7g7",
+                "g8f8"
+              ],
+              "depth": 20
+            }
+          ]
+        },
+        "title": "Move 52 · Black to play",
+        "question": "Are you ready to make your move?",
+        "insight": "The recorded game continued with Rg5+, Kf3.",
+        "authorship": {
+          "model": "Gemini Nano",
+          "route": "on-device",
+          "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+          "promptVersion": "grounded-question-v2",
+          "promptHash": "471acd382d1b2c513f9097181fb60a96c22f551c58d1aff9ae11c6fbe5349376",
+          "responseHash": "9385fa6eab82829430cee88996079c2b841cd1ebaf8ec3978fc4cb0a3b12f147"
+        }
+      }
+    ],
+    "attack": [
+      {
+        "fen": "2rq1rk1/1p1b1ppp/2n1p3/3pP3/p2p3n/P2B2B1/1PPNQPP1/1R2R1K1 w - - 0 16",
+        "source": {
+          "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+          "game": "Sanguineti, Raul vs. Albert, E. · Mar del Plata, 1957",
+          "sourceHash": "489318e01ee80a463c02cba159794533416864c476d8537a50740f61cbd096e5",
+          "ply": 31
+        },
+        "continuation": [
+          "Bxh7+",
+          "Kxh7"
+        ],
+        "bestSan": "Bxh7+",
+        "verification": {
+          "engine": "Stockfish 19 Lite WASM",
+          "moveTimeMs": 700,
+          "multiPv": 3,
+          "verifiedAt": "2026-11-26",
+          "candidates": [
+            {
+              "uci": "d3h7",
+              "evaluationCp": 129,
+              "principalVariation": [
+                "d3h7",
+                "g8h7",
+                "e2h5",
+                "h7g8",
+                "g3h4",
+                "f7f6",
+                "e5f6",
+                "d8e8",
+                "h5g4",
+                "e8f7",
+                "d2f3",
+                "e6e5"
+              ],
+              "depth": 15
+            },
+            {
+              "uci": "b2b3",
+              "evaluationCp": -41,
+              "principalVariation": [
+                "b2b3"
+              ],
+              "depth": 15
+            },
+            {
+              "uci": "e2h5",
+              "evaluationCp": -64,
+              "principalVariation": [
+                "e2h5",
+                "h4f5",
+                "d2f3",
+                "h7h6",
+                "g3f4",
+                "f7f6",
+                "h5h3",
+                "f6e5",
+                "f3e5",
+                "d7e8",
+                "e5g4",
+                "h6h5"
+              ],
+              "depth": 14
+            }
+          ]
+        },
+        "title": "Move 16 · White to play",
+        "question": "Are you looking at the board carefully?",
+        "insight": "The recorded game continued with Bxh7+, Kxh7.",
+        "authorship": {
+          "model": "Gemini Nano",
+          "route": "on-device",
+          "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+          "promptVersion": "grounded-question-v2",
+          "promptHash": "a24025126ea41573607c81e2c1e82f5cd5c51152f3ff4ad1991fab0d0c51d614",
+          "responseHash": "f8532cd0759cb5adf326af620e63e343001642298efaf1f3a09b802452ea594a"
+        }
+      },
+      {
+        "fen": "8/1p3kp1/2b2r2/3p1p2/p7/P3R3/1P3PP1/4R1K1 w - - 0 32",
+        "source": {
+          "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+          "game": "Sanguineti, Raul vs. Albert, E. · Mar del Plata, 1957",
+          "sourceHash": "489318e01ee80a463c02cba159794533416864c476d8537a50740f61cbd096e5",
+          "ply": 63
+        },
+        "continuation": [
+          "Re7+",
+          "Kg6"
+        ],
+        "bestSan": "Re7+",
+        "verification": {
+          "engine": "Stockfish 19 Lite WASM",
+          "moveTimeMs": 700,
+          "multiPv": 3,
+          "verifiedAt": "2026-11-26",
+          "candidates": [
+            {
+              "uci": "e3e7",
+              "evaluationCp": 186,
+              "principalVariation": [
+                "e3e7",
+                "f7g6",
+                "f2f3",
+                "f6d6",
+                "e1e6",
+                "d6e6",
+                "e7e6",
+                "g6f7",
+                "e6e1",
+                "f7f6",
+                "g1f2",
+                "d5d4"
+              ],
+              "depth": 17
+            },
+            {
+              "uci": "e3e5",
+              "evaluationCp": 186,
+              "principalVariation": [
+                "e3e5",
+                "f7g6",
+                "f2f3",
+                "f6d6",
+                "e5e6",
+                "d6e6",
+                "e1e6",
+                "g6f7",
+                "e6e1",
+                "f7f6",
+                "g1f2",
+                "d5d4"
+              ],
+              "depth": 17
+            },
+            {
+              "uci": "f2f4",
+              "evaluationCp": 117,
+              "principalVariation": [
+                "f2f4",
+                "f6d6"
+              ],
+              "depth": 17
+            }
+          ]
+        },
+        "title": "Move 32 · White to play",
+        "question": "Are you ready to make your move?",
+        "insight": "The recorded game continued with Re7+, Kg6.",
+        "authorship": {
+          "model": "Gemini Nano",
+          "route": "on-device",
+          "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+          "promptVersion": "grounded-question-v2",
+          "promptHash": "f04af6efa0eb053bd1cc28b41f513a65f3411e1b6d8b03ad67809ce22b556536",
+          "responseHash": "9385fa6eab82829430cee88996079c2b841cd1ebaf8ec3978fc4cb0a3b12f147"
+        }
+      },
+      {
+        "fen": "8/1p2R1p1/2b1r1k1/5p2/p4P2/P1K5/1P6/8 w - - 0 39",
+        "source": {
+          "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+          "game": "Sanguineti, Raul vs. Albert, E. · Mar del Plata, 1957",
+          "sourceHash": "489318e01ee80a463c02cba159794533416864c476d8537a50740f61cbd096e5",
+          "ply": 77
+        },
+        "continuation": [
+          "Rxe6+",
+          "Kh5"
+        ],
+        "bestSan": "Rxe6+",
+        "verification": {
+          "engine": "Stockfish 19 Lite WASM",
+          "moveTimeMs": 700,
+          "multiPv": 3,
+          "verifiedAt": "2026-11-26",
+          "candidates": [
+            {
+              "uci": "e7e6",
+              "evaluationCp": 270,
+              "principalVariation": [
+                "e7e6",
+                "g6f7"
+              ],
+              "depth": 19
+            },
+            {
+              "uci": "e7c7",
+              "evaluationCp": -712,
+              "principalVariation": [
+                "e7c7",
+                "e6e3",
+                "c3c2",
+                "e3b3",
+                "c7c6",
+                "b7c6",
+                "c2c1",
+                "b3f3",
+                "c1b1",
+                "f3f4"
+              ],
+              "depth": 19
+            },
+            {
+              "uci": "e7g7",
+              "evaluationCp": -862,
+              "principalVariation": [
+                "e7g7",
+                "g6g7",
+                "c3d3",
+                "c6f3",
+                "d3c3",
+                "e6c6",
+                "c3b4",
+                "f3d1",
+                "b4b5",
+                "c6d6",
+                "b5c4",
+                "g7g6"
+              ],
+              "depth": 19
+            }
+          ]
+        },
+        "title": "Move 39 · White to play",
+        "question": "Are you looking at the board now?",
+        "insight": "The recorded game continued with Rxe6+, Kh5.",
+        "authorship": {
+          "model": "Gemini Nano",
+          "route": "on-device",
+          "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+          "promptVersion": "grounded-question-v2",
+          "promptHash": "592e8341ef1b75725f2f500069788e1ad59e91be91c19151f59b0eb968c35254",
+          "responseHash": "1bc29c20e3f8d2e75f53dc51015c349100834dfb8718fa923c9652a80b816000"
+        }
+      }
+    ]
+  },
+  "openings": [
+    {
+      "exerciseId": "development-4263f01cff2e",
+      "theme": "development",
+      "afterMoves": [
+        "d2d4"
+      ],
+      "candidateMoves": [
+        "g8f6"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Casas, Fernando vs. Keres, Paul · Mar del Plata, 1957",
+        "sourceHash": "26edaf969fc24ebf1258e471eb893981da82f06779342c049047092b9bde143b",
+        "ply": 2
+      },
+      "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "g8f6",
+            "evaluationCp": -20,
+            "principalVariation": [
+              "g8f6",
+              "c2c4",
+              "e7e6",
+              "g1f3",
+              "b7b6",
+              "b1c3",
+              "c8b7",
+              "e2e3",
+              "f8e7",
+              "d4d5",
+              "e6d5",
+              "c4d5"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "d7d5",
+            "evaluationCp": -23,
+            "principalVariation": [
+              "d7d5",
+              "c2c4",
+              "e7e6",
+              "b1c3",
+              "g8f6",
+              "c4d5",
+              "f6d5",
+              "e2e4",
+              "d5c3",
+              "b2c3",
+              "c7c5",
+              "g1f3"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "e7e6",
+            "evaluationCp": -32,
+            "principalVariation": [
+              "e7e6",
+              "e2e4"
+            ],
+            "depth": 17
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "development-a292ffb701b0",
+      "theme": "development",
+      "afterMoves": [
+        "d2d4"
+      ],
+      "candidateMoves": [
+        "g8f6"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Casas, Fernando vs. Keres, Paul · Mar del Plata, 1957",
+        "sourceHash": "26edaf969fc24ebf1258e471eb893981da82f06779342c049047092b9bde143b",
+        "ply": 2
+      },
+      "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "g8f6",
+            "evaluationCp": -20,
+            "principalVariation": [
+              "g8f6",
+              "c2c4",
+              "e7e6",
+              "g1f3",
+              "b7b6",
+              "b1c3",
+              "c8b7",
+              "e2e3",
+              "f8e7",
+              "d4d5",
+              "e6d5",
+              "c4d5"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "d7d5",
+            "evaluationCp": -23,
+            "principalVariation": [
+              "d7d5",
+              "c2c4",
+              "e7e6",
+              "b1c3",
+              "g8f6",
+              "c4d5",
+              "f6d5",
+              "e2e4",
+              "d5c3",
+              "b2c3",
+              "c7c5",
+              "g1f3"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "e7e6",
+            "evaluationCp": -32,
+            "principalVariation": [
+              "e7e6",
+              "e2e4"
+            ],
+            "depth": 17
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "development-a292ffb701b0",
+      "theme": "development",
+      "afterMoves": [
+        "d2d4",
+        "g8f6",
+        "c2c4"
+      ],
+      "candidateMoves": [
+        "e7e6"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Casas, Fernando vs. Keres, Paul · Mar del Plata, 1957",
+        "sourceHash": "26edaf969fc24ebf1258e471eb893981da82f06779342c049047092b9bde143b",
+        "ply": 4
+      },
+      "fen": "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "e7e6",
+            "evaluationCp": -19,
+            "principalVariation": [
+              "e7e6",
+              "g1f3",
+              "b7b6",
+              "b1c3",
+              "c8b7",
+              "a2a3",
+              "d7d5",
+              "c4d5",
+              "f6d5",
+              "d1a4",
+              "b8d7",
+              "c3d5"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "g7g6",
+            "evaluationCp": -29,
+            "principalVariation": [
+              "g7g6",
+              "b1c3",
+              "d7d5",
+              "g1f3",
+              "f8g7",
+              "c4d5",
+              "f6d5",
+              "e2e4",
+              "d5c3",
+              "b2c3",
+              "c7c5",
+              "f1e2"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "c7c6",
+            "evaluationCp": -32,
+            "principalVariation": [
+              "c7c6",
+              "b1c3",
+              "d7d5",
+              "e2e3",
+              "g7g6",
+              "g1f3",
+              "f8g7",
+              "f1d3",
+              "e8g8",
+              "e1g1",
+              "c8g4",
+              "h2h3"
+            ],
+            "depth": 18
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "king-safety-9d9bf6609ed7",
+      "theme": "king-safety",
+      "afterMoves": [
+        "e2e4"
+      ],
+      "candidateMoves": [
+        "e7e6"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Sanguineti, Raul vs. Albert, E. · Mar del Plata, 1957",
+        "sourceHash": "489318e01ee80a463c02cba159794533416864c476d8537a50740f61cbd096e5",
+        "ply": 2
+      },
+      "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "e7e6",
+            "evaluationCp": -28,
+            "principalVariation": [
+              "e7e6",
+              "d2d4"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "e7e5",
+            "evaluationCp": -30,
+            "principalVariation": [
+              "e7e5",
+              "g1f3"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "c7c5",
+            "evaluationCp": -40,
+            "principalVariation": [
+              "c7c5",
+              "g1f3",
+              "b8c6",
+              "d2d4",
+              "c5d4",
+              "f3d4",
+              "d8b6",
+              "d4f3",
+              "g8f6",
+              "f1d3",
+              "d7d5",
+              "e4d5"
+            ],
+            "depth": 16
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "king-safety-9d9bf6609ed7",
+      "theme": "king-safety",
+      "afterMoves": [
+        "e2e4",
+        "e7e6",
+        "d2d4"
+      ],
+      "candidateMoves": [
+        "d7d5"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Sanguineti, Raul vs. Albert, E. · Mar del Plata, 1957",
+        "sourceHash": "489318e01ee80a463c02cba159794533416864c476d8537a50740f61cbd096e5",
+        "ply": 4
+      },
+      "fen": "rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq - 0 2",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "d7d5",
+            "evaluationCp": -39,
+            "principalVariation": [
+              "d7d5",
+              "e4e5"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "h7h6",
+            "evaluationCp": -62,
+            "principalVariation": [
+              "h7h6",
+              "g1f3",
+              "d7d5",
+              "e4e5",
+              "c7c5",
+              "f1d3",
+              "c5c4",
+              "d3e2",
+              "b7b5",
+              "c2c3"
+            ],
+            "depth": 15
+          },
+          {
+            "uci": "a7a6",
+            "evaluationCp": -65,
+            "principalVariation": [
+              "a7a6",
+              "g1f3",
+              "d7d5",
+              "b1c3",
+              "f8b4",
+              "e4e5",
+              "c7c5",
+              "h2h4",
+              "g8e7",
+              "h4h5",
+              "h7h6",
+              "a2a3"
+            ],
+            "depth": 15
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "king-safety-9d9bf6609ed7",
+      "theme": "king-safety",
+      "afterMoves": [
+        "e2e4",
+        "e7e6",
+        "d2d4",
+        "d7d5",
+        "e4e5"
+      ],
+      "candidateMoves": [
+        "c7c5"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Sanguineti, Raul vs. Albert, E. · Mar del Plata, 1957",
+        "sourceHash": "489318e01ee80a463c02cba159794533416864c476d8537a50740f61cbd096e5",
+        "ply": 6
+      },
+      "fen": "rnbqkbnr/ppp2ppp/4p3/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "c7c5",
+            "evaluationCp": -31,
+            "principalVariation": [
+              "c7c5",
+              "c2c3",
+              "b8c6",
+              "g1f3",
+              "g8e7",
+              "f1d3",
+              "c5d4",
+              "c3d4",
+              "e7f5",
+              "c1e3",
+              "f5e3",
+              "f2e3"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "c8d7",
+            "evaluationCp": -32,
+            "principalVariation": [
+              "c8d7",
+              "g1f3",
+              "c7c5",
+              "c2c3",
+              "b8c6",
+              "f1e2",
+              "g8e7",
+              "e1g1",
+              "c5d4",
+              "c3d4",
+              "e7f5",
+              "b1c3"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "g8e7",
+            "evaluationCp": -39,
+            "principalVariation": [
+              "g8e7",
+              "b2b4"
+            ],
+            "depth": 17
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "king-safety-9d9bf6609ed7",
+      "theme": "king-safety",
+      "afterMoves": [
+        "e2e4",
+        "e7e6",
+        "d2d4",
+        "d7d5",
+        "e4e5",
+        "c7c5",
+        "g1f3"
+      ],
+      "candidateMoves": [
+        "b8c6"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Sanguineti, Raul vs. Albert, E. · Mar del Plata, 1957",
+        "sourceHash": "489318e01ee80a463c02cba159794533416864c476d8537a50740f61cbd096e5",
+        "ply": 8
+      },
+      "fen": "rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/5N2/PPP2PPP/RNBQKB1R b KQkq - 1 4",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "c5d4",
+            "evaluationCp": 1,
+            "principalVariation": [
+              "c5d4",
+              "d1d4"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "b8c6",
+            "evaluationCp": -33,
+            "principalVariation": [
+              "b8c6",
+              "c2c3",
+              "c8d7",
+              "f1e2",
+              "g8e7",
+              "e1g1",
+              "e7f5",
+              "e2d3",
+              "h7h6",
+              "d4c5",
+              "f8c5",
+              "b1d2"
+            ],
+            "depth": 15
+          },
+          {
+            "uci": "c8d7",
+            "evaluationCp": -40,
+            "principalVariation": [
+              "c8d7",
+              "c2c3",
+              "d8b6",
+              "a2a3",
+              "a7a5",
+              "a3a4",
+              "c5d4",
+              "c3d4",
+              "b8c6"
+            ],
+            "depth": 15
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "king-safety-93c52efc1d83",
+      "theme": "king-safety",
+      "afterMoves": [
+        "c2c4"
+      ],
+      "candidateMoves": [
+        "g8f6"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Incutto, Carlos vs. Eliskases, Erich Gottlieb · Mar del Plata, 1957",
+        "sourceHash": "135445a26fafdc82f2aa37ee49759160346c3b51d923c3e9f5337195303fbdd3",
+        "ply": 2
+      },
+      "fen": "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "e7e5",
+            "evaluationCp": -10,
+            "principalVariation": [
+              "e7e5",
+              "g2g3",
+              "g8f6",
+              "f1g2",
+              "c7c6",
+              "d2d4",
+              "e5d4",
+              "d1d4",
+              "f8e7",
+              "b1c3",
+              "e8g8",
+              "c1f4"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "g8f6",
+            "evaluationCp": -22,
+            "principalVariation": [
+              "g8f6",
+              "g1f3",
+              "e7e6",
+              "d2d4",
+              "d7d5",
+              "c1g5",
+              "d5c4",
+              "e2e4",
+              "b7b5",
+              "a2a4",
+              "c7c6",
+              "a4b5"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "c7c5",
+            "evaluationCp": -23,
+            "principalVariation": [
+              "c7c5",
+              "g1f3",
+              "g8f6",
+              "b1c3",
+              "b8c6",
+              "d2d4",
+              "d7d5",
+              "c4d5",
+              "f6d5",
+              "e2e4",
+              "d5c3",
+              "b2c3"
+            ],
+            "depth": 18
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "king-safety-93c52efc1d83",
+      "theme": "king-safety",
+      "afterMoves": [
+        "c2c4",
+        "g8f6",
+        "g1f3",
+        "g7g6",
+        "g2g3"
+      ],
+      "candidateMoves": [
+        "f8g7"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Incutto, Carlos vs. Eliskases, Erich Gottlieb · Mar del Plata, 1957",
+        "sourceHash": "135445a26fafdc82f2aa37ee49759160346c3b51d923c3e9f5337195303fbdd3",
+        "ply": 6
+      },
+      "fen": "rnbqkb1r/pppppp1p/5np1/8/2P5/5NP1/PP1PPP1P/RNBQKB1R b KQkq - 0 3",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "f8g7",
+            "evaluationCp": -22,
+            "principalVariation": [
+              "f8g7",
+              "f1g2",
+              "c7c6",
+              "b2b3",
+              "f6e4",
+              "d2d4",
+              "a7a5",
+              "e1g1",
+              "a5a4",
+              "c1b2",
+              "e8g8",
+              "b3a4"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "c7c5",
+            "evaluationCp": -22,
+            "principalVariation": [
+              "c7c5",
+              "f1g2",
+              "f8g7",
+              "e1g1",
+              "e8g8",
+              "d2d4",
+              "c5d4",
+              "f3d4",
+              "d7d5",
+              "c4d5",
+              "f6d5",
+              "b1c3"
+            ],
+            "depth": 18
+          },
+          {
+            "uci": "c7c6",
+            "evaluationCp": -22,
+            "principalVariation": [
+              "c7c6",
+              "b2b3",
+              "f8g7",
+              "f1g2",
+              "f6e4",
+              "d2d4",
+              "e8g8",
+              "e1g1",
+              "a7a5",
+              "c1b2",
+              "a5a4",
+              "f3d2"
+            ],
+            "depth": 18
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "king-safety-93c52efc1d83",
+      "theme": "king-safety",
+      "afterMoves": [
+        "c2c4",
+        "g8f6",
+        "g1f3",
+        "g7g6",
+        "g2g3",
+        "f8g7",
+        "f1g2"
+      ],
+      "candidateMoves": [
+        "e8g8"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Incutto, Carlos vs. Eliskases, Erich Gottlieb · Mar del Plata, 1957",
+        "sourceHash": "135445a26fafdc82f2aa37ee49759160346c3b51d923c3e9f5337195303fbdd3",
+        "ply": 8
+      },
+      "fen": "rnbqk2r/ppppppbp/5np1/8/2P5/5NP1/PP1PPPBP/RNBQK2R b KQkq - 2 4",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "e8g8",
+            "evaluationCp": -20,
+            "principalVariation": [
+              "e8g8",
+              "d2d4",
+              "c7c6",
+              "c1f4",
+              "d7d5",
+              "b1d2",
+              "a7a5",
+              "e1g1",
+              "c8f5",
+              "d1b3",
+              "d8c8",
+              "a1c1"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "c7c6",
+            "evaluationCp": -20,
+            "principalVariation": [
+              "c7c6",
+              "b2b3",
+              "e8g8",
+              "d2d4",
+              "d7d6",
+              "c1b2",
+              "b8d7",
+              "e1g1",
+              "f8e8",
+              "b1c3",
+              "e7e5",
+              "e2e4"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "c7c5",
+            "evaluationCp": -31,
+            "principalVariation": [
+              "c7c5",
+              "d2d4"
+            ],
+            "depth": 16
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "premature-central-exchange-31963434e647",
+      "theme": "premature-central-exchange",
+      "afterMoves": [
+        "d2d4",
+        "g8f6",
+        "c2c4",
+        "e7e6",
+        "b1c3"
+      ],
+      "candidateMoves": [
+        "f8b4"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Lombardy, William James vs. Kotov, Alexander · Mar del Plata, 1957",
+        "sourceHash": "8945b93ec80d3f8a0e5bfa6422cae893e1e7db408117bffb05d086cbaa1623c6",
+        "ply": 6
+      },
+      "fen": "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 3",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "f8b4",
+            "evaluationCp": -19,
+            "principalVariation": [
+              "f8b4",
+              "e2e3",
+              "c7c5",
+              "f1d3",
+              "c5d4",
+              "e3d4",
+              "d7d5",
+              "c4d5",
+              "f6d5",
+              "g1e2",
+              "e8g8",
+              "e1g1"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "d7d5",
+            "evaluationCp": -37,
+            "principalVariation": [
+              "d7d5",
+              "c4d5"
+            ],
+            "depth": 16
+          },
+          {
+            "uci": "c7c5",
+            "evaluationCp": -66,
+            "principalVariation": [
+              "c7c5",
+              "d4d5",
+              "d7d6",
+              "e2e4",
+              "g7g6",
+              "g1f3",
+              "f8g7",
+              "h2h3",
+              "e6d5",
+              "c4d5",
+              "e8g8",
+              "f1d3"
+            ],
+            "depth": 15
+          }
+        ]
+      }
+    },
+    {
+      "exerciseId": "premature-central-exchange-31963434e647",
+      "theme": "premature-central-exchange",
+      "afterMoves": [
+        "d2d4",
+        "g8f6",
+        "c2c4",
+        "e7e6",
+        "b1c3",
+        "f8b4",
+        "e2e3"
+      ],
+      "candidateMoves": [
+        "c7c5"
+      ],
+      "source": {
+        "url": "https://raw.githubusercontent.com/rozim/ChessData/master/PgnMentor/MardelPlata1957.pgn",
+        "game": "Lombardy, William James vs. Kotov, Alexander · Mar del Plata, 1957",
+        "sourceHash": "8945b93ec80d3f8a0e5bfa6422cae893e1e7db408117bffb05d086cbaa1623c6",
+        "ply": 8
+      },
+      "fen": "rnbqk2r/pppp1ppp/4pn2/8/1bPP4/2N1P3/PP3PPP/R1BQKBNR b KQkq - 0 4",
+      "verification": {
+        "engine": "Stockfish 19 Lite WASM",
+        "moveTimeMs": 700,
+        "multiPv": 3,
+        "verifiedAt": "2026-11-26",
+        "candidates": [
+          {
+            "uci": "e8g8",
+            "evaluationCp": -17,
+            "principalVariation": [
+              "e8g8",
+              "f1d3"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "d7d5",
+            "evaluationCp": -20,
+            "principalVariation": [
+              "d7d5",
+              "a2a3"
+            ],
+            "depth": 17
+          },
+          {
+            "uci": "c7c5",
+            "evaluationCp": -26,
+            "principalVariation": [
+              "c7c5",
+              "f1d3",
+              "d7d5",
+              "c4d5",
+              "f6d5",
+              "g1e2",
+              "c5d4",
+              "e3d4",
+              "b4e7",
+              "c3d5",
+              "e6d5",
+              "e1g1"
+            ],
+            "depth": 17
+          }
+        ]
+      }
+    }
+  ],
+  "skills": {
+    "vision": {
+      "title": "Reflection",
+      "question": "Are you looking carefully at the board?",
+      "insight": "Stockfish’s highest-scoring checked move was Rxe7.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "49cd8a6e94cc57cf08b83c37509958e684eaa16901edccf13cba06225b7e39cc",
+        "responseHash": "8455b0bac5193d9f687a62b86204c898d50647cf97e3777a4226b479ddf7eaa4"
+      }
+    },
+    "threats": {
+      "title": "Reflection",
+      "question": "Are you considering your options carefully?",
+      "insight": "Stockfish’s highest-scoring checked move was Rxe7.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "bac7a6440c72b31d9cf7b74dbdabcfdd280d9f43f1d30d448fffe85e71496c42",
+        "responseHash": "3dad3967a45535f6d32bd83c7c6a2d1f3aec6a703c5d1a4262fd490e7eb3df22"
+      }
+    },
+    "safety": {
+      "title": "Reflection",
+      "question": "Are you looking at the board before you make your next move?",
+      "insight": "Stockfish’s highest-scoring checked move was Rxe7.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "0ee107c729d729f54a09038b1d61dd898e8e0688e162b06240efc0e8cee78e48",
+        "responseHash": "80c256da40a55aa3df8716d2c4060e7e91b1b0294da3c90dec55ebb24a7c1072"
+      }
+    },
+    "endgames": {
+      "title": "Reflection",
+      "question": "What do you see on the board right now?",
+      "insight": "The recorded game continued with Rxe4, Rxa5.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "2be35bb78a072823d44250f4cad0ee5f6610954e7b8306668e999b0511c9953f",
+        "responseHash": "412a37713ba2ba3ada5f305e416020e8282adec984dfe93b28ff892da9587aa6"
+      }
+    },
+    "backrank": {
+      "title": "Reflection",
+      "question": "Are you looking at the board carefully before choosing your next step?",
+      "insight": "Stockfish’s highest-scoring checked move was Rxe7.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "932d166aea67dd0c078654514c16a9c50a5052b5288f1eab34701d93688ffa3d",
+        "responseHash": "1626559c2f585bbd272721d0678743a9cf820c4551014e7c282015ab9fd00178"
+      }
+    },
+    "forks": {
+      "title": "Reflection",
+      "question": "What are you looking at?",
+      "insight": "Stockfish’s highest-scoring checked move was Rxe7.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "9a2f294131cf2409c6e0c015731b1d23b9b87bc9cdfade4a9a4fcc4e836b0c4e",
+        "responseHash": "04b3dc95fdc01d5b8b6ae20c693d88a0aa6fa837d4ed5295c8a2adde4296ac8f"
+      }
+    },
+    "rook": {
+      "title": "Reflection",
+      "question": "What do you see?",
+      "insight": "The recorded game continued with Rxe4, Rxa5.",
+      "authorship": {
+        "model": "Gemini Nano",
+        "route": "on-device",
+        "runId": "760b96aa-200a-47b7-9bb5-b3a5836cfc68",
+        "promptVersion": "grounded-question-v2",
+        "promptHash": "5223d138642936bf0128e1cb3c3f39fc4f87e95a77d7a00b2e5588d4b88367cc",
+        "responseHash": "877352e59da4b9ea32dd56e291d0dbbc616409e347cc399a42185d49a1e68aa6"
+      }
+    }
+  }
+}

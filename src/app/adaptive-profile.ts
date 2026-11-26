@@ -19,7 +19,7 @@ import {
 import type { GameRecord } from "../domain/game/types";
 import { err, ok, type Result } from "../shared/result/result";
 
-export const ANALYSIS_VERSION = "stockfish-19-lite@1";
+export const ANALYSIS_VERSION = "stockfish-19-lite@2";
 
 export const completedAnalysisFromRecord = (
   record: AnalysisRecord,
@@ -125,7 +125,7 @@ export const createReviewEvidenceRecord = (input: {
 });
 
 export async function loadAdaptiveProfile(input: {
-  readonly games: GameRepository;
+  readonly games: { listCompletedSources: GameRepository["listCompleted"] };
   readonly analyses: AnalysisRepository;
   readonly reviews: ReviewEvidenceRepository;
   readonly initialTargetElo: number;
@@ -133,7 +133,7 @@ export async function loadAdaptiveProfile(input: {
   readonly computedAt: string;
 }): Promise<Result<AdaptiveLoopResult, string>> {
   const [gamesResult, analysesResult, reviewsResult] = await Promise.all([
-    input.games.listCompleted(),
+    input.games.listCompletedSources(),
     input.analyses.listAll(),
     input.reviews.listAll(),
   ]);
@@ -158,28 +158,47 @@ export async function loadAdaptiveProfile(input: {
   });
 
   const importedEvidence: CurriculumEvidence[] = [];
+  // Devices may import the same PGN under different immutable record IDs.
+  // Count each position once and attribute review attempts to its canonical game.
+  const imports = new Map<string, GameRecord[]>();
   for (const game of gamesResult.value) {
     if (game.origin.type === "tutor" || game.completedAt === null) continue;
-    const analysis = analysisByGame.get(game.id);
-    if (analysis === undefined) continue;
-    for (const fact of analysis.facts) {
+    const key = game.fingerprint ?? game.id;
+    const group = imports.get(key);
+    if (group) group.push(game);
+    else imports.set(key, [game]);
+  }
+  for (const group of imports.values()) {
+    const canonical = group[0];
+    if (!canonical?.completedAt) continue;
+    const perspectives = group.filter(
+      (game) => game.playerColor === canonical.playerColor,
+    );
+    const analysis = perspectives
+      .map((game) => analysisByGame.get(game.id))
+      .find((record) => record !== undefined);
+    if (!analysis) continue;
+    for (const fact of analysis.facts)
       importedEvidence.push(
-        mapAnalysisFactToEvidence(fact, game.completedAt, "import"),
+        mapAnalysisFactToEvidence(
+          { ...fact, gameId: canonical.id },
+          canonical.completedAt,
+          "import",
+        ),
       );
-    }
-    const review = reviewByGame.get(game.id);
-    if (review !== undefined) {
+    for (const game of perspectives) {
+      const review = reviewByGame.get(game.id);
+      if (!review) continue;
       const fact = analysis.facts.find((item) => item.theme === review.theme);
-      if (fact !== undefined) {
+      if (fact)
         importedEvidence.push(
           mapReviewLogToEvidence(
-            game.id,
+            canonical.id,
             reviewLogValue(review),
             "import",
             fact.phase,
           ),
         );
-      }
     }
   }
 

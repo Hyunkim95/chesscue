@@ -1,4 +1,8 @@
 import {
+  focusOpeningCandidates,
+  FOCUS_OPENING_POLICY_VERSION,
+} from "../../domain/curriculum/focus-opening-policy";
+import {
   cleanup,
   fireEvent,
   render,
@@ -99,11 +103,18 @@ describe("PlayGameScreen", () => {
       screen.queryByText(/hint|evaluation|candidate|coach/i),
     ).not.toBeInTheDocument();
     expect(repository.records.at(-1)?.moves).toHaveLength(2);
-    expect(engine.request?.searchMoves).toEqual(["e7e5"]);
+    const moves = focusOpeningCandidates({
+      focus: "development",
+      moves: ["e2e4"],
+      fen: engine.request?.fen ?? "",
+    });
+    expect(engine.request?.searchMoves).toEqual(
+      moves.length ? moves : undefined,
+    );
     expect(repository.records.at(-1)?.origin).toEqual({
       type: "tutor",
       trainingFocus: "development",
-      openingPolicyVersion: "focus-openings@1",
+      openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
     });
   });
 

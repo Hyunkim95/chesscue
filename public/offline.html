@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#101813" />
+    <meta name="theme-color" content="#091715" />
     <title>ChessCue is offline</title>
     <style>
       :root {
-        color-scheme: light;
+        color-scheme: dark;
         font-family: system-ui, sans-serif;
-        background: #eee6d7;
-        color: #292a27;
+        background: #071513;
+        color: #f9efda;
       }
       body {
         min-height: 100vh;
@@ -23,7 +23,7 @@
         max-width: 34rem;
       }
       p {
-        color: #5f645d;
+        color: #bacbc0;
         line-height: 1.6;
       }
       a {
@@ -31,10 +31,17 @@
         place-items: center;
         min-height: 44px;
         border: 0;
-        border-radius: 999px;
+        clip-path: polygon(
+          8px 0,
+          100% 0,
+          100% calc(100% - 8px),
+          calc(100% - 8px) 100%,
+          0 100%,
+          0 8px
+        );
         padding: 0 1.25rem;
-        color: #f8f1e5;
-        background: #3d6b5a;
+        color: #122119;
+        background: #dfc397;
         font-weight: 700;
         text-decoration: none;
       }

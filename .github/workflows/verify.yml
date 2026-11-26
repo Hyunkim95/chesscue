@@ -33,12 +33,14 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: node scripts/material/publish-seed.mjs scripts/material/library-seed.generated.json --dry-run
       - run: pnpm test
       - run: pnpm test:integration
       - run: pnpm exec firebase emulators:exec --only firestore "VITE_FIRESTORE_EMULATOR=true pnpm test:integration"
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e --project=chromium
+      - run: pnpm exec firebase emulators:exec --only auth,firestore --project demo-chesscue-account "VITE_ACCOUNT_EMULATORS=true pnpm exec playwright test tests/e2e/account"
       - uses: actions/upload-artifact@v5
         with:
           name: web-dist-${{ github.sha }}

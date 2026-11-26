@@ -55,63 +55,6 @@
   width: 100%;
 }
 
-.lesson-board {
-  display: grid;
-  overflow: hidden;
-  width: 100%;
-  aspect-ratio: 1;
-  grid-template-rows: repeat(8, 1fr);
-  border: 8px solid var(--cue-ink);
-  border-radius: 18px;
-  box-shadow: var(--cue-shadow);
-}
-
-.lesson-board-row {
-  display: grid;
-  min-height: 0;
-  grid-template-columns: repeat(8, 1fr);
-}
-
-.lesson-square {
-  position: relative;
-  display: grid;
-  place-items: center;
-  background: #7f9a84;
-  color: var(--cue-paper);
-}
-
-.lesson-square--light {
-  background: #e8dfca;
-  color: var(--cue-ink);
-}
-
-.lesson-square--highlighted::after {
-  position: absolute;
-  inset: 10%;
-  border: 3px solid var(--cue-coral);
-  border-radius: 10px;
-  box-shadow: 0 0 0 3px rgb(248 241 229 / 65%);
-  content: "";
-}
-
-.lesson-piece {
-  z-index: 1;
-  color: var(--cue-ink);
-  font-family: var(--cue-chess-font);
-  font-size: clamp(1.45rem, 5vw, 3.4rem);
-  filter: drop-shadow(0 2px 1px rgb(0 0 0 / 25%));
-}
-
-.lesson-coordinate {
-  position: absolute;
-  z-index: 2;
-  right: 0.22rem;
-  bottom: 0.12rem;
-  font-size: clamp(0.45rem, 1.2vw, 0.65rem);
-  font-weight: 800;
-  opacity: 1;
-}
-
 .lesson-board-caption {
   margin: 0.7rem 0 0;
   text-align: center;
@@ -159,13 +102,13 @@
   border: 1px solid var(--cue-line);
   border-radius: 12px;
   outline: none;
-  background: #fffaf1;
+  background: var(--cue-canvas);
   color: var(--cue-ink);
 }
 
 .lesson-answer input:focus {
   border-color: var(--cue-pine);
-  box-shadow: 0 0 0 3px rgb(61 107 90 / 14%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cue-pine) 16%, transparent);
 }
 
 .lesson-primary,
@@ -221,7 +164,7 @@
   margin: 0 auto 1rem;
   place-items: center;
   border-radius: 50%;
-  background: rgb(61 107 90 / 11%);
+  background: color-mix(in srgb, var(--cue-pine) 13%, transparent);
   color: var(--cue-pine);
   font-size: 1.8rem;
 }
@@ -244,7 +187,7 @@
   margin: 1.4rem 0;
   padding: 1rem 1.15rem;
   border-left: 3px solid var(--cue-coral);
-  background: rgb(223 118 91 / 8%);
+  background: color-mix(in srgb, var(--cue-coral) 9%, transparent);
   text-align: left;
 }
 
@@ -311,7 +254,7 @@
 .lesson-progress li.is-current > span:first-child,
 .lesson-progress li.is-complete > span:first-child {
   border-color: var(--cue-pine);
-  background: rgb(61 107 90 / 10%);
+  background: color-mix(in srgb, var(--cue-pine) 13%, transparent);
 }
 
 @media (max-width: 760px) {

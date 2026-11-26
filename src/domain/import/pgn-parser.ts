@@ -1,6 +1,6 @@
 import { Chess, DEFAULT_POSITION } from "chess.js";
 
-import { fingerprintCanonicalGame } from "./fingerprint";
+import { fingerprintCanonicalGame } from "./fingerprint.ts";
 import type {
   ParsedPgnGame,
   ParsedPgnItem,
@@ -93,7 +93,14 @@ function parseOne(
   const chess = new Chess();
 
   try {
-    chess.loadPgn(pgn, { strict: false });
+    // Lichess can export consecutive comments after a move. chess.js accepts
+    // them as one block. Keep quoted tags and line comments intact.
+    const normalizedPgn = pgn.replace(
+      /"(?:\\.|[^"\\])*"|;[^\r\n]*|\{[^{}]*\}(?:\s*\{[^{}]*\})*/g,
+      (token) =>
+        token.startsWith("{") ? token.replaceAll(/\}\s*\{/g, " ") : token,
+    );
+    chess.loadPgn(normalizedPgn, { strict: false });
   } catch (error: unknown) {
     const detail =
       error instanceof Error ? error.message : "The PGN could not be parsed.";
@@ -174,6 +181,7 @@ function parseOne(
       index,
       headers,
       initialFen,
+      originalPgn: pgn,
       canonicalPgn: chess.pgn({ maxWidth: 0, newline: "\n" }),
       result: mapResult(result),
       moves,

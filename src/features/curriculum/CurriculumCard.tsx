@@ -16,7 +16,7 @@ export function CurriculumCard({ prescription, mastery }: CurriculumCardProps) {
       <p>
         {prescription.mode === "focus" ? "Focus game" : "Consolidation game"}
       </p>
-      <h2 id="next-focus-title">{themeLabel(prescription.focus)}</h2>
+      <h3 id="next-focus-title">{themeLabel(prescription.focus)}</h3>
       <p>{prescription.reason}</p>
       <dl>
         <div>

@@ -18,7 +18,7 @@ const learningMomentSchema = z
     playedMoveSan: z.string().min(1).max(24),
     candidateMoveUci: uciMoveSchema,
     candidateMoveSan: z.string().min(1).max(24).optional(),
-    impactCp: z.number().int().min(0).max(100_000),
+    impactCp: z.number().int().min(0).max(200_000),
     theme: learningThemeSchema,
     phase: z.enum(["opening", "middlegame", "endgame"]),
     analysisVersion: z.string().min(1).max(80),

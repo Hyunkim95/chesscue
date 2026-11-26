@@ -18,7 +18,7 @@ export interface TransferVerification {
   readonly candidates: readonly VerifiedTransferCandidate[];
 }
 
-export interface CuratedTransferExercise {
+export interface VerifiedTransferExercise {
   readonly schemaVersion: number;
   readonly id: string;
   readonly version: string;
@@ -29,9 +29,35 @@ export interface CuratedTransferExercise {
   readonly prompt: string;
   readonly explanation: string;
   readonly provenance: string;
+  readonly source: {
+    readonly url: string;
+    readonly sourceHash: string;
+    readonly ply: number;
+  };
+  readonly authorship: {
+    readonly model: string;
+    readonly route: "on-device" | "cloud";
+    readonly runId: string;
+    readonly promptVersion: string;
+    readonly promptHash: string;
+    readonly responseHash: string;
+  };
   readonly verification: TransferVerification;
 }
 
+export type PracticeExercise = Pick<
+  VerifiedTransferExercise,
+  "id" | "theme" | "fen" | "acceptableMoves" | "explanation"
+> & {
+  readonly prompt?: string;
+  readonly authorship?: VerifiedTransferExercise["authorship"];
+  readonly source?: VerifiedTransferExercise["source"];
+  readonly verification: Pick<
+    TransferVerification,
+    "candidates" | "toleranceCp" | "principalVariation"
+  >;
+};
+
 export type TransferExerciseValidation =
-  | { readonly ok: true; readonly exercise: CuratedTransferExercise }
+  | { readonly ok: true; readonly exercise: VerifiedTransferExercise }
   | { readonly ok: false; readonly reason: string };

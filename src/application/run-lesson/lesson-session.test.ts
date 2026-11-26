@@ -1,9 +1,10 @@
+import { hangingPiecePlaybook } from "../../test/fixtures/hanging-piece";
 import { describe, expect, it } from "vitest";
 
 import {
   hangingPieceFacts,
   hangingPieceSelectionEvidence,
-} from "../../domain/lessons/lesson-test-fixtures";
+} from "../../test/fixtures/lesson-test-fixtures";
 import {
   currentLessonContentRequest,
   startSelectedLesson,
@@ -12,6 +13,7 @@ import {
 describe("lesson session", () => {
   it("selects, pins, and prepares exactly one eligible playbook step", () => {
     const result = startSelectedLesson({
+      registry: [hangingPiecePlaybook],
       runId: "session-1",
       startedAt: "2026-11-24T12:00:00.000Z",
       evidence: [hangingPieceSelectionEvidence],
@@ -36,6 +38,7 @@ describe("lesson session", () => {
   it("returns a stable not-eligible result when evidence is insufficient", () => {
     expect(
       startSelectedLesson({
+        registry: [hangingPiecePlaybook],
         runId: "session-2",
         startedAt: "2026-11-24T12:00:00.000Z",
         evidence: [{ ...hangingPieceSelectionEvidence, confidence: 0.1 }],

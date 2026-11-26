@@ -1,0 +1,449 @@
+.rook-exploration__ask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0.4rem 1rem;
+}
+
+.rook-exploration__ask input {
+  flex: 1 1 8rem;
+  min-width: 0;
+  padding: 0.45rem;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 0.3rem;
+}
+
+.rook-exploration {
+  scroll-margin-block-start: 7rem;
+}
+
+.rook-exploration .game-review__prompt h3 {
+  font-size: clamp(1.65rem, 3vw, 2.3rem);
+}
+
+.rook-exploration__move {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rook-exploration__transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-block-start: 0.6rem;
+}
+
+.rook-exploration__transport .rook-exploration__move {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.rook-exploration__transport-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.rook-exploration__transport-button--play:not(:disabled) {
+  border-color: var(--cue-gold);
+}
+
+.rook-playback-icon {
+  position: relative;
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.rook-playback-icon::before,
+.rook-playback-icon::after {
+  position: absolute;
+  content: "";
+}
+
+.rook-playback-icon--play::before,
+.rook-playback-icon--previous::before {
+  inset: 0.12rem;
+  background: currentColor;
+  clip-path: polygon(12% 0, 100% 50%, 12% 100%);
+}
+
+.rook-playback-icon--previous {
+  transform: scaleX(-1);
+}
+
+.rook-playback-icon--previous::before {
+  right: 0.29rem;
+}
+
+.rook-playback-icon--previous::after {
+  inset: 0.12rem 0.12rem 0.12rem auto;
+  width: 0.12rem;
+  background: currentColor;
+}
+
+.rook-playback-icon--rewind::before {
+  inset: 0.2rem 0.12rem 0.16rem 0.22rem;
+  border: 2px solid currentColor;
+  border-left-color: transparent;
+  border-radius: 50%;
+}
+
+.rook-playback-icon--rewind::after {
+  inset: 0.1rem 0.49rem 0.47rem 0.04rem;
+  background: currentColor;
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+}
+
+.rook-exploration__transport-button:disabled {
+  cursor: default;
+  opacity: 0.43;
+}
+
+.rook-evaluation {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  min-height: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rook-evaluation__bar {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #a5b7aa;
+  border-radius: 0.2rem;
+  position: relative;
+}
+
+.rook-evaluation__bar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid #b48959;
+}
+
+.rook-evaluation__bar span {
+  flex: none;
+}
+
+.rook-evaluation__bar [data-side="white"] {
+  background: #f3e7c8;
+}
+
+.rook-evaluation__bar [data-side="black"] {
+  background: #0b0e0d;
+}
+
+.rook-evaluation strong {
+  min-width: 2.6rem;
+  text-align: right;
+}
+
+.rook-playback-icon--chat::before {
+  inset: 0.15rem 0.03rem 0.26rem;
+  border: 2px solid currentColor;
+  border-radius: 0.2rem;
+}
+
+.rook-playback-icon--chat::after {
+  inset: 0.62rem 0.52rem 0.08rem 0.22rem;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.rook-exploration__turns {
+  display: grid;
+  gap: 0.55rem;
+  overflow-wrap: anywhere;
+}
+
+.rook-exploration__turns:not(:empty) {
+  margin-bottom: 0.65rem;
+}
+
+.rook-exploration__turns p {
+  margin: 0.25rem 0 0;
+}
+
+.rook-exploration__turns .rook-chat__message p {
+  white-space: pre-line;
+}
+
+.rook-exploration .game-review__training-layout {
+  align-items: start;
+  row-gap: 0.7rem;
+}
+
+.rook-exploration .game-review__prompt {
+  gap: 0.65rem;
+  padding: 0;
+}
+
+.rook-exploration .game-review__prompt::before {
+  content: none;
+}
+
+.rook-exploration__heading {
+  margin-bottom: 0.55rem;
+}
+
+.rook-exploration__cue {
+  margin: 0.55rem 0 0;
+}
+
+.rook-exploration__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.7rem;
+  align-items: center;
+}
+
+.rook-exploration__options button {
+  min-height: 44px;
+  padding: 0.45rem 0;
+  background: transparent;
+  border: 0;
+  color: var(--cue-muted);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.rook-exploration__ask .rook-exploration__mic {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.4rem;
+}
+
+.rook-exploration__ask .rook-exploration__mic[aria-pressed="true"] {
+  border-color: var(--cue-coral);
+}
+
+.rook-exploration__voice-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+  color: var(--cue-muted);
+  font-size: 0.8rem;
+}
+
+.rook-exploration__voice-status button {
+  min-height: 44px;
+  padding: 0.3rem;
+}
+
+.rook-exploration__chat-reveal {
+  min-height: 44px;
+  margin-bottom: 0.35rem;
+}
+
+.rook-exploration__typing {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  width: fit-content;
+  margin: 0 0 0.45rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 3px;
+  background: var(--cue-paper-deep);
+  color: var(--cue-muted);
+}
+
+.rook-exploration__typing span {
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: rook-typing 1.15s ease-in-out infinite;
+}
+
+.rook-exploration__typing span:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.rook-exploration__typing span:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes rook-typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  30% {
+    transform: translateY(-0.2rem);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rook-exploration__typing span {
+    animation: none;
+  }
+}
+
+.game-review.rook-exploration {
+  padding-block-end: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.game-review.rook-exploration:has(.rook-exploration__chat-drawer),
+.game-review.rook-exploration:has(.rook-exploration__voice-status) {
+  padding-block-end: calc(13rem + env(safe-area-inset-bottom, 0px));
+}
+
+.game-review.rook-exploration:has(.rook-exploration__chat-drawer):has(
+    .rook-exploration__voice-status
+  ) {
+  padding-block-end: calc(18rem + env(safe-area-inset-bottom, 0px));
+}
+
+.rook-exploration__composer-dock {
+  position: fixed;
+  z-index: 20;
+  inset-inline: 0;
+  inset-block-end: 0;
+  padding: 0.45rem 0.65rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  background: var(--cue-paper-deep);
+  border-top: 1px solid var(--cue-line);
+}
+
+.rook-exploration__composer-dock label {
+  display: block;
+  font-size: 0.8rem;
+}
+
+.rook-exploration__composer-dock .rook-exploration__ask {
+  margin: 0.25rem 0 0;
+}
+
+.rook-exploration__composer-dock .rook-exploration__ask input {
+  font-size: 16px;
+}
+
+.rook-exploration__composer-dock .rook-exploration__voice-status {
+  margin: 0.4rem 0 0;
+}
+
+@media (min-width: 56.01rem) {
+  .rook-exploration:not(.rook-exploration--compact)
+    .rook-exploration__composer-dock {
+    inset-inline-start: auto;
+    inset-inline-end: max(1.25rem, calc((100% - 66rem) / 2));
+    width: clamp(19rem, 30vw, 24rem);
+    border-inline: 1px solid var(--cue-line);
+  }
+}
+
+.rook-exploration--compact .game-review__board-stage .review-board {
+  max-width: max(13rem, calc(100svh - 27rem));
+}
+
+.rook-exploration__composer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.game-review .rook-exploration__chat-toggle {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cue-muted);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.rook-exploration__chat-drawer {
+  max-height: min(6rem, 16svh);
+  overflow-y: auto;
+}
+
+.rook-exploration__composer-heading .rook-exploration__chat-reveal {
+  margin: 0;
+  padding-inline: 0.45rem;
+  font-size: 0.75rem;
+}
+
+.rook-exploration__composer-heading > * {
+  flex: none;
+  white-space: nowrap;
+}
+
+.rook-exploration__heading:has(.review-navigation__icon) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.35rem;
+  align-items: center;
+}
+
+.rook-exploration__heading:has(.review-navigation__icon) p {
+  grid-column: 2;
+}
+
+.game-review .rook-chat__message .rook-exploration__commentary-jump {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.15rem 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  white-space: pre-line;
+}
+
+.rook-exploration__commentary-jump:focus-visible {
+  outline: 2px solid var(--cue-coral);
+  outline-offset: 2px;
+}
+
+.rook-exploration__commentary-jump small {
+  color: var(--cue-gold);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.rook-exploration__position-return {
+  display: flex;
+  justify-content: center;
+  margin-block-start: 0.55rem;
+}
+
+.game-review .rook-exploration__position-return button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding-inline: 0.65rem;
+  border-color: var(--cue-gold);
+  color: var(--cue-gold);
+  font-size: 0.85rem;
+}

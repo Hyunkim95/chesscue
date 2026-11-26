@@ -1,12 +1,18 @@
+import { starterPack } from "../../domain/material/pack";
+import { z } from "zod";
+import { useEntryState } from "../../shared/navigation/history-entry";
 import { Chess, type Square } from "chess.js";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import type { CompletedGameAnalysis } from "../../application/analyze-game/analyze-completed-game";
-import {
-  buildReviewCoachingRequest,
-  prepareReviewCoaching,
-  type ReviewCoachingResult,
-} from "../../application/analyze-game/prepare-review-coaching";
+import type { ReviewMistakeEvidence } from "../../domain/analysis/review-mistake";
+import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import {
   commitCloseMove,
   commitOriginalMove,
@@ -22,22 +28,30 @@ import {
 } from "../../application/analyze-game/review-training-session";
 import {
   buildGameReplay,
-  buildVariationFrames,
+  type ReplayFrame,
 } from "../../domain/analysis/replay-game";
 import {
   REVIEW_MOVE_TOLERANCE_CP,
-  getAttemptFeedback,
   getThemeFeedback,
-  type MoveAttemptScore,
   type ReviewTrainingLog,
 } from "../../domain/analysis/review-training";
-import type { LearningTheme } from "../../domain/analysis/types";
+import { observedGameMoves } from "../../domain/curriculum/game-drill";
 import type { GameRecord } from "../../domain/game/types";
+import { savedCoachMoments } from "../../domain/game/coach-moments";
 import type { LessonContentProvider } from "../../infrastructure/ai/lesson-content-provider";
+import { BoardBalance } from "../board/BoardBalance";
+import { ReviewContinuation } from "./ReviewContinuation";
 import { ReviewBoard } from "./ReviewBoard";
+import { GameDebrief, type DebriefSelection } from "./GameDebrief";
+import { RookExploration } from "../rook/RookExploration";
+import {
+  GuidedMoveFeedback,
+  ReviewExplanation,
+  TrainingStage,
+  type AnalyzeReply,
+} from "./GuidedMoveFeedback";
+import type { BoardCapture } from "../../domain/game/board-balance";
 import "./game-review-experience.css";
-
-type FeedbackLine = "attempt" | "verified";
 
 const isSquare = (value: string): value is Square => /^[a-h][1-8]$/.test(value);
 
@@ -64,57 +78,267 @@ const buildMove = (fen: string, from: string, to: string): string | null => {
   }
 };
 
-const lineFrame = (
-  fen: string,
-  line: readonly string[],
-  ply: number,
-): { readonly fen: string; readonly lastMoveUci: string | null } => {
-  const frames = buildVariationFrames(fen, line);
-  const frame = frames.ok ? frames.frames[ply] : undefined;
-  return { fen: frame?.fen ?? fen, lastMoveUci: frame?.lastMoveUci ?? null };
-};
-
+const uciSchema = z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/);
+const progressSchema = z.object({
+  stage: z.enum([
+    "original-move",
+    "original-feedback",
+    "close-move",
+    "close-feedback",
+    "unlabeled-move",
+    "unlabeled-feedback",
+    "complete",
+  ]),
+  original: uciSchema.optional(),
+  close: uciSchema.optional(),
+  unlabeled: uciSchema.optional(),
+  completedAt: z.iso.datetime().optional(),
+});
+function saveProgress(session: ReviewTrainingState | null) {
+  return (
+    session && {
+      stage: session.stage,
+      original: session.originalScore?.attemptedMoveUci,
+      close: session.closeScore?.attemptedMoveUci,
+      unlabeled: session.unlabeledScore?.attemptedMoveUci,
+      completedAt: session.log?.completedAt,
+    }
+  );
+}
+function restoreProgress(
+  analysis: CompletedGameAnalysis,
+  saved: z.infer<typeof progressSchema>,
+  gameTime: string,
+) {
+  let state = startReviewTraining(analysis);
+  if (!state || !saved.original) return state;
+  state = commitOriginalMove(state, saved.original);
+  if (!state.originalScore?.legal) return startReviewTraining(analysis);
+  if (saved.stage === "original-feedback" || saved.stage === "original-move")
+    return state;
+  if (saved.completedAt && !saved.close)
+    return completeAfterOriginalFeedback(state, saved.completedAt);
+  state = continueAfterOriginalFeedback(state, saved.completedAt ?? gameTime);
+  if (!saved.close) return state;
+  state = commitCloseMove(state, saved.close);
+  if (saved.stage === "close-feedback") return state;
+  if (saved.completedAt && !saved.unlabeled)
+    return completeAfterCloseFeedback(state, saved.completedAt);
+  state = continueAfterCloseFeedback(state);
+  if (saved.unlabeled) state = commitUnlabeledMove(state, saved.unlabeled);
+  return saved.completedAt
+    ? completeAfterUnlabeled(state, saved.completedAt)
+    : state;
+}
 export interface GameReviewExperienceProps {
   readonly game: GameRecord;
   readonly analysis: CompletedGameAnalysis;
   readonly coachProvider?: LessonContentProvider | null;
+  readonly analyzeReply?: AnalyzeReply | null;
+  readonly assessPosition?: AssessPosition | null;
   readonly onTrainingComplete?: ((log: ReviewTrainingLog) => void) | null;
   readonly now?: () => string;
+  readonly compact?: boolean;
+  readonly reviewBack?: ReactNode;
+  readonly reviewSource?: ReactNode;
+  readonly onMistake?: ((evidence: ReviewMistakeEvidence) => void) | undefined;
 }
 
 export function GameReviewExperience({
   game,
   analysis,
   coachProvider = null,
+  analyzeReply = null,
+  assessPosition = null,
   onTrainingComplete = null,
   now = () => new Date().toISOString(),
+  compact = false,
+  reviewBack,
+  reviewSource,
+  onMistake,
 }: GameReviewExperienceProps) {
   const replay = useMemo(() => buildGameReplay(game), [game]);
-  const [session, setSession] = useState<ReviewTrainingState | null>(() =>
-    startReviewTraining(analysis),
+  const reviewedScores = useMemo(() => {
+    const values = new Map<string, number>();
+    if (game.playerColor === null) return values;
+    const perspective = game.playerColor === "white" ? 1 : -1;
+    for (const fact of analysis.facts) {
+      const before = game.moves[fact.ply - 2]?.fenAfter ?? game.initialFen;
+      const played = game.moves[fact.ply - 1];
+      if (before !== fact.fenBefore || played?.uci !== fact.playedMoveUci)
+        continue;
+      values.set(before, perspective * fact.evaluationBeforeCp);
+      values.set(played.fenAfter, perspective * fact.evaluationAfterCp);
+    }
+    return values;
+  }, [analysis.facts, game]);
+  const [session, setSession] = useEntryState<ReviewTrainingState | null>(
+    "review.progress:" + starterPack.runId,
+    progressSchema.transform((saved) =>
+      restoreProgress(analysis, saved, game.completedAt ?? game.createdAt),
+    ),
+    () => startReviewTraining(analysis),
+    saveProgress,
   );
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
-  const [feedbackLine, setFeedbackLine] = useState<FeedbackLine>("attempt");
-  const [replayPly, setReplayPly] = useState(0);
+  const [rewind, setRewind] = useEntryState(
+    "review.rewind",
+    z.number().int().nonnegative(),
+    0,
+  );
+  const [replayPly, setReplayPly] = useEntryState(
+    "review.replayPly",
+    z.number().int().nonnegative(),
+    0,
+  );
+  const [replayExpanded, setReplayExpanded] = useEntryState(
+    "review.replayOpen",
+    z.boolean(),
+    false,
+  );
+  const [practiceOpen, setPracticeOpen] = useEntryState(
+    "review.practiceOpen",
+    z.boolean(),
+    false,
+  );
+  const [rookFrame, setRookFrame] = useState<ReplayFrame | null>(null);
+  const [debriefSelection, setDebriefSelection] =
+    useEntryState<DebriefSelection>(
+      "review.debriefFinding",
+      z.object({
+        finding: z.enum(["turning-point", "strong-move"]),
+        replyShown: z.boolean(),
+        replayPly: z.number().int().nonnegative().nullable().default(null),
+      }),
+      { finding: "turning-point", replyShown: false, replayPly: null },
+    );
+  const coachNotes = useMemo(() => savedCoachMoments(game), [game]);
+
+  function closeRook() {
+    setRookFrame(null);
+  }
+  useLayoutEffect(() => {
+    if (!practiceOpen && !compact) return;
+    const viewport = document.scrollingElement ?? document.documentElement;
+    viewport.scrollTop = 0;
+  }, [compact, practiceOpen, rookFrame]);
+
+  const observations = useMemo(
+    () => observedGameMoves(game, analysis),
+    [game, analysis],
+  );
+  const strength = observations
+    .filter((move) => move.outcome === "matched")
+    .toSorted(
+      (a, b) =>
+        Number(b.drill.mateInOne === true) - Number(a.drill.mateInOne === true),
+    )[0];
+  const mistake = session?.primaryFact;
+  const mistakeFrame =
+    mistake === undefined ? undefined : game.moves[mistake.ply - 1];
+  const reviewMarkers = [
+    ...(strength
+      ? [{ ply: strength.ply, label: "Strong move · " + strength.drill.played }]
+      : []),
+    ...(mistake && mistakeFrame
+      ? [
+          {
+            ply: mistake.ply - 1,
+            label: "Turning point · before " + mistakeFrame.san,
+          },
+        ]
+      : []),
+  ];
   const deviceInitializationStarted = useRef(false);
 
-  if (!replay.ok) return <p role="alert">{replay.message}</p>;
-  if (session === null) {
+  function withReviewNavigation(content: ReactNode) {
+    if (!reviewBack) return content;
     return (
+      <>
+        <nav className="review-navigation" aria-label="Game review controls">
+          {reviewBack}
+          {rookFrame && (
+            <button type="button" className="review-action" onClick={closeRook}>
+              Back to game debrief
+            </button>
+          )}
+        </nav>
+        {reviewSource}
+        {content}
+      </>
+    );
+  }
+
+  if (!replay.ok)
+    return withReviewNavigation(<p role="alert">{replay.message}</p>);
+  const fullReplay = (
+    <ReplayDetails
+      game={game}
+      assessPosition={assessPosition}
+      reviewedScores={reviewedScores}
+      replayFrames={replay.frames}
+      replayPly={replayPly}
+      setReplayPly={setReplayPly}
+      reviewMarkers={reviewMarkers}
+      expanded={replayExpanded}
+      setExpanded={setReplayExpanded}
+    />
+  );
+  if (rookFrame && analyzeReply) {
+    const prior = replay.frames[rookFrame.ply - 1];
+    const before = prior ? new Chess(prior.fen) : null;
+    const caption =
+      before && rookFrame.lastMoveSan
+        ? "After " +
+          String(before.moveNumber()) +
+          (before.turn() === "w" ? ". " : "... ") +
+          rookFrame.lastMoveSan
+        : "Starting position";
+    return withReviewNavigation(
+      <RookExploration
+        key={rookFrame.ply}
+        fen={rookFrame.fen}
+        originMoveUci={rookFrame.lastMoveUci}
+        originCaption={caption}
+        orientation={game.playerColor ?? "white"}
+        analyzeReply={analyzeReply}
+        assessPosition={assessPosition}
+        {...(mistake?.fenBefore === rookFrame.fen
+          ? { topic: mistake.theme }
+          : {})}
+        compact={compact}
+        onMistake={onMistake}
+        closeLabel="Back to game debrief"
+        onClose={reviewBack ? undefined : closeRook}
+      />,
+    );
+  }
+
+  if (!practiceOpen || session === null) {
+    return withReviewNavigation(
       <section
-        className="game-review game-review__empty"
-        aria-labelledby="review-empty-title"
+        className="game-review game-review--debrief"
+        aria-labelledby="game-review-title"
       >
-        <h2 id="review-empty-title">No verified training set yet</h2>
-        <p>You can still replay the completed game while analysis finishes.</p>
-        <ReplayDetails
-          game={game}
-          replayFrames={replay.frames}
-          replayPly={replayPly}
-          setReplayPly={setReplayPly}
+        <GameDebrief
+          frames={replay.frames}
+          orientation={game.playerColor ?? "white"}
+          strongPly={strength?.ply}
+          turningPly={mistake?.ply}
+          selection={debriefSelection}
+          onSelect={setDebriefSelection}
+          coachNotes={coachNotes}
+          onExplore={analyzeReply ? setRookFrame : undefined}
+          onPractice={
+            mistake
+              ? () => {
+                  setPracticeOpen(true);
+                }
+              : undefined
+          }
         />
-      </section>
+      </section>,
     );
   }
 
@@ -144,8 +368,7 @@ export function GameReviewExperience({
     setSelectedMove(null);
   };
 
-  const commitMove = (): void => {
-    if (selectedMove === null) return;
+  const initializeCoach = (): void => {
     if (
       !deviceInitializationStarted.current &&
       coachProvider?.initializeDeviceModel !== undefined
@@ -153,15 +376,16 @@ export function GameReviewExperience({
       deviceInitializationStarted.current = true;
       void coachProvider.initializeDeviceModel().catch(() => undefined);
     }
+  };
+  const commitMove = (): void => {
+    if (selectedMove === null) return;
+    initializeCoach();
     setSession((current) => {
       if (current === null) return current;
-      if (current.stage === "original-move")
-        return commitOriginalMove(current, selectedMove);
       if (current.stage === "close-move")
         return commitCloseMove(current, selectedMove);
       return commitUnlabeledMove(current, selectedMove);
     });
-    setFeedbackLine("attempt");
     clearMoveSelection();
   };
 
@@ -174,32 +398,91 @@ export function GameReviewExperience({
     setSession((current) =>
       current === null ? current : retryCurrentMove(current),
     );
-    setFeedbackLine("attempt");
     clearMoveSelection();
   };
 
-  return (
+  return withReviewNavigation(
     <section className="game-review" aria-labelledby="game-review-title">
       <header className="game-review__header">
         <div>
-          <p className="game-review__eyebrow">Rewind challenge</p>
           <h2 id="game-review-title">Your game, rewound</h2>
+          <button
+            type="button"
+            className="game-review__quiet-action"
+            onClick={() => {
+              setPracticeOpen(false);
+            }}
+          >
+            Back to game debrief
+          </button>
         </div>
       </header>
 
-      {session.stage === "original-move" ? (
-        <MoveStage
+      {session.stage === "original-move" ||
+      session.stage === "original-feedback" ? (
+        <ReviewContinuation
+          key={rewind}
+          rewind={rewind}
           game={game}
-          fen={session.primaryFact.fenBefore}
-          selectedSquare={selectedSquare}
-          selectedMove={selectedMove}
-          legalTargets={targets}
-          onSquareSelect={selectBoardSquare}
-          onCommit={commitMove}
-          eyebrow="Your turn again"
-          title="Play it differently."
-          description="The game has rewound to the critical moment. Play the move you wish you had chosen. Stockfish stays hidden until you move."
-        />
+          ply={session.primaryFact.ply}
+          initialFact={session.primaryFact}
+          analyzeReply={analyzeReply}
+          onFirstMove={(uci) => {
+            initializeCoach();
+            setSession((current) =>
+              current === null ? null : commitOriginalMove(current, uci),
+            );
+          }}
+        >
+          {session.originalScore !== null && (
+            <>
+              <div className="game-review__optional-actions">
+                <button
+                  type="button"
+                  className="game-review__quiet-action"
+                  onClick={() => {
+                    setRewind((current) => current + 1);
+                  }}
+                >
+                  Rewind again
+                </button>
+                {session.originalScore.accepted &&
+                  session.closeExercise !== null && (
+                    <button
+                      type="button"
+                      className="game-review__quiet-action"
+                      onClick={() => {
+                        completeSession(
+                          continueAfterOriginalFeedback(session, now()),
+                        );
+                      }}
+                    >
+                      Try a similar position
+                    </button>
+                  )}
+                <button
+                  type="button"
+                  className="game-review__quiet-action"
+                  onClick={() => {
+                    completeSession(
+                      completeAfterOriginalFeedback(session, now()),
+                    );
+                  }}
+                >
+                  Finish review
+                </button>
+              </div>
+              <ReviewExplanation
+                gameId={game.id}
+                fen={session.primaryFact.fenBefore}
+                theme={session.primaryFact.theme}
+                score={session.originalScore}
+                coachProvider={coachProvider}
+                explanation={getThemeFeedback(session.primaryFact.theme)}
+              />
+            </>
+          )}
+        </ReviewContinuation>
       ) : null}
 
       {session.stage === "close-move" && session.closeExercise !== null ? (
@@ -229,61 +512,29 @@ export function GameReviewExperience({
           onCommit={commitMove}
           eyebrow="No hint this time"
           title="One more position?"
-          description="Treat this like an ordinary game. Play the move that feels most urgent."
-        />
-      ) : null}
-
-      {session.stage === "original-feedback" ? (
-        <FeedbackStage
-          game={game}
-          gameId={session.primaryMoment.gameId}
-          coachProvider={coachProvider}
-          fen={session.primaryFact.fenBefore}
-          score={session.originalScore}
-          verifiedLine={
-            session.primaryFact.candidates.find(
-              (candidate) =>
-                candidate.uci === session.originalScore?.bestMoveUci,
-            )?.principalVariation ?? []
-          }
-          line={feedbackLine}
-          setLine={setFeedbackLine}
-          eyebrow="Move feedback"
-          theme={session.primaryFact.theme}
-          explanation={getThemeFeedback(session.primaryFact.theme)}
-          nextLabel={
-            session.closeExercise === null || session.unlabeledExercise === null
-              ? undefined
-              : "Practice this idea"
-          }
-          onNext={() => {
-            completeSession(continueAfterOriginalFeedback(session, now()));
-          }}
-          onFinish={() => {
-            completeSession(completeAfterOriginalFeedback(session, now()));
-          }}
-          onUndo={undoAttempt}
+          description={session.unlabeledExercise.prompt}
         />
       ) : null}
 
       {session.stage === "close-feedback" && session.closeExercise !== null ? (
-        <FeedbackStage
-          game={game}
+        <GuidedMoveFeedback
           gameId={session.primaryMoment.gameId}
           coachProvider={coachProvider}
+          analyzeReply={analyzeReply}
+          assessPosition={assessPosition}
           fen={session.closeExercise.fen}
           score={session.closeScore}
           verifiedLine={session.closeExercise.verification.principalVariation}
-          line={feedbackLine}
-          setLine={setFeedbackLine}
-          eyebrow="Move feedback"
           theme={session.primaryFact.theme}
           explanation={session.closeExercise.explanation}
-          nextLabel="Practice without a hint"
-          onNext={() => {
-            setSession(continueAfterCloseFeedback(session));
-            setFeedbackLine("attempt");
-          }}
+          {...(session.unlabeledExercise
+            ? {
+                nextLabel: "Practice without a hint",
+                onNext: () => {
+                  setSession(continueAfterCloseFeedback(session));
+                },
+              }
+            : {})}
           onFinish={() => {
             completeSession(completeAfterCloseFeedback(session, now()));
           }}
@@ -293,18 +544,16 @@ export function GameReviewExperience({
 
       {session.stage === "unlabeled-feedback" &&
       session.unlabeledExercise !== null ? (
-        <FeedbackStage
-          game={game}
+        <GuidedMoveFeedback
           gameId={session.primaryMoment.gameId}
           coachProvider={coachProvider}
+          analyzeReply={analyzeReply}
+          assessPosition={assessPosition}
           fen={session.unlabeledExercise.fen}
           score={session.unlabeledScore}
           verifiedLine={
             session.unlabeledExercise.verification.principalVariation
           }
-          line={feedbackLine}
-          setLine={setFeedbackLine}
-          eyebrow="Move feedback"
           theme={session.primaryFact.theme}
           explanation={session.unlabeledExercise.explanation}
           onFinish={() => {
@@ -318,12 +567,7 @@ export function GameReviewExperience({
         <TrainingSummary session={session} />
       ) : null}
 
-      <ReplayDetails
-        game={game}
-        replayFrames={replay.frames}
-        replayPly={replayPly}
-        setReplayPly={setReplayPly}
-      />
+      {fullReplay}
 
       {session.stage === "original-feedback" ||
       session.stage === "close-feedback" ||
@@ -356,13 +600,14 @@ export function GameReviewExperience({
           </dl>
         </details>
       ) : null}
-    </section>
+    </section>,
   );
 }
 
 function MoveStage({
   game,
   fen,
+  captures = [],
   selectedSquare,
   selectedMove,
   legalTargets,
@@ -374,6 +619,7 @@ function MoveStage({
 }: {
   readonly game: GameRecord;
   readonly fen: string;
+  readonly captures?: readonly BoardCapture[] | undefined;
   readonly selectedSquare: string | null;
   readonly selectedMove: string | null;
   readonly legalTargets: readonly string[];
@@ -386,14 +632,17 @@ function MoveStage({
   return (
     <TrainingStage
       board={
-        <ReviewBoard
-          fen={fen}
-          orientation={game.playerColor ?? "white"}
-          lastMoveUci={selectedMove}
-          selectedSquare={selectedSquare}
-          legalTargets={legalTargets}
-          onSquareSelect={onSquareSelect}
-        />
+        <>
+          <ReviewBoard
+            fen={fen}
+            orientation={game.playerColor ?? "white"}
+            lastMoveUci={selectedMove}
+            selectedSquare={selectedSquare}
+            legalTargets={legalTargets}
+            onSquareSelect={onSquareSelect}
+          />
+          <BoardBalance fen={fen} captures={captures} />
+        </>
       }
       eyebrow={eyebrow}
       title={title}
@@ -415,249 +664,6 @@ function MoveStage({
         Play this move
       </button>
     </TrainingStage>
-  );
-}
-
-function TrainingStage({
-  board,
-  eyebrow,
-  title,
-  description,
-  children,
-}: {
-  readonly board: ReactNode;
-  readonly eyebrow: string;
-  readonly title: string;
-  readonly description: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <div className="game-review__training-layout">
-      <div className="game-review__board-stage">{board}</div>
-      <div className="game-review__prompt">
-        <p className="game-review__theme">{eyebrow}</p>
-        <h3>{title}</h3>
-        <p className="game-review__prompt-copy">{description}</p>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function FeedbackStage({
-  game,
-  gameId,
-  coachProvider,
-  fen,
-  score,
-  verifiedLine,
-  line,
-  setLine,
-  eyebrow,
-  theme,
-  explanation,
-  nextLabel,
-  onNext,
-  onFinish,
-  onUndo,
-}: {
-  readonly game: GameRecord;
-  readonly gameId: string;
-  readonly coachProvider: LessonContentProvider | null;
-  readonly fen: string;
-  readonly score: MoveAttemptScore | null;
-  readonly verifiedLine: readonly string[];
-  readonly line: FeedbackLine;
-  readonly setLine: (line: FeedbackLine) => void;
-  readonly eyebrow: string;
-  readonly theme: LearningTheme;
-  readonly explanation: string;
-  readonly nextLabel?: string | undefined;
-  readonly onNext?: () => void;
-  readonly onFinish: () => void;
-  readonly onUndo: () => void;
-}) {
-  const [verifiedPly, setVerifiedPly] = useState(1);
-  const [coachResult, setCoachResult] = useState<ReviewCoachingResult | null>(
-    null,
-  );
-  const feedback =
-    score === null ? null : getAttemptFeedback({ fen, theme, score });
-  const feedbackSummary = feedback?.summary;
-  useEffect(() => {
-    if (
-      score === null ||
-      feedbackSummary === undefined ||
-      coachProvider === null
-    )
-      return;
-    const controller = new AbortController();
-    const request = buildReviewCoachingRequest({
-      gameId,
-      fen,
-      theme,
-      score,
-      deterministicExplanation: feedbackSummary,
-    });
-    void prepareReviewCoaching({
-      request,
-      accepted: score.accepted,
-      provider: coachProvider,
-      signal: controller.signal,
-    }).then((result) => {
-      if (!controller.signal.aborted) setCoachResult(result);
-    });
-    return () => {
-      controller.abort();
-    };
-  }, [coachProvider, feedbackSummary, fen, gameId, score, theme]);
-  if (score === null || feedback === null)
-    return <p role="alert">This move was not scored.</p>;
-  const boundedVerifiedPly = Math.min(
-    Math.max(1, verifiedPly),
-    Math.max(1, verifiedLine.length),
-  );
-  const frame = lineFrame(
-    fen,
-    line === "attempt" ? [score.attemptedMoveUci] : verifiedLine,
-    line === "attempt" ? 1 : boundedVerifiedPly,
-  );
-  const canAdvanceLine =
-    line === "verified" && boundedVerifiedPly < verifiedLine.length;
-  return (
-    <TrainingStage
-      board={
-        <ReviewBoard
-          fen={frame.fen}
-          orientation={game.playerColor ?? "white"}
-          lastMoveUci={frame.lastMoveUci}
-        />
-      }
-      eyebrow={eyebrow}
-      title={feedback.title}
-      description={feedback.summary}
-    >
-      <div className="game-review__learning-cue">
-        <strong>Remember</strong>
-        <p>{explanation}</p>
-      </div>
-      <HybridCoachNote provider={coachProvider} result={coachResult} />
-      <div className="game-review__feedback-controls">
-        <button
-          className={
-            score.accepted ? "game-review__secondary" : "game-review__primary"
-          }
-          type="button"
-          onClick={onUndo}
-        >
-          {score.accepted ? "Undo and try another move" : "Undo and try again"}
-        </button>
-        {line === "attempt" ? (
-          <button
-            className="game-review__secondary"
-            type="button"
-            onClick={() => {
-              setLine("verified");
-              setVerifiedPly(1);
-            }}
-          >
-            Show coach move
-          </button>
-        ) : (
-          <button
-            className="game-review__secondary"
-            type="button"
-            onClick={() => {
-              setLine("attempt");
-            }}
-          >
-            Back to my move
-          </button>
-        )}
-      </div>
-      {line === "verified" ? (
-        <div className="game-review__line-player" aria-live="polite">
-          <p>
-            Move {String(boundedVerifiedPly)} of {String(verifiedLine.length)}
-            {boundedVerifiedPly % 2 === 0 ? " - opponent's reply" : ""}
-          </p>
-          {canAdvanceLine ? (
-            <button
-              className="game-review__line-next"
-              type="button"
-              onClick={() => {
-                setVerifiedPly((current) => current + 1);
-              }}
-            >
-              {boundedVerifiedPly === 1
-                ? "Show the opponent's reply"
-                : "Show the next move"}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-      <div className="game-review__optional-actions">
-        {score.accepted && nextLabel !== undefined && onNext !== undefined ? (
-          <div>
-            <span>Want more practice?</span>
-            <button
-              className="game-review__quiet-action"
-              type="button"
-              onClick={onNext}
-            >
-              {nextLabel}
-            </button>
-          </div>
-        ) : null}
-        <button
-          className="game-review__quiet-action"
-          type="button"
-          onClick={onFinish}
-        >
-          Finish review
-        </button>
-      </div>
-    </TrainingStage>
-  );
-}
-
-function HybridCoachNote({
-  provider,
-  result,
-}: {
-  readonly provider: LessonContentProvider | null;
-  readonly result: ReviewCoachingResult | null;
-}) {
-  if (provider === null) {
-    return (
-      <p className="game-review__provenance">
-        Feedback source: verified local rules
-      </p>
-    );
-  }
-  if (result === null) {
-    return (
-      <p className="game-review__provenance" role="status">
-        Hybrid coach is preparing feedback…
-      </p>
-    );
-  }
-  const source =
-    result.provenance === "on-device"
-      ? "Gemini Nano on device"
-      : result.provenance === "cloud"
-        ? "Gemini cloud fallback"
-        : "verified local fallback";
-  return (
-    <div className="game-review__coach-note" aria-live="polite">
-      {result.provenance === "deterministic" ? null : (
-        <>
-          <strong>Hybrid coach</strong>
-          <p>{result.note}</p>
-        </>
-      )}
-      <small>Feedback source: {source}</small>
-    </div>
   );
 }
 
@@ -700,30 +706,65 @@ function TrainingSummary({
 
 function ReplayDetails({
   game,
+  assessPosition,
+  reviewedScores,
   replayFrames,
   replayPly,
   setReplayPly,
+  reviewMarkers,
+  expanded,
+  setExpanded,
 }: {
   readonly game: GameRecord;
-  readonly replayFrames: readonly {
-    readonly fen: string;
-    readonly lastMoveUci: string | null;
-  }[];
+  readonly expanded: boolean;
+  readonly setExpanded: (expanded: boolean) => void;
+  readonly assessPosition: AssessPosition | null;
+  readonly reviewedScores: ReadonlyMap<string, number>;
+  readonly replayFrames: readonly ReplayFrame[];
   readonly replayPly: number;
   readonly setReplayPly: (value: number) => void;
+  readonly reviewMarkers: readonly {
+    readonly ply: number;
+    readonly label: string;
+  }[];
 }) {
+  const moments = useMemo(() => savedCoachMoments(game), [game]);
   const bounded = Math.min(replayPly, replayFrames.length - 1);
   const frame = replayFrames[bounded];
   if (frame === undefined) return null;
   return (
-    <details className="game-review__replay">
-      <summary>Replay the full game</summary>
+    <details
+      className="game-review__replay"
+      open={expanded}
+      onToggle={(event) => {
+        setExpanded(event.currentTarget.open);
+      }}
+    >
+      <summary>
+        {moments.length > 0
+          ? "Replay the game and saved coach notes"
+          : "Replay the full game"}
+      </summary>
       <div className="game-review__replay-content">
         <ReviewBoard
           fen={frame.fen}
           orientation={game.playerColor ?? "white"}
           lastMoveUci={frame.lastMoveUci}
         />
+        {expanded ? (
+          <BoardBalance
+            fen={frame.fen}
+            captures={frame.captures}
+            position={
+              assessPosition === null
+                ? undefined
+                : {
+                    assess: assessPosition,
+                    knownWhiteCentipawns: reviewedScores.get(frame.fen),
+                  }
+            }
+          />
+        ) : null}
         <label htmlFor="game-review-ply">Move through the game</label>
         <input
           id="game-review-ply"
@@ -738,6 +779,67 @@ function ReplayDetails({
         <p>
           Position {String(bounded)} of {String(replayFrames.length - 1)}
         </p>
+        <div
+          className="game-review__line-controls"
+          aria-label="Replay controls"
+          role="group"
+        >
+          <button
+            type="button"
+            disabled={bounded === 0}
+            onClick={() => {
+              setReplayPly(bounded - 1);
+            }}
+          >
+            Previous move
+          </button>
+          <button
+            type="button"
+            disabled={bounded === replayFrames.length - 1}
+            onClick={() => {
+              setReplayPly(bounded + 1);
+            }}
+          >
+            Next move
+          </button>
+        </div>
+        {reviewMarkers.length > 0 && (
+          <div
+            className="game-review__line-controls"
+            role="group"
+            aria-label="Review moments"
+          >
+            {reviewMarkers.map(({ ply, label }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => {
+                  setReplayPly(ply);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {moments.length > 0 ? (
+          <ul className="replay-coach-notes">
+            {moments.map((note) => (
+              <li key={note.ply}>
+                <button
+                  className="review-action"
+                  type="button"
+                  onClick={() => {
+                    setReplayPly(note.replayPly);
+                  }}
+                >
+                  {note.title}
+                </button>
+                <p>{note.detail}</p>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     </details>
   );

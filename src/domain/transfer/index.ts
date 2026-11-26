@@ -1,9 +1,12 @@
-export { curatedTransferRegistry, transferExercisesForTheme } from "./registry";
+export {
+  generatedTransferRegistry,
+  transferExercisesForTheme,
+} from "./registry";
 export type {
-  CuratedTransferExercise,
+  VerifiedTransferExercise,
   TransferDifficulty,
   TransferExerciseValidation,
   TransferVerification,
   VerifiedTransferCandidate,
 } from "./types";
-export { validateCuratedTransferExercise } from "./validate";
+export { validateGeneratedTransferExercise } from "./validate";
