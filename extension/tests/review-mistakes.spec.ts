@@ -197,6 +197,9 @@ test("queues the move tried during a PGN review once and opens its retry offline
     await context.setOffline(true);
     await practice.click();
     await page
+      .getByRole("combobox", { name: "Curriculum stage" })
+      .selectOption({ label: "Play safely" });
+    await page
       .getByRole("button", { name: /See the opponent’s next threat/ })
       .click();
     const retry = queue.getByRole("button", {
