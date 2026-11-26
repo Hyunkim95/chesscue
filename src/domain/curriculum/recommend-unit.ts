@@ -1,6 +1,7 @@
 import { Chess } from "chess.js";
 import type { LearningTheme } from "../analysis/types";
-import type { ObservedMove } from "./game-drill";
+import type { PracticeExercise } from "../transfer/types";
+import type { ObservedMove, VerifiedGameDrill } from "./game-drill";
 
 const unitForTheme: Record<LearningTheme, string> = {
   "hanging-piece": "count-captures",
@@ -13,10 +14,13 @@ const unitForTheme: Record<LearningTheme, string> = {
   other: "calculate-replies",
 };
 
-function unitForMove({ drill }: ObservedMove): string {
+export function unitForDrill(drill: VerifiedGameDrill): string {
   if (drill.backRank) return "mating-patterns";
   if (drill.mateInOne) return "simple-mates";
-  const { fen, theme } = drill.exercise;
+  return unitForExercise(drill.exercise);
+}
+
+export function unitForExercise({ fen, theme }: PracticeExercise): string {
   const board = new Chess(fen);
   if (board.isCheck()) return "get-out-of-check";
   if (theme === "endgame-technique") {
@@ -58,7 +62,7 @@ export function recommendCurriculumUnit(
   >();
   for (const move of moves) {
     if (move.outcome !== "retry") continue;
-    const id = unitForMove(move);
+    const id = unitForDrill(move.drill);
     const prior = byUnit.get(id);
     if (!prior) {
       byUnit.set(id, { games: new Set([move.game.id]), example: move });

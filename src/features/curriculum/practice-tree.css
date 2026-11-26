@@ -23,7 +23,7 @@
   appearance: none;
   cursor: pointer;
   border: 1px solid var(--cue-line);
-  border-radius: 2rem;
+  border-radius: var(--cue-radius-control);
   background: var(--cue-paper-deep);
   color: var(--cue-ink);
   min-height: 44px;
@@ -57,38 +57,45 @@
   width: 1px;
   background: linear-gradient(var(--tree-wire) 85%, transparent);
 }
-.practice-tree__nodes li {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  min-width: 0;
+.practice-tree__nodes > li {
+  display: contents;
 }
-.practice-tree__nodes li::before {
+.practice-tree__node::before {
   content: "";
-  z-index: -1;
   position: absolute;
   top: 1.45rem;
   left: 50%;
   right: 0;
   border-top: 1px solid var(--tree-wire);
 }
-.practice-tree__nodes li:nth-child(even)::before {
+.practice-tree__nodes > li:nth-child(even) > .practice-tree__node::before {
   left: 0;
   right: 50%;
 }
 .practice-tree__node {
+  position: relative;
+  min-width: 0;
   display: grid;
   align-content: start;
   justify-items: center;
   gap: 0.35rem;
   min-height: 64px;
   width: 100%;
-  padding: 0 0.35rem;
+  padding: 0 0.35rem 0.35rem;
   color: var(--cue-ink);
   border: 0;
   background: transparent;
   font: inherit;
   cursor: pointer;
+}
+.practice-tree__node[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 100% auto auto 50%;
+  width: 2px;
+  height: 0.7rem;
+  background: var(--cue-gold);
+  pointer-events: none;
 }
 .practice-tree__seal {
   position: relative;
@@ -131,16 +138,17 @@
   text-wrap: balance;
 }
 .practice-tree__challenge {
-  max-width: 23rem;
-  margin: 0 auto;
+  grid-column: 1 / -1;
+  min-width: 0;
+  border-radius: var(--cue-radius-card);
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--cue-line);
   border-top: 2px solid var(--cue-gold);
   background: var(--cue-paper);
   text-align: start;
-  scroll-margin-block: 4rem 1rem;
+  scroll-margin-block: 6rem 4rem;
 }
-.practice-tree__challenge p {
+.practice-tree__challenge > p {
   margin: 0 0 0.65rem;
   font: 600 1rem/1.35 var(--cue-display);
 }
@@ -195,4 +203,13 @@
   min-height: 44px;
   color: var(--cue-gold);
   cursor: pointer;
+}
+
+.practice-tree__challenge .review-action {
+  max-width: 100%;
+}
+
+.practice-tree__puzzle {
+  display: block;
+  margin-block: 0.5rem;
 }

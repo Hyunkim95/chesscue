@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import { z } from "zod";
 import material from "../../../scripts/material/curriculum.generated.json?raw";
 import type { CurriculumRecommendation } from "../../domain/curriculum/recommend-unit";
@@ -38,7 +38,16 @@ const symbols: Readonly<Record<string, string>> = {
 export function PracticeCurriculum({
   recommendation,
   onPractice,
+  lessons,
+  recommendedPuzzle,
 }: {
+  readonly lessons?: ((unitId: string) => ReactNode) | undefined;
+  readonly recommendedPuzzle?:
+    | ((
+        unitId: string,
+        exercises: readonly VerifiedTransferExercise[],
+      ) => ReactNode)
+    | undefined;
   readonly recommendation: CurriculumRecommendation | null;
   readonly onPractice: (exercise: VerifiedTransferExercise) => void;
 }) {
@@ -53,6 +62,7 @@ export function PracticeCurriculum({
     null,
   );
   const detail = useRef<HTMLDivElement>(null);
+  const detailId = useId();
   const recommendedStage = curriculum.stages.find((stage) =>
     stage.units.some((unit) => unit.id === recommendation?.unitId),
   );
@@ -61,8 +71,9 @@ export function PracticeCurriculum({
     recommendedStage ??
     curriculum.stages[0];
   if (!stage) return null;
-  const unit = stage.units.find(
-    (item) => item.id === (unitId ?? recommendation?.unitId),
+  const selectedId = unitId ?? recommendation?.unitId;
+  const selectedRow = Math.ceil(
+    (stage.units.findIndex(({ id }) => id === selectedId) + 1) / 2,
   );
   return (
     <section className="practice-tree" aria-label="Curriculum skill tree">
@@ -90,82 +101,106 @@ export function PracticeCurriculum({
         </label>
       </div>
       <ol className="practice-tree__nodes" aria-label={stage.title + " units"}>
-        {stage.units.map((item) => {
-          const recommended = item.id === recommendation?.unitId;
+        {stage.units.map((unit, index) => {
+          const recommended = unit.id === recommendation?.unitId;
+          const selected = unit.id === selectedId;
+          const row = Math.floor(index / 2) + 1;
+          const column = (index % 2) + 1;
           return (
-            <li key={item.id}>
+            <li key={unit.id} role="listitem">
               <button
                 type="button"
                 className="practice-tree__node"
-                aria-pressed={item.id === unit?.id}
+                aria-pressed={selected}
+                aria-controls={selected ? detailId : undefined}
+                style={{
+                  gridRow: selectedRow > 0 && row > selectedRow ? row + 1 : row,
+                  gridColumn: column,
+                }}
                 aria-label={
-                  item.title +
+                  unit.title +
                   (recommended ? ", recommended from your games" : "")
                 }
                 data-recommended={recommended}
                 onClick={() => {
-                  setUnitId(item.id);
+                  setUnitId(unit.id);
                   requestAnimationFrame(() => {
                     detail.current?.scrollIntoView({ block: "nearest" });
                   });
                 }}
               >
                 <span className="practice-tree__seal" aria-hidden="true">
-                  {symbols[item.id] ?? "◇"}
+                  {symbols[unit.id] ?? "◇"}
                   {recommended && <i>★</i>}
                 </span>
-                <span className="practice-tree__name">{item.title}</span>
+                <span className="practice-tree__name">{unit.title}</span>
               </button>
+              {selected && (
+                <div
+                  className="practice-tree__challenge"
+                  ref={detail}
+                  id={detailId}
+                  style={{ gridRow: row + 1 }}
+                  aria-label={unit.title + " exercises"}
+                  role="group"
+                >
+                  <p>{unit.goal}</p>
+                  {recommendation?.unitId === unit.id && (
+                    <p className="practice-tree__evidence">
+                      <span aria-hidden="true">★ </span>From your{" "}
+                      {recommendation.games === 1
+                        ? "game"
+                        : String(recommendation.games) + " games"}{" "}
+                      {!recommendedPuzzle && (
+                        <>
+                          {" "}
+                          · {recommendation.example.drill.moveLabel} ·{" "}
+                          {recommendation.example.drill.played}
+                        </>
+                      )}
+                    </p>
+                  )}
+                  {recommendedPuzzle ? (
+                    recommendedPuzzle(unit.id, unit.exercises)
+                  ) : (
+                    <div className="practice-tree__positions">
+                      {unit.exercises.map((exercise, index) => (
+                        <div
+                          className="practice-tree__position"
+                          key={exercise.id}
+                        >
+                          <div aria-hidden="true">
+                            <ChessBoard
+                              fen={exercise.fen}
+                              orientation={
+                                exercise.fen.split(" ")[1] === "b"
+                                  ? "black"
+                                  : "white"
+                              }
+                              label={unit.title}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            aria-label={"Exercise " + String(index + 1)}
+                            title={"Play exercise " + String(index + 1)}
+                            onClick={() => {
+                              onPractice(exercise);
+                            }}
+                          >
+                            <span aria-hidden="true">▶</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {lessons?.(unit.id)}
+                </div>
+              )}
             </li>
           );
         })}
       </ol>
-      {unit && (
-        <div
-          className="practice-tree__challenge"
-          ref={detail}
-          key={unit.id}
-          aria-label={unit.title + " exercises"}
-          role="group"
-        >
-          <p>{unit.goal}</p>
-          {recommendation?.unitId === unit.id && (
-            <p className="practice-tree__evidence">
-              <span aria-hidden="true">★ </span>From your{" "}
-              {recommendation.games === 1
-                ? "game"
-                : String(recommendation.games) + " games"}{" "}
-              · {recommendation.example.drill.moveLabel} ·{" "}
-              {recommendation.example.drill.played}
-            </p>
-          )}
-          <div className="practice-tree__positions">
-            {unit.exercises.map((exercise, index) => (
-              <div className="practice-tree__position" key={exercise.id}>
-                <div aria-hidden="true">
-                  <ChessBoard
-                    fen={exercise.fen}
-                    orientation={
-                      exercise.fen.split(" ")[1] === "b" ? "black" : "white"
-                    }
-                    label={unit.title}
-                  />
-                </div>
-                <button
-                  type="button"
-                  aria-label={"Exercise " + String(index + 1)}
-                  title={"Play exercise " + String(index + 1)}
-                  onClick={() => {
-                    onPractice(exercise);
-                  }}
-                >
-                  <span aria-hidden="true">▶</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       {recommendedStage &&
         recommendedStage.id !== stage.id &&
         recommendation && (

@@ -140,6 +140,7 @@ export interface GameReviewExperienceProps {
   readonly now?: () => string;
   readonly compact?: boolean;
   readonly reviewBack?: ReactNode;
+  readonly reviewTitle?: string | undefined;
   readonly reviewSource?: ReactNode;
   readonly onMistake?: ((evidence: ReviewMistakeEvidence) => void) | undefined;
 }
@@ -154,6 +155,7 @@ export function GameReviewExperience({
   now = () => new Date().toISOString(),
   compact = false,
   reviewBack,
+  reviewTitle,
   reviewSource,
   onMistake,
 }: GameReviewExperienceProps) {
@@ -202,7 +204,23 @@ export function GameReviewExperience({
     z.boolean(),
     false,
   );
-  const [rookFrame, setRookFrame] = useState<ReplayFrame | null>(null);
+  const [rookFrame, setRookFrame] = useState<ReplayFrame | null>(() => {
+    if (!compact || !analyzeReply || !replay.ok) return null;
+    const side = game.playerColor === "black" ? "b" : "w";
+    const canPlay = ({ fen }: ReplayFrame) => {
+      const position = new Chess(fen);
+      return position.turn() === side && !position.isGameOver();
+    };
+    const turningPoint = session
+      ? replay.frames[session.primaryFact.ply - 1]
+      : undefined;
+    if (turningPoint && canPlay(turningPoint)) return turningPoint;
+    return (
+      replay.frames.slice(0, -1).findLast(canPlay) ??
+      replay.frames.findLast(canPlay) ??
+      null
+    );
+  });
   const [debriefSelection, setDebriefSelection] =
     useEntryState<DebriefSelection>(
       "review.debriefFinding",
@@ -252,19 +270,46 @@ export function GameReviewExperience({
   ];
   const deviceInitializationStarted = useRef(false);
 
+  const matchup = (reviewTitle ?? reviewSource) && (
+    <p className="review-page__notice review-matchup">
+      {reviewTitle && <span>{reviewTitle}</span>}
+      {reviewSource}
+    </p>
+  );
+
+  const reviewNavigation = reviewBack ? (
+    <nav
+      className={
+        rookFrame
+          ? "review-navigation review-navigation--exploring"
+          : "review-navigation"
+      }
+      aria-label="Game review controls"
+    >
+      {reviewBack}
+      {rookFrame && (
+        <>
+          {matchup}
+          <button
+            type="button"
+            className="review-navigation__icon"
+            aria-label="Game summary"
+            title="Game summary"
+            onClick={closeRook}
+          >
+            <span aria-hidden="true">▤</span>
+          </button>
+        </>
+      )}
+    </nav>
+  ) : null;
+
   function withReviewNavigation(content: ReactNode) {
-    if (!reviewBack) return content;
+    if (!reviewNavigation) return content;
     return (
       <>
-        <nav className="review-navigation" aria-label="Game review controls">
-          {reviewBack}
-          {rookFrame && (
-            <button type="button" className="review-action" onClick={closeRook}>
-              Back to game debrief
-            </button>
-          )}
-        </nav>
-        {reviewSource}
+        {reviewNavigation}
+        {!rookFrame && matchup}
         {content}
       </>
     );
@@ -316,12 +361,16 @@ export function GameReviewExperience({
   }
 
   if (!practiceOpen || session === null) {
-    return withReviewNavigation(
+    return (
       <section
         className="game-review game-review--debrief"
         aria-labelledby="game-review-title"
       >
         <GameDebrief
+          compact={compact}
+          title={reviewTitle ?? (compact ? "Review" : "Game debrief")}
+          source={reviewSource}
+          navigation={reviewNavigation}
           frames={replay.frames}
           orientation={game.playerColor ?? "white"}
           strongPly={strength?.ply}
@@ -338,7 +387,7 @@ export function GameReviewExperience({
               : undefined
           }
         />
-      </section>,
+      </section>
     );
   }
 

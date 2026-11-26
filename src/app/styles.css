@@ -19,6 +19,8 @@
   --cue-action-ink: #122119;
   --cue-line: #718f7e85;
   --cue-shadow: 0 12px 28px #02080680;
+  --cue-radius-control: 6px;
+  --cue-radius-card: 10px;
   --cue-cut: polygon(
     14px 0,
     calc(100% - 14px) 0,
@@ -545,7 +547,7 @@ button {
 .review-page__experience {
   padding: 1.5rem;
   border: 1px solid var(--cue-line);
-  border-radius: 18px;
+  border-radius: var(--cue-radius-card);
   background: var(--cue-paper);
   box-shadow: var(--cue-shadow);
 }
@@ -988,12 +990,48 @@ button {
   font-size: 0.875rem;
 }
 
+.review-matchup {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.game-review__header.review-matchup {
+  flex-direction: row;
+  justify-content: flex-start;
+  text-align: start;
+}
+
+.game-review__header.review-matchup h2 {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-matchup .review-navigation {
+  flex: none;
+  margin: 0;
+}
+
+.chesscue-sidebar .review-page__experience:has(> .game-review--debrief) {
+  padding-block-start: 0.25rem;
+}
+
+.review-matchup a {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--cue-gold);
+}
+
 .shared-puzzle-library {
   max-width: 46rem;
   margin: 0 auto;
   text-align: start;
   border: 1px solid var(--cue-line);
-  border-radius: 0.5rem;
+  border-radius: var(--cue-radius-card);
   background: var(--cue-paper);
 }
 
@@ -1019,7 +1057,7 @@ button {
   min-height: 2.75rem;
   padding: 0.4rem 0.75rem;
   border: 1px solid var(--cue-line);
-  border-radius: 0.3rem;
+  border-radius: var(--cue-radius-control);
   background: var(--cue-canvas);
   color: var(--cue-ink);
   font: inherit;
@@ -1043,9 +1081,14 @@ button {
   padding: 0.875rem 0.75rem;
 }
 
-.side-panel-review h1 {
+.chesscue-sidebar .screen-header > h1 {
   margin: 0;
+  overflow-wrap: anywhere;
   font: 600 1.8rem/1.1 var(--cue-display);
+  text-align: start;
+}
+.chesscue-sidebar .training-header > .screen-header {
+  margin-bottom: 0.75rem;
 }
 
 .side-panel-review section,
@@ -1054,7 +1097,7 @@ button {
   gap: 0.65rem;
   padding: 0.875rem;
   border: 1px solid var(--cue-line);
-  border-radius: 0.5rem;
+  border-radius: var(--cue-radius-card);
   background: var(--cue-paper);
 }
 
@@ -1149,8 +1192,7 @@ button {
   margin-block-end: 0.5rem;
 }
 
-.chesscue-sidebar .rook-exploration__heading :is(h2, p),
-.chesscue-sidebar .side-panel-puzzle-cue {
+.chesscue-sidebar .rook-exploration__heading :is(h2, p) {
   margin: 0;
 }
 
@@ -1185,9 +1227,6 @@ button {
   min-height: 44px;
 }
 
-.practice-game-analysis {
-  margin-block: 0.75rem;
-}
 .practice-ratings-label {
   color: var(--cue-muted);
   font-size: 0.85rem;

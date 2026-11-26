@@ -1,3 +1,4 @@
+import { ScreenHeader } from "../shared/navigation/ScreenHeader";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
@@ -127,7 +128,7 @@ export function SidePanelReview({
 
   return (
     <main className="content-shell side-panel-review">
-      <h1>Review</h1>
+      <ScreenHeader title="Review" />
       {context.status === "finished" && (
         <button
           type="button"
@@ -142,6 +143,30 @@ export function SidePanelReview({
       {context.status === "active" && (
         <p role="status">Finish your Lichess game to review it with Rook.</p>
       )}
+      {lastReview && (
+        <button
+          type="button"
+          className={
+            context.status !== "finished" ? "primary-link" : "review-action"
+          }
+          onClick={() => {
+            resumeReview(lastReview);
+          }}
+        >
+          Resume last review
+        </button>
+      )}
+      <button
+        type="button"
+        className={
+          lastReview || context.status === "finished"
+            ? "review-action"
+            : "primary-link"
+        }
+        onClick={importPgn}
+      >
+        Import PGN
+      </button>
       {library.status === "loading" && <p role="status">Loading games…</p>}
       {library.status === "failed" && (
         <div role="alert">
@@ -178,24 +203,9 @@ export function SidePanelReview({
           </ol>
         ) : (
           <p>
-            No saved games yet. Import a PGN or open a finished Lichess game to
-            start your first review.
+            No saved games yet. You can also review a finished Lichess game.
           </p>
         ))}
-      {lastReview && (
-        <button
-          type="button"
-          className="review-action"
-          onClick={() => {
-            resumeReview(lastReview);
-          }}
-        >
-          Resume last review
-        </button>
-      )}
-      <button type="button" className="review-action" onClick={importPgn}>
-        Import PGN
-      </button>
     </main>
   );
 }

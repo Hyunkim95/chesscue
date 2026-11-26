@@ -1,5 +1,11 @@
 import { Chess, SQUARES, type Move, type Square } from "chess.js";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { RookMessage, SendIcon } from "../../shared/rook/RookMessage";
 import type { AssessPosition } from "../../application/analyze-game/assess-position";
@@ -103,6 +109,7 @@ export function RookExploration({
   originCaption,
   closeLabel = "Close exploration",
   onMistake,
+  puzzle,
   onClose,
 }: {
   readonly fen: string;
@@ -115,12 +122,20 @@ export function RookExploration({
   readonly originCaption?: string;
   readonly closeLabel?: string;
   readonly onMistake?: ((evidence: ReviewMistakeEvidence) => void) | undefined;
+  readonly puzzle?: {
+    readonly question: string;
+    readonly onMove: (uci: string) => boolean;
+    readonly source: ReactNode;
+  };
   readonly onClose?: (() => void) | undefined;
 }) {
   const root: Position = { id: 0, parent: null, fen, move: null, line: [] };
   const [nodes, setNodes] = useState<readonly Position[]>([root]);
   const positions = useRef(nodes);
   const [active, setActive] = useState(root);
+  const [puzzleMove, setPuzzleMove] = useState<"accepted" | "try-again" | null>(
+    null,
+  );
   const [selected, setSelected] = useState<Square | null>(null);
   const [promotion, setPromotion] = useState<readonly Move[]>([]);
   const [message, setMessage] = useState("");
@@ -172,9 +187,9 @@ export function RookExploration({
   useLayoutEffect(() => {
     const log = chatLog.current;
     if (log && turns.length > 0) {
-      log.scrollTop = log.scrollHeight;
+      log.scrollTop = compact ? 0 : log.scrollHeight;
     }
-  }, [discussionOpen, turns]);
+  }, [compact, discussionOpen, turns]);
   const line = coaching.status === "ready" ? coaching.line : [];
   const lineLength = line.length;
   const demoMove = demoStep === null ? undefined : line[demoStep];
@@ -223,7 +238,11 @@ export function RookExploration({
     setDiscussion((current) => (current === "waiting" ? "open" : current));
   }
 
-  async function investigate(next: Position, onLearnerSide: boolean) {
+  async function investigate(
+    next: Position,
+    onLearnerSide: boolean,
+    verifiedOpening = false,
+  ) {
     pending.current?.abort();
     const controller = new AbortController();
     pending.current = controller;
@@ -263,12 +282,14 @@ export function RookExploration({
       }
       rememberScore(board, result.evaluationCpFromSideToMove);
       const beforeMove = next.move;
-      const before = beforeMove
-        ? await analyzeReply(beforeMove.before, controller.signal, true)
-        : null;
-      const verdict = beforeMove
-        ? classifyExperiment(beforeMove.lan, before, result)
-        : "continue";
+      const before =
+        beforeMove && !verifiedOpening
+          ? await analyzeReply(beforeMove.before, controller.signal, true)
+          : null;
+      const verdict =
+        beforeMove && !verifiedOpening
+          ? classifyExperiment(beforeMove.lan, before, result)
+          : "continue";
       controller.signal.throwIfAborted();
       const replyMove = board.move(reply);
       const verifiedMoves = [
@@ -294,7 +315,9 @@ export function RookExploration({
           status: "ready",
           line: verifiedMoves,
           shownMove: null,
-          text: "Are you sure? What can your opponent do now? Try their move.",
+          text: onLearnerSide
+            ? `Are you sure? Find ${orientation === "white" ? "Black" : "White"}’s reply to your move.`
+            : "Are you sure? Find the reply for the side to move.",
           experiment: {
             stage: "spot",
             position: next,
@@ -374,6 +397,7 @@ export function RookExploration({
     pending.current?.abort();
     stopChat();
     setActive(next);
+    if (next.id === 0) setPuzzleMove(null);
     setSelected(null);
     setPromotion([]);
     setDemoStep(null);
@@ -474,9 +498,14 @@ export function RookExploration({
       void tryReply(move, coaching, coaching.experiment);
       return;
     }
+    const openingAccepted =
+      puzzle && from.id === 0 ? puzzle.onMove(move.lan) : undefined;
+    if (openingAccepted !== undefined) {
+      setPuzzleMove(openingAccepted ? "accepted" : "try-again");
+    }
     const next = advance(from, move);
     const learner = orientation === "white" ? "w" : "b";
-    void investigate(next, move.color === learner);
+    void investigate(next, move.color === learner, openingAccepted === true);
   }
 
   function selectSquare(square: Square) {
@@ -495,22 +524,42 @@ export function RookExploration({
   const spotting =
     experiment?.stage === "spot" || experiment?.stage === "retry";
   useLayoutEffect(() => {
-    if (!compact || experiment?.stage !== "retry") return;
-    const controls = stage.current?.querySelector(
-      ".rook-exploration__transport",
+    if (!compact || (!discussionOpen && experiment?.stage !== "retry")) return;
+    const boardStage = stage.current?.querySelector(
+      ".game-review__board-stage",
     );
     const dock = stage.current?.querySelector(
       ".rook-exploration__composer-dock",
     );
-    if (
-      controls &&
-      dock &&
-      controls.getBoundingClientRect().bottom > dock.getBoundingClientRect().top
-    )
-      stage.current
-        ?.querySelector(".game-review__board-stage")
-        ?.scrollIntoView({ block: "start" });
-  }, [compact, experiment]);
+    const grid = boardStage?.querySelector<HTMLElement>(".review-board");
+    if (!boardStage || !dock || !grid) return;
+    const fitBoard = () => {
+      const available = dock.getBoundingClientRect().top;
+      const controlsHeight =
+        boardStage.getBoundingClientRect().height -
+        grid.getBoundingClientRect().height;
+      grid.style.setProperty(
+        "--rook-board-room",
+        Math.floor(available - controlsHeight - 12) + "px",
+      );
+      const board = boardStage.getBoundingClientRect();
+      if (board.top >= 0 && board.bottom <= available) return;
+      const headingTop =
+        stage.current?.getBoundingClientRect().top ?? board.top;
+      // Include the position heading when the board and its controls still fit.
+      const top =
+        board.bottom - headingTop + 12 <= available ? headingTop : board.top;
+      window.scrollBy(0, top - 6);
+    };
+    fitBoard();
+    const observer = new ResizeObserver(fitBoard);
+    observer.observe(dock);
+    observer.observe(boardStage);
+    return () => {
+      observer.disconnect();
+      grid.style.removeProperty("--rook-board-room");
+    };
+  }, [compact, discussionOpen, experiment?.stage, turns]);
   function reveal() {
     if (coaching.status !== "ready" || !experiment || !spotting) return;
     const reply = coaching.line[0];
@@ -812,6 +861,46 @@ export function RookExploration({
   }
 
   const note = coaching.status === "ready" ? coaching.text : "";
+  const rewindsPosition =
+    experiment !== undefined || (puzzle !== undefined && demoStep === null);
+  const atBranch = demoStep === null && parent !== undefined;
+  const rewindLabel = rewindsPosition
+    ? "Rewind"
+    : atBranch
+      ? "Back to start"
+      : returnPoint
+        ? "Leave checked line"
+        : "Back to my position";
+
+  const composerHeading = (
+    <div className="rook-exploration__composer-heading">
+      <label htmlFor="rook-exploration-question">Ask Rook</label>
+      {discussionOpen && spotting && turns.at(-1)?.role === "rook" && (
+        <button
+          type="button"
+          className="rook-exploration__chat-reveal"
+          onClick={reveal}
+        >
+          Show reply
+        </button>
+      )}
+      {turns.length > 0 && (
+        <button
+          type="button"
+          className="rook-exploration__chat-toggle"
+          aria-expanded={discussionOpen}
+          aria-label={
+            discussionOpen ? "Hide conversation" : "Show conversation"
+          }
+          onClick={() => {
+            setDiscussion(discussionOpen ? "closed" : "open");
+          }}
+        >
+          {discussionOpen ? "Hide chat" : "Show chat"}
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <section
@@ -835,18 +924,28 @@ export function RookExploration({
             <span aria-hidden="true">←</span>
           </button>
         )}
-        <h2>Explore with Rook</h2>
-        {compact && (
-          <p>
-            {originCaption ?? "Move " + String(new Chess(fen).moveNumber())} ·{" "}
-            {orientation === "white" ? "White" : "Black"}’s position
-          </p>
+        <h2>{puzzle ? "Find the first move" : "Explore with Rook"}</h2>
+        {puzzle ? (
+          <p>{puzzle.question}</p>
+        ) : (
+          compact && (
+            <p>
+              You’re {orientation === "white" ? "White" : "Black"} ·{" "}
+              {originCaption ?? "Move " + String(new Chess(fen).moveNumber())}
+            </p>
+          )
         )}
       </header>
       <TrainingStage
         showIntro={false}
         board={
           <>
+            <RookEvaluation
+              fen={displayed.fen()}
+              assess={assessPosition}
+              knownScore={scores.get(displayed.fen())}
+              checking={coaching.status === "checking"}
+            />
             <ReviewBoard
               fen={displayed.fen()}
               orientation={orientation}
@@ -916,26 +1015,15 @@ export function RookExploration({
                 />
                 {compact && spotting && "Show me"}
               </button>
-              {(demoStep !== null || experiment) && (
+              {(demoStep !== null || experiment !== undefined || atBranch) && (
                 <button
                   type="button"
                   className="rook-exploration__transport-button"
-                  aria-label={
-                    experiment
-                      ? "Rewind"
-                      : returnPoint
-                        ? "Leave checked line"
-                        : "Back to my position"
-                  }
-                  title={
-                    experiment
-                      ? "Rewind"
-                      : returnPoint
-                        ? "Leave checked line"
-                        : "Back to my position"
-                  }
+                  aria-label={rewindLabel}
+                  title={rewindLabel}
                   onClick={() => {
                     if (experiment) visit(experiment.rewind);
+                    else if (atBranch) visit(root);
                     else {
                       stopChat();
                       clearSelection();
@@ -947,7 +1035,7 @@ export function RookExploration({
                     className="rook-playback-icon rook-playback-icon--rewind"
                     aria-hidden="true"
                   />
-                  {compact && experiment && "Rewind"}
+                  {compact && rewindsPosition && "Rewind"}
                 </button>
               )}
               <button
@@ -977,12 +1065,13 @@ export function RookExploration({
                 {spotting && !compact && " · Find the reply"}
               </p>
             </div>
-            <RookEvaluation
-              fen={displayed.fen()}
-              assess={assessPosition}
-              knownScore={scores.get(displayed.fen())}
-              checking={coaching.status === "checking"}
-            />
+            {puzzleMove && (puzzleMove === "accepted" || !spotting) && (
+              <p className="rook-exploration__cue" role="status">
+                {puzzleMove === "accepted"
+                  ? "Good move"
+                  : "Try another move from the starting position."}
+              </p>
+            )}
           </>
         }
         eyebrow=""
@@ -1000,11 +1089,18 @@ export function RookExploration({
             {move.san}
           </button>
         ))}
+        {puzzle?.source && (
+          <details className="side-panel-puzzle-source">
+            <summary>Sources</summary>
+            {puzzle.source}
+          </details>
+        )}
         <section
           className="rook-exploration__discussion"
           aria-label="Discuss with Rook"
         >
           <div className="rook-exploration__composer-dock">
+            {compact && composerHeading}
             {discussionOpen && (
               <div className="rook-exploration__chat-drawer" ref={chatLog}>
                 <div
@@ -1067,33 +1163,7 @@ export function RookExploration({
                 )}
               </div>
             )}
-            <div className="rook-exploration__composer-heading">
-              <label htmlFor="rook-exploration-question">Ask Rook</label>
-              {discussionOpen && spotting && turns.at(-1)?.role === "rook" && (
-                <button
-                  type="button"
-                  className="rook-exploration__chat-reveal"
-                  onClick={reveal}
-                >
-                  Show reply
-                </button>
-              )}
-              {turns.length > 0 && (
-                <button
-                  type="button"
-                  className="rook-exploration__chat-toggle"
-                  aria-expanded={discussionOpen}
-                  aria-label={
-                    discussionOpen ? "Hide conversation" : "Show conversation"
-                  }
-                  onClick={() => {
-                    setDiscussion(discussionOpen ? "closed" : "open");
-                  }}
-                >
-                  {discussionOpen ? "Hide chat" : "Show chat"}
-                </button>
-              )}
-            </div>
+            {!compact && composerHeading}
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -1247,38 +1317,6 @@ export function RookExploration({
             )}
           </div>
         </section>
-        {demoStep === null && !experiment && active.id !== 0 && (
-          <div className="rook-exploration__options">
-            <button
-              type="button"
-              onClick={() => {
-                visit(root);
-              }}
-            >
-              Back to start
-            </button>
-          </div>
-        )}
-        {nodes.length > 1 && (
-          <details>
-            <summary>Explored positions</summary>
-            <ul>
-              {nodes.slice(1).map((node) => (
-                <li key={node.id}>
-                  <button
-                    type="button"
-                    aria-current={node.id === active.id ? "step" : undefined}
-                    onClick={() => {
-                      visit(node);
-                    }}
-                  >
-                    {node.line.join(" ")}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
       </TrainingStage>
     </section>
   );

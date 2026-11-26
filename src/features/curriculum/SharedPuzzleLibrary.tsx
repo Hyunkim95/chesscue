@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { z } from "zod";
 import seedJson from "../../../scripts/material/library-seed.generated.json?raw";
@@ -30,10 +30,126 @@ function merge<T extends { id: string; version: number }>(
   return [...latest.values()];
 }
 
+type OpenPuzzle = (puzzle: LibraryPuzzle) => void;
+
+function PuzzleButtons({
+  puzzles,
+  onPractice,
+}: {
+  readonly puzzles: readonly LibraryPuzzle[];
+  readonly onPractice: OpenPuzzle;
+}) {
+  return (
+    <ol className="practice-puzzles" aria-label="Puzzles by rating">
+      {puzzles.map((puzzle, index) => {
+        const rating =
+          puzzle.rating === null
+            ? "unrated"
+            : "rating " + String(puzzle.rating);
+        return (
+          <li key={puzzle.id}>
+            <button
+              type="button"
+              aria-label={`Open puzzle ${String(index + 1)}, ${rating}`}
+              onClick={() => {
+                onPractice(puzzle);
+              }}
+            >
+              <span aria-hidden="true">▷</span> {puzzle.rating ?? "Unrated"}
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function puzzlesByRating(puzzles: readonly LibraryPuzzle[]) {
+  return puzzles.toSorted(
+    (left, right) => (left.rating ?? Infinity) - (right.rating ?? Infinity),
+  );
+}
+
+export function SkillPuzzles({
+  motifs,
+  isSolved,
+  renderPuzzle,
+  fallback,
+}: {
+  readonly motifs: readonly string[];
+  readonly isSolved: (puzzle: LibraryPuzzle) => boolean;
+  readonly renderPuzzle: (puzzle: LibraryPuzzle) => ReactNode;
+  readonly fallback: ReactNode;
+}) {
+  const [available, setAvailable] = useState({
+    motifs: installed.motifs,
+    puzzles: installed.puzzles,
+  });
+  useEffect(() => {
+    const controller = new AbortController();
+    void import("../../infrastructure/firebase/puzzle-library")
+      .then(async ({ readLibraryCatalog, readLibraryPuzzles }) => {
+        const catalog = await readLibraryCatalog(true);
+        controller.signal.throwIfAborted();
+        const matched = merge(installed.motifs, catalog.motifs).filter(
+          ({ name }) => motifs.includes(name.trim().toLowerCase()),
+        );
+        const results = await Promise.allSettled(
+          matched.map(({ id }) => readLibraryPuzzles(id, true)),
+        );
+        if (controller.signal.aborted) return;
+        setAvailable({
+          motifs: merge(
+            installed.motifs,
+            matched.filter((motif, index) => {
+              const result = results[index];
+              return (
+                result?.status === "fulfilled" &&
+                result.value.some(
+                  (puzzle) => puzzle.motifVersion === motif.version,
+                )
+              );
+            }),
+          ),
+          puzzles: merge(
+            installed.puzzles,
+            results.flatMap((result) =>
+              result.status === "fulfilled" ? result.value : [],
+            ),
+          ),
+        });
+      })
+      .catch(() => {
+        // The installed puzzles remain available offline.
+      });
+    return () => {
+      controller.abort();
+    };
+  }, [motifs]);
+
+  const matchingMotifs = new Map(
+    available.motifs
+      .filter(({ name }) => motifs.includes(name.trim().toLowerCase()))
+      .map((motif) => [motif.id, motif]),
+  );
+  const puzzles = puzzlesByRating(
+    available.puzzles.filter(
+      (puzzle) =>
+        matchingMotifs.get(puzzle.motifId)?.version === puzzle.motifVersion,
+    ),
+  );
+  const next = puzzles.find((puzzle) => !isSolved(puzzle));
+  return (
+    <section aria-label="Shared puzzles for this skill">
+      {next ? renderPuzzle(next) : fallback}
+    </section>
+  );
+}
+
 export function SharedPuzzleLibrary({
   onPractice,
 }: {
-  readonly onPractice: (puzzle: LibraryPuzzle) => void;
+  readonly onPractice: OpenPuzzle;
 }) {
   const [expanded, setExpanded] = useEntryState(
     "library.open",
@@ -103,11 +219,9 @@ export function SharedPuzzleLibrary({
   const byId = new Map(available.map((puzzle) => [puzzle.id, puzzle]));
   const ordered = [
     ...(course?.puzzleIds.flatMap((id) => byId.get(id) ?? []) ?? []),
-    ...available
-      .filter((item) => !course?.puzzleIds.includes(item.id))
-      .sort(
-        (left, right) => (left.rating ?? Infinity) - (right.rating ?? Infinity),
-      ),
+    ...puzzlesByRating(
+      available.filter((item) => !course?.puzzleIds.includes(item.id)),
+    ),
   ];
 
   return (
@@ -146,22 +260,7 @@ export function SharedPuzzleLibrary({
           {ordered.length > 0 ? (
             <>
               <p className="practice-ratings-label">Puzzle ratings</p>
-              <ol className="practice-puzzles" aria-label="Puzzles by rating">
-                {ordered.map((puzzle, index) => (
-                  <li key={puzzle.id}>
-                    <button
-                      type="button"
-                      aria-label={`Open puzzle ${String(index + 1)}, ${puzzle.rating === null ? "unrated" : "rating " + String(puzzle.rating)}`}
-                      onClick={() => {
-                        onPractice(puzzle);
-                      }}
-                    >
-                      <span aria-hidden="true">▷</span>{" "}
-                      {puzzle.rating ?? "Unrated"}
-                    </button>
-                  </li>
-                ))}
-              </ol>
+              <PuzzleButtons puzzles={ordered} onPractice={onPractice} />
             </>
           ) : (
             <p role="status">

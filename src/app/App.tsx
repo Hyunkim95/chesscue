@@ -1,3 +1,6 @@
+import { ScreenHeader } from "../shared/navigation/ScreenHeader";
+import type { VerifiedTransferExercise } from "../domain/transfer/types";
+import type { LibraryPuzzle } from "../domain/material/puzzle-library";
 import {
   queueSubmittedGames,
   startSubmissionSync,
@@ -21,7 +24,11 @@ import {
   parentPage,
   returnToParent,
 } from "../shared/navigation/history-entry";
-import { recommendCurriculumUnit } from "../domain/curriculum/recommend-unit";
+import {
+  recommendCurriculumUnit,
+  unitForDrill,
+  unitForExercise,
+} from "../domain/curriculum/recommend-unit";
 import { usePlayingSnapshot } from "./use-playing-snapshot";
 import {
   useCallback,
@@ -44,6 +51,7 @@ import {
   type CompletedGameAnalysis,
 } from "../application/analyze-game/analyze-completed-game";
 import { LichessImport } from "../extension/LichessImport";
+import { reviewGameSummary } from "../extension/review-game-list";
 import { SidePanelReview } from "../extension/SidePanelReview";
 import type { LichessExport } from "../extension/lichess-export";
 import { importGames } from "../application/import-games/import-games";
@@ -115,7 +123,7 @@ import type {
   AccountIdentity,
 } from "../infrastructure/firebase/account-session";
 import { initialSync } from "../application/sync-games/sync-status";
-import { Fragment, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { AccountPanel } from "../features/account/AccountPanel";
 import { RankPath } from "../features/progression/RankPath";
 import { SkillTree, type Skill } from "../features/progression/SkillTree";
@@ -128,6 +136,10 @@ const PracticeCurriculum = lazy(async () => ({
 const SharedPuzzleLibrary = lazy(async () => ({
   default: (await import("../features/curriculum/SharedPuzzleLibrary"))
     .SharedPuzzleLibrary,
+}));
+const SkillPuzzles = lazy(async () => ({
+  default: (await import("../features/curriculum/SharedPuzzleLibrary"))
+    .SkillPuzzles,
 }));
 const StudyScreen = lazy(() =>
   import("../features/study/StudyScreen").then((module) => ({
@@ -428,6 +440,25 @@ const skillSchema = z.enum([
   "forks",
   "rook",
 ]);
+const panelCurriculumLessons: Readonly<
+  Record<string, { skill: Skill; label: string }>
+> = {
+  "read-the-board": { skill: "vision", label: "Board vision lessons" },
+  "see-the-threat": { skill: "threats", label: "Attacking lessons" },
+  "king-attack-plan": { skill: "threats", label: "Attacking lessons" },
+  "rook-ending": { skill: "rook", label: "Rook ending lessons" },
+};
+const panelPuzzleMotifs: Readonly<Record<string, readonly string[]>> = {
+  "simple-mates": ["mate in one"],
+  "mating-patterns": ["back rank mate", "back-rank mate"],
+  "double-attack": ["fork"],
+  "line-tactics": ["pin", "discovered attack"],
+  "test-a-sacrifice": ["sacrifice"],
+  "change-the-defender": ["attraction", "deflection"],
+  "passed-pawn-race": ["advanced pawn"],
+  "king-attack-plan": ["kingside attack"],
+};
+
 export function App() {
   useEffect(startSubmissionSync, []);
   const [socialHash, setSocialHash] = useState(window.location.hash);
@@ -715,19 +746,17 @@ function PlayerApp({
         : null,
     [snapshot],
   );
-  const GameAnalysisSection = extensionPanel ? "details" : Fragment;
   const recentReview = extensionPanel ? readRecentReview(history) : undefined;
   const recentReviewId = recentReview ? routedGameId(recentReview.route) : null;
   const recentReviewMoves =
     snapshot.status === "ready" && recentReviewId !== null
       ? snapshot.moves.filter((move) => move.game.id === recentReviewId)
       : [];
-  const recentReviewDrill = (
+  const recentReviewMove =
     recentReviewMoves.find((move) => move.ply === recentReview?.ply) ??
     recentReviewMoves
       .filter((move) => move.outcome === "retry")
-      .toSorted((a, b) => b.impactCp - a.impactCp)[0]
-  )?.drill;
+      .toSorted((a, b) => b.impactCp - a.impactCp)[0];
   const [drillCue, setDrillCue] = useState<AuthoredCue | null>(null);
   const primaryMove =
     snapshot.status === "ready"
@@ -807,8 +836,12 @@ function PlayerApp({
         : undefined,
     });
   }
+  const adaptivePuzzle =
+    extensionPanel &&
+    activePractice?.exercise.id.startsWith("archive-library-");
   const anotherExercise =
     activePractice === null ||
+    adaptivePuzzle ||
     activePractice.exercise.id.startsWith("archive-curriculum-")
       ? undefined
       : transferExercisesForTheme(activePractice.exercise.theme).find(
@@ -1195,6 +1228,166 @@ function PlayerApp({
         : reviewParent === "#import"
           ? "Back to import games"
           : "Back to training plan";
+  const reviewMatchup =
+    extensionPanel && analysis.status === "ready"
+      ? reviewGameSummary(analysis.game)
+      : null;
+  function renderSkillLessons(skill: Skill) {
+    const topic =
+      skill === "rook" || skill === "endgames"
+        ? "rook"
+        : skill === "threats"
+          ? "attack"
+          : undefined;
+    if (skill !== "vision" && topic === undefined) return null;
+    return (
+      <PracticeSection
+        name="Lessons"
+        loading={<p role="status">Opening lessons…</p>}
+      >
+        <StudySkill.Provider value={skill}>
+          <StudyScreen
+            key={skill + String(studyVisit)}
+            history={snapshot}
+            pattern={
+              skill === "vision" && snapshot.status === "ready"
+                ? snapshot.plan.practice[0]
+                : undefined
+            }
+            initialTopic={topic}
+            analyzeReply={loadReviewReply}
+            assessPosition={readBoardPosition}
+            storageKey={history.key("chesscue-study-roadmaps-v1")}
+            profile={profile}
+          />
+        </StudySkill.Provider>
+      </PracticeSection>
+    );
+  }
+
+  const lessonSkill =
+    extensionPanel && location.hash.startsWith("#study/")
+      ? skillSchema.safeParse(location.hash.split("/")[1]).data
+      : undefined;
+  const panelLessons = lessonSkill ? renderSkillLessons(lessonSkill) : null;
+  const gamePractice = new Map<string, () => void>();
+  if (extensionPanel && view === "training" && !panelLessons) {
+    const moves = snapshot.status === "ready" ? snapshot.moves : [];
+    const add = (unit: string, open: () => void) => {
+      if (!gamePractice.has(unit)) gamePractice.set(unit, open);
+    };
+    const positionUnit = (
+      exercise: PracticeExercise,
+      sourceGameId?: string,
+    ) => {
+      const source = moves.find(
+        ({ game, drill }) =>
+          game.id === sourceGameId && drill.exercise.fen === exercise.fen,
+      );
+      return source ? unitForDrill(source.drill) : unitForExercise(exercise);
+    };
+    const seenPositions = new Set<string>();
+    for (const mistake of reviewMistakes) {
+      const retry = reviewMistakePractice(mistake);
+      if (!retry) continue;
+      seenPositions.add(retry.exercise.fen.split(" ").slice(0, 4).join(" "));
+      if (mistake.completed) continue;
+      add(positionUnit(retry.exercise, mistake.gameId), () => {
+        openPractice({ id: mistake.id, exercise: retry.exercise });
+      });
+    }
+    for (const item of duePractice) {
+      if (
+        snapshot.status !== "ready" ||
+        !snapshot.games.some(
+          (game) => game.id === item.sourceGameId && game.moves.length > 0,
+        )
+      )
+        continue;
+      add(positionUnit(item.exercise, item.sourceGameId), () => {
+        openPractice(item);
+      });
+    }
+    const retries = moves
+      .filter((move) => move.outcome === "retry")
+      .toSorted((left, right) => right.impactCp - left.impactCp);
+    for (const { drill } of [
+      ...(recentReviewMove ? [recentReviewMove] : []),
+      ...retries,
+    ]) {
+      const unit = unitForDrill(drill);
+      const position = drill.exercise.fen.split(" ").slice(0, 4).join(" ");
+      if (seenPositions.has(position) || skillPuzzleSolved(drill.exercise))
+        continue;
+      seenPositions.add(position);
+      add(unit, () => {
+        startGameDrill(drill);
+      });
+    }
+  }
+  function skillPuzzleSolved(exercise: PracticeExercise) {
+    return history.practiceDone("skill-puzzle-v1:" + exercise.id);
+  }
+  function puzzleButton(onClick: () => void) {
+    return (
+      <button
+        className="review-action practice-tree__puzzle"
+        type="button"
+        onClick={onClick}
+      >
+        Practice puzzle
+      </button>
+    );
+  }
+  function renderRecommendedPuzzle(
+    unitId: string,
+    exercises: readonly VerifiedTransferExercise[],
+  ) {
+    const fromGames = gamePractice.get(unitId);
+    if (fromGames) return puzzleButton(fromGames);
+    const next = exercises.find((exercise) => !skillPuzzleSolved(exercise));
+    const fallback = next ? (
+      puzzleButton(() => {
+        openPractice({ id: next.id, exercise: next });
+      })
+    ) : (
+      <p>All puzzles for this skill solved.</p>
+    );
+    const motifs = panelPuzzleMotifs[unitId];
+    if (!motifs) return fallback;
+    return (
+      <PracticeSection name="Shared puzzle library" fallback={fallback}>
+        <SkillPuzzles
+          motifs={motifs}
+          isSolved={({ exercise }) => skillPuzzleSolved(exercise)}
+          renderPuzzle={(puzzle) =>
+            puzzleButton(() => {
+              openLibraryPuzzle(puzzle);
+            })
+          }
+          fallback={fallback}
+        />
+      </PracticeSection>
+    );
+  }
+  function renderCardLessons(unitId: string) {
+    const lesson = panelCurriculumLessons[unitId];
+    if (!lesson) return null;
+    return (
+      <button
+        className="review-action"
+        type="button"
+        onClick={() => {
+          setView("training", "#study/" + lesson.skill);
+        }}
+      >
+        {lesson.label}
+      </button>
+    );
+  }
+  function openLibraryPuzzle({ exercise }: LibraryPuzzle) {
+    openPractice({ id: exercise.id, exercise });
+  }
   const reviewBackButton = (
     <button
       className={extensionPanel ? "review-navigation__icon" : "lesson-back"}
@@ -1613,7 +1806,20 @@ function PlayerApp({
                 });
               return;
             }
-            if (!duePractice.some(({ id }) => id === activePractice.id)) return;
+            if (!duePractice.some(({ id }) => id === activePractice.id)) {
+              if (extensionPanel) {
+                try {
+                  history.completePractice(
+                    "skill-puzzle-v1:" + activePractice.exercise.id,
+                  );
+                } catch {
+                  setMistakeSaveError(
+                    "Practice completion could not be saved.",
+                  );
+                }
+              }
+              return;
+            }
             try {
               history.completePractice(activePractice.id);
               window.dispatchEvent(new Event("chesscue-history"));
@@ -1665,233 +1871,202 @@ function PlayerApp({
         </main>
       ) : null}
 
-      {view === "training" && (
-        <header className="training-header">
-          <h1>{extensionPanel ? "Skill tree" : "Training plan"}</h1>
+      {view === "training" && panelLessons && (
+        <main className="content-shell">
+          {location.hash.split("/").length === 2 && (
+            <button
+              type="button"
+              className="lesson-back"
+              aria-label="Back to Skill tree"
+              onClick={() => {
+                returnToParent(() => {
+                  setView("training");
+                });
+              }}
+            >
+              Back to Skill tree
+            </button>
+          )}
+          {panelLessons}
+        </main>
+      )}
+      {view === "training" && !panelLessons && (
+        <section className="training-header">
+          <ScreenHeader
+            title={extensionPanel ? "Skill tree" : "Training plan"}
+          />
           <PracticeSection name="ChessCue curriculum">
             <PracticeCurriculum
               recommendation={curriculumRecommendation}
+              lessons={extensionPanel ? renderCardLessons : undefined}
+              recommendedPuzzle={
+                extensionPanel ? renderRecommendedPuzzle : undefined
+              }
               onPractice={(exercise) => {
                 openPractice({ id: exercise.id, exercise });
               }}
             />
           </PracticeSection>
           {mistakeSaveError && <p role="status">{mistakeSaveError}</p>}
-          {reviewMistakes.some(({ completed }) => !completed) && (
-            <section
-              className="side-panel-follow-up review-mistake-queue"
-              aria-label="Mistakes from PGN reviews"
-            >
-              <h2>Mistakes from PGN reviews</h2>
-              <ul>
-                {reviewMistakes
-                  .filter(({ completed }) => !completed)
-                  .flatMap((mistake) => {
-                    const drill = reviewMistakePractice(mistake);
-                    if (!drill) return [];
-                    return [
-                      <li key={mistake.id}>
-                        <button
-                          type="button"
-                          className="review-action"
-                          onClick={() => {
-                            openPractice({
-                              id: mistake.id,
-                              exercise: drill.exercise,
-                            });
-                          }}
-                        >
-                          Retry {drill.attemptedSan}
-                        </button>
-                      </li>,
-                    ];
-                  })}
-              </ul>
-            </section>
-          )}
-          {extensionPanel && recentReviewDrill && (
-            <section
-              className="side-panel-follow-up"
-              aria-label="Practice from your last review"
-            >
-              <h2>From your last review</h2>
-              <button
-                type="button"
-                className="primary-link"
-                onClick={() => {
-                  startGameDrill(recentReviewDrill);
-                }}
+          {!extensionPanel &&
+            reviewMistakes.some(({ completed }) => !completed) && (
+              <section
+                className="side-panel-follow-up review-mistake-queue"
+                aria-label="Mistakes from PGN reviews"
               >
-                {recentReviewDrill.moveLabel}
-              </button>
-            </section>
+                <h2>Mistakes from PGN reviews</h2>
+                <ul>
+                  {reviewMistakes
+                    .filter(({ completed }) => !completed)
+                    .flatMap((mistake) => {
+                      const drill = reviewMistakePractice(mistake);
+                      if (!drill) return [];
+                      return [
+                        <li key={mistake.id}>
+                          <button
+                            type="button"
+                            className="review-action"
+                            onClick={() => {
+                              openPractice({
+                                id: mistake.id,
+                                exercise: drill.exercise,
+                              });
+                            }}
+                          >
+                            Retry {drill.attemptedSan}
+                          </button>
+                        </li>,
+                      ];
+                    })}
+                </ul>
+              </section>
+            )}
+          {!extensionPanel && (
+            <PracticeSection name="Shared puzzle library">
+              <SharedPuzzleLibrary onPractice={openLibraryPuzzle} />
+            </PracticeSection>
           )}
-          <PracticeSection name="Shared puzzle library">
-            <SharedPuzzleLibrary
-              onPractice={({ exercise }) => {
-                openPractice({ id: exercise.id, exercise });
-              }}
-            />
-          </PracticeSection>
-        </header>
+        </section>
       )}
-      {view === "training" ? (
-        <GameAnalysisSection
-          {...(extensionPanel
-            ? { className: "shared-puzzle-library practice-game-analysis" }
-            : {})}
-        >
-          {extensionPanel && <summary>Game analysis by skill</summary>}
-          <SkillTree
-            profile={profile}
-            selected={selectedSkill}
-            onSelect={(skill) => {
-              const hash = "#study/" + skill;
-              if (hash !== location.hash) {
-                enterPage(hash, history.name);
-                setStudyVisit((n) => n + 1);
-              }
-              setSelectedSkill(skill);
-            }}
-            lessons={(skill) => {
-              const topic =
-                skill === "rook" || skill === "endgames"
-                  ? "rook"
-                  : skill === "threats"
-                    ? "attack"
-                    : undefined;
-              if (skill !== "vision" && topic === undefined) return null;
-              return (
-                <PracticeSection
-                  name="Lessons"
-                  loading={<p role="status">Opening lessons…</p>}
-                >
-                  <StudySkill.Provider value={skill}>
-                    <StudyScreen
-                      key={skill + String(studyVisit)}
-                      history={snapshot}
-                      pattern={
-                        skill === "vision" && snapshot.status === "ready"
-                          ? snapshot.plan.practice[0]
-                          : undefined
-                      }
-                      initialTopic={topic}
-                      analyzeReply={loadReviewReply}
-                      assessPosition={readBoardPosition}
-                      storageKey={history.key("chesscue-study-roadmaps-v1")}
-                      profile={profile}
-                    />
-                  </StudySkill.Provider>
-                </PracticeSection>
-              );
-            }}
-            snapshot={snapshot}
-            onImport={() => {
-              setView("import");
-            }}
-            onPlay={() => {
-              openGame("rated");
-            }}
-            evidence={
-              snapshot.status === "ready"
-                ? snapshot.plan.backRank
-                : { total: 0, found: 0, missedFen: null }
+      {view === "training" && !extensionPanel ? (
+        <SkillTree
+          profile={profile}
+          selected={selectedSkill}
+          onSelect={(skill) => {
+            const hash = "#study/" + skill;
+            if (hash !== location.hash) {
+              enterPage(hash, history.name);
+              setStudyVisit((n) => n + 1);
             }
-            verifiedDrill={gameDrill}
-            onStartDrill={startGameDrill}
-            duePractice={
-              snapshot.status === "ready"
-                ? duePractice.filter((item) =>
-                    snapshot.games.some(
-                      (game) =>
-                        game.id === item.sourceGameId && game.moves.length > 0,
-                    ),
-                  )
-                : []
-            }
-            onDuePractice={(id) => {
-              const item = duePractice.find((practice) => practice.id === id);
-              if (!item) return;
-              openPractice(item);
-            }}
-            gameTraining={
-              trainingGame && (
-                <GameTraining
-                  key={gameDrill?.exercise.id ?? trainingGame.id}
-                  drill={gameDrill}
-                  message={
-                    gameDrill
-                      ? null
-                      : "Open the game review to see its checked positions."
-                  }
-                  onCue={setDrillCue}
-                  onRetry={startGameDrill}
-                  onFollowUp={(exercise, question) => {
-                    openPractice({
-                      id: exercise.id,
-                      exercise: question
-                        ? { ...exercise, prompt: question }
-                        : exercise,
-                    });
+            setSelectedSkill(skill);
+          }}
+          lessons={renderSkillLessons}
+          snapshot={snapshot}
+          onImport={() => {
+            setView("import");
+          }}
+          onPlay={() => {
+            openGame("rated");
+          }}
+          evidence={
+            snapshot.status === "ready"
+              ? snapshot.plan.backRank
+              : { total: 0, found: 0, missedFen: null }
+          }
+          verifiedDrill={gameDrill}
+          onStartDrill={startGameDrill}
+          duePractice={
+            snapshot.status === "ready"
+              ? duePractice.filter((item) =>
+                  snapshot.games.some(
+                    (game) =>
+                      game.id === item.sourceGameId && game.moves.length > 0,
+                  ),
+                )
+              : []
+          }
+          onDuePractice={(id) => {
+            const item = duePractice.find((practice) => practice.id === id);
+            if (!item) return;
+            openPractice(item);
+          }}
+          gameTraining={
+            trainingGame && (
+              <GameTraining
+                key={gameDrill?.exercise.id ?? trainingGame.id}
+                drill={gameDrill}
+                message={
+                  gameDrill
+                    ? null
+                    : "Open the game review to see its checked positions."
+                }
+                onCue={setDrillCue}
+                onRetry={startGameDrill}
+                onFollowUp={(exercise, question) => {
+                  openPractice({
+                    id: exercise.id,
+                    exercise: question
+                      ? { ...exercise, prompt: question }
+                      : exercise,
+                  });
+                }}
+                onReview={() => {
+                  analyzeGame(trainingGame);
+                }}
+                onRatedGame={() => {
+                  openGame("rated");
+                }}
+                observations={
+                  gameDrill === null
+                    ? 0
+                    : profile.mastery[
+                        gameDrill.exercise.theme ===
+                        "premature-central-exchange"
+                          ? "central-pawn-tension"
+                          : gameDrill.exercise.theme
+                      ].evidenceCount
+                }
+                storageKey={history.key("chesscue-game-training-path-v1")}
+              />
+            )
+          }
+          onPractice={(theme) => {
+            const exercise = transferExercisesForTheme(theme).find(
+              (item) => item.difficulty === "unlabeled",
+            );
+            if (!exercise) return;
+            const scheduled = duePractice.find(
+              (item) => item.exercise.id === exercise.id,
+            );
+            openPractice(scheduled ?? { id: exercise.id, exercise });
+          }}
+          focusGame={
+            gameDrill &&
+            profile.mastery[profile.nextGame.focus].evidenceCount > 0 &&
+            (gameDrill.exercise.theme === "premature-central-exchange"
+              ? "central-pawn-tension"
+              : gameDrill.exercise.theme) === profile.nextGame.focus ? (
+              <>
+                <CurriculumCard
+                  prescription={{
+                    ...profile.nextGame,
+                    targetElo: ratedOpponentElo(targetElo),
                   }}
-                  onReview={() => {
-                    analyzeGame(trainingGame);
-                  }}
-                  onRatedGame={() => {
-                    openGame("rated");
-                  }}
-                  observations={
-                    gameDrill === null
-                      ? 0
-                      : profile.mastery[
-                          gameDrill.exercise.theme ===
-                          "premature-central-exchange"
-                            ? "central-pawn-tension"
-                            : gameDrill.exercise.theme
-                        ].evidenceCount
-                  }
-                  storageKey={history.key("chesscue-game-training-path-v1")}
+                  mastery={profile.mastery[profile.nextGame.focus]}
                 />
-              )
-            }
-            onPractice={(theme) => {
-              const exercise = transferExercisesForTheme(theme).find(
-                (item) => item.difficulty === "unlabeled",
-              );
-              if (!exercise) return;
-              const scheduled = duePractice.find(
-                (item) => item.exercise.id === exercise.id,
-              );
-              openPractice(scheduled ?? { id: exercise.id, exercise });
-            }}
-            focusGame={
-              gameDrill &&
-              profile.mastery[profile.nextGame.focus].evidenceCount > 0 &&
-              (gameDrill.exercise.theme === "premature-central-exchange"
-                ? "central-pawn-tension"
-                : gameDrill.exercise.theme) === profile.nextGame.focus ? (
-                <>
-                  <CurriculumCard
-                    prescription={{
-                      ...profile.nextGame,
-                      targetElo: ratedOpponentElo(targetElo),
-                    }}
-                    mastery={profile.mastery[profile.nextGame.focus]}
-                  />
-                  <button
-                    className="primary-link"
-                    type="button"
-                    onClick={() => {
-                      openGame("coached");
-                    }}
-                  >
-                    Play this focus game
-                  </button>
-                </>
-              ) : null
-            }
-          />
-        </GameAnalysisSection>
+                <button
+                  className="primary-link"
+                  type="button"
+                  onClick={() => {
+                    openGame("coached");
+                  }}
+                >
+                  Play this focus game
+                </button>
+              </>
+            ) : null
+          }
+        />
       ) : null}
 
       {view === "review" ? (
@@ -1949,29 +2124,31 @@ function PlayerApp({
                 analysis={analysis.analysis}
                 coachProvider={reviewCoachProvider}
                 reviewBack={extensionPanel ? reviewBackButton : undefined}
+                reviewTitle={
+                  reviewMatchup
+                    ? (reviewMatchup.opponent
+                        ? "vs. " + reviewMatchup.opponent + " · "
+                        : "") + reviewMatchup.result
+                    : undefined
+                }
                 reviewSource={
-                  extensionPanel ? (
-                    <p className="review-page__notice">
-                      {analysis.game.origin.type === "pgn-upload" &&
-                      /^lichess-[a-z0-9]{8}\.pgn$/i.test(
-                        analysis.game.origin.sourceName,
-                      ) ? (
-                        <a
-                          href={
-                            "https://lichess.org/" +
-                            analysis.game.origin.sourceName.slice(8, -4)
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Lichess game
-                        </a>
-                      ) : analysis.game.origin.type === "tutor" ? (
-                        "ChessCue game"
-                      ) : (
-                        "Imported game"
-                      )}
-                    </p>
+                  extensionPanel &&
+                  analysis.game.origin.type === "pgn-upload" &&
+                  /^lichess-[a-z0-9]{8}\.pgn$/i.test(
+                    analysis.game.origin.sourceName,
+                  ) ? (
+                    <a
+                      href={
+                        "https://lichess.org/" +
+                        analysis.game.origin.sourceName.slice(8, -4)
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Lichess game"
+                      title="Open Lichess game"
+                    >
+                      <span aria-hidden="true">↗</span>
+                    </a>
                   ) : undefined
                 }
                 compact={extensionPanel}

@@ -1,5 +1,7 @@
 import {
   collection,
+  type QueryDocumentSnapshot,
+  startAfter,
   getDocsFromServer,
   limit,
   query,
@@ -18,6 +20,7 @@ async function read<T extends { id: string; version: number }>(
   name: string,
   schema: z.ZodType<T>,
   motifId?: string,
+  allPages = false,
 ): Promise<T[]> {
   const client = initializeFirebaseClient();
   if (client.status !== "ready") return [];
@@ -26,19 +29,28 @@ async function read<T extends { id: string; version: number }>(
     motifId === undefined
       ? query(records, limit(50))
       : query(records, where("motifId", "==", motifId), limit(50));
-  const snapshot = await getDocsFromServer(bounded);
-  return snapshot.docs.flatMap((document) => {
-    const result = schema.safeParse(document.data());
-    if (!result.success) return [];
-    const { id, version } = result.data;
-    const expectedId = version === 1 ? id : id + "-v" + String(version);
-    return expectedId === document.id ? [result.data] : [];
-  });
+  const results: T[] = [];
+  let cursor: QueryDocumentSnapshot | undefined;
+  do {
+    const snapshot = await getDocsFromServer(
+      cursor ? query(bounded, startAfter(cursor)) : bounded,
+    );
+    for (const document of snapshot.docs) {
+      const result = schema.safeParse(document.data());
+      if (!result.success) continue;
+      const { id, version } = result.data;
+      const expectedId = version === 1 ? id : id + "-v" + String(version);
+      if (expectedId === document.id) results.push(result.data);
+    }
+    cursor =
+      allPages && snapshot.size === 50 ? snapshot.docs.at(-1) : undefined;
+  } while (cursor);
+  return results;
 }
 
-export async function readLibraryCatalog() {
+export async function readLibraryCatalog(allMotifs = false) {
   const [motifs, curricula] = await Promise.allSettled([
-    read("puzzleMotifs", libraryMotifSchema),
+    read("puzzleMotifs", libraryMotifSchema, undefined, allMotifs),
     read("puzzleCurricula", libraryCourseSchema),
   ]);
   return {
@@ -47,6 +59,6 @@ export async function readLibraryCatalog() {
   };
 }
 
-export function readLibraryPuzzles(motifId: string) {
-  return read("puzzleLibrary", libraryPuzzleSchema, motifId);
+export function readLibraryPuzzles(motifId: string, allPages = false) {
+  return read("puzzleLibrary", libraryPuzzleSchema, motifId, allPages);
 }

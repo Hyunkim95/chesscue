@@ -23,6 +23,14 @@ test("keeps Practice usable when a puzzle library file cannot load", async () =>
     });
     await page.goto("chrome-extension://" + id + "/index.html?panel=1");
     await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await page
+      .getByRole("combobox", { name: "Curriculum stage" })
+      .selectOption({ label: "Create and answer threats" });
+    const attack = page.getByRole("button", {
+      name: "Attack two targets",
+      exact: true,
+    });
+    await attack.click();
     const notice = page.getByRole("alert").filter({
       hasText: "Shared puzzle library could not load.",
     });
@@ -30,17 +38,15 @@ test("keeps Practice usable when a puzzle library file cannot load", async () =>
     await expect(
       page.getByRole("group", { name: "Curriculum stages" }),
     ).toBeVisible();
-    await page.getByText("Read the board", { exact: true }).click();
+
     await expect(
-      page.getByRole("button", { name: "Exercise 1", exact: true }),
+      page.getByRole("button", { name: "Practice puzzle", exact: true }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Review", exact: true }).click();
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
     await network.send("Network.setBlockedURLs", { urls: [] });
     await context.setOffline(true);
     await notice.getByRole("button", { name: "Reload Practice" }).click();
     await expect(
-      page.getByText("Shared puzzle library", { exact: true }),
+      page.getByRole("region", { name: "Shared puzzles for this skill" }),
     ).toBeVisible();
     await expect(notice).toHaveCount(0);
   } finally {

@@ -38,15 +38,119 @@ test("opens the full installed curriculum and solves a position offline in the s
       await stages.getByRole("combobox").selectOption({ label: title });
       await expect(units.getByRole("listitem")).toHaveCount(count);
     }
+    await stages
+      .getByRole("combobox")
+      .selectOption({ label: "Create and answer threats" });
+    await page
+      .getByRole("button", { name: "Attack two targets", exact: true })
+      .click();
+    const tactic = page.getByRole("group", {
+      name: "Attack two targets exercises",
+    });
+    await expect(
+      page.getByText("Shared puzzle library", { exact: true }),
+    ).toHaveCount(0);
+    const forkPuzzle = tactic.getByRole("button", {
+      name: "Practice puzzle",
+      exact: true,
+    });
+    await expect(forkPuzzle).toHaveCount(1);
+    await expect(tactic.getByRole("button", { name: /rating/i })).toHaveCount(
+      0,
+    );
+    for (const width of [320, 420]) {
+      await page.setViewportSize({ width, height: 760 });
+      await forkPuzzle.scrollIntoViewIfNeeded();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+      await page.screenshot({
+        path: test.info().outputPath("skill-puzzles-" + String(width) + ".png"),
+      });
+    }
+    await forkPuzzle.click();
+    await expect(
+      page.getByRole("heading", { name: "Find the first move" }),
+    ).toBeVisible();
+    const rook = page.getByRole("region", { name: "Explore with Rook" });
+    await expect(rook.getByLabel("Ask Rook")).toBeVisible();
+    await rook.getByLabel("Ask Rook").fill("What is the material balance?");
+    await rook.getByRole("button", { name: "Ask", exact: true }).click();
+    await expect(rook.getByRole("log")).toContainText(
+      /material is level|ahead by/i,
+    );
+    await expect(
+      rook.getByRole("gridcell", { name: /White knight on g4/ }),
+    ).toBeVisible();
+    const first = page.url();
+    await page.getByRole("button", { name: "Back to Practice" }).click();
+    await forkPuzzle.click();
+    await expect(page).toHaveURL(first);
+    await page.getByRole("gridcell", { name: /White knight on g4/ }).click();
+    await page.getByRole("gridcell", { name: /Black knight on f6/ }).click();
+    await expect(page.getByText("Good move", { exact: true })).toBeVisible();
+    await expect(
+      rook.getByRole("gridcell", { name: /Empty g4/ }),
+    ).toBeVisible();
+    await expect(
+      rook.getByRole("group", { name: "Rook’s move explanation" }).first(),
+    ).toBeVisible();
+    await rook.getByRole("button", { name: "Rewind", exact: true }).click();
+    await expect(
+      rook.getByRole("gridcell", { name: /White knight on g4/ }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Back to Practice" }).click();
+    await page.reload();
+    await forkPuzzle.click();
+    await expect(
+      page.getByRole("gridcell", { name: /White rook on c5/ }),
+    ).toBeVisible();
+    expect(page.url()).not.toBe(first);
+    await page.getByRole("button", { name: "Back to Practice" }).click();
+    await page
+      .getByRole("button", {
+        name: "Exploit or escape a line tactic",
+        exact: true,
+      })
+      .click();
+    const linePuzzle = page
+      .getByRole("group", { name: "Exploit or escape a line tactic exercises" })
+      .getByRole("button", { name: "Practice puzzle", exact: true });
+    await expect(linePuzzle).toHaveCount(1);
+
+    await page.setViewportSize({ width: 320, height: 760 });
     await stages.getByRole("combobox").selectOption({ label: "Play safely" });
     await page.getByText("Read the board", { exact: true }).click();
+    const selectedSkill = page.getByRole("button", {
+      name: "Read the board",
+      exact: true,
+    });
+    const exercisePanel = page.getByRole("group", {
+      name: "Read the board exercises",
+    });
+    const nextBranch = page.getByRole("button", {
+      name: /Count the cost of a capture/,
+    });
+    const selectedBox = await selectedSkill.boundingBox();
+    const panelBox = await exercisePanel.boundingBox();
+    const branchBox = await nextBranch.boundingBox();
+    expect(
+      selectedBox &&
+        panelBox &&
+        branchBox &&
+        selectedBox.y + selectedBox.height <= panelBox.y &&
+        panelBox.y + panelBox.height <= branchBox.y,
+    ).toBe(true);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(320);
     await page.screenshot({
       path: test.info().outputPath("curriculum-320.png"),
     });
-    await page.getByRole("button", { name: "Exercise 1", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Practice puzzle", exact: true })
+      .click();
     await expect(
       page.getByRole("heading", { name: "Find the first move" }),
     ).toBeVisible();
@@ -95,21 +199,122 @@ test("highlights a curriculum unit from a verified miss in an imported game", as
     await page.goto("chrome-extension://" + id + "/index.html?panel=1#import");
     await page
       .getByLabel("Paste completed PGN games")
-      .fill('[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1');
+      .fill(
+        '[SetUp "1"]\n[FEN "rnbqkbnr/pppp1ppp/8/4p3/8/5P2/PPPPP1PP/RNBQKBNR w KQkq - 0 2"]\n[Result "0-1"]\n\n2. g4 Qh4# 0-1',
+      );
     await page.getByRole("radio", { name: "I played White" }).check();
     await page
       .getByRole("main")
       .getByRole("button", { name: "Import games", exact: true })
       .click();
     await expect(page).toHaveURL(/#review\//);
+    await expect(page.getByLabel("Ask Rook")).toBeVisible({ timeout: 20000 });
     await page.getByRole("button", { name: "Practice", exact: true }).click();
     const next = page.getByRole("button", {
       name: "See the opponent’s next threat, recommended from your games",
     });
     await expect(next).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator(".practice-tree__evidence")).toContainText("g4");
+    await expect(page.locator(".practice-tree__evidence")).toBeVisible();
+    await expect(page.locator(".practice-tree__evidence")).not.toContainText(
+      "g4",
+    );
+    const card = page.getByRole("group", {
+      name: "See the opponent’s next threat exercises",
+    });
     await expect(
-      page.getByRole("button", { name: "Exercise 1", exact: true }),
+      page.getByText("Game analysis by skill", { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      card.getByRole("button", { name: "Practice puzzle", exact: true }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: "Practice puzzle", exact: true }),
+    ).toHaveCount(1);
+    await expect(card.getByText(/g4/)).toHaveCount(0);
+    await card
+      .getByRole("button", { name: "Practice puzzle", exact: true })
+      .click();
+    await expect(
+      page.getByRole("gridcell", { name: "White pawn on g2" }),
+    ).toBeVisible();
+    const gamePuzzle = page.url();
+    await page.getByRole("button", { name: "Back to Practice" }).click();
+    await page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("adaptive-chess-tutor");
+        request.onsuccess = () => {
+          resolve(request.result);
+        };
+        request.onerror = () => {
+          reject(request.error ?? new Error("Open failed"));
+        };
+      });
+      try {
+        const tx = db.transaction(["games", "reviewEvidence"], "readwrite");
+        const game = tx.objectStore("games").getAllKeys();
+        game.onsuccess = () =>
+          tx.objectStore("reviewEvidence").add({
+            schemaVersion: 1,
+            id: "curriculum-due-fixture",
+            gameId: game.result[0],
+            analysisVersion: "stockfish-19-lite@1",
+            theme: "one-move-threat",
+            firstAttemptScore: 50,
+            hardSpot: "Check their reply.",
+            dueReview: "2026-01-02",
+            reinforcement: "Find the stronger move.",
+            transfer: "scheduled-next-game",
+            completedAt: "2026-01-01T00:00:00Z",
+          });
+        await new Promise<void>((resolve, reject) => {
+          tx.oncomplete = () => {
+            resolve();
+          };
+          tx.onabort = () => {
+            reject(tx.error ?? new Error("Write failed"));
+          };
+        });
+      } finally {
+        db.close();
+      }
+    });
+    await page.reload();
+    await expect(
+      card.getByRole("button", { name: "Practice puzzle", exact: true }),
+    ).toBeVisible();
+    await card
+      .getByRole("button", { name: "Practice puzzle", exact: true })
+      .click();
+    await expect(page).not.toHaveURL(gamePuzzle);
+    await expect(
+      page.getByRole("grid", { name: /Training board/ }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Back to Practice" }).click();
+    await expect(
+      card.getByRole("button", { name: "Practice puzzle", exact: true }),
+    ).toBeVisible();
+    await card.getByRole("button", { name: "Attacking lessons" }).click();
+    const lessons = page.getByRole("region", {
+      name: "Lessons and position practice",
+    });
+    await lessons
+      .getByRole("button", { name: /^Play Move/ })
+      .first()
+      .click();
+    await expect(
+      page.getByRole("region", { name: "Lesson challenge" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Back to challenges" }).click();
+    await expect(lessons).toBeVisible();
+    await page
+      .getByRole("button", { name: "Back to Skill tree", exact: true })
+      .click();
+    await expect(
+      card.getByRole("button", { name: "Attacking lessons" }),
+    ).toBeVisible();
+
+    await expect(
+      page.getByRole("button", { name: "Practice puzzle", exact: true }),
     ).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),

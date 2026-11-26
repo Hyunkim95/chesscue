@@ -13,7 +13,7 @@
   color: inherit;
   background: transparent;
   border: 1px solid currentColor;
-  border-radius: 0.3rem;
+  border-radius: var(--cue-radius-control);
 }
 
 .rook-exploration {
@@ -115,10 +115,10 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  margin-top: 0.5rem;
   font-size: 0.75rem;
   min-height: 1.2rem;
   font-variant-numeric: tabular-nums;
+  margin-block-end: 0.35rem;
 }
 
 .rook-evaluation__bar {
@@ -208,23 +208,6 @@
 
 .rook-exploration__cue {
   margin: 0.55rem 0 0;
-}
-
-.rook-exploration__options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.7rem;
-  align-items: center;
-}
-
-.rook-exploration__options button {
-  min-height: 44px;
-  padding: 0.45rem 0;
-  background: transparent;
-  border: 0;
-  color: var(--cue-muted);
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
 }
 
 .rook-exploration__ask .rook-exploration__mic {
@@ -324,7 +307,7 @@
   position: fixed;
   z-index: 20;
   inset-inline: 0;
-  inset-block-end: 0;
+  inset-block-end: var(--panel-nav-height, 0px);
   padding: 0.45rem 0.65rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
   background: var(--cue-paper-deep);
   border-top: 1px solid var(--cue-line);
@@ -358,7 +341,7 @@
 }
 
 .rook-exploration--compact .game-review__board-stage .review-board {
-  max-width: max(13rem, calc(100svh - 27rem));
+  max-width: max(13rem, calc(100svh - 27.25rem - var(--panel-nav-height, 0px)));
 }
 
 .rook-exploration__composer-heading {
@@ -384,6 +367,38 @@
   overflow-y: auto;
 }
 
+/* Reserve space for a question and a four-line answer above the panel tabs. */
+.game-review.rook-exploration--compact:has(.rook-exploration__chat-drawer) {
+  --conversation-height: clamp(13.5rem, 29dvh, 15rem);
+  padding-block-end: calc(
+    var(--conversation-height) + 8rem + var(--panel-nav-height, 0px)
+  );
+}
+.rook-exploration--compact .rook-exploration__chat-drawer {
+  /* Keep the latest exchange anchored at the bottom when text reflows. */
+  display: flex;
+  flex-direction: column-reverse;
+  height: var(--conversation-height);
+  max-height: none;
+  overscroll-behavior-y: contain;
+}
+.rook-exploration--compact:has(.rook-exploration__chat-drawer)
+  .game-review__board-stage
+  .review-board {
+  max-width: clamp(9rem, var(--rook-board-room, 15rem), 19rem);
+}
+.rook-exploration--compact .rook-exploration__chat-drawer > * {
+  flex: none;
+}
+.rook-exploration--compact .rook-exploration__typing {
+  order: -1;
+}
+.rook-exploration--compact .rook-chat__message {
+  font-size: 1rem;
+}
+.rook-exploration--compact .rook-exploration__turns:not(:empty) {
+  margin-bottom: 0;
+}
 .rook-exploration__composer-heading .rook-exploration__chat-reveal {
   margin: 0;
   padding-inline: 0.45rem;

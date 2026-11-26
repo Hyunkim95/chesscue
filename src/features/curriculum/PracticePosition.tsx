@@ -81,6 +81,32 @@ export function PracticePosition({
       )}
     </small>
   );
+  if (compact) {
+    return (
+      <main className="content-shell review-page">
+        <RookExploration
+          fen={exercise.fen}
+          orientation={white ? "white" : "black"}
+          analyzeReply={analyzeReply}
+          assessPosition={assessPosition}
+          topic={exercise.theme}
+          compact
+          closeLabel="Back to Practice"
+          onClose={onTrainingPlan}
+          puzzle={{
+            question,
+            source,
+            onMove: (uci) => {
+              const { accepted } = scoreTransferAttempt(exercise, uci);
+              if (played === null) setPlayed(uci);
+              if (accepted) onComplete();
+              return accepted;
+            },
+          }}
+        />
+      </main>
+    );
+  }
   const selectSquare = (square: Square) => {
     setPromotion(null);
     if (position.get(square)?.color === position.turn()) {
@@ -124,12 +150,7 @@ export function PracticePosition({
                   ? "Find the first move"
                   : "Try a similar position"}
             </h1>
-            {compact && score === null && (
-              <p className="side-panel-puzzle-cue">
-                {question} {white ? "White to move." : "Black to move."}
-              </p>
-            )}
-            {!compact && source}
+            {source}
           </div>
         </header>
         {rookOpen && score !== null ? (
@@ -139,14 +160,12 @@ export function PracticePosition({
             analyzeReply={analyzeReply}
             assessPosition={assessPosition}
             topic={exercise.theme}
-            compact={compact}
             onClose={() => {
               setRookOpen(false);
             }}
           />
         ) : score === null ? (
           <TrainingStage
-            showIntro={!compact}
             board={
               <TrainingBoard
                 fen={exercise.fen}
@@ -168,7 +187,7 @@ export function PracticePosition({
               className="game-review__quiet-action"
               onClick={onTrainingPlan}
             >
-              {compact ? "Back to Practice" : "Back to training plan"}
+              Back to training plan
             </button>
             <button
               type="button"
@@ -217,15 +236,9 @@ export function PracticePosition({
               className="game-review__quiet-action"
               onClick={onTrainingPlan}
             >
-              {compact ? "Back to Practice" : "Back to training plan"}
+              Back to training plan
             </button>
           </GuidedMoveFeedback>
-        )}
-        {compact && source && (
-          <details className="side-panel-puzzle-source">
-            <summary>Sources</summary>
-            {source}
-          </details>
         )}
       </section>
     </main>

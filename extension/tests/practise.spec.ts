@@ -124,9 +124,10 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     await review.getByRole("button", { name: "Share game and review" }).click();
     await expect(review).toHaveURL(/#review\//, { timeout: 20000 });
     const saved = review.url();
-    const debrief = review.getByRole("region", { name: "Game debrief" });
-    await expect(debrief).toBeVisible({ timeout: 30000 });
+    const debrief = review.getByRole("region", { name: "Loss", exact: true });
     const rook = review.getByRole("region", { name: "Explore with Rook" });
+    await expect(rook.getByLabel("Ask Rook")).toBeVisible({ timeout: 30000 });
+    await expect(debrief).toHaveCount(0);
     const reviewNavigation = review.getByRole("navigation", {
       name: "Game review controls",
     });
@@ -137,17 +138,13 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     await expect(
       reviewNavigation.getByRole("button", { name: "Back to Review" }),
     ).toBeVisible();
-    await debrief.getByRole("button", { name: "Previous move" }).click();
-    await explore.click();
     await expect(
       review.getByRole("button", { name: "Review", exact: true }),
     ).toHaveAttribute("aria-current", "page");
     await expect(
       review.getByRole("link", { name: "Lichess game" }),
     ).toHaveAttribute("href", "https://lichess.org/abcdef12");
-    await expect(
-      rook.getByText("After 1... e5 · White’s position"),
-    ).toBeVisible();
+    await expect(rook.getByText("You’re White · After 1... e5")).toBeVisible();
     const gPawn = rook.getByRole("gridcell", { name: /White pawn on g2/ });
     const g4 = rook.getByRole("gridcell", { name: /Empty g4/ });
     const queen = rook.getByRole("gridcell", { name: /Black queen on d8/ });
@@ -158,6 +155,7 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     await gPawn.click();
     await g4.click();
     const cue = rook.getByText(/Are you sure/);
+    await expect(cue).toContainText("Find Black’s reply to your move.");
     await expect(cue).toBeInViewport();
     const showMe = rook.getByRole("button", { name: "Show me", exact: true });
     await expect(showMe).toHaveText("Show me");
@@ -200,18 +198,18 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     });
     await review.setViewportSize({ width: 320, height: 760 });
     const chat = rook.getByRole("textbox", { name: "Ask Rook" });
-    const boardBeforeQuestion = await rook.getByRole("grid").boundingBox();
-    await expect
-      .poll(() =>
-        chat.evaluate(
-          (input) => window.innerHeight - input.getBoundingClientRect().bottom,
-        ),
-      )
-      .toBeLessThan(20);
+    const boardBeforeQuestion = await rook.getByRole("grid").ariaSnapshot();
+    const inputBox = await chat.boundingBox();
+    if (!inputBox) throw new Error("Missing chat input");
+    const gap = 760 - (inputBox.y + inputBox.height);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(20);
     await chat.fill("Can Black take the pawn on a2?");
     await rook.getByRole("button", { name: "Ask", exact: true }).click();
     const boardAfterQuestion = await rook.getByRole("grid").boundingBox();
-    expect(boardAfterQuestion?.y).toBe(boardBeforeQuestion?.y);
+    expect(await rook.getByRole("grid").ariaSnapshot()).toBe(
+      boardBeforeQuestion,
+    );
     const composerAfterQuestion = await rook
       .locator(".rook-exploration__composer-dock")
       .boundingBox();
@@ -245,6 +243,23 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     ).toHaveCount(0);
     await rook.getByRole("button", { name: "Ask", exact: true }).click();
     await expect(conversation.getByText(/looking for checks/)).toBeVisible();
+    const question = conversation.getByText(
+      "I thought this would develop my bishop",
+    );
+    const answer = conversation.getByText(/looking for checks/);
+    await expect(question).toBeInViewport({ ratio: 1 });
+    await expect(answer).toBeInViewport({ ratio: 1 });
+    await expect(rook.getByRole("grid")).toBeInViewport({ ratio: 1 });
+    const boardBounds = await rook.getByRole("grid").boundingBox();
+    const transcriptBounds = await conversation.locator("..").boundingBox();
+    if (!boardBounds || !transcriptBounds)
+      throw new Error("Missing board or transcript");
+    expect(boardBounds.y + boardBounds.height).toBeLessThanOrEqual(
+      transcriptBounds.y,
+    );
+    await review.screenshot({
+      path: test.info().outputPath("board-and-conversation-320.png"),
+    });
     await chat.fill("black takes knight?");
     await rook.getByRole("button", { name: "Ask", exact: true }).click();
     await expect(
@@ -499,14 +514,15 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
       rook.getByRole("gridcell", { name: /White knight on a3/ }),
     ).toBeVisible();
     await rook.getByRole("button", { name: "Hide conversation" }).click();
-    await rook.getByText("Explored positions").click();
-    await rook.getByRole("button", { name: "Nc3", exact: true }).click();
     await expect(
-      rook.getByRole("gridcell", { name: "White knight on c3" }),
-    ).toBeVisible();
-    await rook
+      rook.getByText("Explored positions", { exact: true }),
+    ).toHaveCount(0);
+    await playback
       .getByRole("button", { name: "Back to start", exact: true })
       .click();
+    await expect(
+      rook.getByRole("gridcell", { name: "White knight on b1" }),
+    ).toBeVisible();
     await rook
       .getByRole("textbox", { name: "Ask Rook" })
       .fill("Show me a line from here");
@@ -520,6 +536,35 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
       conversation.getByText(/After h6, Stockfish found/),
     ).toBeVisible();
     await expect(playback.getByText(/^1 of /)).toBeVisible();
+    for (const [width, height] of [
+      [320, 640],
+      [420, 760],
+      [320, 760],
+    ] as const) {
+      await review.setViewportSize({ width, height });
+      const currentBoard = rook.getByRole("grid");
+      const currentQuestion = conversation.getByText("What if I play h6?", {
+        exact: true,
+      });
+      const currentReply = conversation.getByText(/After h6, Stockfish found/);
+      await expect(currentBoard).toBeInViewport({ ratio: 1 });
+      await expect(currentQuestion).toBeInViewport({ ratio: 1 });
+      await expect(currentReply).toBeInViewport({ ratio: 1 });
+      await expect
+        .poll(async () => {
+          const grid = await currentBoard.boundingBox();
+          const dock = await wideDock.boundingBox();
+          return Boolean(
+            grid && dock && grid.y >= 0 && grid.y + grid.height <= dock.y,
+          );
+        })
+        .toBe(true);
+      await review.screenshot({
+        path: test
+          .info()
+          .outputPath(`rook-chat-${String(width)}x${String(height)}.png`),
+      });
+    }
     const blackPawn = rook.getByRole("gridcell", { name: /Black pawn on h7/ });
     await blackPawn.click({ timeout: 3_000 });
     await rook
@@ -546,39 +591,41 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     await context.setOffline(true);
     await review.goto(saved);
     await review.reload();
-    await expect(debrief).toBeVisible();
-    await explore.click();
+    await expect(rook.getByLabel("Ask Rook")).toBeVisible();
     await expect(
-      rook.getByRole("gridcell", { name: /White pawn on g4/ }),
+      rook.getByRole("gridcell", { name: /White pawn on g2/ }),
     ).toBeVisible();
     await reviewNavigation
-      .getByRole("button", { name: "Back to game debrief", exact: true })
+      .getByRole("button", { name: "Game summary", exact: true })
       .click();
     await expect(debrief).toBeVisible();
-    await expect(
-      debrief.getByRole("gridcell", { name: /White pawn on g4/ }),
-    ).toBeVisible();
     await expect(review).toHaveURL(saved);
     await review.goto(url);
     await review.getByRole("button", { name: "Resume last review" }).click();
     await expect(review).toHaveURL(saved);
-    await expect(debrief).toBeVisible();
+    await expect(rook.getByLabel("Ask Rook")).toBeVisible();
     await review.getByRole("button", { name: "Practice", exact: true }).click();
-    const followUp = review.getByRole("region", {
-      name: "Mistakes from PGN reviews",
+    await review
+      .getByRole("button", { name: /See the opponent’s next threat/ })
+      .click();
+    const followUp = review.getByRole("group", {
+      name: "See the opponent’s next threat exercises",
     });
     await review.screenshot({
       path: test.info().outputPath("rook-practice-follow-up.png"),
     });
     await followUp
-      .getByRole("button", { name: "Retry g4", exact: true })
+      .getByRole("button", { name: "Practice puzzle", exact: true })
       .click();
     await expect(
-      review.getByRole("heading", { name: "Retry move 2" }),
+      review.getByRole("heading", { name: "Find the first move" }),
     ).toBeVisible();
     await review.getByRole("button", { name: "Play", exact: true }).click();
     await review.getByRole("button", { name: "Rated", exact: true }).click();
     const board = review.getByRole("grid").first();
+    await expect(
+      review.getByRole("button", { name: "Resign game" }),
+    ).toBeHidden();
     await expect(board).toBeVisible();
     const size = await board.boundingBox();
     expect(size?.width).toBeGreaterThanOrEqual(0.92 * 320);
@@ -587,6 +634,7 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     ).toBeLessThanOrEqual(320);
     await review.getByRole("gridcell", { name: "White pawn on e2" }).click();
     await review.getByRole("gridcell", { name: "Empty e4" }).click();
+    await review.getByText("Game details", { exact: true }).click();
     await expect(
       review.getByRole("list", { name: "Move history" }).getByRole("listitem"),
     ).toHaveCount(2);

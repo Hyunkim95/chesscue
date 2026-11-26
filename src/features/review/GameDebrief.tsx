@@ -1,5 +1,5 @@
 import { Chess, type Square } from "chess.js";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import type { ReplayFrame } from "../../domain/analysis/replay-game";
 import type { PlayerColor } from "../../domain/game/types";
@@ -44,6 +44,10 @@ function moveCaption(checked: NonNullable<ReturnType<typeof checkedMove>>) {
 }
 
 export function GameDebrief({
+  compact = false,
+  title,
+  source,
+  navigation,
   frames,
   orientation,
   strongPly,
@@ -54,6 +58,10 @@ export function GameDebrief({
   onExplore,
   onPractice,
 }: {
+  readonly compact?: boolean;
+  readonly title: string;
+  readonly source?: ReactNode;
+  readonly navigation?: ReactNode;
   readonly frames: readonly ReplayFrame[];
   readonly orientation: PlayerColor;
   readonly strongPly: number | undefined;
@@ -122,43 +130,139 @@ export function GameDebrief({
     onSelect({ ...selection, replayPly: ply, replyShown: false });
   }
 
+  const findings = (strongMove ?? turningMove) && (
+    <div
+      className="game-review__debrief-findings"
+      role="group"
+      aria-label="Game findings"
+    >
+      {turningMove && (
+        <button
+          type="button"
+          className="review-action"
+          aria-pressed={!replayFrame && showTurningPoint}
+          onClick={() => {
+            select("turning-point");
+          }}
+        >
+          Turning point
+        </button>
+      )}
+      {strongMove && (
+        <button
+          type="button"
+          className="review-action"
+          aria-pressed={!replayFrame && !showTurningPoint}
+          onClick={() => {
+            select("strong-move");
+          }}
+        >
+          Strong move
+        </button>
+      )}
+    </div>
+  );
+  const replayControls = frame && (
+    <div
+      className="game-review__debrief-replay"
+      role="group"
+      aria-label="Replay controls"
+    >
+      <div>
+        <button
+          type="button"
+          className="review-action"
+          aria-label="Previous move"
+          disabled={frame.ply === 0}
+          onClick={() => {
+            navigate(frame.ply - 1);
+          }}
+        >
+          ‹
+        </button>
+        <span>
+          Position {frame.ply} of {frames.length - 1}
+        </span>
+        <button
+          type="button"
+          className="review-action"
+          aria-label="Next move"
+          disabled={frame.ply === frames.length - 1}
+          onClick={() => {
+            navigate(frame.ply + 1);
+          }}
+        >
+          ›
+        </button>
+      </div>
+      <input
+        type="range"
+        aria-label="Move through the game"
+        min={0}
+        max={frames.length - 1}
+        value={frame.ply}
+        onChange={(event) => {
+          navigate(Number(event.currentTarget.value));
+        }}
+      />
+    </div>
+  );
+  const practiceAction = onPractice && showTurningPoint && !replayFrame && (
+    <button
+      type="button"
+      className="game-review__quiet-action"
+      onClick={onPractice}
+    >
+      Explore the turning point
+    </button>
+  );
+  const actions = (
+    <div className="game-review__debrief-actions">
+      {onExplore && frame && (
+        <button
+          type="button"
+          className={
+            compact
+              ? "game-review__primary game-review__debrief-explore"
+              : "review-action game-review__debrief-explore"
+          }
+          onClick={() => {
+            onExplore(frame);
+          }}
+        >
+          Explore with Rook
+        </button>
+      )}
+      {!replayFrame && showTurningPoint && reply && (
+        <button
+          type="button"
+          className="review-action"
+          onClick={() => {
+            onSelect({
+              finding: "turning-point",
+              replyShown: !replyShown,
+              replayPly: null,
+            });
+          }}
+        >
+          {replyShown ? "Back to your move" : "Show the reply"}
+        </button>
+      )}
+      {!compact && practiceAction}
+    </div>
+  );
   return (
     <>
-      <header className="game-review__header">
-        <h2 id="game-review-title">Game debrief</h2>
+      <header
+        className={
+          compact ? "game-review__header review-matchup" : "game-review__header"
+        }
+      >
+        {navigation}
+        <h2 id="game-review-title">{title}</h2>
+        {source}
       </header>
-      {(strongMove ?? turningMove) && (
-        <div
-          className="game-review__debrief-findings"
-          role="group"
-          aria-label="Game findings"
-        >
-          {turningMove && (
-            <button
-              type="button"
-              className="review-action"
-              aria-pressed={!replayFrame && showTurningPoint}
-              onClick={() => {
-                select("turning-point");
-              }}
-            >
-              Turning point
-            </button>
-          )}
-          {strongMove && (
-            <button
-              type="button"
-              className="review-action"
-              aria-pressed={!replayFrame && !showTurningPoint}
-              onClick={() => {
-                select("strong-move");
-              }}
-            >
-              Strong move
-            </button>
-          )}
-        </div>
-      )}
+      {!compact && findings}
       <div className="game-review__debrief">
         <div className="game-review__debrief-board">
           {frame && (
@@ -169,53 +273,16 @@ export function GameDebrief({
               focusSquares={focus}
             />
           )}
-          {frame && (
-            <div
-              className="game-review__debrief-replay"
-              role="group"
-              aria-label="Replay controls"
-            >
-              <div>
-                <button
-                  type="button"
-                  className="review-action"
-                  aria-label="Previous move"
-                  disabled={frame.ply === 0}
-                  onClick={() => {
-                    navigate(frame.ply - 1);
-                  }}
-                >
-                  ‹
-                </button>
-                <span>
-                  Position {frame.ply} of {frames.length - 1}
-                </span>
-                <button
-                  type="button"
-                  className="review-action"
-                  aria-label="Next move"
-                  disabled={frame.ply === frames.length - 1}
-                  onClick={() => {
-                    navigate(frame.ply + 1);
-                  }}
-                >
-                  ›
-                </button>
-              </div>
-              <input
-                type="range"
-                aria-label="Move through the game"
-                min={0}
-                max={frames.length - 1}
-                value={frame.ply}
-                onChange={(event) => {
-                  navigate(Number(event.currentTarget.value));
-                }}
-              />
-            </div>
-          )}
+          {!compact && replayControls}
         </div>
-        <div className="game-review__debrief-notes">
+        <div
+          className={
+            compact
+              ? "game-review__debrief-notes game-review__debrief-notes--compact"
+              : "game-review__debrief-notes"
+          }
+        >
+          {compact && actions}
           <div className="game-review__debrief-explanation" aria-live="polite">
             {replayFrame ? (
               replayMove ? (
@@ -237,45 +304,17 @@ export function GameDebrief({
               </>
             )}
           </div>
-          <div className="game-review__debrief-actions">
-            {!replayFrame && showTurningPoint && reply && (
-              <button
-                type="button"
-                className="review-action"
-                onClick={() => {
-                  onSelect({
-                    finding: "turning-point",
-                    replyShown: !replyShown,
-                    replayPly: null,
-                  });
-                }}
-              >
-                {replyShown ? "Back to your move" : "Show the reply"}
-              </button>
-            )}
-            {onExplore && frame && (
-              <button
-                type="button"
-                className="review-action game-review__debrief-explore"
-                onClick={() => {
-                  onExplore(frame);
-                }}
-              >
-                Explore with Rook
-              </button>
-            )}
-            {onPractice && showTurningPoint && !replayFrame && (
-              <button
-                type="button"
-                className="game-review__quiet-action"
-                onClick={onPractice}
-              >
-                Explore the turning point
-              </button>
-            )}
-          </div>
+          {!compact && actions}
         </div>
       </div>
+      {compact && (frame ?? strongMove ?? turningMove) && (
+        <details className="panel-disclosure">
+          <summary>Full replay and findings</summary>
+          {findings}
+          {replayControls}
+          {practiceAction}
+        </details>
+      )}
       {coachNotes.length > 0 && (
         <details className="game-review__replay">
           <summary>Saved coach notes</summary>

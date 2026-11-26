@@ -78,7 +78,9 @@ test("opens Review first and keeps Practice, Play and import within reach", asyn
       .click();
     await page.getByRole("button", { name: "Share game and review" }).click();
     await expect(
-      page.getByRole("heading", { name: "Game debrief" }),
+      page
+        .getByRole("region", { name: "Explore with Rook" })
+        .getByLabel("Ask Rook"),
     ).toBeVisible({ timeout: 20000 });
     await host.close();
     await page.getByRole("button", { name: "Back to Review" }).click();
@@ -113,7 +115,7 @@ test("opens Review first and keeps Practice, Play and import within reach", asyn
     ).toBeVisible();
     await expect(
       page.getByText("Shared puzzle library", { exact: true }),
-    ).toBeVisible();
+    ).toHaveCount(0);
 
     await nav.getByRole("button", { name: "Play", exact: true }).click();
     await expect(
@@ -174,6 +176,7 @@ test("finds and reopens an older completed game offline from Review", async () =
     await page.getByRole("button", { name: "Review", exact: true }).click();
     await page.reload();
     const list = page.getByRole("list", { name: "Completed games" });
+    await expect(list).toBeVisible();
     const rows = list.getByRole("button");
     await expect(rows).toHaveCount(3);
     await expect(rows.nth(0)).toContainText(/Sam.*Draw.*Imported/);
@@ -190,11 +193,50 @@ test("finds and reopens an older completed game offline from Review", async () =
       });
     }
     await rows.getByText("vs. Maya").click();
-    const debrief = page.getByRole("region", { name: "Game debrief" });
+    const debrief = page.getByRole("region", { name: "vs. Maya · Win" });
+    const rook = page.getByRole("region", { name: "Explore with Rook" });
+    await expect(rook.getByLabel("Ask Rook")).toBeVisible({ timeout: 20000 });
+    await expect(debrief).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Back to game debrief", exact: true })
+      .click();
+
     await expect(debrief).toBeVisible({ timeout: 20000 });
+    const matchup = debrief.getByRole("heading", {
+      name: "vs. Maya · Win",
+      exact: true,
+    });
     await expect(
-      debrief.getByRole("grid", { name: "Review board, Black side" }),
-    ).toBeVisible();
+      page.getByRole("heading", { name: "Game debrief" }),
+    ).toHaveCount(0);
+    await expect(matchup).toBeVisible();
+    const reviewBoard = debrief.getByRole("grid", {
+      name: "Review board, Black side",
+    });
+    for (const width of [320, 420]) {
+      await page.setViewportSize({ width, height: 760 });
+      await expect(reviewBoard).toBeInViewport({ ratio: 1 });
+      const backBox = await page
+        .getByRole("button", { name: "Back to Review" })
+        .boundingBox();
+      const matchupBox = await matchup.boundingBox();
+      const boardBox = await reviewBoard.boundingBox();
+      expect(
+        backBox &&
+          matchupBox &&
+          backBox.x + backBox.width <= matchupBox.x &&
+          backBox.y < matchupBox.y + matchupBox.height &&
+          matchupBox.y < backBox.y + backBox.height,
+      ).toBe(true);
+      expect(
+        matchupBox &&
+          boardBox &&
+          matchupBox.y + matchupBox.height <= boardBox.y,
+      ).toBe(true);
+      await page.screenshot({
+        path: test.info().outputPath("matchup-" + String(width) + ".png"),
+      });
+    }
     await page.getByRole("button", { name: "Back to Review" }).click();
     await expect(rows).toHaveCount(3);
   } finally {
