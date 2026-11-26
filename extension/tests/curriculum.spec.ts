@@ -26,6 +26,9 @@ test("opens the full installed curriculum and solves a position offline in the s
     ).toBeVisible();
     await expect(page.locator(".practice-tree__evidence")).toHaveCount(0);
     await expect(
+      page.getByRole("region", { name: "Choose a skill" }).locator("img"),
+    ).toHaveCount(1);
+    await expect(
       page.getByRole("group", { name: "Chess skills" }),
     ).toBeHidden();
     for (const [title, count] of [

@@ -284,19 +284,9 @@
   outline-offset: 3px;
 }
 
-.training-analysis-status,
-.training-empty p {
+.training-analysis-status {
   color: var(--cue-muted);
   margin: 0.25rem 0;
-}
-.training-empty__actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-.training-empty button {
-  margin-top: 0.5rem;
 }
 .skill-move-evidence {
   margin-block: 1rem;

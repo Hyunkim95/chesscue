@@ -113,10 +113,13 @@ test("offline win overtakes a later finisher within five seconds of sync and sha
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await page.getByRole("button", { name: "Change game mode" }).click();
     await page.getByRole("link", { name: "Elo races" }).click();
+    const empty = page.getByRole("region", { name: "Start your first race" });
+    await expect(empty.locator("img")).toHaveCount(2);
     await page.getByLabel("Elo to gain").fill("10");
     await page.getByRole("button", { name: "Create race" }).click();
     const invite = page.getByLabel("Invite friends");
     await expect(invite).toBeVisible();
+    await expect(empty).toHaveCount(0);
     const url = await invite.inputValue();
     await friend.goto(url);
     await friend.getByRole("button", { name: "Join race" }).click();

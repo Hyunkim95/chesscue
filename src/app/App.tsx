@@ -1,3 +1,4 @@
+import { EmptyState } from "../shared/empty-state/EmptyState";
 import { ScreenHeader } from "../shared/navigation/ScreenHeader";
 import type { VerifiedTransferExercise } from "../domain/transfer/types";
 import type { LibraryPuzzle } from "../domain/material/puzzle-library";
@@ -1351,7 +1352,11 @@ function PlayerApp({
         openPractice({ id: next.id, exercise: next });
       })
     ) : (
-      <p>All puzzles for this skill solved.</p>
+      <EmptyState
+        art="practice"
+        title="Skill puzzles complete"
+        description="Choose another skill to keep practicing."
+      />
     );
     const motifs = panelPuzzleMotifs[unitId];
     if (!motifs) return fallback;

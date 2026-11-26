@@ -26,6 +26,13 @@ test("opens Review first and keeps Practice, Play and import within reach", asyn
       nav.getByRole("button", { name: "Review", exact: true }),
     ).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("grid")).toHaveCount(0);
+    const emptyReview = page.getByRole("region", {
+      name: "Review your first game",
+    });
+    await expect(
+      emptyReview.getByRole("button", { name: "Import PGN" }),
+    ).toBeVisible();
+    await expect(emptyReview.locator("img")).toHaveCount(1);
     await expect(nav.getByRole("button", { name: "Import games" })).toHaveCount(
       0,
     );
@@ -122,6 +129,14 @@ test("opens Review first and keeps Practice, Play and import within reach", asyn
       page.getByRole("heading", { name: "Game mode" }),
     ).toBeVisible();
     await page.getByRole("link", { name: "Elo races", exact: true }).click();
+    const emptyRace = page.getByRole("region", { name: "Race your friends" });
+    await expect(
+      emptyRace.getByRole("button", { name: "Continue with Google" }),
+    ).toBeInViewport();
+    await expect(emptyRace.locator("img")).toHaveCount(2);
+    await page.screenshot({
+      path: test.info().outputPath("races-empty-320.png"),
+    });
     await expect(
       page.getByRole("heading", { name: "Elo races", exact: true }),
     ).toBeVisible();

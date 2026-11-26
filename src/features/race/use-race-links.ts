@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { z } from "zod";
 import {
   linkSchema,
@@ -24,26 +24,36 @@ export function useRaceLinks(
   uid: string | null,
 ) {
   const key = "chesscue-race-links/" + (uid ?? "");
-  const [links, setLinks] = useState<RaceLink[]>(() =>
-    cached(key, linkSchema.array(), []),
-  );
-  const [error, setError] = useState(false);
+  const cachedLinks = useMemo(() => cached(key, linkSchema.array(), []), [key]);
+  const [result, setResult] = useState<{
+    key: string;
+    links: RaceLink[];
+    status: "ready" | "failed";
+  }>();
   useEffect(
     () =>
       uid && session
         ? session.races.links(
             uid,
-            (rows) => {
-              setError(false);
-              setLinks(rows);
-              cache(key, rows);
+            (links) => {
+              setResult({ key, links, status: "ready" });
+              cache(key, links);
             },
             () => {
-              setError(true);
+              setResult({
+                key,
+                links: cached(key, linkSchema.array(), []),
+                status: "failed",
+              });
             },
           )
         : undefined,
     [uid, session, key],
   );
-  return { links, error };
+  const current = result?.key === key ? result : undefined;
+  return {
+    links: current?.links ?? cachedLinks,
+    error: current?.status === "failed",
+    loaded: current?.status === "ready",
+  };
 }

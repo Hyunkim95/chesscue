@@ -1,3 +1,4 @@
+import { EmptyState } from "../shared/empty-state/EmptyState";
 import { ScreenHeader } from "../shared/navigation/ScreenHeader";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -126,6 +127,24 @@ export function SidePanelReview({
     };
   }, []);
 
+  const showEmpty =
+    library.status === "ready" &&
+    library.games.length === 0 &&
+    context.status === "none" &&
+    !lastReview;
+  const importButton = (
+    <button
+      type="button"
+      className={
+        lastReview || context.status === "finished"
+          ? "review-action"
+          : "primary-link"
+      }
+      onClick={importPgn}
+    >
+      Import PGN
+    </button>
+  );
   return (
     <main className="content-shell side-panel-review">
       <ScreenHeader title="Review" />
@@ -156,17 +175,17 @@ export function SidePanelReview({
           Resume last review
         </button>
       )}
-      <button
-        type="button"
-        className={
-          lastReview || context.status === "finished"
-            ? "review-action"
-            : "primary-link"
-        }
-        onClick={importPgn}
-      >
-        Import PGN
-      </button>
+      {showEmpty ? (
+        <EmptyState
+          art="review"
+          title="Review your first game"
+          description="Import a completed game to explore its turning point with Rook."
+        >
+          {importButton}
+        </EmptyState>
+      ) : (
+        importButton
+      )}
       {library.status === "loading" && <p role="status">Loading games…</p>}
       {library.status === "failed" && (
         <div role="alert">
@@ -201,11 +220,7 @@ export function SidePanelReview({
               </li>
             ))}
           </ol>
-        ) : (
-          <p>
-            No saved games yet. You can also review a finished Lichess game.
-          </p>
-        ))}
+        ) : null)}
     </main>
   );
 }

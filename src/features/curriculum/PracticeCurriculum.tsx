@@ -1,3 +1,4 @@
+import { EmptyState } from "../../shared/empty-state/EmptyState";
 import { useId, useRef, type ReactNode } from "react";
 import { z } from "zod";
 import material from "../../../scripts/material/curriculum.generated.json?raw";
@@ -201,6 +202,13 @@ export function PracticeCurriculum({
           );
         })}
       </ol>
+      {recommendedPuzzle && selectedRow === 0 && (
+        <EmptyState
+          art="practice"
+          title="Choose a skill"
+          description="Select a skill above to get a puzzle."
+        />
+      )}
       {recommendedStage &&
         recommendedStage.id !== stage.id &&
         recommendation && (

@@ -1,3 +1,4 @@
+import { EmptyState } from "../../shared/empty-state/EmptyState";
 import type { SnapshotState } from "../../app/use-playing-snapshot";
 import type { VerifiedGameDrill } from "../../domain/curriculum/game-drill";
 import type { MovePattern } from "../../domain/curriculum/playing-snapshot";
@@ -80,15 +81,18 @@ export function TrainingAnalysisStatus({
   if (state.games.length === 0)
     return (
       <div className="training-empty">
-        <p>Play or import a completed game to get your first recommendation.</p>
-        <div className="training-empty__actions">
-          <button type="button" className="review-action" onClick={onPlay}>
+        <EmptyState
+          art="practice"
+          title="Practice from your games"
+          description="Play or import a completed game to get your first recommendation."
+        >
+          <button type="button" className="primary-link" onClick={onPlay}>
             Play a game
           </button>
           <button type="button" className="review-action" onClick={onImport}>
             Import games
           </button>
-        </div>
+        </EmptyState>
       </div>
     );
   return (

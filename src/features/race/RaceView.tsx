@@ -1,3 +1,4 @@
+import { EmptyState } from "../../shared/empty-state/EmptyState";
 import { useEffect, useState } from "react";
 
 import {
@@ -73,7 +74,11 @@ export function RaceView({
   conflict: boolean;
   uploadsPending: boolean;
 }) {
-  const { links, error: linksError } = useRaceLinks(session, user?.uid ?? null);
+  const {
+    links,
+    error: linksError,
+    loaded: linksLoaded,
+  } = useRaceLinks(session, user?.uid ?? null);
   const own = links.find((r) => r.id === id);
   const key = "chesscue-race/" + (user?.uid ?? "") + "/" + (id ?? "");
   const [members, setMembers] = useState<Standing[]>(() =>
@@ -186,8 +191,15 @@ export function RaceView({
       ) : null}
       {!online && <p>Offline. Showing the last synced standings.</p>}
       {!user ? (
-        <>
-          <p>Sign in to race friends to an Elo milestone.</p>
+        <EmptyState
+          art="race"
+          title={id ? "Join your friend’s race" : "Race your friends"}
+          description={
+            id
+              ? "Sign in to join the race and track your Elo progress."
+              : "Pick an Elo goal and send a friend an invite. Play rated games to track your progress."
+          }
+        >
           <button
             className="primary-link"
             disabled={!session || busy || !online}
@@ -197,9 +209,16 @@ export function RaceView({
           >
             Continue with Google
           </button>
-        </>
+        </EmptyState>
       ) : !id ? (
         <>
+          {linksLoaded && links.length === 0 && (
+            <EmptyState
+              art="race"
+              title="Start your first race"
+              description="Set a goal below. Then share your invite with a friend."
+            />
+          )}
           {links.length > 0 && (
             <section>
               <h2>Your races</h2>

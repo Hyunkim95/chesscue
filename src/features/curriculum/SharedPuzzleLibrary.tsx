@@ -1,3 +1,4 @@
+import { EmptyState } from "../../shared/empty-state/EmptyState";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { z } from "zod";
@@ -262,12 +263,14 @@ export function SharedPuzzleLibrary({
               <p className="practice-ratings-label">Puzzle ratings</p>
               <PuzzleButtons puzzles={ordered} onPractice={onPractice} />
             </>
+          ) : loading ? (
+            <p role="status">Loading puzzles…</p>
           ) : (
-            <p role="status">
-              {loading
-                ? "Loading puzzles…"
-                : "No puzzles are available for this motif."}
-            </p>
+            <EmptyState
+              art="practice"
+              title="No puzzles for this motif"
+              description="Choose another motif to keep practicing."
+            />
           )}
         </>
       )}
