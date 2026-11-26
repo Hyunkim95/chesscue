@@ -24,6 +24,8 @@ import {
   isMateScore,
   moveLossCp,
 } from "../../domain/analysis/classify-experiment";
+import { explainCheckedLoss } from "./explain-checked-loss";
+import { StrongerMoveExplanation } from "./StrongerMoveExplanation";
 import { RookEvaluation } from "./RookEvaluation";
 import { rookCaptureAnswer } from "./rook-capture-answer";
 import "./rook-exploration.css";
@@ -37,13 +39,20 @@ interface Position {
 }
 
 interface Experiment {
-  readonly stage: "spot" | "retry" | "revealed" | "found";
+  readonly stage:
+    | "spot"
+    | "retry"
+    | "revealed"
+    | "found"
+    | "unchecked"
+    | "stronger";
   readonly bestReplyScore: number;
   readonly position: Position;
   readonly rewind: Position;
 }
 
 interface CommentaryAnchor {
+  readonly wordingVersion?: string;
   readonly position: Position;
   readonly line: readonly Move[];
   readonly step: number | null;
@@ -294,16 +303,13 @@ export function RookExploration({
       const replyMove = board.move(reply);
       const verifiedMoves = [
         replyMove,
-        ...result.line.slice(1).map((uci) => board.move(uci)),
+        ...(result.evidenceLine ?? result.line)
+          .slice(1)
+          .map((uci) => board.move(uci)),
       ];
       const prior = positions.current.find(({ id }) => id === next.parent);
-      if (verdict === "spot" && prior) {
-        if (
-          onLearnerSide &&
-          beforeMove &&
-          before &&
-          before.line[0] !== beforeMove.lan
-        ) {
+      if (verdict === "spot" && prior && before && beforeMove) {
+        if (onLearnerSide && before.line[0] !== beforeMove.lan) {
           onMistake?.({
             fen: beforeMove.before,
             attemptedMove: beforeMove.lan,
@@ -315,9 +321,7 @@ export function RookExploration({
           status: "ready",
           line: verifiedMoves,
           shownMove: null,
-          text: onLearnerSide
-            ? `Are you sure? Find ${orientation === "white" ? "Black" : "White"}’s reply to your move.`
-            : "Are you sure? Find the reply for the side to move.",
+          text: `${explainCheckedLoss(beforeMove, result, before)} Find ${replyMove.color === "w" ? "White" : "Black"}’s reply to your move.`,
           experiment: {
             stage: "spot",
             position: next,
@@ -336,6 +340,18 @@ export function RookExploration({
         line: checkedLine,
         shownMove,
         text: "",
+        ...(puzzle &&
+          prior?.id === 0 &&
+          !verifiedOpening &&
+          before &&
+          beforeMove && {
+            experiment: {
+              stage: "unchecked",
+              position: next,
+              rewind: prior,
+              bestReplyScore: result.evaluationCpFromSideToMove,
+            },
+          }),
       });
       if (shownMove) {
         const playerNote =
@@ -864,13 +880,15 @@ export function RookExploration({
   const rewindsPosition =
     experiment !== undefined || (puzzle !== undefined && demoStep === null);
   const atBranch = demoStep === null && parent !== undefined;
-  const rewindLabel = rewindsPosition
-    ? "Rewind"
-    : atBranch
-      ? "Back to start"
-      : returnPoint
-        ? "Leave checked line"
-        : "Back to my position";
+  const rewindLabel = experiment
+    ? "Retry move"
+    : rewindsPosition
+      ? "Rewind"
+      : atBranch
+        ? "Back to start"
+        : returnPoint
+          ? "Leave checked line"
+          : "Back to my position";
 
   const composerHeading = (
     <div className="rook-exploration__composer-heading">
@@ -1035,7 +1053,8 @@ export function RookExploration({
                     className="rook-playback-icon rook-playback-icon--rewind"
                     aria-hidden="true"
                   />
-                  {compact && rewindsPosition && "Rewind"}
+                  {(experiment !== undefined || (compact && rewindsPosition)) &&
+                    rewindLabel}
                 </button>
               )}
               <button
@@ -1065,6 +1084,36 @@ export function RookExploration({
                 {spotting && !compact && " · Find the reply"}
               </p>
             </div>
+            {experiment?.position.move && experiment.stage !== "stronger" && (
+              <StrongerMoveExplanation
+                key={experiment.position.id}
+                attempt={experiment.position.move}
+                analyzeReply={analyzeReply}
+                onVerified={(checked, text, version) => {
+                  visit(experiment.rewind);
+                  const replayExperiment = {
+                    ...experiment,
+                    stage: "stronger",
+                  } as const;
+                  setCoaching({
+                    status: "ready",
+                    line: checked,
+                    shownMove: null,
+                    text: "",
+                    experiment: replayExperiment,
+                  });
+                  setDemoStep(0);
+                  postCommentary(text, {
+                    wordingVersion: version,
+                    position: experiment.rewind,
+                    line: checked,
+                    step: 0,
+                    experiment: replayExperiment,
+                  });
+                  setDiscussion("open");
+                }}
+              />
+            )}
             {puzzleMove && (puzzleMove === "accepted" || !spotting) && (
               <p className="rook-exploration__cue" role="status">
                 {puzzleMove === "accepted"
@@ -1141,7 +1190,12 @@ export function RookExploration({
                       <div
                         key={key}
                         role="group"
-                        aria-label="Rook’s move explanation"
+                        aria-label={
+                          anchor?.wordingVersion
+                            ? "Rook’s line explanation"
+                            : "Rook’s move explanation"
+                        }
+                        data-wording-version={anchor?.wordingVersion}
                       >
                         {message}
                       </div>

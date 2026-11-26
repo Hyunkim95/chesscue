@@ -151,15 +151,18 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     const queenMate = rook.getByRole("gridcell", {
       name: /Black queen on h4.*Rook highlight/,
     });
-    const rewind = rook.getByRole("button", { name: "Rewind", exact: true });
+    const rewind = rook.getByRole("button", {
+      name: "Retry move",
+      exact: true,
+    });
     await gPawn.click();
     await g4.click();
-    const cue = rook.getByText(/Are you sure/);
+    const cue = rook.getByText(/Find Black’s reply to your move/);
     await expect(cue).toContainText("Find Black’s reply to your move.");
     await expect(cue).toBeInViewport();
     const showMe = rook.getByRole("button", { name: "Show me", exact: true });
     await expect(showMe).toHaveText("Show me");
-    await expect(rewind).toHaveText("Rewind");
+    await expect(rewind).toHaveText("Retry move");
     const pausedControls = rook.getByRole("group", { name: "Board playback" });
     await expect
       .poll(() =>
