@@ -154,7 +154,7 @@ test.each([
       screen.getByRole("gridcell", { name: new RegExp("\\b" + name + "\\b") });
     fireEvent.click(square(attempt.from));
     fireEvent.click(square(attempt.to));
-    expect(await screen.findByText(/Are you sure/)).toBeVisible();
+    expect(await screen.findByText(/Find (White|Black)’s reply/)).toBeVisible();
     fireEvent.click(square(answer.from));
     fireEvent.click(square(answer.to));
     expect(await screen.findByText(/That reply works too\./)).toBeVisible();
@@ -162,3 +162,48 @@ test.each([
     expect(onMistake).not.toHaveBeenCalled();
   },
 );
+
+test("shows what the mistake allowed, restores the decision, and opens a verified stronger line", async () => {
+  const fen =
+    "r1bq1rk1/pp3ppp/2n2n2/1N1pp3/5Q2/1B1P4/PPP2PPP/R3K1NR w KQ - 0 11";
+  const attempt = new Chess(fen).move("Qb4");
+  render(
+    <RookExploration
+      fen={fen}
+      orientation="white"
+      analyzeReply={(position) =>
+        Promise.resolve(
+          position === fen
+            ? { line: ["f4d2", "a7a6"], evaluationCpFromSideToMove: 0 }
+            : position === attempt.after
+              ? { line: ["c6b4", "g1f3"], evaluationCpFromSideToMove: 500 }
+              : null,
+        )
+      }
+    />,
+  );
+  const square = (s: string) =>
+    screen.getByRole("gridcell", { name: new RegExp("\\b" + s + "\\b") });
+  const play = () => {
+    fireEvent.click(square("f4"));
+    fireEvent.click(square("b4"));
+  };
+  play();
+  expect(
+    await screen.findByText(/Black can take the queen on b4/),
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Retry move" }));
+  expect(square("f4")).toHaveAccessibleName(/White queen/);
+  play();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Explain stronger move" }),
+  );
+  const proof = await screen.findByRole("group", {
+    name: "Rook’s line explanation",
+  });
+  expect(proof).toHaveTextContent(
+    "your queen on d2 cannot be taken immediately",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Retry move" }));
+  expect(square("f4")).toHaveAccessibleName(/White queen/);
+});

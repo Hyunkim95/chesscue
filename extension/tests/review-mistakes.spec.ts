@@ -167,7 +167,9 @@ test("queues the move tried during a PGN review once and opens its retry offline
         rook.getByRole("button", { name: "Show me", exact: true }),
       ).toBeEnabled();
       if (attempt === 1)
-        await rook.getByRole("button", { name: "Rewind", exact: true }).click();
+        await rook
+          .getByRole("button", { name: "Retry move", exact: true })
+          .click();
     }
 
     await expect(meter).toHaveAttribute("aria-valuetext", "Black mate");

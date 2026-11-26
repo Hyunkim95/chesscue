@@ -56,7 +56,10 @@ import { reviewGameSummary } from "../extension/review-game-list";
 import { SidePanelReview } from "../extension/SidePanelReview";
 import type { LichessExport } from "../extension/lichess-export";
 import { importGames } from "../application/import-games/import-games";
-import { evaluateReviewReply } from "../application/analyze-game/analyze-review-reply";
+import {
+  EXPLANATION_SEARCH_MS,
+  evaluateReviewReply,
+} from "../application/analyze-game/analyze-review-reply";
 import {
   assessPosition,
   type AssessPosition,
@@ -233,11 +236,34 @@ function savePlayEntry(history: PlayerHistory, entry: PlayEntry | null): void {
 const engine = new StockfishGameEngine();
 const analysisEngine = new StockfishAnalysisEngine();
 const reviewReplyEngine = new StockfishAnalysisEngine();
-const loadReviewReply = (
+const loadReviewReply = async (
   fen: string,
   signal: AbortSignal,
   compareAlternatives?: boolean,
-) => evaluateReviewReply(reviewReplyEngine, fen, signal, compareAlternatives);
+  purpose?: "explanation",
+) => {
+  if (!purpose)
+    return evaluateReviewReply(
+      reviewReplyEngine,
+      fen,
+      signal,
+      compareAlternatives,
+    );
+  const explanationEngine = new StockfishAnalysisEngine({
+    maximumSearchTimeMs: EXPLANATION_SEARCH_MS,
+  });
+  try {
+    return await evaluateReviewReply(
+      explanationEngine,
+      fen,
+      signal,
+      compareAlternatives,
+      purpose,
+    );
+  } finally {
+    explanationEngine.dispose();
+  }
+};
 const readBoardPosition: AssessPosition = async (fen, signal) => {
   const assessmentEngine = new StockfishAnalysisEngine();
   try {

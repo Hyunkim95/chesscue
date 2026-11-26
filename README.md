@@ -77,6 +77,10 @@ Run the two-browser account journey and SLO-007 emulator workload with Java 21 a
 pnpm exec firebase emulators:exec --only auth,firestore --project demo-chesscue-account 'VITE_ACCOUNT_EMULATORS=true pnpm exec playwright test tests/e2e/account'
 ```
 
+## Hackathon coaching baseline
+
+In Practice or Review, try a move. When Stockfish finds a costly mistake, Rook shows what the opponent can do next. Retry the move from the original position, or ask Rook to explain the stronger move. The explanation appears only when the local engine and chess rules support the comparison. After installation this flow works offline. Rated games remain unassisted.
+
 ## Desktop Chrome extension
 
 Run `pnpm build:extension`, open `chrome://extensions`, enable Developer mode, and choose **Load unpacked**. Select `extension/dist`. Click the ChessCue toolbar icon to play in the Chrome side panel. On a finished Lichess game, **Practise this game** opens its Stockfish review alongside the game. If you are viewing someone else's game or playing anonymously, choose the side to review. Previously imported games can be reopened from ChessCue offline. The extension has its own local history.
