@@ -606,6 +606,9 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     await expect(rook.getByLabel("Ask Rook")).toBeVisible();
     await review.getByRole("button", { name: "Practice", exact: true }).click();
     await review
+      .getByRole("combobox", { name: "Curriculum stage" })
+      .selectOption({ label: "Play safely" });
+    await review
       .getByRole("button", { name: /See the opponent’s next threat/ })
       .click();
     const followUp = review.getByRole("group", {
