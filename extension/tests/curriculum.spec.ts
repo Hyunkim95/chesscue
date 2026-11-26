@@ -224,7 +224,7 @@ test("highlights a curriculum unit from a verified miss in an imported game", as
           resolve(open.result);
         };
         open.onerror = () => {
-          reject(open.error);
+          reject(open.error ?? new Error("Could not open game history."));
         };
       });
       try {
@@ -276,7 +276,10 @@ test("highlights a curriculum unit from a verified miss in an imported game", as
             resolve();
           };
           transaction.onabort = () => {
-            reject(transaction.error);
+            reject(
+              transaction.error ??
+                new Error("Could not write analysis fixture."),
+            );
           };
         });
       } finally {
