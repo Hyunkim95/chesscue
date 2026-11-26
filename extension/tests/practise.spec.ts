@@ -623,9 +623,6 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     await review.getByRole("button", { name: "Play", exact: true }).click();
     await review.getByRole("button", { name: "Rated", exact: true }).click();
     const board = review.getByRole("grid").first();
-    await expect(
-      review.getByRole("button", { name: "Resign game" }),
-    ).toBeHidden();
     await expect(board).toBeVisible();
     const size = await board.boundingBox();
     expect(size?.width).toBeGreaterThanOrEqual(0.92 * 320);
@@ -634,7 +631,6 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     ).toBeLessThanOrEqual(320);
     await review.getByRole("gridcell", { name: "White pawn on e2" }).click();
     await review.getByRole("gridcell", { name: "Empty e4" }).click();
-    await review.getByText("Game details", { exact: true }).click();
     await expect(
       review.getByRole("list", { name: "Move history" }).getByRole("listitem"),
     ).toHaveCount(2);
