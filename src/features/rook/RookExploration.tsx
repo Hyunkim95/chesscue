@@ -540,7 +540,7 @@ export function RookExploration({
         grid.getBoundingClientRect().height;
       grid.style.setProperty(
         "--rook-board-room",
-        Math.floor(available - controlsHeight - 12) + "px",
+        String(Math.floor(available - controlsHeight - 12)) + "px",
       );
       const board = boardStage.getBoundingClientRect();
       if (board.top >= 0 && board.bottom <= available) return;
