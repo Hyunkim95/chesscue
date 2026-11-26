@@ -93,6 +93,20 @@ test("opens Review first and keeps Practice, Play and import within reach", asyn
       page.getByRole("heading", { name: "Import completed PGNs" }),
     ).toBeVisible();
 
+    for (const width of [320, 420]) {
+      await page.setViewportSize({ width, height: 760 });
+      const notice = page.getByText(
+        /including player names, comments and variations/,
+      );
+      await notice.scrollIntoViewIfNeeded();
+      await expect(notice).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+      await page.screenshot({
+        path: test.info().outputPath("pgn-sharing-" + String(width) + ".png"),
+      });
+    }
     await nav.getByRole("button", { name: "Practice", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "Skill tree", exact: true }),

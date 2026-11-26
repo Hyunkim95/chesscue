@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { z } from "zod";
 import { expect, test } from "@playwright/test";
 
 test("a guest's offline batch becomes replayable shared games and a verified puzzle", async ({
@@ -27,9 +28,11 @@ test("a guest's offline batch becomes replayable shared games and a verified puz
     await navigator.serviceWorker.ready;
   });
   await context.setOffline(true);
-  await page
-    .getByLabel("Paste completed PGN games")
-    .fill([pgn, quiet, pgn, invalid].join("\n\n"));
+  await page.getByLabel("Choose a PGN file").setInputFiles({
+    name: "batch.pgn",
+    mimeType: "application/x-chess-pgn",
+    buffer: Buffer.from([pgn, quiet, pgn, invalid].join("\n\n")),
+  });
   await page.getByRole("radio", { name: "I played White" }).check();
   await page
     .getByRole("main")
@@ -61,6 +64,44 @@ test("a guest's offline batch becomes replayable shared games and a verified puz
     },
   });
   expect(await status("sharedGames/" + sha(quiet))).toBe(200);
+  const gameKey = z.object({
+    fields: z.object({ gameKey: z.object({ stringValue: z.string() }) }),
+  });
+  const evidence = async (score: string) => {
+    const archived = gameKey.parse(
+      await (await fetch(documents + "sharedGames/" + sha(score))).json(),
+    );
+    return (await (
+      await fetch(
+        documents +
+          "submittedMateEvidence/" +
+          archived.fields.gameKey.stringValue,
+        { headers: { authorization: "Bearer owner" } },
+      )
+    ).json()) as unknown;
+  };
+  expect(await evidence(pgn)).toMatchObject({
+    fields: {
+      opportunities: {
+        arrayValue: {
+          values: [
+            {
+              mapValue: {
+                fields: {
+                  outcome: { stringValue: "found" },
+                  side: { stringValue: "b" },
+                  ply: { integerValue: "4" },
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
+  });
+  expect(await evidence(quiet)).toMatchObject({
+    fields: { puzzleId: { nullValue: null } },
+  });
   const other = await browser.newContext({ baseURL: "http://127.0.0.1:4187" });
   try {
     const player = await other.newPage();
@@ -89,6 +130,15 @@ test("a guest's offline batch becomes replayable shared games and a verified puz
     await expect(replay.getByText("Qh4# · 4 of 4 plies")).toBeVisible();
     await replay.getByText("Full PGN", { exact: true }).click();
     await expect(replay.locator("pre")).toHaveText(pgn);
+    for (const width of [320, 1280]) {
+      await replay.setViewportSize({ width, height: 800 });
+      expect(
+        await replay.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+      await replay.screenshot({
+        path: test.info().outputPath("shared-game-" + String(width) + ".png"),
+      });
+    }
     await player.getByRole("gridcell", { name: /Black queen on d8/ }).click();
     await player.getByRole("gridcell", { name: /Empty h4/ }).click();
     await expect(player.getByText("Good move", { exact: true })).toBeVisible();

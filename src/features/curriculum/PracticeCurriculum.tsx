@@ -155,7 +155,9 @@ export function PracticeCurriculum({
                   type="button"
                   aria-label={"Exercise " + String(index + 1)}
                   title={"Play exercise " + String(index + 1)}
-                  onClick={() => onPractice(exercise)}
+                  onClick={() => {
+                    onPractice(exercise);
+                  }}
                 >
                   <span aria-hidden="true">▶</span>
                 </button>

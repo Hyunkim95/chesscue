@@ -28,7 +28,7 @@ export async function fetchCompletedGame(
   if (!/^[a-zA-Z0-9]{8}$/.test(id))
     throw new Error("Open a finished Lichess game and try again.");
   const url = new URL("https://lichess.org/game/export/" + id);
-  url.search = "pgnInJson=true&clocks=false&evals=false";
+  url.search = "pgnInJson=true&clocks=true&evals=true";
   const response = await fetch(url, {
     signal,
     headers: { Accept: "application/json" },

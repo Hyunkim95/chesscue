@@ -34,7 +34,7 @@ export function SharedGameReplay({
   }, [id, initialPly]);
   const move = game && game !== "failed" ? game.moves[ply - 1] : undefined;
   return (
-    <main className="content-shell content-shell--narrow">
+    <main className="content-shell content-shell--narrow shared-game-replay">
       <h1>Shared game</h1>
       {game === null ? (
         <p role="status">Loading game…</p>
@@ -47,6 +47,7 @@ export function SharedGameReplay({
           <h2>
             {game.headers.White ?? "White"} vs {game.headers.Black ?? "Black"}
           </h2>
+          <p>Result · {game.headers.Result}</p>
           <ChessBoard
             label="Shared game replay"
             fen={move?.fenAfter ?? game.initialFen}
