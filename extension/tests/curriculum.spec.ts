@@ -212,6 +212,78 @@ test("highlights a curriculum unit from a verified miss in an imported game", as
       .click();
     await expect(page).toHaveURL(/#review\//);
     await expect(page.getByLabel("Ask Rook")).toBeVisible({ timeout: 20000 });
+    // Exercise the recommendation UI with a fixed, legal analysis. The short
+    // Stockfish search above can select different lines across machines.
+    const gameId = decodeURIComponent(
+      new URL(page.url()).hash.split("/")[1] ?? "",
+    );
+    await page.evaluate(async (gameId) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const open = indexedDB.open("adaptive-chess-tutor");
+        open.onsuccess = () => {
+          resolve(open.result);
+        };
+        open.onerror = () => {
+          reject(open.error);
+        };
+      });
+      try {
+        const transaction = db.transaction("analyses", "readwrite");
+        const analysisVersion = "stockfish-19-lite@2";
+        transaction.objectStore("analyses").put(
+          {
+            schemaVersion: 1,
+            gameId,
+            analysisVersion,
+            engineBuild: "Stockfish 19 Lite",
+            searchSettings: { timeBudgetPerPositionMs: 1000, multiPv: 1 },
+            facts: [
+              {
+                schemaVersion: 1,
+                gameId,
+                analysisVersion,
+                ply: 1,
+                fenBefore:
+                  "rnbqkbnr/pppp1ppp/8/4p3/8/5P2/PPPPP1PP/RNBQKBNR w KQkq - 0 2",
+                playedMoveUci: "g2g4",
+                playedMoveSan: "g4",
+                evaluationBeforeCp: 0,
+                evaluationAfterCp: -99999,
+                impactCp: 99999,
+                phase: "opening",
+                theme: "one-move-threat",
+                recurrence: 0,
+                curricularRelevance: 100,
+                candidates: [
+                  {
+                    uci: "e2e3",
+                    san: "e3",
+                    evaluationCp: 0,
+                    principalVariation: ["e2e3"],
+                  },
+                ],
+              },
+            ],
+            moments: [],
+            analyzedPlayerMoves: 1,
+            validationStatus: "validated",
+            analyzedAt: "2026-01-01T00:00:00Z",
+          },
+          JSON.stringify([gameId, analysisVersion]),
+        );
+        await new Promise<void>((resolve, reject) => {
+          transaction.oncomplete = () => {
+            resolve();
+          };
+          transaction.onabort = () => {
+            reject(transaction.error);
+          };
+        });
+      } finally {
+        db.close();
+      }
+    }, gameId);
+
     await page.getByRole("button", { name: "Practice", exact: true }).click();
     const next = page.getByRole("button", {
       name: "See the opponent’s next threat, recommended from your games",
