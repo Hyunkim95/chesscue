@@ -37,8 +37,11 @@ export function LichessImport({ route, importGame, review, manual }: Props) {
         choice?.game ?? (await fetchCompletedGame(id ?? "", controller.signal));
       if (controller.signal.aborted) return;
       if (!choice) {
-        const color = (["white","black"] as const).find(side =>
-          player && game.players[side].user?.id.toLowerCase() === player.toLowerCase());
+        const color = (["white", "black"] as const).find(
+          (side) =>
+            player &&
+            game.players[side].user?.id.toLowerCase() === player.toLowerCase(),
+        );
         setState({ status: "choose", game, suggested: color });
         return;
       }

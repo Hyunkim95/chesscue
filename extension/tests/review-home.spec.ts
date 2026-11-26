@@ -95,7 +95,7 @@ test("opens Review first and keeps Practice, Play and import within reach", asyn
 
     await nav.getByRole("button", { name: "Practice", exact: true }).click();
     await expect(
-      page.getByRole("heading", { name: "Practice", exact: true }),
+      page.getByRole("heading", { name: "Skill tree", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByText("Shared puzzle library", { exact: true }),
