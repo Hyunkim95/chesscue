@@ -33,6 +33,13 @@ describe("parsePgnBatch", () => {
     expect(item.game.fingerprint).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
   });
 
+  it("preserves full source editions and splits batches without Event tags", () => {
+    const first = '[Result "1-0"]\r\n\r\n1. e4 {note\r\n[Event "quoted"]} (1. d4 d5) e5 1-0';
+    const second = '[Result "0-1"]\n\n1. d4 e5 0-1';
+    const result = parsePgnBatch(first + "\r\n\r\n" + second);
+    expect(result.ok && result.items.map(item => item.status === "parsed" && item.game.originalPgn)).toEqual([first,second]);
+  });
+
   it("returns partial success for independent games", () => {
     const incomplete = `[Event "Incomplete"]\n[Result "*"]\n\n1. e4 e5 *`;
     const result = parsePgnBatch(`${WHITE_WIN}\n\n${incomplete}\n\n${DRAW}`);

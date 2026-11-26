@@ -22,11 +22,9 @@ test("opens the full installed curriculum and solves a position offline in the s
 
     const stages = page.getByRole("group", { name: "Curriculum stages" });
     await expect(
-      page.getByRole("heading", { name: "Curriculum skill tree" }),
+      page.getByRole("heading", { name: "Skill tree", exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("region", { name: "Recommended from your games" }),
-    ).toHaveCount(0);
+    await expect(page.locator(".practice-tree__evidence")).toHaveCount(0);
     await expect(
       page.getByRole("group", { name: "Chess skills" }),
     ).toBeHidden();
@@ -37,12 +35,10 @@ test("opens the full installed curriculum and solves a position offline in the s
       ["Make a plan", 5],
     ] as const) {
       const units = page.getByRole("list", { name: title + " units" });
-      if (!(await units.isVisible())) {
-        await stages.getByText(title, { exact: true }).click();
-      }
+      await stages.getByRole("combobox").selectOption({ label: title });
       await expect(units.getByRole("listitem")).toHaveCount(count);
     }
-    await stages.getByText("Play safely", { exact: true }).click();
+    await stages.getByRole("combobox").selectOption({ label: "Play safely" });
     await page.getByText("Read the board", { exact: true }).click();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
@@ -107,13 +103,11 @@ test("highlights a curriculum unit from a verified miss in an imported game", as
       .click();
     await expect(page).toHaveURL(/#review\//);
     await page.getByRole("button", { name: "Practice", exact: true }).click();
-    const next = page.getByRole("region", {
-      name: "Recommended from your games",
+    const next = page.getByRole("button", {
+      name: "See the opponent’s next threat, recommended from your games",
     });
-    await expect(next).toContainText("See the opponent’s next threat");
-    await expect(next).toContainText("g4");
-    await expect(page.getByText("Recommended", { exact: true })).toBeVisible();
-    await next.getByRole("button", { name: "Open recommended unit" }).click();
+    await expect(next).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".practice-tree__evidence")).toContainText("g4");
     await expect(
       page.getByRole("button", { name: "Exercise 1", exact: true }),
     ).toBeVisible();

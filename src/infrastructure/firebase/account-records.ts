@@ -1,3 +1,4 @@
+import { sha256 } from "../../shared/sha256";
 import type { GameRecord } from "../../domain/game/types";
 import { isSyncedGameDocument } from "./game-document";
 import { buildGameReplay } from "../../domain/analysis/replay-game";
@@ -50,15 +51,6 @@ export function serialized(record: AccountRecord) {
         gameId: record.value.gameId,
       });
   }
-}
-export async function digest(value: string) {
-  const hash = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return Array.from(new Uint8Array(hash), (n) =>
-    n.toString(16).padStart(2, "0"),
-  ).join("");
 }
 export async function decodeDocument(
   kind: AccountRecord["kind"],
@@ -118,7 +110,7 @@ export async function decodeDocument(
   else throw new CloudRecordConflict("Invalid cloud record");
   if (
     recordId(record) !== id ||
-    (await digest(serialized(record))) !== data.contentHash
+    (await sha256(serialized(record))) !== data.contentHash
   )
     throw new CloudRecordConflict("Cloud record integrity conflict");
   return record;

@@ -50,7 +50,6 @@ export type PgnBatchParseResult =
   | { readonly ok: false; readonly issue: PgnImportIssue };
 
 export interface ImportedGame {
-  readonly originalPgn: string;
   readonly record: GameRecord;
   readonly headers: Readonly<Record<string, string>>;
 }
@@ -58,6 +57,7 @@ export interface ImportedGame {
 export type ImportGameItemResult =
   | {
       readonly status: "accepted";
+      readonly originalPgn: string;
       readonly index: number;
       readonly game: ImportedGame;
     }

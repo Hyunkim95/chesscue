@@ -1,6 +1,6 @@
 import { classifyMateMotif } from "./mate-motif-gemini";
 import { sameTransferPosition } from "../../domain/transfer/validate";
-import { sha256 } from "./ground-historical-game";
+import { sha256 } from "../../shared/sha256";
 import {
   exerciseSchema,
   type AuthoredCue,

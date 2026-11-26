@@ -232,12 +232,7 @@ export function GameDebrief({
               <p>No key moment was verified. You can still replay the game.</p>
             ) : (
               <>
-                <p className="game-review__eyebrow game-review__debrief-caption">
-                  {moveCaption(replyShown ? reply : played)}
-                </p>
-                <h3>
-                  {showTurningPoint ? "What cost you" : "What you did well"}
-                </h3>
+                <h3>{moveCaption(replyShown ? reply : played)}</h3>
                 <p>{explanation}</p>
               </>
             )}

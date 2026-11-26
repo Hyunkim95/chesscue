@@ -1,3 +1,4 @@
+import { sha256 } from "../../shared/sha256";
 import { Chess } from "chess.js";
 import type { AnalysisEngine } from "../../application/analyze-game/analysis-engine";
 import type { HistoricalGame } from "../../domain/study/historical-game";
@@ -6,15 +7,6 @@ import {
   type HistoricalProof,
 } from "../../domain/material/verified";
 
-export async function sha256(text: string) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(text),
-  );
-  return Array.from(new Uint8Array(digest), (n) =>
-    n.toString(16).padStart(2, "0"),
-  ).join("");
-}
 export async function groundHistoricalGame(
   game: HistoricalGame,
   sourceGame: string,

@@ -1185,111 +1185,16 @@ button {
   min-height: 44px;
 }
 
-.practice-curriculum,
 .practice-game-analysis {
   margin-block: 0.75rem;
 }
-
-.practice-curriculum > h2 {
-  margin-block: 0.85rem;
-  font: 650 1.35rem/1.15 var(--cue-display);
-}
-
-.practice-curriculum__recommendation {
-  display: grid;
-  gap: 0.4rem;
-  padding: 0.75rem;
-  border: 1px solid var(--cue-gold);
-  border-radius: 0.3rem;
-}
-
-.practice-curriculum__recommendation :is(h3, p) {
-  margin: 0;
-}
-
-.practice-curriculum__recommendation > p + p {
+.practice-ratings-label {
   color: var(--cue-muted);
   font-size: 0.85rem;
 }
-
-.practice-curriculum__branches {
-  padding-block: 0.5rem;
-}
-
-.practice-curriculum__branches > details > summary {
-  min-height: 44px;
-  padding-block: 0.65rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.practice-curriculum__branches > details + details {
-  border-top: 1px solid var(--cue-line);
-}
-
-.practice-curriculum__units > [data-recommended="true"] {
-  border-inline-start: 2px solid var(--cue-gold);
-  padding-inline-start: 0.4rem;
-}
-
-.practice-curriculum__label {
-  margin-inline-start: auto;
-  color: var(--cue-gold);
-  font-size: 0.75rem;
-}
-
-.practice-curriculum__units {
-  display: grid;
-  list-style: none;
-  padding: 0;
-  text-align: start;
-}
-.shared-puzzle-library .practice-curriculum__units > li {
-  margin: 0;
-  border-top: 1px solid var(--cue-line);
-}
-.practice-curriculum__units summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  min-height: 44px;
-  padding: 0.5rem 0.25rem;
-  cursor: pointer;
-}
-.practice-curriculum__units summary::-webkit-details-marker {
-  display: none;
-}
-.practice-curriculum__units summary::after {
-  content: "";
-  inline-size: 0.47rem;
-  block-size: 0.47rem;
-  flex: none;
-  border: solid var(--cue-muted);
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(-45deg);
-  margin-inline-end: 0.25rem;
-}
-.practice-curriculum__units details[open] > summary::after {
-  transform: rotate(45deg);
-}
-.practice-curriculum__units .shared-puzzle-library__choices button {
-  min-height: 44px;
-}
-
-.practice-exercises {
-  align-items: center;
-}
-.practice-ratings-label,
-.practice-exercises > span {
-  color: var(--cue-muted);
-  font-size: 0.85rem;
-}
-.practice-exercises button,
 .practice-puzzles button {
   min-width: 44px;
 }
-.practice-exercises button span,
 .practice-puzzles button span {
   color: var(--cue-gold);
 }

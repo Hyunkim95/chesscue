@@ -148,8 +148,8 @@ describe("GameReviewExperience transfer set", () => {
     render(<GameReviewExperience {...reviewFixture()} />);
     expect(screen.getByRole("heading", { name: "Game debrief" })).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: "What cost you" }),
-    ).toBeVisible();
+      screen.getByRole("button", { name: "Turning point" }),
+    ).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(
       screen.getByRole("button", { name: "Explore the turning point" }),
     );
@@ -204,9 +204,10 @@ describe("GameReviewExperience transfer set", () => {
       }),
     ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Strong move" }));
-    expect(
-      screen.getByRole("heading", { name: "What you did well" }),
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Strong move" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(
       within(board).getByRole("gridcell", {
         name: /White pawn on e4, last move ended here/,

@@ -28,31 +28,36 @@ function issue(code: PgnImportIssue["code"], message: string): PgnImportIssue {
 }
 
 function splitPgnGames(text: string): readonly string[] {
-  const normalized = text
-    .replaceAll("\r\n", "\n")
-    .replaceAll("\r", "\n")
-    .trim();
-  if (normalized.length === 0) return [];
-
-  const lines = normalized.split("\n");
   const games: string[] = [];
-  let current: string[] = [];
+  let start = 0;
+  let inComment = false;
+  let hasMoves = false;
+  let hasEvent = false;
 
-  for (const line of lines) {
-    if (
-      /^\s*\[Event\s+"/.test(line) &&
-      current.some((value) => value.trim().length > 0)
-    ) {
-      games.push(current.join("\n").trim());
-      current = [];
+  // Slice the source itself so line endings, annotations and variations survive import.
+  for (const line of text.matchAll(/[^\r\n]+/g)) {
+    const value = line[0].trim();
+    const tag = !inComment && /^\[(\w+)\s+"/.exec(value);
+    if (tag) {
+      if (hasMoves || (hasEvent && tag[1] === "Event")) {
+        games.push(text.slice(start, line.index).trim());
+        start = line.index;
+        hasEvent = false;
+        hasMoves = false;
+      }
+      if (tag[1] === "Event") hasEvent = true;
+      continue;
     }
-    current.push(line);
+    if (!value || value.startsWith("%")) continue;
+    hasMoves = true;
+    for (const char of value) {
+      if (!inComment && char === ";") break;
+      if (char === "{") inComment = true;
+      if (char === "}") inComment = false;
+    }
   }
-
-  if (current.some((value) => value.trim().length > 0)) {
-    games.push(current.join("\n").trim());
-  }
-
+  const lastGame = text.slice(start).trim();
+  if (lastGame) games.push(lastGame);
   return games;
 }
 

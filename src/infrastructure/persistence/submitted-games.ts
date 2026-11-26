@@ -1,5 +1,5 @@
 import { openDB, type DBSchema } from "idb";
-import { digest } from "../firebase/account-records";
+import { sha256 } from "../../shared/sha256";
 
 interface Submissions extends DBSchema {
   pending: { key: string; value: string };
@@ -15,7 +15,7 @@ const queued = "chesscue-submitted-pgn";
 export async function queueSubmittedGames(games: readonly string[]) {
   if (!games.length) return;
   const entries = await Promise.all(
-    [...new Set(games)].map(async (pgn) => ({ id: await digest(pgn), pgn })),
+    [...new Set(games)].map(async (pgn) => ({ id: await sha256(pgn), pgn })),
   );
   const db = await openQueue();
   try {
@@ -44,7 +44,7 @@ export function startSubmissionSync() {
           while (!controller.signal.aborted && navigator.onLine) {
             const cursor = await db.transaction("pending").store.openCursor();
             if (!cursor) break;
-            const { submitPgn } = await import("../firebase/submit-pgn");
+            const { submitPgn } = await import("../firebase/submitted-games");
             await submitPgn(cursor.key, cursor.value);
             await db.delete("pending", cursor.key);
           }

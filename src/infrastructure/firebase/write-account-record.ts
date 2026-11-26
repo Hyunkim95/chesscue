@@ -1,3 +1,4 @@
+import { sha256 } from "../../shared/sha256";
 import { tutorGameMode, type GameRecord } from "../../domain/game/types";
 import { updateStandings, withRaceHistory } from "./race-history";
 import {
@@ -9,7 +10,6 @@ import {
 import {
   CloudRecordConflict,
   decodeDocument,
-  digest,
   recordId,
   serialized,
   type AccountRecord,
@@ -24,7 +24,7 @@ export async function createAccountRecord(
   const id = recordId(item);
   const reference = doc(firestore, "users", uid, item.kind, id);
   const content = serialized(item);
-  const contentHash = await digest(content);
+  const contentHash = await sha256(content);
   const write = async (
     transaction: Transaction,
     games?: readonly GameRecord[],

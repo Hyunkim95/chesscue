@@ -978,11 +978,7 @@ function PlayerApp({
           throw new Error("Expected a single completed Lichess game.");
         await queueSubmittedGames(
           result.items.flatMap((item) =>
-            item.status === "accepted"
-              ? [item.game.originalPgn]
-              : item.status === "duplicate"
-                ? [item.originalPgn]
-                : [],
+            item.status === "rejected" ? [] : [item.originalPgn],
           ),
         );
         const savedGames = new Map<number, GameRecord>();
@@ -1428,8 +1424,8 @@ function PlayerApp({
                   </strong>
                   <span id={`mode-${mode}-description`}>
                     {mode === "rated"
-                      ? "Play unassisted for Elo."
-                      : "Play unrated with optional coach notes."}
+                      ? "Unassisted · Counts for Elo"
+                      : "Unrated · Rook can help"}
                   </span>
                 </button>
               ))}
@@ -1671,7 +1667,7 @@ function PlayerApp({
 
       {view === "training" && (
         <header className="training-header">
-          <h1>{extensionPanel ? "Practice" : "Training plan"}</h1>
+          <h1>{extensionPanel ? "Skill tree" : "Training plan"}</h1>
           <PracticeSection name="ChessCue curriculum">
             <PracticeCurriculum
               recommendation={curriculumRecommendation}

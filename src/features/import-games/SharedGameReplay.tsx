@@ -1,30 +1,7 @@
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { z } from "zod";
-import { initializeFirebaseClient } from "../../infrastructure/firebase/firebase-client";
-import { digest } from "../../infrastructure/firebase/account-records";
-import { parsePgnBatch } from "../../domain/import/pgn-parser";
+import { readSubmittedGame } from "../../infrastructure/firebase/submitted-games";
 import type { ParsedPgnGame } from "../../domain/import/types";
 import { ChessBoard } from "../board/ChessBoard";
-
-const source = z.object({
-  schemaVersion: z.literal(1),
-  pgn: z.string().max(1_000_000),
-});
-async function load(id: string) {
-  if (!/^[a-f0-9]{64}$/.test(id)) throw new Error("Invalid source game.");
-  const client = initializeFirebaseClient({ enableAppCheck: true });
-  if (client.status !== "ready")
-    throw new Error("Shared collection unavailable.");
-  const data = source.parse(
-    (await getDoc(doc(client.services.firestore, "sharedGames", id))).data(),
-  );
-  if ((await digest(data.pgn)) !== id) throw new Error("Invalid score.");
-  const parsed = parsePgnBatch(data.pgn);
-  const item = parsed.ok && parsed.items.length === 1 && parsed.items[0];
-  if (!item || item.status !== "parsed") throw new Error("Invalid score.");
-  return item.game;
-}
 
 export function SharedGameReplay({
   id,
@@ -37,7 +14,7 @@ export function SharedGameReplay({
   const [ply, setPly] = useState(0);
   useEffect(() => {
     let active = true;
-    void load(id)
+    void readSubmittedGame(id)
       .then((record) => {
         if (active) {
           setPly(
@@ -89,14 +66,18 @@ export function SharedGameReplay({
             <button
               type="button"
               disabled={!ply}
-              onClick={() => setPly(ply - 1)}
+              onClick={() => {
+                setPly(ply - 1);
+              }}
             >
               Previous move
             </button>
             <button
               type="button"
               disabled={ply >= game.moves.length}
-              onClick={() => setPly(ply + 1)}
+              onClick={() => {
+                setPly(ply + 1);
+              }}
             >
               Next move
             </button>

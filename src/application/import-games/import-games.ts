@@ -103,8 +103,8 @@ export function importGames(input: ImportGamesInput): ImportGamesResult {
     items.push({
       status: "accepted",
       index: game.index,
+      originalPgn: game.originalPgn,
       game: {
-        originalPgn: game.originalPgn,
         record: toRecord(game, input, importedAt),
         headers: game.headers,
       },

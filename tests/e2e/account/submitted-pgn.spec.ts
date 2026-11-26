@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
@@ -60,7 +61,7 @@ test("a guest's offline batch becomes replayable shared games and a verified puz
     },
   });
   expect(await status("sharedGames/" + sha(quiet))).toBe(200);
-  const other = await browser.newContext({ baseURL });
+  const other = await browser.newContext({ baseURL: "http://127.0.0.1:4187" });
   try {
     const player = await other.newPage();
     await player.goto("/");

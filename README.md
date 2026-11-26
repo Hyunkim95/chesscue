@@ -61,6 +61,12 @@ Apache-2.0. See [LICENSE](LICENSE).
 
 Third-party components retain their own licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Shared PGN collection
+
+Importing a completed PGN contributes the entire score to the shared collection. Past private imports are included only if someone submits them again. New offline submissions upload when ChessCue is open and connected.
+
+Enable Anonymous in Firebase Authentication for guest submissions. Deploy the Firestore rules and configure the existing Sync puzzle library workflow with `LIBRARY_FIREBASE_PROJECT`, `GCP_WORKLOAD_IDENTITY_PROVIDER` and `LIBRARY_FIRESTORE_SERVICE_ACCOUNT`. Its publisher needs Firestore document read, create and delete access. Each run archives up to 25 submissions, records mate-in-one opportunities for coaching research and publishes eligible unrated puzzles with source replays. Submission mining runs independently of Gemini.
+
 ## Account sync
 
 Account uses Google sign-in and displays the provider name and email. Enable Google in Firebase Authentication, authorize the hosting domain, and deploy the repository's Firestore rules for the target project. Hosting allows the configured ChessCue Firebase auth iframe and the Google popup. Set the auth iframe origin in `firebase.json` when targeting another project.

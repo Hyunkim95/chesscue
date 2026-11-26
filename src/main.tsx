@@ -1,4 +1,4 @@
-import { lazy, StrictMode, Suspense } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource/dm-sans/latin-400.css";
 import "@fontsource/dm-sans/latin-500.css";
@@ -9,6 +9,7 @@ import "@fontsource/newsreader/latin-500.css";
 import "@fontsource/newsreader/latin-600.css";
 import "@fontsource/newsreader/latin-700.css";
 
+import { SharedGameReplay } from "./features/import-games/SharedGameReplay";
 import { App } from "./app/App";
 import "./app/styles.css";
 
@@ -27,17 +28,10 @@ if (root === null) {
 
 const query = new URLSearchParams(location.search);
 const sharedId = query.get("sharedGame");
-const SharedGameReplay = lazy(() =>
-  import("./features/import-games/SharedGameReplay").then((m) => ({
-    default: m.SharedGameReplay,
-  })),
-);
 createRoot(root).render(
   <StrictMode>
     {sharedId !== null ? (
-      <Suspense fallback={<p>Loading game…</p>}>
-        <SharedGameReplay id={sharedId} initialPly={Number(query.get("ply"))} />
-      </Suspense>
+      <SharedGameReplay id={sharedId} initialPly={Number(query.get("ply"))} />
     ) : (
       <App />
     )}

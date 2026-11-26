@@ -1,0 +1,198 @@
+.practice-tree {
+  max-width: 34rem;
+  margin: 0 auto 1.1rem;
+  --tree-wire: #637b69;
+  background:
+    radial-gradient(ellipse at 50% 35%, #19342875, transparent 72%),
+    radial-gradient(#88ac941f 1px, transparent 1px);
+  background-size:
+    auto,
+    17px 17px;
+}
+.practice-tree__root {
+  display: flex;
+  justify-content: center;
+}
+.practice-tree__root label {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+}
+.practice-tree__root select {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--cue-line);
+  border-radius: 2rem;
+  background: var(--cue-paper-deep);
+  color: var(--cue-ink);
+  min-height: 44px;
+  width: auto;
+  max-width: 100%;
+  padding: 0.45rem 2.3rem 0.45rem 1rem;
+  font: 650 1.1rem/1.2 var(--cue-display);
+}
+.practice-tree__root label span {
+  position: absolute;
+  right: 1rem;
+  color: var(--cue-gold);
+  pointer-events: none;
+}
+.practice-tree__nodes {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 1.35rem 0.25rem 0.6rem;
+  row-gap: 0.7rem;
+}
+.practice-tree__nodes::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(var(--tree-wire) 85%, transparent);
+}
+.practice-tree__nodes li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  min-width: 0;
+}
+.practice-tree__nodes li::before {
+  content: "";
+  z-index: -1;
+  position: absolute;
+  top: 1.45rem;
+  left: 50%;
+  right: 0;
+  border-top: 1px solid var(--tree-wire);
+}
+.practice-tree__nodes li:nth-child(even)::before {
+  left: 0;
+  right: 50%;
+}
+.practice-tree__node {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0.35rem;
+  min-height: 64px;
+  width: 100%;
+  padding: 0 0.35rem;
+  color: var(--cue-ink);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.practice-tree__seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  border: 1px solid #789181;
+  border-radius: 50%;
+  background: radial-gradient(at 38% 28%, #385d49, #11281f 75%);
+  color: #e2efdd;
+  box-shadow: 0 0 0 3px var(--cue-paper);
+  font: 1.7rem/1 var(--cue-chess-font, serif);
+}
+.practice-tree__node:is(:hover, :focus-visible, [aria-pressed="true"])
+  .practice-tree__seal {
+  outline: 2px solid var(--cue-gold);
+  outline-offset: 2px;
+  color: var(--cue-gold);
+}
+.practice-tree__node[data-recommended="true"] .practice-tree__seal {
+  box-shadow: 0 0 14px #79d8a05c;
+  border-color: var(--cue-pine);
+}
+.practice-tree__seal i {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: var(--cue-gold);
+  color: var(--cue-canvas);
+  border-radius: 50%;
+  padding: 0.13rem;
+  font: normal 0.7rem/1 sans-serif;
+}
+.practice-tree__name {
+  max-width: 11rem;
+  font-size: 0.87rem;
+  line-height: 1.15;
+  font-weight: 650;
+  text-wrap: balance;
+}
+.practice-tree__challenge {
+  max-width: 23rem;
+  margin: 0 auto;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--cue-line);
+  border-top: 2px solid var(--cue-gold);
+  background: var(--cue-paper);
+  text-align: start;
+  scroll-margin-block: 4rem 1rem;
+}
+.practice-tree__challenge p {
+  margin: 0 0 0.65rem;
+  font: 600 1rem/1.35 var(--cue-display);
+}
+.practice-tree__challenge .practice-tree__evidence {
+  color: var(--cue-muted);
+  font: inherit;
+  font-size: 0.8rem;
+}
+.practice-tree__positions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.practice-tree__position {
+  position: relative;
+}
+.practice-tree__position .chess-board {
+  width: 100%;
+  max-width: none;
+  border-width: 1px;
+  box-shadow: none;
+}
+.practice-tree__position .chess-board__coordinate {
+  display: none;
+}
+.practice-tree__position button {
+  cursor: pointer;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  min-height: 44px;
+}
+.practice-tree__position button span {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 0.2rem 0.4rem;
+  background: var(--cue-action-fill);
+  color: var(--cue-action-ink);
+  border-radius: 3px 0 0 0;
+}
+.practice-tree select:focus-visible,
+.practice-tree button:focus-visible {
+  outline: 2px solid var(--cue-gold);
+  outline-offset: 3px;
+}
+.practice-tree__return {
+  background: transparent;
+  border: 0;
+  min-height: 44px;
+  color: var(--cue-gold);
+  cursor: pointer;
+}
