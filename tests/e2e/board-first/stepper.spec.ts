@@ -154,3 +154,26 @@ for (const offline of [false, true])
       expect(await cells()).toBe(board);
     }
   });
+
+test("a new question clears the choices left by the last one", async ({
+  page,
+}) => {
+  await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Show me" }).click();
+  await page.getByRole("button", { name: "Next step" }).click();
+  const ask = page.getByRole("textbox", { name: "Ask Rook" });
+  await ask.fill("why did the queen move");
+  await ask.press("Enter");
+  const choices = page.getByRole("group", { name: "Which move" });
+  await expect(choices).toBeVisible();
+  await ask.fill("why");
+  await ask.press("Enter");
+  await expect(page.locator(".rook-bubble__text")).toHaveText(
+    "Kh8 is my only legal move.",
+  );
+  await expect(choices).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
+});

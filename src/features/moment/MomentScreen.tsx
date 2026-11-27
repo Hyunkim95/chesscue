@@ -488,6 +488,8 @@ export function MomentScreen({
   // Show, don't tell: one captioned frame of a line on the board. The player
   // steps through it and it stays until Reset.
   function openStory(next: Story, understood?: string) {
+    setConfirm(undefined);
+    setChoices(undefined);
     const frame = next.frames[next.step];
     if (!frame) {
       setStory(undefined);
@@ -1053,10 +1055,11 @@ export function MomentScreen({
   ): Promise<{ readonly text: string; readonly story?: Story } | undefined> {
     const rook = rookMoveContext(uci);
     if (!rook) return undefined;
+    // A search that never answers must not leave Rook busy for good.
     const analysis = await analyzePosition(
       rook.before,
       4,
-      controller.current.signal,
+      AbortSignal.any([controller.current.signal, AbortSignal.timeout(8_000)]),
     );
     if (!analysis.ok) return undefined;
     const { candidates } = analysis.value;
@@ -1220,6 +1223,9 @@ export function MomentScreen({
   }
 
   async function ask(text: string) {
+    // A new question replaces any offer or choice left from the last one.
+    setConfirm(undefined);
+    setChoices(undefined);
     // On a frame, a question is about the position shown. The move it is
     // about comes from code, never the model: one it names from the line,
     // one it describes in words ("why would the queen take") from the line
