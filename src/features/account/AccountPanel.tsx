@@ -1,3 +1,5 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
+import { ScreenHeader } from "../../shared/navigation/ScreenHeader";
 import { useEffect, useState, type ReactNode } from "react";
 import type {
   AccountIdentity,
@@ -13,7 +15,6 @@ import type { GameRecord } from "../../domain/game/types";
 
 interface Props {
   children: ReactNode;
-  compact: boolean;
   user: AccountIdentity | null;
   session: AccountSession | null;
   error: string | null;
@@ -29,7 +30,6 @@ export function AccountPanel({
   sync,
   merged,
   children,
-  compact,
 }: Props) {
   const [games, setGames] = useState<readonly GameRecord[]>([]);
   const [busy, setBusy] = useState(false);
@@ -66,6 +66,7 @@ export function AccountPanel({
       setBusy(false);
     }
   }
+  const displayName = user?.name?.trim() ?? "";
   const settings = (
     <section className="account-panel play-mode-setup">
       {user === null ? (
@@ -77,7 +78,7 @@ export function AccountPanel({
           </p>
           <button
             type="button"
-            className="primary-link"
+            className="review-action"
             disabled={!session || busy}
             onClick={() => {
               if (session)
@@ -87,12 +88,16 @@ export function AccountPanel({
                 );
             }}
           >
-            Continue with Google
+            {busy ? (
+              <LoadingText>Continue with Google</LoadingText>
+            ) : (
+              "Continue with Google"
+            )}
           </button>
         </>
       ) : (
         <>
-          <h2>{user.name ?? "Google account"}</h2>
+          <h2>Account settings</h2>
           <p>{user.email}</p>
           {games.length > 0 && (
             <section>
@@ -144,7 +149,14 @@ export function AccountPanel({
           <section>
             <h2>Sync</h2>
             <p>Games are saved on this device.</p>
-            <p role="status">{sync.message}</p>
+            <p role="status">
+              {sync.message === "Checking saved games" ||
+              sync.message === "Connecting to cloud" ? (
+                <LoadingText>{sync.message}</LoadingText>
+              ) : (
+                sync.message
+              )}
+            </p>
             {sync.lastAck !== null && (
               <p>Last game synced {new Date(sync.lastAck).toLocaleString()}</p>
             )}
@@ -172,17 +184,24 @@ export function AccountPanel({
           </button>
         </>
       )}
+      {user && busy && (
+        <p role="status">
+          <LoadingText>Updating account…</LoadingText>
+        </p>
+      )}
       {(message || error) && <p role="alert">{message || error}</p>}
     </section>
   );
 
   return (
     <main className="content-shell account-home">
-      <h1>Account</h1>
+      <ScreenHeader
+        eyebrow="Player profile"
+        title={displayName || (user ? "ChessCue player" : "Guest player")}
+      />
       <div className="account-columns">
-        {compact && settings}
         {children}
-        {!compact && settings}
+        {settings}
       </div>
     </main>
   );

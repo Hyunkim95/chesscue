@@ -1,3 +1,4 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
 import { useLayoutEffect, useRef, useState, type SyntheticEvent } from "react";
 
 import type {
@@ -311,7 +312,11 @@ export function ImportGamesPanel({
             type="submit"
             disabled={busy || text.trim().length === 0 || playerColor === null}
           >
-            {view.status === "importing" ? "Checking games..." : "Import games"}
+            {view.status === "importing" ? (
+              <LoadingText>Checking games...</LoadingText>
+            ) : (
+              "Import games"
+            )}
           </button>
           <span className="import-panel__source">
             Source: {sourceLabel(source)}
@@ -320,7 +325,9 @@ export function ImportGamesPanel({
       </form>
 
       {view.status === "reading-file" ? (
-        <p role="status">Reading {view.fileName}...</p>
+        <p role="status">
+          <LoadingText>Reading {view.fileName}...</LoadingText>
+        </p>
       ) : null}
       {view.status === "failed" ? <p role="alert">{view.message}</p> : null}
     </section>

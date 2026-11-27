@@ -9,3 +9,7 @@ src/domain/material/starter.generated.json
 scripts/material/library-seed.generated.json
 scripts/material/library-expansion.generated.json
 scripts/material/curriculum.generated.json
+scripts/material/unit-classifier.generated.json
+src/domain/curriculum/board-unit-v2.fixture.json
+public/models/board-unit-v2.json
+scripts/material/follow-up-puzzles.generated.json

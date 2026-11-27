@@ -1,0 +1,3067 @@
+{
+ "schemaVersion": 1,
+ "source": "data/generated/lichess-puzzles-bootstrap-100k.csv seed=follow-up-puzzles-v1 perUnit=30 rating=1000-1800 marginCp=150",
+ "engine": "Stockfish 19 Lite, 700 ms, MultiPV 3",
+ "puzzles": [
+  {
+   "id": "0GyeK",
+   "unitId": "count-captures",
+   "fen": "5r2/5p1k/p4QNp/1p2p3/2p5/P3B2q/1PP4P/2K3R1 b - - 0 35",
+   "solution": [
+    "h3e3",
+    "c1b1",
+    "e3g1",
+    "b1a2",
+    "g1g6"
+   ],
+   "rating": 1295,
+   "source": "https://lichess.org/game/Fs2L6Gi3#69"
+  },
+  {
+   "id": "0aD4F",
+   "unitId": "count-captures",
+   "fen": "2k2br1/2p2p1p/4p3/1p6/1P2np2/P2rBB2/5PPP/R3R1K1 w - - 0 21",
+   "solution": [
+    "f3e4",
+    "f4e3",
+    "e4d3",
+    "e3f2",
+    "g1f2"
+   ],
+   "rating": 1142,
+   "source": "https://lichess.org/game/hsGHkCDF/black#40"
+  },
+  {
+   "id": "0WfqU",
+   "unitId": "count-captures",
+   "fen": "5qk1/1p3p2/p1n1pPp1/2N5/7Q/8/PPP2PPP/2K5 b - - 3 25",
+   "solution": [
+    "f8c5",
+    "h4h6",
+    "c5f8",
+    "h6f8",
+    "g8f8"
+   ],
+   "rating": 1425,
+   "source": "https://lichess.org/game/oWKz1DRt#49"
+  },
+  {
+   "id": "00InW",
+   "unitId": "count-captures",
+   "fen": "8/2p5/pp1p4/3P1N2/PPP1Pp2/5n1p/5K1k/8 w - - 0 47",
+   "solution": [
+    "f2f3",
+    "h2g1",
+    "f3f4",
+    "h3h2",
+    "f5g3"
+   ],
+   "rating": 1439,
+   "source": "https://lichess.org/game/CZaimWSp/black#92"
+  },
+  {
+   "id": "0A5Iq",
+   "unitId": "count-captures",
+   "fen": "r1bq2kr/ppp3b1/2np1n1p/7B/3PNQ1B/2P1P3/PP3PPP/R3K2R b KQ - 0 16",
+   "solution": [
+    "f6h5",
+    "h4d8",
+    "h5f4"
+   ],
+   "rating": 1173,
+   "source": "https://lichess.org/game/HGbjXeED#31"
+  },
+  {
+   "id": "0owTp",
+   "unitId": "count-captures",
+   "fen": "3rbb1k/1pq3p1/pn2p1pp/3nP1NQ/P2P4/6B1/1P1N2PP/5RK1 w - - 0 28",
+   "solution": [
+    "f1f8"
+   ],
+   "rating": 1270,
+   "source": "https://lichess.org/game/xwJHjMeB/black#54"
+  },
+  {
+   "id": "0nJH0",
+   "unitId": "count-captures",
+   "fen": "2Q5/p4Rkp/4p1p1/2P5/3P2n1/3nq3/1R4PP/7K b - - 0 32",
+   "solution": [
+    "g7f7",
+    "c8d7",
+    "f7f6",
+    "d7d8",
+    "f6f5"
+   ],
+   "rating": 1030,
+   "source": "https://lichess.org/game/0R3gVbQe#63"
+  },
+  {
+   "id": "0zo5C",
+   "unitId": "count-captures",
+   "fen": "3rr1k1/2p2ppp/p4q2/1p2N3/3Pn2Q/1PP1P3/1P4PP/R1B3K1 w - - 4 23",
+   "solution": [
+    "h4e4",
+    "e8e5",
+    "e4e5",
+    "f6e5",
+    "d4e5"
+   ],
+   "rating": 1781,
+   "source": "https://lichess.org/game/ntE0zULX/black#44"
+  },
+  {
+   "id": "0Tqo1",
+   "unitId": "count-captures",
+   "fen": "1rr3k1/5ppp/R3p3/3p4/1P1Nb3/4P3/4QPPP/2R3K1 b - - 0 22",
+   "solution": [
+    "c8c1",
+    "e2f1",
+    "c1f1",
+    "g1f1",
+    "e4d3",
+    "f1e1",
+    "d3a6"
+   ],
+   "rating": 1322,
+   "source": "https://lichess.org/game/pLzflHj2#43"
+  },
+  {
+   "id": "0liSh",
+   "unitId": "count-captures",
+   "fen": "8/8/4k3/5pKb/5P2/6P1/8/8 w - - 0 54",
+   "solution": [
+    "g5h5",
+    "e6f6",
+    "h5h6"
+   ],
+   "rating": 1792,
+   "source": "https://lichess.org/game/oXH6XyBD/black#106"
+  },
+  {
+   "id": "0YZpE",
+   "unitId": "count-captures",
+   "fen": "6r1/3n3k/1prR4/p3B3/2PpP2p/P2P3P/8/3R3K b - - 0 36",
+   "solution": [
+    "d7e5",
+    "d6c6",
+    "e5c6"
+   ],
+   "rating": 1140,
+   "source": "https://lichess.org/game/O87Jfx9D#71"
+  },
+  {
+   "id": "0tDvg",
+   "unitId": "count-captures",
+   "fen": "5rk1/1R5p/1p4pN/4N3/4p1n1/3nP1P1/5PKP/8 b - - 2 29",
+   "solution": [
+    "g4h6",
+    "e5d3",
+    "e4d3"
+   ],
+   "rating": 1331,
+   "source": "https://lichess.org/game/Ay60uXW7#57"
+  },
+  {
+   "id": "0UryH",
+   "unitId": "count-captures",
+   "fen": "8/6Kp/8/pBk5/8/7P/6P1/8 b - - 1 57",
+   "solution": [
+    "c5b5",
+    "g2g4",
+    "a5a4",
+    "g4g5",
+    "a4a3",
+    "g7h7",
+    "a3a2",
+    "g5g6",
+    "a2a1q"
+   ],
+   "rating": 1076,
+   "source": "https://lichess.org/game/PwYLdNh5#113"
+  },
+  {
+   "id": "0wAQZ",
+   "unitId": "count-captures",
+   "fen": "8/8/3p3p/p1p1kP1P/P1P1B1K1/8/8/4b3 b - - 0 39",
+   "solution": [
+    "e5e4",
+    "f5f6",
+    "e1c3",
+    "f6f7",
+    "c3g7"
+   ],
+   "rating": 1654,
+   "source": "https://lichess.org/game/Y9wJR7pm#77"
+  },
+  {
+   "id": "0rUi5",
+   "unitId": "count-captures",
+   "fen": "r2q1k2/4bP2/1p2bnQr/1PppN2p/p6P/3BP3/P4PP1/1R3RK1 w - - 0 24",
+   "solution": [
+    "g6h6"
+   ],
+   "rating": 1176,
+   "source": "https://lichess.org/game/Ipu5Ho7x/black#46"
+  },
+  {
+   "id": "0zEbZ",
+   "unitId": "count-captures",
+   "fen": "8/8/5K2/5p1p/3k1P1n/6P1/8/8 w - - 0 51",
+   "solution": [
+    "g3h4",
+    "d4e4",
+    "f6g5",
+    "e4e3",
+    "g5f5"
+   ],
+   "rating": 1342,
+   "source": "https://lichess.org/game/mjvNX33l/black#100"
+  },
+  {
+   "id": "0LlYi",
+   "unitId": "count-captures",
+   "fen": "2r2rk1/1q1bnppp/p2Qp3/2R1P3/1p6/1B3N2/PP3PPP/5RK1 w - - 3 21",
+   "solution": [
+    "d6e7",
+    "c8c5",
+    "e7c5"
+   ],
+   "rating": 1679,
+   "source": "https://lichess.org/game/o5VrrhLW/black#40"
+  },
+  {
+   "id": "0HUvZ",
+   "unitId": "count-captures",
+   "fen": "r1bq1rk1/pppp1pBp/8/8/2B1n3/8/PPP2PPP/R2Q1RK1 b - - 0 11",
+   "solution": [
+    "g8g7",
+    "d1g4",
+    "e4g5"
+   ],
+   "rating": 1612,
+   "source": "https://lichess.org/game/1aOQhkgs#21"
+  },
+  {
+   "id": "0HMBI",
+   "unitId": "count-captures",
+   "fen": "8/8/1P2pk2/8/4n3/6K1/3p1N2/8 w - - 2 64",
+   "solution": [
+    "f2e4",
+    "f6e7",
+    "e4d2"
+   ],
+   "rating": 1504,
+   "source": "https://lichess.org/game/dFNHB4nm/black#126"
+  },
+  {
+   "id": "0fbG6",
+   "unitId": "count-captures",
+   "fen": "1Q1n2k1/6pp/2q1p3/3pPp2/2pP1N2/2P2N1P/r4rPK/8 w - - 4 37",
+   "solution": [
+    "b8d8",
+    "g8f7",
+    "f3g5"
+   ],
+   "rating": 1065,
+   "source": "https://lichess.org/game/4qR7SdJt/black#72"
+  },
+  {
+   "id": "0ru8P",
+   "unitId": "count-captures",
+   "fen": "r1r3k1/p4R2/5Pp1/1p4Qp/7P/P1q5/5PP1/4R1K1 b - - 0 32",
+   "solution": [
+    "c3e1",
+    "g1h2",
+    "g8f7"
+   ],
+   "rating": 1485,
+   "source": "https://lichess.org/game/LqWvC2Jt#63"
+  },
+  {
+   "id": "08qo3",
+   "unitId": "count-captures",
+   "fen": "2k2r1r/pppqn2p/3pQ3/8/4PN2/7P/PPP2PP1/2KR3R b - - 2 18",
+   "solution": [
+    "f8f4",
+    "e6d7",
+    "c8d7"
+   ],
+   "rating": 1167,
+   "source": "https://lichess.org/game/5nJo5gG4#35"
+  },
+  {
+   "id": "04UNx",
+   "unitId": "count-captures",
+   "fen": "5rr1/p6p/k1p5/2P5/2p1N3/2Qq4/PP3PPP/2R3K1 b - - 12 23",
+   "solution": [
+    "d3e4",
+    "c3c4",
+    "e4c4"
+   ],
+   "rating": 1421,
+   "source": "https://lichess.org/game/HsZAvwgl#45"
+  },
+  {
+   "id": "0BNFa",
+   "unitId": "count-captures",
+   "fen": "2r1r1k1/p3pqb1/3p1pN1/1ppP1PPQ/4Pn2/3P3P/PP6/1K1R3R w - - 1 25",
+   "solution": [
+    "g6f4",
+    "f7h5",
+    "f4h5"
+   ],
+   "rating": 1401,
+   "source": "https://lichess.org/game/lob0KR8p/black#48"
+  },
+  {
+   "id": "098JW",
+   "unitId": "count-captures",
+   "fen": "r1b1r1k1/7p/p5p1/2Bp1n2/2P5/3B1pPq/PPQ4P/4R2K w - - 0 28",
+   "solution": [
+    "e1e8",
+    "g8f7",
+    "e8f8"
+   ],
+   "rating": 1512,
+   "source": "https://lichess.org/game/UHbo6Abd/black#54"
+  },
+  {
+   "id": "0bISc",
+   "unitId": "count-captures",
+   "fen": "8/8/7P/6k1/1P5R/8/1r6/6K1 b - - 0 49",
+   "solution": [
+    "g5h4",
+    "h6h7",
+    "h4g3"
+   ],
+   "rating": 1772,
+   "source": "https://lichess.org/game/g27S7t8W#97"
+  },
+  {
+   "id": "04UcL",
+   "unitId": "count-captures",
+   "fen": "1k1rr3/ppp2p1p/8/4n1p1/1qp1n3/1P2PN1P/P1Q1BPP1/R4K1R w - - 0 19",
+   "solution": [
+    "c2e4",
+    "e5f3",
+    "e4f3"
+   ],
+   "rating": 1689,
+   "source": "https://lichess.org/game/1UUx6HKC/black#36"
+  },
+  {
+   "id": "0Pf2k",
+   "unitId": "count-captures",
+   "fen": "4Rrk1/p4n1p/4NQp1/2pPqp2/8/7P/P4PP1/6K1 b - - 0 32",
+   "solution": [
+    "f8e8",
+    "f6e5",
+    "f7e5"
+   ],
+   "rating": 1772,
+   "source": "https://lichess.org/game/t33PVlz6#63"
+  },
+  {
+   "id": "0og2Y",
+   "unitId": "count-captures",
+   "fen": "8/7k/2p5/1p4Rr/pr6/6R1/1P4K1/8 w - - 2 61",
+   "solution": [
+    "g5h5"
+   ],
+   "rating": 1196,
+   "source": "https://lichess.org/game/ASkIqmKd/black#120"
+  },
+  {
+   "id": "0ChLC",
+   "unitId": "count-captures",
+   "fen": "8/p2r1pk1/5q2/2pbN2p/4Q1p1/2P5/PP3PP1/4R1K1 w - - 2 32",
+   "solution": [
+    "e5d7",
+    "d5e4",
+    "d7f6"
+   ],
+   "rating": 1173,
+   "source": "https://lichess.org/game/1fAgGbWN/black#62"
+  },
+  {
+   "id": "0jcIg",
+   "unitId": "double-attack",
+   "fen": "1R6/6p1/1p2k2p/3n1N2/6P1/pr3PK1/8/8 w - - 0 47",
+   "solution": [
+    "f5d4",
+    "e6e5",
+    "d4b3"
+   ],
+   "rating": 1421,
+   "source": "https://lichess.org/game/LuqLNphd/black#92"
+  },
+  {
+   "id": "0RFYv",
+   "unitId": "double-attack",
+   "fen": "8/2k3b1/1p1RP3/8/5r2/8/PPP5/2K5 w - - 1 30",
+   "solution": [
+    "d6d7",
+    "c7c8",
+    "d7g7"
+   ],
+   "rating": 1141,
+   "source": "https://lichess.org/game/uqNCGS6q/black#58"
+  },
+  {
+   "id": "0N7LQ",
+   "unitId": "double-attack",
+   "fen": "r4rk1/pp1b3p/1q2p1p1/4bpP1/3Pp3/2P5/PPQN3P/R1B2RK1 w - - 0 17",
+   "solution": [
+    "d2c4",
+    "e5d4",
+    "c3d4",
+    "b6d4",
+    "c1e3"
+   ],
+   "rating": 1561,
+   "source": "https://lichess.org/game/TLNnXwwR/black#32"
+  },
+  {
+   "id": "0X7U8",
+   "unitId": "double-attack",
+   "fen": "5rk1/p1pq1p1p/4pn2/6p1/3P4/4Q1P1/r5P1/1R1K1B1R w - - 0 21",
+   "solution": [
+    "e3g5",
+    "g8h8",
+    "g5f6"
+   ],
+   "rating": 1184,
+   "source": "https://lichess.org/game/Y1WVaFLh/black#40"
+  },
+  {
+   "id": "0OKJP",
+   "unitId": "double-attack",
+   "fen": "4rbk1/5p1p/2p5/1rB1p2p/1P2N3/7P/5PP1/3R2K1 w - - 1 31",
+   "solution": [
+    "e4f6",
+    "g8h8",
+    "f6e8",
+    "f8c5",
+    "b4c5"
+   ],
+   "rating": 1230,
+   "source": "https://lichess.org/game/CI7Earq3/black#60"
+  },
+  {
+   "id": "05jJv",
+   "unitId": "double-attack",
+   "fen": "r2qk2r/ppp3pp/4P3/1b6/6n1/1QN5/PP3pPP/R4K1R w kq - 0 17",
+   "solution": [
+    "b3b5",
+    "c7c6",
+    "b5h5",
+    "g7g6",
+    "h5g4"
+   ],
+   "rating": 1621,
+   "source": "https://lichess.org/game/TN8KeL99/black#32"
+  },
+  {
+   "id": "0WgUv",
+   "unitId": "double-attack",
+   "fen": "8/8/1p6/4r1k1/3r4/P4K2/8/1Q6 w - - 6 62",
+   "solution": [
+    "b1g1",
+    "g5f5",
+    "g1d4"
+   ],
+   "rating": 1182,
+   "source": "https://lichess.org/game/ZsmY3NpT/black#122"
+  },
+  {
+   "id": "0Y9f5",
+   "unitId": "double-attack",
+   "fen": "rn2kb1r/1p3ppp/pq1pbB2/4p3/4P3/N1N5/PPP2PPP/R2QKB1R b KQkq - 0 9",
+   "solution": [
+    "b6b2",
+    "a3b5",
+    "a6b5"
+   ],
+   "rating": 1618,
+   "source": "https://lichess.org/game/pRtsZUEh#17"
+  },
+  {
+   "id": "0UP7p",
+   "unitId": "double-attack",
+   "fen": "r6r/p1pp1k1p/1p4p1/4P3/3n1p1R/8/PPPK2P1/R1B5 w - - 0 16",
+   "solution": [
+    "h4f4",
+    "d4f5",
+    "g2g4"
+   ],
+   "rating": 1498,
+   "source": "https://lichess.org/game/ZlCQIKaM/black#30"
+  },
+  {
+   "id": "0Zmzr",
+   "unitId": "double-attack",
+   "fen": "4r1k1/3q1ppp/8/p3P1b1/PpPpB3/1P5r/4Q1K1/4RR2 w - - 0 30",
+   "solution": [
+    "e4f5",
+    "d7c6",
+    "g2h3"
+   ],
+   "rating": 1642,
+   "source": "https://lichess.org/game/lLEVi9HQ/black#58"
+  },
+  {
+   "id": "0WYlw",
+   "unitId": "double-attack",
+   "fen": "r6b/p1pkp3/1p2p3/2n1n1B1/2P5/5P2/PPQ2P2/3NKB2 b - - 2 19",
+   "solution": [
+    "e5f3",
+    "e1e2",
+    "f3d4",
+    "e2d2",
+    "d4c2"
+   ],
+   "rating": 1615,
+   "source": "https://lichess.org/game/D9NQ9yhS#37"
+  },
+  {
+   "id": "0qigr",
+   "unitId": "double-attack",
+   "fen": "3r2k1/6pp/p1b2p2/2p3q1/6N1/2Pp4/PP2QPPP/4R1K1 w - - 0 28",
+   "solution": [
+    "e2e6",
+    "g8h8",
+    "e6c6"
+   ],
+   "rating": 1592,
+   "source": "https://lichess.org/game/gNR9bRGu/black#54"
+  },
+  {
+   "id": "0MteR",
+   "unitId": "double-attack",
+   "fen": "3r1k2/3P3p/6p1/4Q3/p7/8/P4P1K/3q4 w - - 2 36",
+   "solution": [
+    "e5f6",
+    "f8g8",
+    "f6d8"
+   ],
+   "rating": 1360,
+   "source": "https://lichess.org/game/nqeOqw8V/black#70"
+  },
+  {
+   "id": "025Zb",
+   "unitId": "double-attack",
+   "fen": "4r1k1/6p1/4Rp2/Pp1P1q2/5Q2/4BK2/6PP/8 b - - 8 36",
+   "solution": [
+    "f5d5",
+    "f4e4",
+    "d5e6",
+    "e4e6",
+    "e8e6"
+   ],
+   "rating": 1648,
+   "source": "https://lichess.org/game/3vnsxl2D#71"
+  },
+  {
+   "id": "01LO7",
+   "unitId": "double-attack",
+   "fen": "r3rbk1/1pqb1p1p/4p1nQ/p2p3N/3p4/P2B1P2/1PP2P1P/R3R1K1 w - - 1 18",
+   "solution": [
+    "h5f6",
+    "g8h8",
+    "h6h7"
+   ],
+   "rating": 1089,
+   "source": "https://lichess.org/game/o7FKUW1k/black#34"
+  },
+  {
+   "id": "0c61a",
+   "unitId": "double-attack",
+   "fen": "3r4/pp6/1k6/2pPQ3/3rp3/6p1/1K4P1/8 w - - 3 35",
+   "solution": [
+    "e5f6",
+    "b6a5",
+    "f6d8"
+   ],
+   "rating": 1479,
+   "source": "https://lichess.org/game/ch59Ix4T/black#68"
+  },
+  {
+   "id": "0c2fy",
+   "unitId": "double-attack",
+   "fen": "r1b1r1k1/1p1n1ppp/pqp5/5NB1/3Pp2P/1PR1P1Q1/P4PP1/5K1R b - - 1 18",
+   "solution": [
+    "b6b5",
+    "f1g1",
+    "b5f5"
+   ],
+   "rating": 1088,
+   "source": "https://lichess.org/game/D3ExU37B#35"
+  },
+  {
+   "id": "0KsKf",
+   "unitId": "double-attack",
+   "fen": "8/1p3Q2/6nk/p1pPr1p1/2q1p3/P5P1/1P1K4/R7 w - - 1 33",
+   "solution": [
+    "a1h1",
+    "g6h4",
+    "f7f6",
+    "h6h7",
+    "f6e5",
+    "c4d3",
+    "d2c1"
+   ],
+   "rating": 1792,
+   "source": "https://lichess.org/game/Kaxai6Sd/black#64"
+  },
+  {
+   "id": "0loOH",
+   "unitId": "double-attack",
+   "fen": "3N4/1pp1Rpkp/pn3qp1/8/2n5/1B4RP/PP3PPK/8 w - - 7 33",
+   "solution": [
+    "e7f7",
+    "f6f7",
+    "d8f7"
+   ],
+   "rating": 1170,
+   "source": "https://lichess.org/game/sMiv5LcW/black#64"
+  },
+  {
+   "id": "0vpP5",
+   "unitId": "double-attack",
+   "fen": "5r1k/p1q3pp/1p6/3P3P/Q4p2/4P3/3n1PP1/4NRK1 w - - 1 37",
+   "solution": [
+    "a4b4",
+    "c7f7",
+    "b4d2"
+   ],
+   "rating": 1549,
+   "source": "https://lichess.org/game/uhkerF7D/black#72"
+  },
+  {
+   "id": "0velR",
+   "unitId": "double-attack",
+   "fen": "6k1/RN1r2pp/p4p2/8/r7/4PK2/6PP/8 w - - 2 33",
+   "solution": [
+    "a7a8",
+    "g8f7",
+    "b7c5",
+    "a4a5",
+    "c5d7"
+   ],
+   "rating": 1584,
+   "source": "https://lichess.org/game/TxJjDFSp/black#64"
+  },
+  {
+   "id": "0RJdG",
+   "unitId": "double-attack",
+   "fen": "5r1k/R5b1/4Q1Kp/4p1p1/3pP3/1B1P1qP1/1PP5/8 b - - 4 36",
+   "solution": [
+    "f8f6",
+    "e6f6",
+    "f3f6"
+   ],
+   "rating": 1213,
+   "source": "https://lichess.org/game/9J3qpurm#71"
+  },
+  {
+   "id": "0cOGO",
+   "unitId": "double-attack",
+   "fen": "2kr1r2/ppq1p3/2b3pb/2p1n1Np/7P/P1P5/1PQBBP2/2KR1R2 w - - 4 22",
+   "solution": [
+    "g5e6",
+    "d8d2",
+    "d1d2",
+    "c7d6",
+    "e6f8"
+   ],
+   "rating": 1554,
+   "source": "https://lichess.org/game/ZDe8Nk3w/black#42"
+  },
+  {
+   "id": "0nnNZ",
+   "unitId": "double-attack",
+   "fen": "1r6/R7/2p3k1/5p2/2B2b2/1P2P3/P1Pr2PP/5RK1 b - - 0 24",
+   "solution": [
+    "f4e3",
+    "g1h1",
+    "e3a7"
+   ],
+   "rating": 1418,
+   "source": "https://lichess.org/game/CaMSirjk#47"
+  },
+  {
+   "id": "0bfno",
+   "unitId": "double-attack",
+   "fen": "r3r1k1/5ppp/p2q1n2/1pp5/1n6/1P5P/PB1P1PP1/R2QRBK1 b - - 4 20",
+   "solution": [
+    "e8e1",
+    "d1e1",
+    "b4c2",
+    "e1c1",
+    "c2a1"
+   ],
+   "rating": 1497,
+   "source": "https://lichess.org/game/2bHRka48#39"
+  },
+  {
+   "id": "01LPz",
+   "unitId": "double-attack",
+   "fen": "8/p6k/2pr2p1/4Np1p/4B2P/2n1P1P1/P4P2/2R3K1 b - - 0 37",
+   "solution": [
+    "c3e2",
+    "g1g2",
+    "e2c1"
+   ],
+   "rating": 1090,
+   "source": "https://lichess.org/game/zjEzF4hk#73"
+  },
+  {
+   "id": "0vbew",
+   "unitId": "double-attack",
+   "fen": "8/5ppp/2k5/p3PP2/2K3P1/2p4P/2b1N3/8 w - - 0 42",
+   "solution": [
+    "e2d4",
+    "c6d7",
+    "d4c2"
+   ],
+   "rating": 1444,
+   "source": "https://lichess.org/game/LprUGgXy/black#82"
+  },
+  {
+   "id": "0jmIj",
+   "unitId": "double-attack",
+   "fen": "5rk1/1p3r1p/p2q4/3R2p1/2P1pPP1/4Q1KP/PP6/5R2 b - - 0 31",
+   "solution": [
+    "g5f4",
+    "f1f4",
+    "d6f4",
+    "e3f4",
+    "f7f4",
+    "d5g5",
+    "g8h8"
+   ],
+   "rating": 1571,
+   "source": "https://lichess.org/game/LENmVuI8#61"
+  },
+  {
+   "id": "0HfcA",
+   "unitId": "double-attack",
+   "fen": "r4rk1/ppq2p1p/4pP2/3pP1p1/6Q1/2P5/PP1n2PP/R4R1K w - - 0 19",
+   "solution": [
+    "g4g5",
+    "g8h8",
+    "g5g7"
+   ],
+   "rating": 1014,
+   "source": "https://lichess.org/game/AuJqGHA0/black#36"
+  },
+  {
+   "id": "0D80O",
+   "unitId": "double-attack",
+   "fen": "r2qkb1r/pppbpppp/8/1N1P4/2Q1P3/5N2/Pn3PPP/R4K1R w kq - 0 13",
+   "solution": [
+    "b5c7",
+    "d8c7",
+    "c4c7"
+   ],
+   "rating": 1244,
+   "source": "https://lichess.org/game/nihtEDGN/black#24"
+  },
+  {
+   "id": "01b3S",
+   "unitId": "line-tactics",
+   "fen": "r2q1r1k/4b1p1/p3b2p/4B1pQ/4P3/1p1p3P/P2P1P2/2KR2R1 w - - 0 23",
+   "solution": [
+    "h5h6",
+    "h8g8",
+    "h6g7"
+   ],
+   "rating": 1341,
+   "source": "https://lichess.org/game/wBiesuqt/black#44"
+  },
+  {
+   "id": "0vAAp",
+   "unitId": "line-tactics",
+   "fen": "2r3k1/1p2ppbp/p5p1/3RP3/5B2/q1P1Q3/1R4PP/2K5 b - - 2 27",
+   "solution": [
+    "c8c3",
+    "e3c3",
+    "a3c3"
+   ],
+   "rating": 1273,
+   "source": "https://lichess.org/game/zLExI3zX#53"
+  },
+  {
+   "id": "0Q6Mf",
+   "unitId": "line-tactics",
+   "fen": "4r3/p3Pkp1/7p/2pN1b1P/8/4R3/6P1/6K1 w - - 6 40",
+   "solution": [
+    "e3f3",
+    "f7e6",
+    "d5c7"
+   ],
+   "rating": 1448,
+   "source": "https://lichess.org/game/YuJu1OEl/black#78"
+  },
+  {
+   "id": "0fVN0",
+   "unitId": "line-tactics",
+   "fen": "6k1/pp3pp1/2p4p/8/6q1/1N1P2Pn/PP2QPKP/4R3 b - - 4 26",
+   "solution": [
+    "h3f4",
+    "g2g1",
+    "f4e2"
+   ],
+   "rating": 1040,
+   "source": "https://lichess.org/game/O1qRK16b#51"
+  },
+  {
+   "id": "0DZ0V",
+   "unitId": "line-tactics",
+   "fen": "6R1/8/1r5p/3p1k1P/2pK4/1p2P3/6P1/8 w - - 16 53",
+   "solution": [
+    "g2g4",
+    "f5f6",
+    "g8g6",
+    "f6f7",
+    "g6b6"
+   ],
+   "rating": 1649,
+   "source": "https://lichess.org/game/ZdG5D3xd/black#104"
+  },
+  {
+   "id": "04Fmz",
+   "unitId": "line-tactics",
+   "fen": "r6k/p4rp1/1p1q3p/3P1p2/7R/P4P2/1B1Q1KP1/8 w - - 1 31",
+   "solution": [
+    "h4h6",
+    "d6h6",
+    "d2h6"
+   ],
+   "rating": 1403,
+   "source": "https://lichess.org/game/d08sWQ7z/black#60"
+  },
+  {
+   "id": "0Yjkt",
+   "unitId": "line-tactics",
+   "fen": "3r2R1/2pk1p2/pp1p3b/3P4/4P3/2N3Q1/PPP3RK/2q5 b - - 0 27",
+   "solution": [
+    "h6f4",
+    "g8d8",
+    "d7d8"
+   ],
+   "rating": 1297,
+   "source": "https://lichess.org/game/nheXOLmK#53"
+  },
+  {
+   "id": "0ifg6",
+   "unitId": "line-tactics",
+   "fen": "3rk2r/1pq2pBp/p2bb3/8/2B5/1P2Q2P/P1P3P1/2KR3R b k - 0 23",
+   "solution": [
+    "d6f4",
+    "d1d8",
+    "e8d8",
+    "c1b1",
+    "f4e3"
+   ],
+   "rating": 1132,
+   "source": "https://lichess.org/game/E7XAOUGA#45"
+  },
+  {
+   "id": "0csd3",
+   "unitId": "line-tactics",
+   "fen": "8/8/8/r7/6Pk/p4K2/R7/8 w - - 5 63",
+   "solution": [
+    "a2h2",
+    "h4g5",
+    "h2h5",
+    "g5g6",
+    "h5a5"
+   ],
+   "rating": 1196,
+   "source": "https://lichess.org/game/bPhGount/black#124"
+  },
+  {
+   "id": "0PIe4",
+   "unitId": "line-tactics",
+   "fen": "6k1/pp4pp/2b1p1p1/3qn3/P2pQ3/3P2P1/2P2P2/R3R1K1 b - - 0 22",
+   "solution": [
+    "e5f3",
+    "g1g2",
+    "f3e1"
+   ],
+   "rating": 1345,
+   "source": "https://lichess.org/game/ANvJ3OVY#43"
+  },
+  {
+   "id": "0IdRS",
+   "unitId": "line-tactics",
+   "fen": "6k1/1p3p1p/2p2Qp1/p1Pp1P1q/P7/1P4RP/2r5/6K1 w - - 0 34",
+   "solution": [
+    "f6d8",
+    "g8g7",
+    "f5f6",
+    "g7h6",
+    "d8f8"
+   ],
+   "rating": 1451,
+   "source": "https://lichess.org/game/r2z5C0sW/black#66"
+  },
+  {
+   "id": "0qHcX",
+   "unitId": "line-tactics",
+   "fen": "1B6/p1Q3q1/7k/3p2b1/2pPb1P1/P3P3/1P1K4/8 w - - 2 39",
+   "solution": [
+    "c7h2",
+    "h6g6",
+    "h2h5",
+    "g6f6",
+    "b8e5",
+    "f6e7",
+    "e5g7"
+   ],
+   "rating": 1590,
+   "source": "https://lichess.org/game/J2ApyATo/black#76"
+  },
+  {
+   "id": "05r44",
+   "unitId": "line-tactics",
+   "fen": "r1bq1rk1/pp1n1pbp/4p1p1/4Pn2/8/2N2N2/PPPQBBPP/2KR3R b - - 4 14",
+   "solution": [
+    "g7h6",
+    "g2g4",
+    "h6d2"
+   ],
+   "rating": 1525,
+   "source": "https://lichess.org/game/zuYRRJsM#27"
+  },
+  {
+   "id": "0rtwd",
+   "unitId": "line-tactics",
+   "fen": "6r1/5Qpk/5p1p/2K2P2/3PN2P/8/1pp5/6q1 w - - 0 48",
+   "solution": [
+    "e4f6",
+    "h7h8",
+    "f7g8"
+   ],
+   "rating": 1403,
+   "source": "https://lichess.org/game/8g5HKz1z/black#94"
+  },
+  {
+   "id": "0NXEn",
+   "unitId": "line-tactics",
+   "fen": "8/1pp5/3kp2R/p7/P3pn2/1P2N1r1/2PK4/8 w - - 0 36",
+   "solution": [
+    "e3f5",
+    "d6e5",
+    "f5g3"
+   ],
+   "rating": 1349,
+   "source": "https://lichess.org/game/JB48vMmV/black#70"
+  },
+  {
+   "id": "02fsg",
+   "unitId": "line-tactics",
+   "fen": "6r1/1p1k3p/8/1p4p1/3b4/1P2N1B1/2P3PP/1b2R1K1 w - - 6 23",
+   "solution": [
+    "e1d1",
+    "d7e6",
+    "d1d4"
+   ],
+   "rating": 1606,
+   "source": "https://lichess.org/game/xaqwxpzv/black#44"
+  },
+  {
+   "id": "0SUb1",
+   "unitId": "line-tactics",
+   "fen": "7k/R4K2/5P2/P7/7r/8/8/8 b - - 1 53",
+   "solution": [
+    "h4h7",
+    "f7e8",
+    "h7a7",
+    "f6f7",
+    "a7a8",
+    "e8d7",
+    "h8g7"
+   ],
+   "rating": 1693,
+   "source": "https://lichess.org/game/MaAosgrp#105"
+  },
+  {
+   "id": "0XBBA",
+   "unitId": "line-tactics",
+   "fen": "r1bk4/pp3ppp/1bp2q2/1P1p4/P4P2/B1PBr3/2KQ2PP/RN5R b - - 5 19",
+   "solution": [
+    "e3d3",
+    "d2d3",
+    "c8f5"
+   ],
+   "rating": 1654,
+   "source": "https://lichess.org/game/Ds0wbWYR#37"
+  },
+  {
+   "id": "0Qawk",
+   "unitId": "line-tactics",
+   "fen": "rnbq4/pp3Qpk/2p2br1/3p2p1/3P1pN1/2N2R2/PPP3PP/R1B3K1 w - - 8 17",
+   "solution": [
+    "f3h3",
+    "g6h6",
+    "h3h6"
+   ],
+   "rating": 1481,
+   "source": "https://lichess.org/game/LpcE5BaY/black#32"
+  },
+  {
+   "id": "0xMM4",
+   "unitId": "line-tactics",
+   "fen": "rn2kb1r/pp3ppp/2p1p3/q2p4/1PPPn3/P1N1P3/5PPP/R1BQKB1R b KQkq - 0 9",
+   "solution": [
+    "f8b4",
+    "a3b4",
+    "a5a1",
+    "c3e4",
+    "d5e4"
+   ],
+   "rating": 1654,
+   "source": "https://lichess.org/game/KkaAvLRx#17"
+  },
+  {
+   "id": "0l6k7",
+   "unitId": "line-tactics",
+   "fen": "r2qk2r/pp1nbpp1/2n1p1p1/2Pp2B1/7P/1NP1PN2/PP3PP1/R2QK2R b KQkq - 2 12",
+   "solution": [
+    "e7g5",
+    "f3g5",
+    "d8g5",
+    "h4g5",
+    "h8h1",
+    "e1e2",
+    "h1d1"
+   ],
+   "rating": 1476,
+   "source": "https://lichess.org/game/taI0onnz#23"
+  },
+  {
+   "id": "0DTeL",
+   "unitId": "line-tactics",
+   "fen": "2r2bk1/1pq3pp/r1p1np1n/p3p3/P3PP2/1P2Q1PN/1BP3BP/3R1RK1 b - - 0 21",
+   "solution": [
+    "f8c5",
+    "e3c5",
+    "e6c5"
+   ],
+   "rating": 1577,
+   "source": "https://lichess.org/game/H35RQ6kc#41"
+  },
+  {
+   "id": "0i8KK",
+   "unitId": "line-tactics",
+   "fen": "2r3k1/pp2ppbp/6p1/3R1b2/3PnB2/qP1N1N1P/P1Q2PP1/6K1 w - - 5 30",
+   "solution": [
+    "c2c8",
+    "f5c8",
+    "d5d8",
+    "g7f8",
+    "f4h6"
+   ],
+   "rating": 1678,
+   "source": "https://lichess.org/game/7hGiHo6G/black#58"
+  },
+  {
+   "id": "0iuPo",
+   "unitId": "line-tactics",
+   "fen": "b2r4/2P1kppp/Rp2p3/1P2N3/8/2n3P1/4PPBP/6K1 b - - 0 26",
+   "solution": [
+    "d8d1",
+    "g2f1",
+    "c3e2"
+   ],
+   "rating": 1184,
+   "source": "https://lichess.org/game/vf60PnWE#51"
+  },
+  {
+   "id": "0FiZn",
+   "unitId": "line-tactics",
+   "fen": "2r2k2/1p1bppbQ/3p2pB/3P4/6P1/1p1P4/2P2P2/q2B1K1R w - - 6 24",
+   "solution": [
+    "h7h8"
+   ],
+   "rating": 1580,
+   "source": "https://lichess.org/game/DwarAM6K/black#46"
+  },
+  {
+   "id": "0SFgd",
+   "unitId": "line-tactics",
+   "fen": "r1b1k2r/1pp2p1p/p1nb2p1/8/7q/1P2P1P1/PBPPQ2P/RN2K1NR b KQkq - 0 11",
+   "solution": [
+    "d6g3",
+    "h2g3",
+    "h4h1"
+   ],
+   "rating": 1207,
+   "source": "https://lichess.org/game/zNFlMC7a#21"
+  },
+  {
+   "id": "0WX6g",
+   "unitId": "line-tactics",
+   "fen": "r4rk1/p5p1/5p2/2p3R1/1q6/1P6/PBP1QP2/1K6 w - - 0 26",
+   "solution": [
+    "e2e6",
+    "f8f7",
+    "b2f6",
+    "b4e1",
+    "e6e1"
+   ],
+   "rating": 1645,
+   "source": "https://lichess.org/game/QaKy7Jyw/black#50"
+  },
+  {
+   "id": "074Aw",
+   "unitId": "line-tactics",
+   "fen": "r4rk1/1p3pq1/p1np3p/4p3/2B5/P3BP1P/1PPQK3/R7 w - - 0 24",
+   "solution": [
+    "a1g1",
+    "g7g1",
+    "e3g1"
+   ],
+   "rating": 1736,
+   "source": "https://lichess.org/game/pix62MZR/black#46"
+  },
+  {
+   "id": "0hFpU",
+   "unitId": "line-tactics",
+   "fen": "1k1b4/1p2q3/p1rp1p2/6p1/P1PBP2p/1Q3P1P/1R4P1/7K w - - 5 44",
+   "solution": [
+    "d4f6",
+    "e7f7",
+    "f6d8"
+   ],
+   "rating": 1476,
+   "source": "https://lichess.org/game/R5QnAGgB/black#86"
+  },
+  {
+   "id": "07s3C",
+   "unitId": "line-tactics",
+   "fen": "1k5r/p1p2R1p/1p1p4/3P4/3n1RBb/3r4/PP5K/8 w - - 4 30",
+   "solution": [
+    "f7f8",
+    "h4d8",
+    "f8h8"
+   ],
+   "rating": 1024,
+   "source": "https://lichess.org/game/OruDSflo/black#58"
+  },
+  {
+   "id": "0PyR8",
+   "unitId": "open-attack-line",
+   "fen": "r1b1q1k1/pp1nrppp/3Q4/2B1n3/2B5/5N2/PP3PPP/R3R1K1 b - - 0 15",
+   "solution": [
+    "e5f3",
+    "g2f3",
+    "e7e1",
+    "a1e1",
+    "e8e1"
+   ],
+   "rating": 1357,
+   "source": "https://lichess.org/game/n0bVsZau#29"
+  },
+  {
+   "id": "08x18",
+   "unitId": "open-attack-line",
+   "fen": "8/ppp1nr2/k7/4pb2/2P5/P2Pb1N1/1BK2R2/5R2 b - - 1 36",
+   "solution": [
+    "e3f2",
+    "f1f2",
+    "f5d3",
+    "c2d3",
+    "f7f2"
+   ],
+   "rating": 1487,
+   "source": "https://lichess.org/game/RFE8BrRa#71"
+  },
+  {
+   "id": "0aqAz",
+   "unitId": "open-attack-line",
+   "fen": "4r2k/pp1q2pp/3b1r2/3Q1P2/P2P4/4B2R/1P4PP/5RK1 b - - 2 29",
+   "solution": [
+    "d6h2",
+    "g1h2",
+    "d7d5"
+   ],
+   "rating": 1154,
+   "source": "https://lichess.org/game/DouFcxLh#57"
+  },
+  {
+   "id": "0xkb9",
+   "unitId": "open-attack-line",
+   "fen": "2r4r/k2b2pp/2qBp3/1p6/3R1P2/2P1Q3/PP4PP/2K5 w - - 0 25",
+   "solution": [
+    "d4a4",
+    "a7b7",
+    "a4a7"
+   ],
+   "rating": 1455,
+   "source": "https://lichess.org/game/tlNn2Z6R/black#48"
+  },
+  {
+   "id": "0TeDs",
+   "unitId": "open-attack-line",
+   "fen": "r3rbk1/2qn1pp1/5n1p/2p1p3/Pp2b3/4NN1P/1PBBQPP1/2R1R1K1 w - - 0 22",
+   "solution": [
+    "c2e4",
+    "f6e4",
+    "e3d5",
+    "c7c6",
+    "e2e4"
+   ],
+   "rating": 1592,
+   "source": "https://lichess.org/game/8oR11gqh/black#42"
+  },
+  {
+   "id": "0do8b",
+   "unitId": "open-attack-line",
+   "fen": "2kr2nr/1pp1qpb1/p3b3/4B1pp/1n6/2NP3P/PPP1QPP1/1K1R1BNR b - - 4 12",
+   "solution": [
+    "g7e5",
+    "e2e5",
+    "e6a2",
+    "c3a2",
+    "e7e5"
+   ],
+   "rating": 1638,
+   "source": "https://lichess.org/game/C9Ib9bOc#23"
+  },
+  {
+   "id": "0BW1R",
+   "unitId": "open-attack-line",
+   "fen": "r3k1nr/1p1qpp1p/p2p2p1/1N1Pb3/Q3P3/8/PP3PPP/R1B1K2R w KQkq - 0 13",
+   "solution": [
+    "b5c7",
+    "e8d8",
+    "a4d7",
+    "d8d7",
+    "c7a8"
+   ],
+   "rating": 1384,
+   "source": "https://lichess.org/game/VwNBdEQ5/black#24"
+  },
+  {
+   "id": "00XQ8",
+   "unitId": "open-attack-line",
+   "fen": "k4r2/pp6/2p3Q1/3p2P1/4r2P/8/PPP2q2/2KR1R2 b - - 2 30",
+   "solution": [
+    "f2e3",
+    "c1b1",
+    "f8f1",
+    "g6g8",
+    "e4e8"
+   ],
+   "rating": 1480,
+   "source": "https://lichess.org/game/bjvSXgAE#59"
+  },
+  {
+   "id": "06VoP",
+   "unitId": "open-attack-line",
+   "fen": "2rr2k1/5pp1/p1qp3p/4pP1N/1p6/1P4PK/PP5P/R2Q4 w - - 5 32",
+   "solution": [
+    "d1g4",
+    "g7g6",
+    "f5g6",
+    "d6d5",
+    "g6f7"
+   ],
+   "rating": 1783,
+   "source": "https://lichess.org/game/7uVvWMkQ/black#62"
+  },
+  {
+   "id": "0xdNb",
+   "unitId": "open-attack-line",
+   "fen": "1k1r2r1/2q2p2/p6p/1P6/1R1p1p2/3Q2P1/1PP2P1P/1K6 w - - 0 32",
+   "solution": [
+    "b5a6",
+    "b8a7",
+    "b4b7",
+    "c7b7",
+    "a6b7"
+   ],
+   "rating": 1273,
+   "source": "https://lichess.org/game/V9bL7j7G/black#62"
+  },
+  {
+   "id": "0sCsf",
+   "unitId": "open-attack-line",
+   "fen": "rnb1kb1r/ppp2ppp/8/3p4/3qn3/3B4/PPP2PPP/RNBQ1RK1 w kq - 0 8",
+   "solution": [
+    "d3b5",
+    "c7c6",
+    "d1d4"
+   ],
+   "rating": 1076,
+   "source": "https://lichess.org/game/GfpU8AVY/black#14"
+  },
+  {
+   "id": "0hnPU",
+   "unitId": "open-attack-line",
+   "fen": "r2q1r2/pp4kp/2p2bp1/4n1N1/2QP2b1/2P5/PPB2PPP/R3R1K1 w - - 0 18",
+   "solution": [
+    "d4e5",
+    "f6g5",
+    "c4g4"
+   ],
+   "rating": 1727,
+   "source": "https://lichess.org/game/7hUWl6hV/black#34"
+  },
+  {
+   "id": "04Utd",
+   "unitId": "open-attack-line",
+   "fen": "8/8/2p4p/3pNkp1/5P1K/P4RP1/7P/5q2 w - - 0 45",
+   "solution": [
+    "f4g5",
+    "f1f3",
+    "e5f3"
+   ],
+   "rating": 1317,
+   "source": "https://lichess.org/game/Wu4hCXUS/black#88"
+  },
+  {
+   "id": "0qbty",
+   "unitId": "open-attack-line",
+   "fen": "B7/p5pp/7k/5p2/1n1R4/KP6/P3rPPP/8 b - - 2 30",
+   "solution": [
+    "b4c2",
+    "a3b2",
+    "c2d4"
+   ],
+   "rating": 1196,
+   "source": "https://lichess.org/game/NMVC1iQT#59"
+  },
+  {
+   "id": "0YTZr",
+   "unitId": "open-attack-line",
+   "fen": "r3kb1r/pp2pppb/2p4p/7P/2BqnBP1/5Q2/PPP2P2/R3K1NR w KQkq - 0 14",
+   "solution": [
+    "c4f7",
+    "e8f7",
+    "f4e5",
+    "e4f6",
+    "e5d4"
+   ],
+   "rating": 1637,
+   "source": "https://lichess.org/game/Okc6JATg/black#26"
+  },
+  {
+   "id": "0yJPq",
+   "unitId": "open-attack-line",
+   "fen": "rnq3k1/pp3ppp/8/2p4r/3PQ3/1NP3Pb/PP3PBK/R1B2R2 b - - 1 21",
+   "solution": [
+    "h3f5",
+    "h2g1",
+    "f5e4"
+   ],
+   "rating": 1587,
+   "source": "https://lichess.org/game/9IAS9dKY#41"
+  },
+  {
+   "id": "0R73h",
+   "unitId": "open-attack-line",
+   "fen": "R1b1rrk1/1p4p1/2pB1nqp/2Pp4/1P2p3/4P2P/2Q1BPP1/R5K1 b - - 12 29",
+   "solution": [
+    "c8h3",
+    "d6g3",
+    "e8a8",
+    "a1a8",
+    "f8a8"
+   ],
+   "rating": 1649,
+   "source": "https://lichess.org/game/HnZRimUZ#57"
+  },
+  {
+   "id": "0dSZo",
+   "unitId": "open-attack-line",
+   "fen": "8/5pqk/p1b1pr1p/4Q3/2P1P3/1P5R/P5BP/5R1K b - - 0 38",
+   "solution": [
+    "f6f1",
+    "g2f1",
+    "g7e5"
+   ],
+   "rating": 1125,
+   "source": "https://lichess.org/game/XUXnP350#75"
+  },
+  {
+   "id": "0qke4",
+   "unitId": "open-attack-line",
+   "fen": "5r1k/pR4pp/2p5/2P5/3q1P2/4r1P1/1Q5P/1R3BK1 b - - 2 36",
+   "solution": [
+    "e3g3",
+    "g1h1",
+    "g3g1"
+   ],
+   "rating": 1691,
+   "source": "https://lichess.org/game/5WmBicMY#71"
+  },
+  {
+   "id": "0sGNg",
+   "unitId": "open-attack-line",
+   "fen": "5rk1/p1q2rpp/1p3n2/2pR2N1/8/1P2P2P/P3QPP1/3R2K1 b - - 4 22",
+   "solution": [
+    "f6d5",
+    "d1d5",
+    "f7f2",
+    "e2f2",
+    "f8f2"
+   ],
+   "rating": 1134,
+   "source": "https://lichess.org/game/eMCpwsOp#43"
+  },
+  {
+   "id": "0FV0p",
+   "unitId": "open-attack-line",
+   "fen": "r3k2r/pppq1ppp/2np1n2/2b1p3/N1B1PP2/3P1Q1P/PPP3P1/R1B1K2R b KQkq - 2 9",
+   "solution": [
+    "c6d4",
+    "f3d1",
+    "d7a4"
+   ],
+   "rating": 1471,
+   "source": "https://lichess.org/game/1a9HWPF1#17"
+  },
+  {
+   "id": "050qo",
+   "unitId": "open-attack-line",
+   "fen": "r3r1k1/2pq1ppp/pbn3b1/1p1NP3/6P1/5N1P/PP3P2/R1BQR1K1 w - - 1 18",
+   "solution": [
+    "d5f6",
+    "g7f6",
+    "d1d7"
+   ],
+   "rating": 1397,
+   "source": "https://lichess.org/game/QJnPh0WG/black#34"
+  },
+  {
+   "id": "0YQva",
+   "unitId": "open-attack-line",
+   "fen": "1r3rk1/1p3ppp/p3pn2/8/2P5/2qB1R2/5QPP/R5K1 w - - 0 19",
+   "solution": [
+    "d3h7",
+    "f6h7",
+    "f3c3"
+   ],
+   "rating": 1345,
+   "source": "https://lichess.org/game/GN7bdlYP/black#36"
+  },
+  {
+   "id": "0unpz",
+   "unitId": "open-attack-line",
+   "fen": "4rbk1/5pp1/p2p1p1p/2pP1P1Q/1pP3R1/6P1/5PKP/3q1B2 w - - 2 30",
+   "solution": [
+    "g4g7",
+    "f8g7",
+    "h5d1"
+   ],
+   "rating": 1534,
+   "source": "https://lichess.org/game/xq2h2Srb/black#58"
+  },
+  {
+   "id": "0b24n",
+   "unitId": "open-attack-line",
+   "fen": "r1b2rk1/2qnbppp/p1npp3/1p6/3NPP2/2N1B1P1/PPP3BP/R2QR2K w - - 0 13",
+   "solution": [
+    "d4c6",
+    "c7c6",
+    "e4e5",
+    "c8b7",
+    "g2c6"
+   ],
+   "rating": 1514,
+   "source": "https://lichess.org/game/Vt8Z5fnv/black#24"
+  },
+  {
+   "id": "0lVKT",
+   "unitId": "open-attack-line",
+   "fen": "7k/pp3p2/5q2/3pb3/5p2/P1P1r2P/1P1BB2Q/R6K b - - 5 29",
+   "solution": [
+    "f4f3",
+    "d2e3",
+    "e5h2",
+    "e3d4",
+    "h2e5",
+    "d4e5",
+    "f6e5"
+   ],
+   "rating": 1762,
+   "source": "https://lichess.org/game/K4vSOdbl#57"
+  },
+  {
+   "id": "0l3Zo",
+   "unitId": "open-attack-line",
+   "fen": "1r6/2p1q1kp/b2n2p1/p1nP4/P4p2/2P1N1NP/r1B3PK/2Q1R3 w - - 0 30",
+   "solution": [
+    "e3f5",
+    "g6f5",
+    "e1e7"
+   ],
+   "rating": 1231,
+   "source": "https://lichess.org/game/dxEShgDe/black#58"
+  },
+  {
+   "id": "0Lh0g",
+   "unitId": "open-attack-line",
+   "fen": "rn2kb1r/1p2pppp/p2pbn2/8/3qP3/2NB4/PPP2PPP/R1BQK2R w KQkq - 0 11",
+   "solution": [
+    "d3b5",
+    "a6b5",
+    "d1d4"
+   ],
+   "rating": 1195,
+   "source": "https://lichess.org/game/k6Ksewb9/black#20"
+  },
+  {
+   "id": "0sR1v",
+   "unitId": "open-attack-line",
+   "fen": "5rk1/p6p/3qb3/1prNpp2/2P5/1P3n2/P2Q2PP/2R2R1K w - - 0 22",
+   "solution": [
+    "d5f6",
+    "f8f6",
+    "d2d6"
+   ],
+   "rating": 1628,
+   "source": "https://lichess.org/game/hXjEAcAp/black#42"
+  },
+  {
+   "id": "0LiSS",
+   "unitId": "open-attack-line",
+   "fen": "7r/pp3k2/2b1prp1/4R3/2P5/2qB2Q1/P4PP1/R5K1 w - - 7 29",
+   "solution": [
+    "d3g6",
+    "f6g6",
+    "g3c3"
+   ],
+   "rating": 1240,
+   "source": "https://lichess.org/game/rmixzuey/black#56"
+  },
+  {
+   "id": "0K5pu",
+   "unitId": "change-the-defender",
+   "fen": "r7/1p2q1pk/p5p1/8/P1Q1n2P/4PN2/6P1/5RK1 w - - 1 31",
+   "solution": [
+    "c4e4",
+    "e7e4",
+    "f3g5",
+    "h7h6",
+    "g5e4"
+   ],
+   "rating": 1505,
+   "source": "https://lichess.org/game/kSVVCC0l/black#60"
+  },
+  {
+   "id": "0uRC3",
+   "unitId": "change-the-defender",
+   "fen": "2r4k/1b3p1n/p3p3/1p5R/1P2pP2/P2PQ3/1qr1N2P/6RK w - - 0 34",
+   "solution": [
+    "h5h7",
+    "h8h7",
+    "e3h3"
+   ],
+   "rating": 1338,
+   "source": "https://lichess.org/game/IgxqlpGo/black#66"
+  },
+  {
+   "id": "0ppsI",
+   "unitId": "change-the-defender",
+   "fen": "4r3/B1p2Qp1/p1k4p/3p4/P1q5/2b5/2P2PPP/5RK1 b - - 0 28",
+   "solution": [
+    "c4f1",
+    "g1f1",
+    "e8e1"
+   ],
+   "rating": 1188,
+   "source": "https://lichess.org/game/fZDvXsz9#55"
+  },
+  {
+   "id": "0WNTU",
+   "unitId": "change-the-defender",
+   "fen": "r6r/pp1n2k1/1q1bp1pp/3p4/3P1Q1B/2P2P1P/PP3P2/2KR2R1 w - - 4 21",
+   "solution": [
+    "g1g6",
+    "g7g6",
+    "d1g1",
+    "g6h7",
+    "f4f7"
+   ],
+   "rating": 1607,
+   "source": "https://lichess.org/game/NQWGIaxe/black#40"
+  },
+  {
+   "id": "0FNVQ",
+   "unitId": "change-the-defender",
+   "fen": "rn3rk1/p1q3pp/1p3n2/3p1p2/P2PpN2/Q1P1P1PP/3B1PB1/1b2K2R w K - 0 18",
+   "solution": [
+    "a3f8",
+    "g8f8",
+    "f4e6",
+    "f8e8",
+    "e6c7"
+   ],
+   "rating": 1720,
+   "source": "https://lichess.org/game/m82AafUB/black#34"
+  },
+  {
+   "id": "0BxGX",
+   "unitId": "change-the-defender",
+   "fen": "r1b3k1/pp1p2p1/4p1P1/8/8/3n2r1/PPPK4/5R1R w - - 0 26",
+   "solution": [
+    "h1h8",
+    "g8h8",
+    "f1f8"
+   ],
+   "rating": 1423,
+   "source": "https://lichess.org/game/73Hp9LK7/black#50"
+  },
+  {
+   "id": "0PWE7",
+   "unitId": "change-the-defender",
+   "fen": "8/8/4p3/1pR4p/1P1P3k/2P3r1/7K/8 w - - 0 48",
+   "solution": [
+    "c5h5",
+    "h4g4",
+    "h5g5",
+    "g4g5",
+    "h2g3"
+   ],
+   "rating": 1488,
+   "source": "https://lichess.org/game/TPzGjrsQ/black#94"
+  },
+  {
+   "id": "0Jc6M",
+   "unitId": "change-the-defender",
+   "fen": "r4brk/3p1p1p/4pPpQ/pq1pP3/3P4/4BR2/6PP/R6K w - - 7 25",
+   "solution": [
+    "h6h7",
+    "h8h7",
+    "f3h3",
+    "f8h6",
+    "h3h6"
+   ],
+   "rating": 1185,
+   "source": "https://lichess.org/game/5F1LbGRN/black#48"
+  },
+  {
+   "id": "0kBjC",
+   "unitId": "change-the-defender",
+   "fen": "r1b1r1k1/pp1npp2/1q1p2Bp/2pP4/2P2BnP/1P3N2/P2NQPP1/b3R1K1 w - - 0 16",
+   "solution": [
+    "g6f7",
+    "g8f7",
+    "e2e6"
+   ],
+   "rating": 1487,
+   "source": "https://lichess.org/game/31a7Jcx9/black#30"
+  },
+  {
+   "id": "0brXh",
+   "unitId": "change-the-defender",
+   "fen": "2kr2nr/pp4pp/1bn3q1/3p1p2/4N1B1/7P/PPQ2PP1/R1B2RK1 w - - 0 16",
+   "solution": [
+    "g4f5",
+    "g6f5",
+    "e4d6",
+    "d8d6",
+    "c2f5"
+   ],
+   "rating": 1386,
+   "source": "https://lichess.org/game/gJmFW4hv/black#30"
+  },
+  {
+   "id": "0zmdM",
+   "unitId": "change-the-defender",
+   "fen": "2k5/2p5/4r3/8/6KP/6p1/1R2R1n1/8 b - - 0 42",
+   "solution": [
+    "e6g6",
+    "g4f3",
+    "g2h4",
+    "f3f4",
+    "g3g2"
+   ],
+   "rating": 1689,
+   "source": "https://lichess.org/game/rua7afx0#83"
+  },
+  {
+   "id": "0traX",
+   "unitId": "change-the-defender",
+   "fen": "3r4/5p1p/4p1pk/RPq1P3/P1p4P/2Q5/1P3PP1/6K1 b - - 0 35",
+   "solution": [
+    "d8d1",
+    "g1h2",
+    "c5f2"
+   ],
+   "rating": 1363,
+   "source": "https://lichess.org/game/l2zIXOk9#69"
+  },
+  {
+   "id": "0lWHf",
+   "unitId": "change-the-defender",
+   "fen": "8/2krbppp/p2p4/2pK4/5B2/1P4P1/P3RP1P/8 w - - 13 29",
+   "solution": [
+    "e2e7",
+    "d7e7",
+    "f4d6",
+    "c7d8",
+    "d6e7"
+   ],
+   "rating": 1267,
+   "source": "https://lichess.org/game/hAIrtNTw/black#56"
+  },
+  {
+   "id": "0rgHQ",
+   "unitId": "change-the-defender",
+   "fen": "5r2/1p4k1/p1pp2q1/4p1N1/3P2Q1/8/PPP2P2/6K1 w - - 4 30",
+   "solution": [
+    "g5e6",
+    "g7f7",
+    "g4g6",
+    "f7g6",
+    "e6f8"
+   ],
+   "rating": 1491,
+   "source": "https://lichess.org/game/kWYV6RNu/black#58"
+  },
+  {
+   "id": "096U9",
+   "unitId": "change-the-defender",
+   "fen": "2rq1rk1/pp2pp1p/3pn1p1/3N4/2Q5/8/PP3PPP/R2R2K1 w - - 3 19",
+   "solution": [
+    "c4c8",
+    "d8c8",
+    "d5e7",
+    "g8g7",
+    "e7c8"
+   ],
+   "rating": 1532,
+   "source": "https://lichess.org/game/W0ujN1I2/black#36"
+  },
+  {
+   "id": "0871Z",
+   "unitId": "change-the-defender",
+   "fen": "1r3r1k/1pN1pQbp/2n3p1/2q1p3/2P5/2B3PB/4PP1P/1R4K1 w - - 10 30",
+   "solution": [
+    "f7g7",
+    "h8g7",
+    "c7e6",
+    "g7f7",
+    "e6c5"
+   ],
+   "rating": 1703,
+   "source": "https://lichess.org/game/6U6BuzTE/black#58"
+  },
+  {
+   "id": "0qlNM",
+   "unitId": "change-the-defender",
+   "fen": "2r5/1bp2r1k/3p2Rp/3Pp2P/1q2P3/1P3P2/P7/1K4Q1 w - - 4 34",
+   "solution": [
+    "g6h6",
+    "h7h6",
+    "g1g6"
+   ],
+   "rating": 1331,
+   "source": "https://lichess.org/game/sREJSUPy/black#66"
+  },
+  {
+   "id": "0SDIp",
+   "unitId": "change-the-defender",
+   "fen": "1r4k1/5p1p/2p2qr1/2Np4/1P1Q4/4P1P1/5P1P/5RK1 w - - 3 30",
+   "solution": [
+    "d4f6",
+    "g6f6",
+    "c5d7",
+    "b8b4",
+    "d7f6"
+   ],
+   "rating": 1374,
+   "source": "https://lichess.org/game/3TBEHHSt/black#58"
+  },
+  {
+   "id": "0p0Wq",
+   "unitId": "change-the-defender",
+   "fen": "1q1r1r1k/p5pp/4Q3/8/3p1P2/1P2p1K1/P7/R6R w - - 2 30",
+   "solution": [
+    "h1h7",
+    "h8h7",
+    "a1h1"
+   ],
+   "rating": 1259,
+   "source": "https://lichess.org/game/UtR1cJED/black#58"
+  },
+  {
+   "id": "0iHTS",
+   "unitId": "change-the-defender",
+   "fen": "5rk1/pp4pp/2b5/2Np3Q/2nq4/8/P5PP/5R1K w - - 2 24",
+   "solution": [
+    "f1f8",
+    "g8f8",
+    "c5e6",
+    "f8e7",
+    "e6d4"
+   ],
+   "rating": 1389,
+   "source": "https://lichess.org/game/QugerKF6/black#46"
+  },
+  {
+   "id": "04M9B",
+   "unitId": "change-the-defender",
+   "fen": "rqb1kb1r/3p1ppp/4pn2/1N2n3/8/2N1BQ2/PPP2PPP/2KR3R w kq - 0 12",
+   "solution": [
+    "f3a8",
+    "b8a8",
+    "b5c7",
+    "e8d8",
+    "c7a8"
+   ],
+   "rating": 1613,
+   "source": "https://lichess.org/game/RCCIhfdB/black#22"
+  },
+  {
+   "id": "0V8WV",
+   "unitId": "change-the-defender",
+   "fen": "r3r3/p1p1Pp1k/b1p2Pp1/2qp2Qp/4n3/1B5R/P1P3PP/3R3K w - - 2 27",
+   "solution": [
+    "h3h5",
+    "h7g8",
+    "h5h8",
+    "g8h8",
+    "g5h6",
+    "h8g8",
+    "h6g7"
+   ],
+   "rating": 1692,
+   "source": "https://lichess.org/game/4dRcmjN9/black#52"
+  },
+  {
+   "id": "0CzTi",
+   "unitId": "change-the-defender",
+   "fen": "6rk/1Q4Rp/p2p4/2pPpN2/2P1n3/P7/5PPP/4qBK1 b - - 0 34",
+   "solution": [
+    "e1f2",
+    "g1h1",
+    "f2f1"
+   ],
+   "rating": 1120,
+   "source": "https://lichess.org/game/SFfr4uBj#67"
+  },
+  {
+   "id": "0snak",
+   "unitId": "change-the-defender",
+   "fen": "6k1/pp3ppp/4p3/3p4/r2P3P/2B5/PKQ1q1P1/7R b - - 2 26",
+   "solution": [
+    "a4a2",
+    "b2a2",
+    "e2c2"
+   ],
+   "rating": 1182,
+   "source": "https://lichess.org/game/BjdG1qAR#51"
+  },
+  {
+   "id": "0kKzG",
+   "unitId": "change-the-defender",
+   "fen": "6k1/pp3pp1/5n2/2p2NQ1/3p2b1/1P1P2q1/PBP3B1/4rRK1 b - - 5 25",
+   "solution": [
+    "e1f1",
+    "g1f1",
+    "g4e2",
+    "f1e2",
+    "g3g5"
+   ],
+   "rating": 1382,
+   "source": "https://lichess.org/game/xYT9EXWF#49"
+  },
+  {
+   "id": "0ZyeL",
+   "unitId": "change-the-defender",
+   "fen": "2nr1rk1/5pp1/5q1p/pPbp4/P1P1p2P/4P3/1B1QN1P1/RN4KR b - - 0 21",
+   "solution": [
+    "c5e3",
+    "d2e3",
+    "f6b2"
+   ],
+   "rating": 1593,
+   "source": "https://lichess.org/game/V4Lq6OZS#41"
+  },
+  {
+   "id": "0O3ze",
+   "unitId": "change-the-defender",
+   "fen": "5rk1/1rp1b3/3p2p1/p1nPp1Pp/4P2P/P1N2R1B/1P3R2/2K5 b - - 5 32",
+   "solution": [
+    "c5d3",
+    "f3d3",
+    "f8f2"
+   ],
+   "rating": 1624,
+   "source": "https://lichess.org/game/q6EK1cPJ#63"
+  },
+  {
+   "id": "0oB3u",
+   "unitId": "change-the-defender",
+   "fen": "rn3rk1/pbpp4/1p2pn1Q/7q/3P4/P1PB1N2/2P3PP/R4RK1 w - - 1 15",
+   "solution": [
+    "d3h7",
+    "f6h7",
+    "h6h5"
+   ],
+   "rating": 1178,
+   "source": "https://lichess.org/game/QGNnp8UH/black#28"
+  },
+  {
+   "id": "0WgVs",
+   "unitId": "change-the-defender",
+   "fen": "2k5/p1q5/2P5/2NpP3/Q2P1R2/4n1pr/8/2R3K1 b - - 0 36",
+   "solution": [
+    "h3h1",
+    "g1h1",
+    "c7h7",
+    "f4h4",
+    "h7h4",
+    "h1g1",
+    "h4h2"
+   ],
+   "rating": 1776,
+   "source": "https://lichess.org/game/lyfA64tJ#71"
+  },
+  {
+   "id": "0pEOU",
+   "unitId": "change-the-defender",
+   "fen": "1r5k/p2R1p1p/4p1pP/8/5N2/b3P3/6r1/1K1R4 w - - 6 35",
+   "solution": [
+    "b1a1",
+    "g2b2",
+    "d7d8",
+    "a3f8",
+    "d8f8",
+    "b8f8",
+    "a1b2"
+   ],
+   "rating": 1588,
+   "source": "https://lichess.org/game/fCAJmgbI/black#68"
+  },
+  {
+   "id": "0RWli",
+   "unitId": "test-a-sacrifice",
+   "fen": "2r2rk1/2qnppb1/p2p2p1/3Q4/1p5R/1P6/PBP1PPB1/2K4R w - - 1 23",
+   "solution": [
+    "h4h8",
+    "g7h8",
+    "h1h8"
+   ],
+   "rating": 1179,
+   "source": "https://lichess.org/game/1MXkP6gt/black#44"
+  },
+  {
+   "id": "0ludC",
+   "unitId": "test-a-sacrifice",
+   "fen": "r1bqk3/ppp2p2/2np4/2b1p2p/2B1P1rP/P1NP2P1/1PP3PK/R1BQ1R2 b q - 1 14",
+   "solution": [
+    "g4h4",
+    "g3h4",
+    "d8h4"
+   ],
+   "rating": 1134,
+   "source": "https://lichess.org/game/KZTdN64H#27"
+  },
+  {
+   "id": "09SS5",
+   "unitId": "test-a-sacrifice",
+   "fen": "r5k1/4Qpp1/6P1/8/2qp4/p3R3/5P2/6K1 w - - 0 33",
+   "solution": [
+    "e7e8",
+    "a8e8",
+    "e3e8"
+   ],
+   "rating": 1545,
+   "source": "https://lichess.org/game/nzEg5nBY/black#64"
+  },
+  {
+   "id": "0z37P",
+   "unitId": "test-a-sacrifice",
+   "fen": "3r1rk1/R5p1/5q2/p1p4p/1p2Q3/P3P3/5PPP/5RK1 b - - 4 33",
+   "solution": [
+    "f6f2",
+    "f1f2",
+    "d8d1",
+    "f2f1",
+    "d1f1"
+   ],
+   "rating": 1368,
+   "source": "https://lichess.org/game/AyA23BzQ#65"
+  },
+  {
+   "id": "02ICM",
+   "unitId": "test-a-sacrifice",
+   "fen": "4k3/8/8/4N3/1pPP4/p6P/2Kn2P1/8 b - - 3 51",
+   "solution": [
+    "b4b3",
+    "c2d2",
+    "a3a2",
+    "d2c3",
+    "a2a1q"
+   ],
+   "rating": 1673,
+   "source": "https://lichess.org/game/lUhC65Pm#101"
+  },
+  {
+   "id": "0OJJN",
+   "unitId": "test-a-sacrifice",
+   "fen": "r1br2k1/pp2pp1p/6pB/4b3/8/1P1q1Q1P/P5P1/RN3R1K w - - 0 18",
+   "solution": [
+    "f3f7",
+    "g8h8",
+    "f7f8",
+    "d8f8",
+    "f1f8"
+   ],
+   "rating": 1435,
+   "source": "https://lichess.org/game/7FK8OeMv/black#34"
+  },
+  {
+   "id": "00Pr6",
+   "unitId": "test-a-sacrifice",
+   "fen": "r1b2rk1/p4ppp/2p5/6q1/6P1/3p1Q1P/PPP5/1K2RR2 w - - 0 18",
+   "solution": [
+    "f3f7",
+    "f8f7",
+    "e1e8",
+    "f7f8",
+    "f1f8"
+   ],
+   "rating": 1496,
+   "source": "https://lichess.org/game/CtrEbVZV/black#34"
+  },
+  {
+   "id": "03bxv",
+   "unitId": "test-a-sacrifice",
+   "fen": "r1r4k/p4p1p/4p3/2BpNq2/1P6/5P2/4K3/6Q1 w - - 2 32",
+   "solution": [
+    "e5f7",
+    "f5f7",
+    "c5d4",
+    "e6e5",
+    "d4e5",
+    "f7f6",
+    "e5f6"
+   ],
+   "rating": 1738,
+   "source": "https://lichess.org/game/LJqZYXGA/black#62"
+  },
+  {
+   "id": "0OmqT",
+   "unitId": "test-a-sacrifice",
+   "fen": "6k1/5p1p/2r1p1p1/2Pn4/p1R5/2N2P2/2r3PP/R5K1 w - - 6 34",
+   "solution": [
+    "c3d5",
+    "c2c4",
+    "d5e7",
+    "g8f8",
+    "e7c6"
+   ],
+   "rating": 1149,
+   "source": "https://lichess.org/game/Fpx1oASH/black#66"
+  },
+  {
+   "id": "0w0Zm",
+   "unitId": "test-a-sacrifice",
+   "fen": "r5k1/3r1pp1/1p2p2p/1Pq1Pb2/1RP5/3pR2P/3Q1PP1/2N1N1K1 b - - 4 29",
+   "solution": [
+    "c5b4",
+    "d2b4",
+    "d3d2",
+    "c1b3",
+    "d2d1q"
+   ],
+   "rating": 1784,
+   "source": "https://lichess.org/game/kTbbQnfY#57"
+  },
+  {
+   "id": "0hlzh",
+   "unitId": "test-a-sacrifice",
+   "fen": "6n1/5Npk/4pb2/p6P/1p2bPQ1/4P3/PPrq4/K5R1 w - - 5 32",
+   "solution": [
+    "g4g6",
+    "e4g6",
+    "h5g6"
+   ],
+   "rating": 1789,
+   "source": "https://lichess.org/game/uX8zu4rv/black#62"
+  },
+  {
+   "id": "0jcmc",
+   "unitId": "test-a-sacrifice",
+   "fen": "r3r2k/4b1p1/p1p1Q1Pp/3p4/2p5/6q1/PP2B3/1K1R3R w - - 0 25",
+   "solution": [
+    "h1h6",
+    "g7h6",
+    "e6f7",
+    "g3g6",
+    "f7g6"
+   ],
+   "rating": 1632,
+   "source": "https://lichess.org/game/KpEBmL1M/black#48"
+  },
+  {
+   "id": "0wPKr",
+   "unitId": "test-a-sacrifice",
+   "fen": "r2r2k1/1pp1b1pp/2n2p2/p2npq2/P4N1P/1PPP1QP1/1B1N1P2/2KRR3 w - - 4 18",
+   "solution": [
+    "f4d5",
+    "f5f3",
+    "d5e7",
+    "c6e7",
+    "d2f3"
+   ],
+   "rating": 1701,
+   "source": "https://lichess.org/game/yGiTJbzX/black#34"
+  },
+  {
+   "id": "0mp0U",
+   "unitId": "test-a-sacrifice",
+   "fen": "rn3rk1/p4pn1/1p1Q2p1/2pPp3/2q1P1b1/5RN1/PP2N1PP/5R1K w - - 2 23",
+   "solution": [
+    "f3f7",
+    "f8f7",
+    "d6d8"
+   ],
+   "rating": 1781,
+   "source": "https://lichess.org/game/ZbPoZ3tY/black#44"
+  },
+  {
+   "id": "0p4qB",
+   "unitId": "test-a-sacrifice",
+   "fen": "2r2rk1/5pp1/p4q2/1p3Np1/4Bn2/2P4Q/PP4PP/3R2K1 w - - 1 27",
+   "solution": [
+    "f5e7",
+    "f6e7",
+    "h3h7"
+   ],
+   "rating": 1034,
+   "source": "https://lichess.org/game/ISLnt7uo/black#52"
+  },
+  {
+   "id": "0t6tb",
+   "unitId": "test-a-sacrifice",
+   "fen": "8/8/8/2Kp3P/5pk1/2P1nN2/8/8 w - - 5 63",
+   "solution": [
+    "h5h6",
+    "g4f3",
+    "h6h7"
+   ],
+   "rating": 1332,
+   "source": "https://lichess.org/game/ORnNcXor/black#124"
+  },
+  {
+   "id": "0FvI9",
+   "unitId": "test-a-sacrifice",
+   "fen": "4rr1k/pp4pp/2p5/4qp2/2QpnN2/1P2PR2/P5PP/5RK1 w - - 2 24",
+   "solution": [
+    "f4g6",
+    "h7g6",
+    "f3h3"
+   ],
+   "rating": 1008,
+   "source": "https://lichess.org/game/yzkuTnjs/black#46"
+  },
+  {
+   "id": "08N5I",
+   "unitId": "test-a-sacrifice",
+   "fen": "3r4/4kp2/p1B2R2/8/5Q2/2P1P3/Pr1q1PP1/R4K2 b - - 7 26",
+   "solution": [
+    "d2d1",
+    "a1d1",
+    "d8d1"
+   ],
+   "rating": 1248,
+   "source": "https://lichess.org/game/9jPtvTec#51"
+  },
+  {
+   "id": "0OiP9",
+   "unitId": "test-a-sacrifice",
+   "fen": "4r1k1/1p4pp/4pr2/p1qpN3/4nP2/P1P5/1P2Q1PP/3R1R1K b - - 4 24",
+   "solution": [
+    "e4g3",
+    "h2g3",
+    "f6h6",
+    "e2h5",
+    "h6h5"
+   ],
+   "rating": 1163,
+   "source": "https://lichess.org/game/CEJIsv1l#47"
+  },
+  {
+   "id": "0f1Om",
+   "unitId": "test-a-sacrifice",
+   "fen": "7r/1k3p2/pp1p4/2pP1N1r/2P1P3/5Q2/PP1q2B1/5RK1 b - - 0 33",
+   "solution": [
+    "h5h1",
+    "g2h1",
+    "d2h2"
+   ],
+   "rating": 1256,
+   "source": "https://lichess.org/game/qPN5kle4#65"
+  },
+  {
+   "id": "0gWd3",
+   "unitId": "test-a-sacrifice",
+   "fen": "5b2/5rk1/1qPp3p/p2Qp1p1/1p1pP3/1P1P2PP/P5K1/2R5 w - - 4 42",
+   "solution": [
+    "d5f7",
+    "g7f7",
+    "c6c7",
+    "b6c7",
+    "c1c7"
+   ],
+   "rating": 1609,
+   "source": "https://lichess.org/game/1OJXA5d1/black#82"
+  },
+  {
+   "id": "0tyqR",
+   "unitId": "test-a-sacrifice",
+   "fen": "5q1k/pp1Q2p1/8/5n2/3PN2P/2P5/PP3r1p/4R2K b - - 4 31",
+   "solution": [
+    "f5g3",
+    "e4g3",
+    "f8f3"
+   ],
+   "rating": 1358,
+   "source": "https://lichess.org/game/JHTw7DpG#61"
+  },
+  {
+   "id": "0Hvdn",
+   "unitId": "test-a-sacrifice",
+   "fen": "4r3/8/1k6/p3BR1P/8/1p2P2K/8/8 b - - 1 50",
+   "solution": [
+    "e8e5",
+    "f5e5",
+    "b3b2"
+   ],
+   "rating": 1301,
+   "source": "https://lichess.org/game/Ap84nVg8#99"
+  },
+  {
+   "id": "0qVL3",
+   "unitId": "test-a-sacrifice",
+   "fen": "r4r2/pp3p1k/2p3pp/3nB3/3P2Pq/2PQ4/PPB5/5RK1 w - - 0 23",
+   "solution": [
+    "f1f7",
+    "f8f7",
+    "d3g6"
+   ],
+   "rating": 1251,
+   "source": "https://lichess.org/game/KfFCCXvc/black#44"
+  },
+  {
+   "id": "0mH0w",
+   "unitId": "test-a-sacrifice",
+   "fen": "3rr1k1/p4p2/2p1q1pp/1p6/2pP1P2/P3P1R1/2Q2P1P/6RK w - - 3 24",
+   "solution": [
+    "g3g6",
+    "f7g6",
+    "g1g6",
+    "g8h8",
+    "g6e6"
+   ],
+   "rating": 1235,
+   "source": "https://lichess.org/game/VXtcC18X/black#46"
+  },
+  {
+   "id": "0a7ao",
+   "unitId": "test-a-sacrifice",
+   "fen": "6r1/pp1k4/3qpp2/7p/2pP2rP/P1P2QP1/1P3P2/3RR1K1 b - - 5 24",
+   "solution": [
+    "g4g3",
+    "f2g3",
+    "g8g3"
+   ],
+   "rating": 1038,
+   "source": "https://lichess.org/game/4nr3c5K6#47"
+  },
+  {
+   "id": "02Cq3",
+   "unitId": "test-a-sacrifice",
+   "fen": "r1k4r/1p1nQ1p1/p4p2/1N3P1p/3P4/2P5/q5PP/4R2K w - - 0 26",
+   "solution": [
+    "e7e8",
+    "h8e8",
+    "e1e8"
+   ],
+   "rating": 1669,
+   "source": "https://lichess.org/game/0MRd72jU/black#50"
+  },
+  {
+   "id": "0Tp4Y",
+   "unitId": "test-a-sacrifice",
+   "fen": "6rk/ppR4p/3pB1pB/3Pp2q/2P5/7P/PP4PK/8 w - - 5 28",
+   "solution": [
+    "h6g7",
+    "g8g7",
+    "c7c8",
+    "g7g8",
+    "c8g8"
+   ],
+   "rating": 1675,
+   "source": "https://lichess.org/game/USgQLf5O/black#54"
+  },
+  {
+   "id": "0paXW",
+   "unitId": "test-a-sacrifice",
+   "fen": "2r2rk1/1b3p2/p4q2/1p2pNbQ/8/P2B2P1/1PP5/R5K1 w - - 0 31",
+   "solution": [
+    "f5e7",
+    "f6e7",
+    "h5h7"
+   ],
+   "rating": 1229,
+   "source": "https://lichess.org/game/TP0gWqMy/black#60"
+  },
+  {
+   "id": "0hzhH",
+   "unitId": "test-a-sacrifice",
+   "fen": "5r1k/p6p/2p3BQ/2qr4/8/1P6/P1P2PPP/5RK1 b - - 0 26",
+   "solution": [
+    "c5f2",
+    "f1f2",
+    "d5d1",
+    "f2f1",
+    "d1f1"
+   ],
+   "rating": 1396,
+   "source": "https://lichess.org/game/NttYIxg0#51"
+  },
+  {
+   "id": "0tlvX",
+   "unitId": "mating-patterns",
+   "fen": "2kr3r/pp3pp1/8/2pRQ3/4P1qp/8/PPP2PPP/3R2K1 b - - 2 20",
+   "solution": [
+    "g4d1",
+    "d5d1",
+    "d8d1"
+   ],
+   "rating": 1335,
+   "source": "https://lichess.org/game/5VzEv8WR#39"
+  },
+  {
+   "id": "0w1Hv",
+   "unitId": "mating-patterns",
+   "fen": "r3k1nr/p3ppbp/2p3p1/4q3/1P6/2N1B3/P1PQb1PP/3RK2R w Kkq - 0 17",
+   "solution": [
+    "d2d7",
+    "e8f8",
+    "d7d8",
+    "a8d8",
+    "d1d8"
+   ],
+   "rating": 1402,
+   "source": "https://lichess.org/game/rI4wAnWP/black#32"
+  },
+  {
+   "id": "0i0sM",
+   "unitId": "mating-patterns",
+   "fen": "2r2rk1/1Rp1p2p/6p1/p2N4/2Pn4/P2P4/6PP/5RK1 b - - 1 22",
+   "solution": [
+    "d4e2",
+    "g1h1",
+    "f8f1"
+   ],
+   "rating": 1011,
+   "source": "https://lichess.org/game/zxR8ek7M#43"
+  },
+  {
+   "id": "0pAcl",
+   "unitId": "mating-patterns",
+   "fen": "r5k1/ppp3pp/n3p3/3q4/3P1Q2/2P5/P5PP/5RK1 w - - 3 20",
+   "solution": [
+    "f4f7",
+    "g8h8",
+    "f7f8",
+    "a8f8",
+    "f1f8"
+   ],
+   "rating": 1055,
+   "source": "https://lichess.org/game/GPCNTsi4/black#38"
+  },
+  {
+   "id": "0ZDiU",
+   "unitId": "mating-patterns",
+   "fen": "5rk1/1QP5/pp2p1pp/5qp1/3P4/6P1/PP4PP/R5K1 b - - 2 25",
+   "solution": [
+    "f5f2",
+    "g1h1",
+    "f2f1",
+    "a1f1",
+    "f8f1"
+   ],
+   "rating": 1107,
+   "source": "https://lichess.org/game/9ihqy06b#49"
+  },
+  {
+   "id": "0AcSf",
+   "unitId": "mating-patterns",
+   "fen": "6k1/p4pbp/6p1/3PPp2/1P2nP2/P1R1rQ2/B5PP/7K b - - 0 29",
+   "solution": [
+    "e3e1",
+    "f3f1",
+    "e1f1"
+   ],
+   "rating": 1104,
+   "source": "https://lichess.org/game/LeUvIr38#57"
+  },
+  {
+   "id": "0Nox8",
+   "unitId": "mating-patterns",
+   "fen": "1r2k2r/4ppb1/6p1/p1p1P2p/P6P/2B5/qP1Q2P1/2KR3R w k - 2 25",
+   "solution": [
+    "d2d7",
+    "e8f8",
+    "d7d8",
+    "b8d8",
+    "d1d8"
+   ],
+   "rating": 1141,
+   "source": "https://lichess.org/game/bfCrb0Qj/black#48"
+  },
+  {
+   "id": "0KGSB",
+   "unitId": "mating-patterns",
+   "fen": "3R1r2/7Q/1pr1kp2/p3p3/8/6R1/P4PPP/6K1 b - - 0 32",
+   "solution": [
+    "c6c1",
+    "d8d1",
+    "c1d1"
+   ],
+   "rating": 1007,
+   "source": "https://lichess.org/game/Up5v4TEV#63"
+  },
+  {
+   "id": "0gwkK",
+   "unitId": "mating-patterns",
+   "fen": "r1b1r1k1/ppp3pp/2p2n2/q4p2/8/1P1P1Q2/PBP1RPPP/RN4K1 b - - 2 14",
+   "solution": [
+    "a5e1",
+    "e2e1",
+    "e8e1"
+   ],
+   "rating": 1249,
+   "source": "https://lichess.org/game/xMsX2mIZ#27"
+  },
+  {
+   "id": "09BED",
+   "unitId": "mating-patterns",
+   "fen": "6k1/5pp1/pq5p/4p3/P1r1B3/5Q2/5PPP/1R4K1 b - - 9 27",
+   "solution": [
+    "b6b1",
+    "e4b1",
+    "c4c1",
+    "f3d1",
+    "c1d1"
+   ],
+   "rating": 1000,
+   "source": "https://lichess.org/game/HBItIvT7#53"
+  },
+  {
+   "id": "0xb8P",
+   "unitId": "mating-patterns",
+   "fen": "2r3k1/1Q3ppp/4pn2/2r5/1p2q3/6P1/PP3P1P/2R3K1 w - - 0 27",
+   "solution": [
+    "b7c8",
+    "c5c8",
+    "c1c8",
+    "f6e8",
+    "c8e8"
+   ],
+   "rating": 1332,
+   "source": "https://lichess.org/game/uMD4qhUO/black#52"
+  },
+  {
+   "id": "0E71c",
+   "unitId": "mating-patterns",
+   "fen": "2r3k1/pp4pp/4p3/3pP3/2q3rP/2PR4/2PK1Q2/5R2 w - - 2 25",
+   "solution": [
+    "f2f7",
+    "g8h8",
+    "f7f8",
+    "c8f8",
+    "f1f8"
+   ],
+   "rating": 1065,
+   "source": "https://lichess.org/game/PglrzHuO/black#48"
+  },
+  {
+   "id": "0daFH",
+   "unitId": "mating-patterns",
+   "fen": "1r3rk1/1pR2qpp/4p3/p1P1Q3/P2P4/2P5/6PP/1R4K1 b - - 2 31",
+   "solution": [
+    "f7f2",
+    "g1h1",
+    "f2f1",
+    "b1f1",
+    "f8f1"
+   ],
+   "rating": 1164,
+   "source": "https://lichess.org/game/QDm3lVK9#61"
+  },
+  {
+   "id": "0840n",
+   "unitId": "mating-patterns",
+   "fen": "5rk1/1p4pp/p1n5/2P1P3/1B2Q3/P7/1q4PP/1R4K1 b - - 4 30",
+   "solution": [
+    "b2f2",
+    "g1h1",
+    "f2f1",
+    "b1f1",
+    "f8f1"
+   ],
+   "rating": 1386,
+   "source": "https://lichess.org/game/0tiiUBCG#59"
+  },
+  {
+   "id": "0yCkK",
+   "unitId": "mating-patterns",
+   "fen": "6k1/p4ppp/4b3/2Q5/1P6/6PP/r2q1PB1/4R1K1 w - - 1 25",
+   "solution": [
+    "c5c8",
+    "e6c8",
+    "e1e8"
+   ],
+   "rating": 1713,
+   "source": "https://lichess.org/game/xoihcKoC/black#48"
+  },
+  {
+   "id": "0EE6r",
+   "unitId": "mating-patterns",
+   "fen": "6k1/5ppp/2qr2n1/r1P2R2/8/p5P1/Q6P/5BK1 w - - 0 33",
+   "solution": [
+    "a2f7",
+    "g8h8",
+    "f7f8",
+    "g6f8",
+    "f5f8"
+   ],
+   "rating": 1112,
+   "source": "https://lichess.org/game/xxOdz26Q/black#64"
+  },
+  {
+   "id": "0WQOR",
+   "unitId": "mating-patterns",
+   "fen": "r1b2rk1/2p1Qqpp/2pp4/1p4B1/3P4/8/PP3PPP/RN2R1K1 b - - 0 15",
+   "solution": [
+    "f7f2",
+    "g1h1",
+    "f2f1",
+    "e1f1",
+    "f8f1"
+   ],
+   "rating": 1243,
+   "source": "https://lichess.org/game/8F50HU3y#29"
+  },
+  {
+   "id": "0l7B6",
+   "unitId": "mating-patterns",
+   "fen": "2r2rk1/ppp3p1/7B/8/6Q1/2N5/Pq3RPP/2R3K1 b - - 0 23",
+   "solution": [
+    "b2f2",
+    "g1h1",
+    "f2f1",
+    "c1f1",
+    "f8f1"
+   ],
+   "rating": 1713,
+   "source": "https://lichess.org/game/NmQ8W7sh#45"
+  },
+  {
+   "id": "003Tx",
+   "unitId": "mating-patterns",
+   "fen": "2r5/pR5p/5p1k/4p3/4R3/B4nPP/PP3P2/1K6 b - - 0 27",
+   "solution": [
+    "f3d2",
+    "b1a1",
+    "c8c1"
+   ],
+   "rating": 1510,
+   "source": "https://lichess.org/game/A7j9VEC0#53"
+  },
+  {
+   "id": "0md9A",
+   "unitId": "mating-patterns",
+   "fen": "3r3k/p2P1Qpp/1p6/2p3P1/8/P4Pbq/7P/3R3K w - - 2 36",
+   "solution": [
+    "f7e8",
+    "d8e8",
+    "d7e8q"
+   ],
+   "rating": 1039,
+   "source": "https://lichess.org/game/5xxlXpXx/black#70"
+  },
+  {
+   "id": "0R0Sy",
+   "unitId": "mating-patterns",
+   "fen": "1r4k1/p2bbppp/r3p3/3pP3/qp1N1P1P/1N2B3/1PPQ2P1/1K1R3R b - - 0 20",
+   "solution": [
+    "a4a2",
+    "b1c1",
+    "a2a1",
+    "b3a1",
+    "a6a1"
+   ],
+   "rating": 1060,
+   "source": "https://lichess.org/game/n16iOKTU#39"
+  },
+  {
+   "id": "0wCzx",
+   "unitId": "mating-patterns",
+   "fen": "1k3rnr/ppp3pp/4Q3/2q5/8/2P5/PP3PPP/R1B1R1K1 b - - 0 18",
+   "solution": [
+    "c5f2",
+    "g1h1",
+    "f2f1",
+    "e1f1",
+    "f8f1"
+   ],
+   "rating": 1109,
+   "source": "https://lichess.org/game/e1lzDHx2#35"
+  },
+  {
+   "id": "0a5X0",
+   "unitId": "mating-patterns",
+   "fen": "r3r2k/1n4pp/p7/1p1P4/2p2QP1/2P4q/PP6/4RRK1 w - - 2 27",
+   "solution": [
+    "e1e8",
+    "a8e8",
+    "f4f8",
+    "e8f8",
+    "f1f8"
+   ],
+   "rating": 1114,
+   "source": "https://lichess.org/game/fTgRTPPQ/black#52"
+  },
+  {
+   "id": "0J71F",
+   "unitId": "mating-patterns",
+   "fen": "r4r2/kp2R1Q1/pqp5/7p/2B5/2NP4/PPP2PPP/4R1K1 b - - 7 25",
+   "solution": [
+    "b6f2",
+    "g1h1",
+    "f2f1",
+    "e1f1",
+    "f8f1"
+   ],
+   "rating": 1139,
+   "source": "https://lichess.org/game/hukotPZD#49"
+  },
+  {
+   "id": "08xqh",
+   "unitId": "mating-patterns",
+   "fen": "4rrk1/pppb1p1p/5QpB/3P4/8/2N3R1/P1q2PPP/1R4K1 b - - 0 20",
+   "solution": [
+    "c2b1",
+    "c3b1",
+    "e8e1"
+   ],
+   "rating": 1271,
+   "source": "https://lichess.org/game/hyTB4IL1#39"
+  },
+  {
+   "id": "0Qfbu",
+   "unitId": "mating-patterns",
+   "fen": "5rk1/1b4pp/pp6/2pPP3/P1P1B3/1P4Q1/3q1rPP/R3R2K b - - 10 29",
+   "solution": [
+    "d2e1",
+    "a1e1",
+    "f2f1",
+    "e1f1",
+    "f8f1"
+   ],
+   "rating": 1515,
+   "source": "https://lichess.org/game/uKMQud6M#57"
+  },
+  {
+   "id": "0isYY",
+   "unitId": "mating-patterns",
+   "fen": "r1b1r1k1/ppp2ppp/8/3p4/8/2PP1Q2/PP2q1PP/R4RK1 w - - 0 15",
+   "solution": [
+    "f3f7",
+    "g8h8",
+    "f7f8",
+    "e8f8",
+    "f1f8"
+   ],
+   "rating": 1052,
+   "source": "https://lichess.org/game/Q7x6qyEO/black#28"
+  },
+  {
+   "id": "0qZDk",
+   "unitId": "mating-patterns",
+   "fen": "5r2/2p1k1p1/6Q1/1p1RP3/7q/1P6/1P4PP/3R2K1 b - - 2 32",
+   "solution": [
+    "h4f2",
+    "g1h1",
+    "f2f1",
+    "d1f1",
+    "f8f1"
+   ],
+   "rating": 1039,
+   "source": "https://lichess.org/game/QkJdk4FN#63"
+  },
+  {
+   "id": "0oihZ",
+   "unitId": "mating-patterns",
+   "fen": "2r4k/pp2r1pp/1n3qp1/1Q6/3P4/P7/5PPP/2R1R1K1 w - - 0 31",
+   "solution": [
+    "c1c8",
+    "b6c8",
+    "b5e8",
+    "e7e8",
+    "e1e8",
+    "f6f8",
+    "e8f8"
+   ],
+   "rating": 1615,
+   "source": "https://lichess.org/game/IxAS0l8R/black#60"
+  },
+  {
+   "id": "0KOSd",
+   "unitId": "mating-patterns",
+   "fen": "7k/6pp/4r3/8/2QP4/1pP2P2/qP4PP/6K1 w - - 0 30",
+   "solution": [
+    "c4c8",
+    "e6e8",
+    "c8e8"
+   ],
+   "rating": 1143,
+   "source": "https://lichess.org/game/qUdYMBns/black#58"
+  },
+  {
+   "id": "0WWgZ",
+   "unitId": "simple-mates",
+   "fen": "r2q1rk1/3bbppp/3pp3/6nP/pp1Q4/1P3N2/PBP1N3/2KR1B1R w - - 0 19",
+   "solution": [
+    "d4g7"
+   ],
+   "rating": 1393,
+   "source": "https://lichess.org/game/4OOa0ICO/black#36"
+  },
+  {
+   "id": "0kkWD",
+   "unitId": "simple-mates",
+   "fen": "r4r2/pp5k/8/2p3R1/3n4/1P4P1/P4PK1/5R2 w - - 1 28",
+   "solution": [
+    "f1h1"
+   ],
+   "rating": 1030,
+   "source": "https://lichess.org/game/mUCw6o9A/black#54"
+  },
+  {
+   "id": "0VQ6D",
+   "unitId": "simple-mates",
+   "fen": "7k/3b3p/3Q4/2PPpq2/5p2/4nP1P/4N1RK/8 b - - 0 37",
+   "solution": [
+    "f5h3",
+    "h2g1",
+    "h3g2"
+   ],
+   "rating": 1633,
+   "source": "https://lichess.org/game/wcIx8wiQ#73"
+  },
+  {
+   "id": "07Syw",
+   "unitId": "simple-mates",
+   "fen": "6k1/p4pp1/4p2p/8/P3Pq2/7B/3QKP1n/4R3 b - - 2 31",
+   "solution": [
+    "f4f3"
+   ],
+   "rating": 1144,
+   "source": "https://lichess.org/game/jZ7Bv2mA#61"
+  },
+  {
+   "id": "0RTIr",
+   "unitId": "simple-mates",
+   "fen": "1qrr2k1/5p1p/pp2n1pQ/3b1N2/3B4/1P3P1P/P5P1/1B3RK1 w - - 2 25",
+   "solution": [
+    "f5e7"
+   ],
+   "rating": 1150,
+   "source": "https://lichess.org/game/MHIIYWOU/black#48"
+  },
+  {
+   "id": "0W536",
+   "unitId": "simple-mates",
+   "fen": "7k/p6p/6nP/2p5/4r3/P3q3/5QP1/7K w - - 0 40",
+   "solution": [
+    "f2f6",
+    "h8g8",
+    "f6g7"
+   ],
+   "rating": 1238,
+   "source": "https://lichess.org/game/kmxsmYBA/black#78"
+  },
+  {
+   "id": "04wme",
+   "unitId": "simple-mates",
+   "fen": "2k5/1p1R1p1r/p3n1p1/4b1P1/4P3/1Pq1B2P/P1PQ2B1/2K5 b - - 0 29",
+   "solution": [
+    "c3a1"
+   ],
+   "rating": 1215,
+   "source": "https://lichess.org/game/K2uJjjc9#57"
+  },
+  {
+   "id": "09hZw",
+   "unitId": "simple-mates",
+   "fen": "Q4R2/1R6/8/4p3/4k1p1/1p3nP1/5PK1/r7 b - - 0 46",
+   "solution": [
+    "a1g1"
+   ],
+   "rating": 1206,
+   "source": "https://lichess.org/game/BmzTNa9m#91"
+  },
+  {
+   "id": "0qAPQ",
+   "unitId": "simple-mates",
+   "fen": "1k4r1/1ppQ1r1p/1p4q1/4B3/3Pp1p1/2P1P1P1/P7/2K1R3 w - - 3 32",
+   "solution": [
+    "e5c7",
+    "b8a7",
+    "d7a4"
+   ],
+   "rating": 1165,
+   "source": "https://lichess.org/game/jIg5bSY3/black#62"
+  },
+  {
+   "id": "0M7kz",
+   "unitId": "simple-mates",
+   "fen": "r3rk2/pppb2p1/3P1n1p/8/2BQq3/8/PPP3PP/5RK1 w - - 0 19",
+   "solution": [
+    "f1f6",
+    "g7f6",
+    "d4f6"
+   ],
+   "rating": 1147,
+   "source": "https://lichess.org/game/GoogMA70/black#36"
+  },
+  {
+   "id": "0aPyH",
+   "unitId": "simple-mates",
+   "fen": "r4r2/p6R/1p1k1pp1/1b1q4/8/4QNP1/P4PP1/6K1 w - - 6 34",
+   "solution": [
+    "e3e7",
+    "d6c6",
+    "e7c7"
+   ],
+   "rating": 1147,
+   "source": "https://lichess.org/game/qUgsOZlA/black#66"
+  },
+  {
+   "id": "01aBw",
+   "unitId": "simple-mates",
+   "fen": "5k1r/R5p1/5n1p/1b3P1q/5B2/P2p4/6PP/4Q1K1 w - - 1 27",
+   "solution": [
+    "e1e7",
+    "f8g8",
+    "e7g7"
+   ],
+   "rating": 1658,
+   "source": "https://lichess.org/game/heBgVFGc/black#52"
+  },
+  {
+   "id": "0SpKJ",
+   "unitId": "simple-mates",
+   "fen": "r1bqkb1r/pp1pp1pp/8/3P1p2/4nP2/3BK2P/PP4P1/RNBQ2NR b kq - 1 10",
+   "solution": [
+    "d8b6",
+    "e3f3",
+    "b6f2"
+   ],
+   "rating": 1245,
+   "source": "https://lichess.org/game/xLOcnqKp#19"
+  },
+  {
+   "id": "0mck4",
+   "unitId": "simple-mates",
+   "fen": "r1b1kb1r/ppqppppp/8/2pN4/3nP1n1/3B1N2/PPPP1PPP/R1BQ1RK1 b kq - 10 7",
+   "solution": [
+    "d4f3",
+    "g2f3",
+    "c7h2"
+   ],
+   "rating": 1268,
+   "source": "https://lichess.org/game/HgTZtyol#13"
+  },
+  {
+   "id": "0qcCp",
+   "unitId": "simple-mates",
+   "fen": "6qk/2R4n/p3pbr1/1p1p2N1/3P3Q/6PP/PP3P2/6K1 w - - 5 31",
+   "solution": [
+    "c7h7",
+    "g8h7",
+    "h4h7"
+   ],
+   "rating": 1350,
+   "source": "https://lichess.org/game/57vwTMgO/black#60"
+  },
+  {
+   "id": "06Tp7",
+   "unitId": "simple-mates",
+   "fen": "2k3nr/1p3Bp1/6p1/1Np5/5b2/8/PP1R1P2/4K3 w - - 1 28",
+   "solution": [
+    "f7e6",
+    "c8b8",
+    "d2d8"
+   ],
+   "rating": 1368,
+   "source": "https://lichess.org/game/PHAeQV7K/black#54"
+  },
+  {
+   "id": "0GruJ",
+   "unitId": "simple-mates",
+   "fen": "5k2/5pp1/pQ2p2p/1p6/2p5/PqP3P1/1P4PK/8 w - - 5 42",
+   "solution": [
+    "b6d8"
+   ],
+   "rating": 1070,
+   "source": "https://lichess.org/game/xy4R7dkj/black#82"
+  },
+  {
+   "id": "0esXV",
+   "unitId": "simple-mates",
+   "fen": "rnb1k2r/1p3ppp/p2R1B2/8/2B5/5N2/P3qPPP/1R4K1 w kq - 0 17",
+   "solution": [
+    "d6d8"
+   ],
+   "rating": 1428,
+   "source": "https://lichess.org/game/9ZyuA1JV/black#32"
+  },
+  {
+   "id": "0ZG5M",
+   "unitId": "simple-mates",
+   "fen": "6R1/6P1/1kp5/4p2p/3np2P/P1p5/1Pr5/1KR5 b - - 1 37",
+   "solution": [
+    "c2b2",
+    "b1a1",
+    "d4b3"
+   ],
+   "rating": 1565,
+   "source": "https://lichess.org/game/F0CFKR1i#73"
+  },
+  {
+   "id": "0BX5m",
+   "unitId": "simple-mates",
+   "fen": "2kr3r/pp4pp/8/2N1p1P1/3n4/Q4P2/qPP2P2/2KR3R b - - 1 18",
+   "solution": [
+    "d4e2"
+   ],
+   "rating": 1051,
+   "source": "https://lichess.org/game/wARjta8S#35"
+  },
+  {
+   "id": "0yXIB",
+   "unitId": "simple-mates",
+   "fen": "Q3n2k/6p1/2N2p1p/2Pp3P/3K1PP1/4P3/8/5q2 b - - 0 47",
+   "solution": [
+    "f1c4"
+   ],
+   "rating": 1229,
+   "source": "https://lichess.org/game/s1NBuCTv#93"
+  },
+  {
+   "id": "0U3ri",
+   "unitId": "simple-mates",
+   "fen": "r2q1r1R/5pk1/p1pp4/4pbn1/2B1P1PQ/2N5/PPP2PK1/8 w - - 2 34",
+   "solution": [
+    "h4h6"
+   ],
+   "rating": 1171,
+   "source": "https://lichess.org/game/jfePFmiQ/black#66"
+  },
+  {
+   "id": "0tDx0",
+   "unitId": "simple-mates",
+   "fen": "7k/4p2p/3p2Pq/2pPbQN1/8/1P3R2/r4PK1/8 b - - 0 38",
+   "solution": [
+    "h6h2",
+    "g2f1",
+    "h2h1"
+   ],
+   "rating": 1735,
+   "source": "https://lichess.org/game/RUlTiyoC#75"
+  },
+  {
+   "id": "01TgD",
+   "unitId": "simple-mates",
+   "fen": "8/q4k1r/p2pRbpp/5n2/1PP2PP1/P2Q1N1P/7K/4R3 b - - 0 30",
+   "solution": [
+    "a7f2",
+    "h2h1",
+    "f5g3"
+   ],
+   "rating": 1206,
+   "source": "https://lichess.org/game/LW4akFc5#59"
+  },
+  {
+   "id": "0wy6G",
+   "unitId": "simple-mates",
+   "fen": "rnbqk2r/ppp2p1p/8/8/3P2pN/6b1/PPPKP1B1/RNBQ3R b kq - 1 10",
+   "solution": [
+    "d8d4"
+   ],
+   "rating": 1136,
+   "source": "https://lichess.org/game/ZrB7Gfhw#19"
+  },
+  {
+   "id": "0EDHN",
+   "unitId": "simple-mates",
+   "fen": "8/5pkp/p2P1bp1/8/P1P2P1P/3RQ1K1/8/7q b - - 1 42",
+   "solution": [
+    "f6h4",
+    "g3g4",
+    "h7h5"
+   ],
+   "rating": 1692,
+   "source": "https://lichess.org/game/ZKRPKjJ4#83"
+  },
+  {
+   "id": "02T16",
+   "unitId": "simple-mates",
+   "fen": "3r2k1/5rp1/7p/4Q3/P1P1p1qP/1PB2bR1/5P1K/R7 b - - 0 34",
+   "solution": [
+    "g4h4",
+    "g3h3",
+    "h4f2"
+   ],
+   "rating": 1168,
+   "source": "https://lichess.org/game/ffC1B9nT#67"
+  },
+  {
+   "id": "0Nrrb",
+   "unitId": "simple-mates",
+   "fen": "5nk1/7p/8/3p1N2/2bBp1P1/r7/7P/4R1K1 w - - 2 36",
+   "solution": [
+    "f5h6"
+   ],
+   "rating": 1272,
+   "source": "https://lichess.org/game/aaOLUEEZ/black#70"
+  },
+  {
+   "id": "0vRNU",
+   "unitId": "simple-mates",
+   "fen": "6k1/5r1R/4p3/ppr1B1NP/6P1/P1n5/8/4K3 w - - 0 44",
+   "solution": [
+    "h7h8"
+   ],
+   "rating": 1420,
+   "source": "https://lichess.org/game/lqkHHBYV/black#86"
+  },
+  {
+   "id": "0vwEo",
+   "unitId": "simple-mates",
+   "fen": "2kr1r2/1pp5/p5n1/Q2p4/N2P4/1N4PP/PP2p3/1KR2q2 w - - 0 31",
+   "solution": [
+    "a5c7"
+   ],
+   "rating": 1469,
+   "source": "https://lichess.org/game/bHhDxZF9/black#60"
+  }
+ ]
+}

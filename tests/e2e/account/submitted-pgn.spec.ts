@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { expect, test } from "@playwright/test";
+import curriculum from "../../../scripts/material/curriculum.generated.json" with { type: "json" };
 
 test("a guest's offline batch becomes replayable shared games and a verified puzzle", async ({
   page,
@@ -23,7 +24,11 @@ test("a guest's offline batch becomes replayable shared games and a verified puz
   const invalid = '[Event "Unfinished"]\n[Result "*"]\n\n1. d4 *';
   const sha = (s: string) => createHash("sha256").update(s).digest("hex");
   await page.goto("/");
-  await page.getByRole("button", { name: "Import games", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("button", { name: "Review", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Import PGN", exact: true }).click();
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
@@ -106,17 +111,28 @@ test("a guest's offline batch becomes replayable shared games and a verified puz
   try {
     const player = await other.newPage();
     await player.goto("/");
+    const starter = curriculum.stages
+      .flatMap((stage) => stage.units)
+      .find((unit) => unit.id === "simple-mates");
+    if (!starter) throw new Error("Missing installed simple mate skill");
+    await player.evaluate(
+      (ids) => {
+        for (const id of ids)
+          localStorage.setItem(
+            "chesscue-due-practice:skill-puzzle-v1:" + id,
+            "done",
+          );
+      },
+      starter.exercises.map((exercise) => exercise.id),
+    );
     await player
-      .getByRole("button", { name: "Training plan", exact: true })
-      .click();
-    await player.getByText("Shared puzzle library", { exact: true }).click();
-    await player
-      .getByRole("button", { name: "Mate in one", exact: true })
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Practice", exact: true })
       .click();
     await player
-      .getByRole("button", { name: /Open puzzle .*unrated/ })
-      .first()
+      .getByRole("button", { name: "Deliver a simple mate", exact: true })
       .click();
+    await player.getByText("Sources", { exact: true }).click();
     const link = player.getByRole("link", { name: "Source game" });
     await expect(link).toHaveAttribute(
       "href",

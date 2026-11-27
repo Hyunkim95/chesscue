@@ -1,3 +1,6 @@
+import { isSidePanel } from "../../shared/navigation/side-panel";
+import { BoardBack } from "../../shared/navigation/BoardBack";
+import { LoadingText } from "../../shared/loading/LoadingState";
 import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import { starterPack } from "../../domain/material/pack";
 import { z } from "zod";
@@ -19,6 +22,9 @@ import {
 } from "../../domain/study/lesson-challenge";
 import type { StudyTopic } from "../../domain/study/roadmap";
 import { ChessBoard } from "../board/ChessBoard";
+import { NextMovePill } from "../board/BoardHintControls";
+import { PromotionPiece } from "../board/PromotionPiece";
+import { pieceNames } from "../board/board-pieces";
 import type { AnalyzeReply } from "../review/GuidedMoveFeedback";
 import { RookExploration } from "../rook/RookExploration";
 import "./lesson-challenge.css";
@@ -92,7 +98,7 @@ export function LessonChallenge({
     return (
       <section className="lesson-challenge" aria-label="Lesson challenge">
         <p role="alert">This challenge could not be loaded.</p>
-        <button onClick={onBack}>Back to challenges</button>
+        <BoardBack label="Back to challenges" onBack={onBack} />
       </section>
     );
   if (rookOpen && analyzeReply) {
@@ -107,6 +113,7 @@ export function LessonChallenge({
         analyzeReply={analyzeReply}
         assessPosition={assessPosition}
         topic={challenge.title}
+        closeLabel="Back to challenge"
         onClose={() => {
           setRookOpen(false);
         }}
@@ -150,28 +157,25 @@ export function LessonChallenge({
         : state.opponentMove
           ? "Opponent played " + state.opponentMove + ". Your move."
           : "Your move. Find the game’s plan.";
+  const opponent = (
+    <div className="lesson-challenge__opponent">
+      <span aria-hidden="true">♚</span>
+      <span>Opponent · Recorded game</span>
+      <span className="lesson-challenge__progress">
+        Challenge {lessonIndex + 1} of 3
+      </span>
+    </div>
+  );
   return (
     <section
       ref={stage}
       className="lesson-challenge"
       aria-label="Lesson challenge"
     >
-      <header className="lesson-challenge__header">
-        <button
-          className="study-back"
-          aria-label="Back to challenges"
-          onClick={onBack}
-        >
-          ‹ Back to challenges
-        </button>
-        <span>Challenge {lessonIndex + 1} of 3</span>
-      </header>
+      <BoardBack label="Back to challenges" onBack={onBack} />
       <div className="lesson-challenge__layout">
         <div className="lesson-challenge__board">
-          <div className="lesson-challenge__opponent">
-            <span aria-hidden="true">♚</span>
-            <span>Opponent · Recorded game</span>
-          </div>
+          {!isSidePanel && opponent}
           <ChessBoard
             label="Challenge board"
             fen={state.fen}
@@ -182,21 +186,23 @@ export function LessonChallenge({
             lastMoveUci={state.lastMove}
             disabled={state.status !== "playing"}
           />
-          <div className="lesson-challenge__player">
-            <span aria-hidden="true">♔</span>You play{" "}
-            {challenge.player === "w" ? "White" : "Black"}
-          </div>
           {promotion && (
-            <div className="study-actions" aria-label="Choose promotion">
-              {(["q", "r", "b", "n"] as const).map((piece, index) => (
+            <div
+              className="study-actions"
+              role="group"
+              aria-label="Choose promotion"
+            >
+              {(["q", "r", "b", "n"] as const).map((piece) => (
                 <button
-                  className="review-action"
+                  className="review-action piece-choice"
                   key={piece}
+                  aria-label={pieceNames[piece]}
+                  title={pieceNames[piece]}
                   onClick={() => {
                     if (selected) attempt(selected + promotion + piece);
                   }}
                 >
-                  {["Queen", "Rook", "Bishop", "Knight"][index]}
+                  <PromotionPiece piece={piece} color={challenge.player} />
                 </button>
               ))}
             </div>
@@ -206,15 +212,21 @@ export function LessonChallenge({
           <p className="lesson-challenge__eyebrow">
             {complete ? "Well played" : "Find the game’s plan"}
           </p>
-          <h2>{challenge.title}</h2>
-          <RookMessage>
-            <p className="lesson-challenge__objective">
-              {complete ? challenge.insight : goal}
-            </p>
-            <p className="lesson-challenge__feedback" role="status">
-              {feedback}
-            </p>
-          </RookMessage>
+          {!isSidePanel && <h2>{challenge.title}</h2>}
+          <div className="rook-board-message lesson-challenge__cue">
+            <RookMessage>
+              <p className="lesson-challenge__objective">
+                {complete ? challenge.insight : goal}
+              </p>
+              <p className="lesson-challenge__feedback" role="status">
+                {state.status === "replying" ? (
+                  <LoadingText>{feedback}</LoadingText>
+                ) : (
+                  feedback
+                )}
+              </p>
+            </RookMessage>
+          </div>
           <progress
             aria-label="Challenge progress"
             value={Math.ceil(state.ply / 2)}
@@ -226,41 +238,46 @@ export function LessonChallenge({
               Opponent played {state.opponentMove}.
             </p>
           )}
-          {state.status === "retry" && (
-            <button
-              className="primary-link"
-              onClick={() => {
-                dispatch({ type: "retry" });
-                setSelected(null);
-                setPromotion(null);
-              }}
-            >
-              Try again
-            </button>
-          )}
-          {analyzeReply && (complete || state.status === "retry") && (
-            <button
-              type="button"
-              className="review-action"
-              onClick={() => {
-                setRookOpen(true);
-              }}
-            >
-              Explore with Rook
-            </button>
-          )}
-          {complete && onNext && (
-            <button className="primary-link" onClick={onNext}>
-              Next challenge <span aria-hidden="true">▸</span>
-            </button>
-          )}
-          {complete && !onNext && (
-            <button className="primary-link" onClick={onBack}>
-              Finish lessons
-            </button>
-          )}
-          <details className="lesson-challenge__source">
+          <div className="board-action-row board-action-row--anchored lesson-challenge__actions">
+            {state.status === "retry" && (
+              <button
+                className="primary-link"
+                onClick={() => {
+                  dispatch({ type: "retry" });
+                  setSelected(null);
+                  setPromotion(null);
+                }}
+              >
+                Try again
+              </button>
+            )}
+            {analyzeReply && (complete || state.status === "retry") && (
+              <button
+                type="button"
+                className="review-action board-action--quiet"
+                onClick={() => {
+                  setRookOpen(true);
+                }}
+              >
+                Explore with Rook
+              </button>
+            )}
+            {complete && onNext && (
+              <NextMovePill label="Next challenge" onClick={onNext} />
+            )}
+            {complete && !onNext && (
+              <button className="primary-link" onClick={onBack}>
+                Finish lessons
+              </button>
+            )}
+            <p className="board-turn">
+              You play {challenge.player === "w" ? "White" : "Black"}
+            </p>
+          </div>
+          {isSidePanel && opponent}
+          <details className="board-reference lesson-challenge__source">
             <summary>Source game</summary>
+            {isSidePanel && <h2>{challenge.title}</h2>}
             <p>
               Generated by{" "}
               {starterPack.historical[topic][lessonIndex]?.authorship.model} ·

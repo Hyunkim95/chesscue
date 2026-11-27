@@ -6,7 +6,7 @@
   color: var(--cue-ink);
   background: var(--cue-paper);
   border: 1px solid var(--cue-line);
-  border-radius: 1.25rem;
+  border-radius: var(--cue-radius-card);
   box-shadow: var(--cue-shadow);
 }
 
@@ -79,7 +79,7 @@
   color: inherit;
   background: var(--cue-canvas);
   border: 1px solid var(--cue-line);
-  border-radius: 0.7rem;
+  border-radius: var(--cue-radius-control);
 }
 
 .import-panel__file input {
@@ -133,7 +133,7 @@
   align-items: center;
   cursor: pointer;
   border: 1px solid var(--cue-line);
-  border-radius: 0.7rem;
+  border-radius: var(--cue-radius-control);
 }
 
 .import-panel__color-options input {
@@ -174,7 +174,7 @@
   font-weight: 800;
   background: var(--cue-pine);
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--cue-radius-control);
   cursor: pointer;
 }
 
@@ -194,7 +194,7 @@
   gap: 1rem;
   padding: 1rem;
   background: var(--cue-paper-deep);
-  border-radius: 0.9rem;
+  border-radius: var(--cue-radius-card);
 }
 
 .import-panel__result ul {

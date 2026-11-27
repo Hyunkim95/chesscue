@@ -15,6 +15,7 @@ data/generated/
 src/generated/
 .DS_Store
 
-/docs/
+/docs/*
+!/docs/AI_ROUTING.md
 /reports/
 /research_notes/

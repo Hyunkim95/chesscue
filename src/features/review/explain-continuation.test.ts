@@ -1,6 +1,10 @@
 import { Chess } from "chess.js";
 import { expect, it } from "vitest";
-import { explainContinuation } from "./explain-continuation";
+import {
+  explainBetterMove,
+  explainComparedMove,
+  explainContinuation,
+} from "./explain-continuation";
 
 it("explains what a quiet developing move opens", () => {
   const board = new Chess();
@@ -45,4 +49,70 @@ it("counts a legal king recapture when the defender still covers the square", ()
   expect(explainContinuation(reply, board, player)).toContain(
     "White can immediately recapture on e2",
   );
+});
+
+it("explains a modest opening edge using the center squares covered in each checked line", () => {
+  const game = new Chess();
+  const alternative = new Chess();
+  const played = game.move("a3");
+  const found = alternative.move("Nc3");
+  const comparison = explainBetterMove({
+    played,
+    found,
+    playedLine: [game.move("e5")],
+    foundLine: [alternative.move("e5")],
+    playedReplyScore: 12,
+    foundReplyScore: -27,
+    gain: 39,
+    opening: true,
+  });
+  expect(comparison).toContain("0.39-point edge over a3");
+  expect(comparison).toContain("cover e4 and d5");
+});
+
+it("explains the different captures and checked recaptures as the comparison switches", () => {
+  const fen = "8/3n4/1k1b4/p2p3N/3N1p2/2rp2p1/8/3K4 w - - 0 53";
+  const original = new Chess(fen);
+  const better = new Chess(fen);
+  const gameMove = original.move("Nxf4");
+  const betterMove = better.move("Nxg3");
+
+  expect(explainComparedMove(gameMove, betterMove, original.move("Bxf4"))).toBe(
+    "Nxf4 takes the pawn on f4 and attacks d5. Black’s bishop can take your knight back with Bxf4.",
+  );
+  expect(explainComparedMove(betterMove, gameMove, better.move("fxg3"))).toBe(
+    "Nxg3 takes the pawn on g3 and attacks e4. Black’s pawn can take your knight back with fxg3.",
+  );
+});
+
+it("prioritizes a checked mate over an incidental square attack", () => {
+  const fen = "r1b1r3/ppp1kpQ1/3pq3/8/N1PP4/8/PP2P1PP/R1B1KB1R b - - 0 10";
+  const original = new Chess(fen);
+  const better = new Chess(fen);
+  const played = original.move("Bd7");
+  const found = better.move("Kd8");
+  expect(
+    explainComparedMove(played, found, original.move("Bg5+"), {
+      selected: 99998,
+      other: 1050,
+    }),
+  ).toBe(
+    "Stockfish finds a forced mate for White after Bd7, starting with Bg5+.",
+  );
+  expect(
+    explainComparedMove(found, played, better.move("Bg5+"), {
+      selected: 1050,
+      other: 99998,
+    }),
+  ).toBe(
+    "This search found no forced mate for White after Kd8. Checked reply: Bg5+.",
+  );
+});
+
+it("never says a piece gained the square it just left", () => {
+  const board = new Chess("7R/8/8/7p/4k1p1/6P1/r7/5K2 w - - 4 74");
+  const move = board.move("Rb8");
+  const text = explainContinuation(move, new Chess(move.after));
+  expect(text).not.toMatch(/covers h8/);
+  expect(text).toMatch(/^From b8, the rook now covers b7\./);
 });

@@ -71,6 +71,29 @@ describe("StockfishAnalysisEngine", () => {
     engine.dispose();
   });
 
+  it("searches a fixed depth from a cleared hash when asked", async () => {
+    const worker = new FakeWorker();
+    const engine = await readyEngine(worker);
+    const fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const result = engine.analyze({
+      fen,
+      timeBudgetMs: 2_000,
+      depth: 16,
+      multiPv: 1,
+      signal: new AbortController().signal,
+    });
+    worker.emit("info depth 16 multipv 1 score cp 20 pv e2e4 e7e5");
+    worker.emit("bestmove e2e4");
+    await result;
+
+    expect(worker.messages.slice(-3)).toEqual([
+      "ucinewgame",
+      "position fen " + fen,
+      "go depth 16 movetime 2000",
+    ]);
+    engine.dispose();
+  });
+
   it("normalizes mate scores to bounded centipawns", async () => {
     const worker = new FakeWorker();
     const engine = await readyEngine(worker);

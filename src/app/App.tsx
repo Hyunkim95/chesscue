@@ -1,3 +1,23 @@
+import { GameModeChoices } from "../features/play/GameModeChoices";
+import { TrainingAnalysisStatus } from "../features/progression/PlayingSnapshot";
+import type { Skill } from "../features/progression/SkillTree";
+import { usesExtensionGoogleSignIn } from "../infrastructure/firebase/extension-google";
+import { HostedRaces } from "../features/race/HostedRaces";
+import { BoardBackControl } from "../shared/navigation/BoardBack";
+import { BoardBackSlot } from "../shared/navigation/board-back-slot";
+import { isSidePanel as extensionPanel } from "../shared/navigation/side-panel";
+import {
+  LoadingMark,
+  LoadingState,
+  LoadingText,
+} from "../shared/loading/LoadingState";
+import {
+  PanelTabs,
+  type PanelDestination,
+} from "../shared/navigation/PanelTabs";
+import { ScreenHeader } from "../shared/navigation/ScreenHeader";
+import type { CurriculumUnit } from "../domain/material/curriculum";
+import type { LibraryPuzzle } from "../domain/material/puzzle-library";
 import {
   queueSubmittedGames,
   startSubmissionSync,
@@ -21,7 +41,11 @@ import {
   parentPage,
   returnToParent,
 } from "../shared/navigation/history-entry";
-import { recommendCurriculumUnit } from "../domain/curriculum/recommend-unit";
+import {
+  recommendCurriculumUnit,
+  unitForDrill,
+  unitForPosition,
+} from "../domain/curriculum/recommend-unit";
 import { usePlayingSnapshot } from "./use-playing-snapshot";
 import {
   useCallback,
@@ -43,11 +67,20 @@ import {
   analyzeCompletedGame,
   type CompletedGameAnalysis,
 } from "../application/analyze-game/analyze-completed-game";
-import { LichessImport } from "../extension/LichessImport";
+import { ExternalGameImport } from "../extension/ExternalGameImport";
+import {
+  externalImportSite,
+  type CompletedGameExport,
+  type GameSite,
+} from "../extension/external-game";
+import { reviewGameSummary } from "../extension/review-game-list";
 import { SidePanelReview } from "../extension/SidePanelReview";
-import type { LichessExport } from "../extension/lichess-export";
 import { importGames } from "../application/import-games/import-games";
-import { evaluateReviewReply } from "../application/analyze-game/analyze-review-reply";
+import {
+  EXPLANATION_SEARCH_MS,
+  evaluateReviewReply,
+  type ReviewSearchPurpose,
+} from "../application/analyze-game/analyze-review-reply";
 import {
   assessPosition,
   type AssessPosition,
@@ -65,13 +98,14 @@ import type { ReviewTrainingLog } from "../domain/analysis/review-training";
 import type { Result } from "../shared/result/result";
 import { err, ok } from "../shared/result/result";
 import { buildPlayerProfile, type PlayerProfile } from "../domain/curriculum";
-import { type VerifiedGameDrill } from "../domain/curriculum/game-drill";
+import {
+  observedGameMoves,
+  type VerifiedGameDrill,
+} from "../domain/curriculum/game-drill";
 import { mateOpportunities } from "../domain/game/coach-moments";
 import type { PracticeExercise } from "../domain/transfer/types";
-import { GameTraining } from "../features/progression/GameTraining";
 import {
   INITIAL_PLAYER_ELO,
-  ratedOpponentElo,
   ratingHistory,
   placementCount,
   PLACEMENT_GAMES,
@@ -93,14 +127,12 @@ import {
   type TutorGameMode,
   tutorGameMode,
 } from "../domain/game/types";
-import { CurriculumCard } from "../features/curriculum/CurriculumCard";
 import {
   ImportGamesPanel,
   type ImportGamesRequest,
   type ImportedReview,
 } from "../features/import-games/ImportGamesPanel";
 import { PlayGameScreen } from "../features/play/PlayGameScreen";
-import { ProfileOverview } from "../features/profile/ProfileOverview";
 import { GameReviewExperience } from "../features/review/GameReviewExperience";
 import type { LessonContentProvider } from "../infrastructure/ai/lesson-content-provider";
 import { loadFirebaseClientConfig } from "../infrastructure/config/firebase-environment";
@@ -115,19 +147,14 @@ import type {
   AccountIdentity,
 } from "../infrastructure/firebase/account-session";
 import { initialSync } from "../application/sync-games/sync-status";
-import { Fragment, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { AccountPanel } from "../features/account/AccountPanel";
 import { RankPath } from "../features/progression/RankPath";
-import { SkillTree, type Skill } from "../features/progression/SkillTree";
 import { rankForElo } from "../domain/game/rank-path";
 
 const PracticeCurriculum = lazy(async () => ({
   default: (await import("../features/curriculum/PracticeCurriculum"))
     .PracticeCurriculum,
-}));
-const SharedPuzzleLibrary = lazy(async () => ({
-  default: (await import("../features/curriculum/SharedPuzzleLibrary"))
-    .SharedPuzzleLibrary,
 }));
 const StudyScreen = lazy(() =>
   import("../features/study/StudyScreen").then((module) => ({
@@ -167,6 +194,7 @@ interface PracticeItem {
   readonly sourceGameId?: string;
   readonly id: string;
   readonly exercise: PracticeExercise;
+  readonly goal?: string | undefined;
   readonly gamePrompt?: {
     readonly moveLabel: string;
     readonly question: string;
@@ -220,11 +248,38 @@ function savePlayEntry(history: PlayerHistory, entry: PlayEntry | null): void {
 const engine = new StockfishGameEngine();
 const analysisEngine = new StockfishAnalysisEngine();
 const reviewReplyEngine = new StockfishAnalysisEngine();
-const loadReviewReply = (
+const coachObservationEngine = new StockfishAnalysisEngine();
+const loadCoachObservation = (fen: string, signal: AbortSignal) =>
+  evaluateReviewReply(coachObservationEngine, fen, signal);
+const loadReviewReply = async (
   fen: string,
   signal: AbortSignal,
   compareAlternatives?: boolean,
-) => evaluateReviewReply(reviewReplyEngine, fen, signal, compareAlternatives);
+  purpose?: ReviewSearchPurpose,
+) => {
+  if (purpose !== "explanation")
+    return evaluateReviewReply(
+      reviewReplyEngine,
+      fen,
+      signal,
+      compareAlternatives,
+      purpose,
+    );
+  const explanationEngine = new StockfishAnalysisEngine({
+    maximumSearchTimeMs: EXPLANATION_SEARCH_MS,
+  });
+  try {
+    return await evaluateReviewReply(
+      explanationEngine,
+      fen,
+      signal,
+      compareAlternatives,
+      purpose,
+    );
+  } finally {
+    explanationEngine.dispose();
+  }
+};
 const readBoardPosition: AssessPosition = async (fen, signal) => {
   const assessmentEngine = new StockfishAnalysisEngine();
   try {
@@ -375,9 +430,16 @@ function useReviewCoachProvider(
   return provider;
 }
 
-const extensionPanel =
-  location.protocol === "chrome-extension:" &&
-  new URLSearchParams(location.search).get("panel") === "1";
+const nativeGoogleSignIn = usesExtensionGoogleSignIn();
+const hostedRaceSignIn =
+  extensionPanel &&
+  !nativeGoogleSignIn &&
+  import.meta.env.VITE_ACCOUNT_EMULATORS !== "true";
+
+function socialNeedsAccount(view: AppView | null) {
+  return view === "win" || (view === "race" && !hostedRaceSignIn);
+}
+
 const recentReviewKey = "chesscue-last-panel-review";
 const recentReviewSchema = z.object({
   route: z.string().regex(/^#review\/[^/]+(?:\/(?:white|black))?$/),
@@ -395,7 +457,7 @@ function readRecentReview(history: PlayerHistory) {
 }
 
 function routeView(hash: string): AppView {
-  if (extensionPanel && (hash === "" || hash === "#review-home"))
+  if (hash === "#review-home" || (extensionPanel && hash === ""))
     return "review-home";
   if (hash.startsWith("#review/")) return "review";
   if (hash.startsWith("#practice/")) return "practice";
@@ -405,7 +467,8 @@ function routeView(hash: string): AppView {
   if (hash === "#account") return "account";
   if (
     hash === "#import" ||
-    (location.protocol === "chrome-extension:" && hash.startsWith("#lichess/"))
+    (location.protocol === "chrome-extension:" &&
+      externalImportSite(hash) !== null)
   )
     return "import";
   if (hash === "#play-mode") return "play-mode";
@@ -428,15 +491,35 @@ const skillSchema = z.enum([
   "forks",
   "rook",
 ]);
+const panelCurriculumLessons: Readonly<Record<string, Skill>> = {
+  "read-the-board": "vision",
+  "see-the-threat": "threats",
+  "king-attack-plan": "threats",
+  "rook-ending": "rook",
+};
+const panelPuzzleMotifs: Readonly<Record<string, readonly string[]>> = {
+  "simple-mates": ["mate in one"],
+  "mating-patterns": ["back rank mate", "back-rank mate"],
+  "double-attack": ["fork"],
+  "line-tactics": ["pin", "discovered attack"],
+  "test-a-sacrifice": ["sacrifice"],
+  "change-the-defender": ["attraction", "deflection"],
+  "passed-pawn-race": ["advanced pawn"],
+  "king-attack-plan": ["kingside attack"],
+};
+
 export function App() {
   useEffect(startSubmissionSync, []);
   const [socialHash, setSocialHash] = useState(window.location.hash);
   const [entryRevision, setEntryRevision] = useState(0);
   const [view, setView] = useState<AppView>(() => routeView(location.hash));
+  const [boardBackSlot, setBoardBackSlot] = useState<HTMLDivElement | null>(
+    null,
+  );
   const [requested, setRequested] = useState(() => {
     try {
       return (
-        socialView(window.location.hash) !== null ||
+        socialNeedsAccount(socialView(window.location.hash)) ||
         window.location.hash === "#account" ||
         localStorage.getItem("chesscue-auth-used") === "1"
       );
@@ -449,8 +532,7 @@ export function App() {
       const hash = location.hash;
       setSocialHash(hash);
       const next = routeView(hash);
-      if (next === "race" || next === "win" || next === "account")
-        setRequested(true);
+      if (socialNeedsAccount(next) || next === "account") setRequested(true);
       setView(next);
     };
     const restore = () => {
@@ -503,7 +585,7 @@ export function App() {
               current === "account" ||
               (current === "import" &&
                 location.protocol === "chrome-extension:" &&
-                location.hash.startsWith("#lichess/")) ||
+                externalImportSite(location.hash) !== null) ||
               current === "ranks" ||
               current === "training" ||
               current === "review" ||
@@ -546,9 +628,11 @@ export function App() {
         ranks: "#rank-path",
         "play-mode": "#play-mode",
         practice: "#practice",
+        race: "#races",
       };
       const target = path ?? paths[next] ?? "";
       if (location.hash !== target) enterPage(target, history.name);
+      if (socialNeedsAccount(next)) setRequested(true);
       setSocialHash(target);
       setView(next);
     },
@@ -556,32 +640,39 @@ export function App() {
   );
   if (
     location.protocol === "chrome-extension:" &&
-    socialHash.startsWith("#lichess/") &&
+    externalImportSite(socialHash) !== null &&
     requested &&
     !session
   ) {
     return (
       <main className="content-shell">
-        <p role="status">{accountError ?? "Opening your ChessCue history…"}</p>
+        {accountError ? (
+          <p role="status">{accountError}</p>
+        ) : (
+          <LoadingState>Opening your ChessCue history…</LoadingState>
+        )}
       </main>
     );
   }
   return (
     <HistoryOwner.Provider value={history.name}>
-      <PlayerApp
-        key={history.name + String(entryRevision)}
-        history={history}
-        socialHash={socialHash}
-        user={user}
-        session={session}
-        accountError={accountError}
-        view={view}
-        setView={navigate}
-        openAccount={() => {
-          setRequested(true);
-          navigate("account");
-        }}
-      />
+      <BoardBackSlot.Provider value={boardBackSlot}>
+        <PlayerApp
+          key={history.name + String(entryRevision)}
+          history={history}
+          socialHash={socialHash}
+          user={user}
+          session={session}
+          accountError={accountError}
+          view={view}
+          setView={navigate}
+          setBoardBackSlot={setBoardBackSlot}
+          openAccount={() => {
+            setRequested(true);
+            navigate("account");
+          }}
+        />
+      </BoardBackSlot.Provider>
     </HistoryOwner.Provider>
   );
 }
@@ -593,6 +684,7 @@ function PlayerApp({
   accountError,
   view,
   setView,
+  setBoardBackSlot,
   openAccount,
 }: {
   socialHash: string;
@@ -602,6 +694,7 @@ function PlayerApp({
   accountError: string | null;
   view: AppView;
   setView: (view: AppView, path?: string) => void;
+  setBoardBackSlot: (node: HTMLDivElement | null) => void;
   openAccount: () => void;
 }) {
   const repository = history.games,
@@ -622,22 +715,11 @@ function PlayerApp({
     status: "idle",
   });
   const [profile, setProfile] = useState<PlayerProfile>(initialProfile);
-  const [contributingGames, setContributingGames] = useState({
-    import: 0,
-    tutor: 0,
-  });
   const [profileReady, setProfileReady] = useState(false);
   const [ratings, setRatings] = useState<readonly RatingEntry[]>([]);
   const [ratedGame, setRatedGame] = useState<GameRecord | null>(null);
   const [recentWin, setRecentWin] = useState<GameRecord | null>(null);
   const [ratingError, setRatingError] = useState(false);
-  const [studyVisit, setStudyVisit] = useState(0);
-  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(() => {
-    const parsed = skillSchema.safeParse(location.hash.split("/")[1]);
-    return location.hash.startsWith("#study/") && parsed.success
-      ? parsed.data
-      : null;
-  });
   const [mateProgress, setMateProgress] = useState({ found: 0, total: 0 });
   const [duePractice, setDuePractice] = useState<readonly PracticeItem[]>([]);
   const [practiceEntry, setPracticeEntry] = useEntryState(
@@ -648,6 +730,7 @@ function PlayerApp({
         exerciseId: z.string(),
         seenExercises: z.array(z.string()),
         question: reflectionSchema.optional(),
+        goal: z.string().trim().min(1).optional(),
         packRun: z.string().optional(),
         generated: exerciseSchema.optional(),
         cue: cueRecordSchema.optional(),
@@ -715,41 +798,31 @@ function PlayerApp({
         : null,
     [snapshot],
   );
-  const GameAnalysisSection = extensionPanel ? "details" : Fragment;
-  const recentReview = extensionPanel ? readRecentReview(history) : undefined;
+  const recentReview = readRecentReview(history);
   const recentReviewId = recentReview ? routedGameId(recentReview.route) : null;
   const recentReviewMoves =
     snapshot.status === "ready" && recentReviewId !== null
       ? snapshot.moves.filter((move) => move.game.id === recentReviewId)
       : [];
-  const recentReviewDrill = (
+  const recentReviewMove =
     recentReviewMoves.find((move) => move.ply === recentReview?.ply) ??
     recentReviewMoves
       .filter((move) => move.outcome === "retry")
-      .toSorted((a, b) => b.impactCp - a.impactCp)[0]
-  )?.drill;
-  const [drillCue, setDrillCue] = useState<AuthoredCue | null>(null);
-  const primaryMove =
-    snapshot.status === "ready"
-      ? snapshot.plan.practice[0]?.moves[0]
-      : undefined;
-  const gameDrill = primaryMove?.drill ?? null;
-  const trainingGame =
-    primaryMove?.game ??
-    (snapshot.status === "ready" ? snapshot.games.at(-1) : null) ??
-    null;
+      .toSorted((a, b) => b.impactCp - a.impactCp)[0];
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
   const reviewCoachProvider = useReviewCoachProvider(view === "review");
   const activeNavigationView =
-    extensionPanel && (view === "review" || view === "import")
-      ? "review-home"
-      : view === "review" || view === "practice"
-        ? "training"
-        : view === "result" || view === "play-mode" || view === "race"
-          ? "play"
-          : view;
+    view === "race" || view === "win"
+      ? "race"
+      : view === "review" || view === "import"
+        ? "review-home"
+        : view === "practice"
+          ? "training"
+          : view === "result" || view === "play-mode"
+            ? "play"
+            : view;
   const targetElo = ratings.at(-1)?.after ?? INITIAL_PLAYER_ELO;
   const focus = profile.nextGame.reason;
   const savedDrill =
@@ -772,6 +845,7 @@ function PlayerApp({
       ? {
           id: practiceEntry.id,
           exercise: practiceExercise,
+          goal: practiceEntry.goal,
           seenExercises: practiceEntry.seenExercises,
           gamePrompt: mistakeDrill
             ? {
@@ -798,6 +872,7 @@ function PlayerApp({
       exerciseId: item.exercise.id,
       seenExercises: [...(item.seenExercises ?? [])],
       question: item.gamePrompt?.question ?? item.exercise.prompt,
+      goal: item.goal,
       packRun:
         "authorship" in item.exercise
           ? exerciseSchema.safeParse(item.exercise).data?.authorship.runId
@@ -807,15 +882,6 @@ function PlayerApp({
         : undefined,
     });
   }
-  const anotherExercise =
-    activePractice === null ||
-    activePractice.exercise.id.startsWith("archive-curriculum-")
-      ? undefined
-      : transferExercisesForTheme(activePractice.exercise.theme).find(
-          ({ id }) =>
-            id !== activePractice.exercise.id &&
-            !activePractice.seenExercises.includes(id),
-        );
   const selectedRating = ratings.find(({ gameId }) => gameId === ratedGame?.id);
   const foundMate = useMemo(
     () =>
@@ -889,24 +955,20 @@ function PlayerApp({
       curriculumVersion: "1.0.0",
       computedAt: new Date().toISOString(),
     });
-    if (result.ok) {
-      setProfile(result.value.profile);
-      setContributingGames(result.value.contributingGames);
-    }
+    if (result.ok) setProfile(result.value.profile);
   }, [repository, analysisRepository, reviewEvidenceRepository]);
 
   useEffect(() => {
     if (view !== "account" && view !== "race") return;
     const refresh = () => {
       void refreshRatings();
-      if (view === "account") void refreshAdaptiveProfile();
     };
     refresh();
     window.addEventListener("chesscue-history", refresh);
     return () => {
       window.removeEventListener("chesscue-history", refresh);
     };
-  }, [view, refreshAdaptiveProfile, refreshRatings]);
+  }, [view, refreshRatings]);
   const refreshHistory = useCallback(() => {
     setSnapshotRevision((n) => n + 1);
     void Promise.all([
@@ -935,22 +997,6 @@ function PlayerApp({
     };
   }, [refreshAdaptiveProfile, refreshRatings, refreshPractice]);
 
-  const navigation = useMemo(
-    () =>
-      extensionPanel
-        ? [
-            { id: "review-home" as const, label: "Review" },
-            { id: "training" as const, label: "Practice" },
-            { id: "play" as const, label: "Play" },
-          ]
-        : [
-            { id: "play" as const, label: "Play" },
-            { id: "training" as const, label: "Training plan" },
-            { id: "import" as const, label: "Import games" },
-          ],
-    [],
-  );
-
   async function handleImport(request: ImportGamesRequest, singleGame = false) {
     return navigator.locks.request(
       "chesscue-import-" + history.name,
@@ -975,7 +1021,7 @@ function PlayerApp({
         });
 
         if (singleGame && result.items.length !== 1)
-          throw new Error("Expected a single completed Lichess game.");
+          throw new Error("Expected a single completed game.");
         await queueSubmittedGames(
           result.items.flatMap((item) =>
             item.status === "rejected" ? [] : [item.originalPgn],
@@ -1005,14 +1051,15 @@ function PlayerApp({
     );
   }
 
-  async function importLichessGame(
-    game: LichessExport,
+  async function importExternalGame(
+    game: CompletedGameExport,
     color: PlayerColor,
+    site: GameSite,
   ): Promise<GameRecord> {
     const result = await handleImport(
       {
         text: game.pgn,
-        source: { type: "upload", fileName: "lichess-" + game.id + ".pgn" },
+        source: { type: "upload", fileName: site + "-" + game.id + ".pgn" },
         playerColor: color,
       },
       true,
@@ -1032,6 +1079,7 @@ function PlayerApp({
   const [reviewAttempt, setReviewAttempt] = useState(0);
   const [missingGame, setMissingGame] = useState(false);
   const gameRoute = location.hash;
+  const gameImportSite = externalImportSite(gameRoute);
   const sideSegment = gameRoute.split("/")[2];
   const reviewPerspective: PlayerColor | undefined =
     view === "review" && (sideSegment === "white" || sideSegment === "black")
@@ -1063,7 +1111,7 @@ function PlayerApp({
         ? await loadPerspectiveAnalysis(game, request.signal)
         : await loadGameAnalysis(history, game);
       if (stale()) return;
-      if (extensionPanel && result.ok) {
+      if (result.ok) {
         try {
           localStorage.setItem(
             history.key(recentReviewKey),
@@ -1145,20 +1193,14 @@ function PlayerApp({
     setView("play");
   }
 
-  function startGameDrill(drill: VerifiedGameDrill) {
+  function startGameDrill(drill: VerifiedGameDrill, goal?: string) {
     openPractice({
       id: drill.exercise.id,
-      ...(drillCue?.id === drill.exercise.id &&
-      drillCue.fen === drill.exercise.fen
-        ? { cue: drillCue }
-        : {}),
       exercise: drill.exercise,
+      goal,
       gamePrompt: {
         moveLabel: drill.moveLabel,
-        question:
-          drillCue?.id === drill.exercise.id
-            ? drillCue.question
-            : cachedReflection(drill.exercise.theme),
+        question: cachedReflection(drill.exercise.theme),
       },
     });
   }
@@ -1186,94 +1228,294 @@ function PlayerApp({
   }
 
   const reviewParent = view === "review" ? parentPage() : undefined;
+  const reviewFromPlay =
+    reviewParent === "#play" || (!extensionPanel && reviewParent === "");
   const reviewBackLabel = reviewParent?.startsWith("#result/")
     ? "Back to game result"
-    : extensionPanel
-      ? "Back to Review"
-      : reviewParent === "" || reviewParent === "#play"
-        ? "Back to play"
-        : reviewParent === "#import"
-          ? "Back to import games"
-          : "Back to training plan";
-  const reviewBackButton = (
-    <button
-      className={extensionPanel ? "review-navigation__icon" : "lesson-back"}
-      type="button"
-      aria-label={extensionPanel ? reviewBackLabel : undefined}
-      title={extensionPanel ? reviewBackLabel : undefined}
-      onClick={() => {
-        if (extensionPanel && !reviewParent?.startsWith("#result/")) {
-          setView("review-home");
-          return;
-        }
-        returnToParent(() => {
-          setView(extensionPanel ? "review-home" : "training");
+    : reviewFromPlay
+      ? "Back to play"
+      : "Back to Review";
+  const reviewMatchup =
+    analysis.status === "ready" ? reviewGameSummary(analysis.game) : null;
+  function renderSkillLessons(skill: Skill) {
+    const topic =
+      skill === "rook" || skill === "endgames"
+        ? "rook"
+        : skill === "threats"
+          ? "attack"
+          : undefined;
+    if (skill !== "vision" && topic === undefined) return null;
+    return (
+      <PracticeSection
+        name="Lessons"
+        loading={<LoadingState>Opening lessons…</LoadingState>}
+      >
+        <StudySkill.Provider value={skill}>
+          <StudyScreen
+            key={skill}
+            history={snapshot}
+            pattern={
+              skill === "vision" && snapshot.status === "ready"
+                ? snapshot.plan.practice[0]
+                : undefined
+            }
+            initialTopic={topic}
+            analyzeReply={loadReviewReply}
+            assessPosition={readBoardPosition}
+            storageKey={history.key("chesscue-study-roadmaps-v1")}
+            profile={profile}
+          />
+        </StudySkill.Provider>
+      </PracticeSection>
+    );
+  }
+
+  const lessonSkill = location.hash.startsWith("#study/")
+    ? skillSchema.safeParse(location.hash.split("/")[1]).data
+    : undefined;
+  const panelLessons = lessonSkill ? renderSkillLessons(lessonSkill) : null;
+  function reviewRetriesByUnit(mistakes: readonly ReviewMistake[]) {
+    const opens = new Map<string, (goal: string) => void>();
+    const moves = snapshot.status === "ready" ? snapshot.moves : [];
+    for (const mistake of mistakes) {
+      if (mistake.completed) continue;
+      const retry = reviewMistakePractice(mistake);
+      if (!retry) continue;
+      const unit =
+        mistake.unitId ??
+        unitForPosition(retry.exercise, moves, mistake.gameId);
+      if (!opens.has(unit))
+        opens.set(unit, (goal) => {
+          openPractice({ id: mistake.id, exercise: retry.exercise, goal });
         });
-      }}
-    >
-      {extensionPanel ? <span aria-hidden="true">←</span> : reviewBackLabel}
-    </button>
-  );
+    }
+    return opens;
+  }
+  function gamePracticeByUnit(mistakes: readonly ReviewMistake[]) {
+    const gamePractice = reviewRetriesByUnit(mistakes);
+    const moves = snapshot.status === "ready" ? snapshot.moves : [];
+    const add = (unit: string, open: (goal: string) => void) => {
+      if (!gamePractice.has(unit)) gamePractice.set(unit, open);
+    };
+    const seenPositions = new Set(
+      mistakes.map(({ fen }) => fen.split(" ").slice(0, 4).join(" ")),
+    );
+    for (const item of duePractice) {
+      if (
+        snapshot.status !== "ready" ||
+        !snapshot.games.some(
+          (game) => game.id === item.sourceGameId && game.moves.length > 0,
+        )
+      )
+        continue;
+      add(unitForPosition(item.exercise, moves, item.sourceGameId), (goal) => {
+        openPractice({ ...item, goal });
+      });
+    }
+    const retries = moves
+      .filter((move) => move.outcome === "retry")
+      .toSorted((left, right) => right.impactCp - left.impactCp);
+    for (const { drill } of [
+      ...(recentReviewMove ? [recentReviewMove] : []),
+      ...retries,
+    ]) {
+      const unit = unitForDrill(drill);
+      const position = drill.exercise.fen.split(" ").slice(0, 4).join(" ");
+      if (seenPositions.has(position) || skillPuzzleSolved(drill.exercise))
+        continue;
+      seenPositions.add(position);
+      add(unit, (goal) => {
+        startGameDrill(drill, goal);
+      });
+    }
+    return gamePractice;
+  }
+  function skillPuzzleSolved(exercise: PracticeExercise) {
+    return history.practiceDone("skill-puzzle-v1:" + exercise.id);
+  }
+  async function openSkillPuzzle(
+    { id: unitId, exercises, goal }: CurriculumUnit,
+    signal: AbortSignal,
+  ): Promise<boolean> {
+    const mistakes = await listReviewMistakes(history.name).catch(
+      () => reviewMistakes,
+    );
+    signal.throwIfAborted();
+    const fromGames = gamePracticeByUnit(mistakes).get(unitId);
+    if (fromGames) {
+      fromGames(goal);
+      return true;
+    }
+    const next = exercises.find((exercise) => !skillPuzzleSolved(exercise));
+    const motifs = panelPuzzleMotifs[unitId];
+    const isSolved = ({ exercise }: LibraryPuzzle) =>
+      skillPuzzleSolved(exercise);
+    const library = motifs
+      ? await import("../features/curriculum/puzzle-catalog").catch(() => null)
+      : null;
+    signal.throwIfAborted();
+    const installed =
+      library && motifs
+        ? library.nextInstalledSkillPuzzle(motifs, isSolved)
+        : undefined;
+    if (installed) {
+      openLibraryPuzzle(installed, goal);
+      return true;
+    }
+    if (next) {
+      openPractice({ id: next.id, exercise: next, goal });
+      return true;
+    }
+    if (library && motifs && navigator.onLine) {
+      const published = await library
+        .nextPublishedSkillPuzzle(motifs, isSolved, signal)
+        .catch(() => undefined);
+      signal.throwIfAborted();
+      if (published) {
+        openLibraryPuzzle(published, goal);
+        return true;
+      }
+    }
+    return false;
+  }
+  function renderCardLessons(unitId: string) {
+    const skill = panelCurriculumLessons[unitId];
+    if (!skill) return null;
+    return (
+      <button
+        className="review-action"
+        type="button"
+        onClick={() => {
+          setView("training", "#study/" + skill);
+        }}
+      >
+        Lessons
+      </button>
+    );
+  }
+  function openLibraryPuzzle({ exercise }: LibraryPuzzle, goal?: string) {
+    openPractice({ id: exercise.id, exercise, goal });
+  }
+  function backFromReview() {
+    if (reviewParent?.startsWith("#result/")) {
+      returnToParent(() => {
+        setView("review-home");
+      });
+      return;
+    }
+    if (reviewFromPlay) {
+      returnToParent(() => {
+        setView("play");
+      });
+      return;
+    }
+    setView("review-home");
+  }
+  function backFromPractice() {
+    const parent = parentPage();
+    if (parent?.startsWith("#study/") || parent === "#skill-tree") {
+      returnToParent(() => {
+        setView("training");
+      });
+    } else {
+      setView("training");
+    }
+  }
+  const boardBack =
+    view === "review"
+      ? { label: reviewBackLabel, onBack: backFromReview }
+      : view === "practice"
+        ? {
+            label: "Back to Practice",
+            onBack: backFromPractice,
+          }
+        : view === "play"
+          ? {
+              label: "Back to game mode",
+              onBack: () => {
+                setView("play-mode");
+              },
+            }
+          : null;
+
+  function navigateSection(destination: PanelDestination) {
+    setView(
+      extensionPanel && destination === "play" ? "play-mode" : destination,
+    );
+  }
 
   return (
-    <div className="app-frame">
+    <div
+      className={extensionPanel ? "app-frame" : "app-frame app-frame--desktop"}
+    >
       <header className="app-bar">
-        <button
-          className="brand"
-          type="button"
-          onClick={() => {
-            setView("play");
-          }}
-        >
-          <span className="brand-mark" aria-hidden="true">
-            ♜
-          </span>
-          <strong>ChessCue</strong>
-        </button>
-        <nav aria-label="Primary navigation">
-          {navigation.map((item) => (
-            <button
-              key={item.id}
-              className={`app-command app-command--${item.id}`}
-              type="button"
-              aria-current={
-                activeNavigationView === item.id ? "page" : undefined
-              }
-              onClick={() => {
-                if (item.id === "training") {
-                  setSelectedSkill(null);
-                  setStudyVisit((n) => n + 1);
-                }
-                setView(
-                  extensionPanel && item.id === "play" ? "play-mode" : item.id,
-                );
-              }}
-            >
-              <span className="app-command__icon" aria-hidden="true" />
-              {item.label}
-            </button>
-          ))}
-        </nav>
+        <div className="app-bar__leading">
+          <div ref={setBoardBackSlot} className="app-bar__board-back-slot" />
+          <div className="app-bar__leading-default">
+            {boardBack ? (
+              <BoardBackControl {...boardBack} />
+            ) : (
+              <button
+                className="brand"
+                type="button"
+                aria-label="ChessCue"
+                title="ChessCue"
+                onClick={() => {
+                  setView("play");
+                }}
+              >
+                <img src="/favicon.svg" alt="" width="32" height="32" />
+              </button>
+            )}
+          </div>
+        </div>
+        {!extensionPanel && (
+          <PanelTabs
+            placement="header"
+            current={activeNavigationView}
+            onNavigate={navigateSection}
+          />
+        )}
         <button
           type="button"
           className="account-button"
+          aria-label="Account"
+          title="Account"
           aria-current={
             view === "account" || view === "ranks" ? "page" : undefined
           }
           onClick={openAccount}
         >
-          Account
+          <svg
+            viewBox="0 0 24 24"
+            width="21"
+            height="21"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="7" r="3.5" />
+            <path d="M5 20v-1a7 7 0 0 1 14 0v1" />
+          </svg>
         </button>
       </header>
+      {extensionPanel && (
+        <PanelTabs
+          current={activeNavigationView}
+          onNavigate={navigateSection}
+        />
+      )}
       {view === "review-home" && (
         <SidePanelReview
+          watchLichess={extensionPanel}
           repository={repository}
           historyRevision={snapshotRevision}
-          lastReview={recentReview?.route ?? null}
           openGame={(route) => {
             setView("import", route);
           }}
-          resumeReview={(route) => {
+          openSavedGame={(route) => {
             setView("review", route);
           }}
           importPgn={() => {
@@ -1281,25 +1523,34 @@ function PlayerApp({
           }}
         />
       )}
-      {view === "race" && (
-        <Suspense fallback={<p>Loading race…</p>}>
-          <RaceView
-            key={socialHash}
-            id={socialHash.startsWith("#race/") ? socialHash.slice(6) : null}
-            user={user}
+      {view === "race" &&
+        ((hostedRaceSignIn || nativeGoogleSignIn) && user === null ? (
+          <HostedRaces
+            nativeGoogle={nativeGoogleSignIn}
             session={session}
-            ratings={ratings}
-            accountError={accountError}
-            uploadsPending={sync.pending > 0}
-            conflict={sync.conflicts.some((k) => k.startsWith("games/"))}
-            onPlay={() => {
-              openGame("rated");
-            }}
+            error={accountError}
+            id={socialHash.startsWith("#race/") ? socialHash.slice(6) : null}
           />
-        </Suspense>
-      )}
+        ) : (
+          <Suspense fallback={<LoadingState>Loading race…</LoadingState>}>
+            <RaceView
+              panel
+              key={socialHash}
+              id={socialHash.startsWith("#race/") ? socialHash.slice(6) : null}
+              user={user}
+              session={session}
+              ratings={ratings}
+              accountError={accountError}
+              uploadsPending={sync.pending > 0}
+              conflict={sync.conflicts.some((k) => k.startsWith("games/"))}
+              onPlay={() => {
+                openGame("rated");
+              }}
+            />
+          </Suspense>
+        ))}
       {view === "win" && (
-        <Suspense fallback={<p>Loading win…</p>}>
+        <Suspense fallback={<LoadingState>Loading win…</LoadingState>}>
           <SharedWinView
             key={socialHash}
             id={socialHash.slice(socialHash.indexOf("/") + 1)}
@@ -1320,14 +1571,13 @@ function PlayerApp({
               openGame("rated");
             }}
           />
+        ) : ratingError ? (
+          <p role="status">Rank unavailable</p>
         ) : (
-          <p role="status">
-            {ratingError ? "Rank unavailable" : "Loading rank path…"}
-          </p>
+          <LoadingState>Loading rank path…</LoadingState>
         ))}
       {view === "account" && (
         <AccountPanel
-          compact={extensionPanel}
           user={user}
           history={history}
           session={session}
@@ -1341,7 +1591,7 @@ function PlayerApp({
         >
           <div className="account-progress">
             {!profileReady ? (
-              <p>Loading your progress…</p>
+              <LoadingState>Loading your progress…</LoadingState>
             ) : ratingError ? (
               <p role="alert">
                 Your rank could not be loaded.{" "}
@@ -1363,16 +1613,13 @@ function PlayerApp({
                 }}
               />
             )}
-            <ProfileOverview
-              profile={profile}
-              contributingGames={contributingGames}
-            />
           </div>
         </AccountPanel>
       )}
 
       {view === "play" ? (
         <PlayGameScreen
+          compact={extensionPanel}
           noteScope={history.name}
           mode={playMode}
           readyToStart={profileReady}
@@ -1380,6 +1627,8 @@ function PlayerApp({
           resumeGameId={playEntry?.gameId}
           engine={engine}
           assessPosition={readBoardPosition}
+          analyzeCoachMove={loadReviewReply}
+          analyzeCoachObservation={loadCoachObservation}
           repository={repository}
           createGameId={newGameId}
           createPositionId={newPositionId}
@@ -1400,41 +1649,21 @@ function PlayerApp({
       ) : null}
 
       {view === "play-mode" ? (
-        <main className="content-shell">
+        <main className="content-shell play-mode-page">
           <section
             className="play-mode-setup"
             aria-labelledby="play-mode-title"
           >
-            <h1 id="play-mode-title">Game mode</h1>
-            <div className="game-mode-choices">
-              {(["rated", "coached"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`game-mode-choice game-mode-choice--${mode}`}
-                  aria-labelledby={`mode-${mode}`}
-                  aria-describedby={`mode-${mode}-description`}
-                  disabled={!profileReady}
-                  onClick={() => {
-                    openGame(mode);
-                  }}
-                >
-                  <strong id={`mode-${mode}`}>
-                    {mode === "rated" ? "Rated" : "Coached"}
-                  </strong>
-                  <span id={`mode-${mode}-description`}>
-                    {mode === "rated"
-                      ? "Unassisted · Counts for Elo"
-                      : "Unrated · Rook can help"}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <div className="play-mode-social">
-              <a className="review-action" href="#races">
-                Elo races
-              </a>
-              {recentWin && (
+            <ScreenHeader id="play-mode-title" title="Game mode" />
+            <GameModeChoices
+              repository={repository}
+              activeMode={playMode}
+              activeGameId={playEntry?.gameId}
+              ready={profileReady}
+              onOpen={openGame}
+            />
+            {recentWin && (
+              <div className="play-mode-social">
                 <Suspense>
                   <ShareWin
                     key={recentWin.id}
@@ -1443,8 +1672,8 @@ function PlayerApp({
                     session={session}
                   />
                 </Suspense>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         </main>
       ) : null}
@@ -1474,7 +1703,9 @@ function PlayerApp({
                 }}
               />
               {selectedRating.result === "Won" && (
-                <Suspense>
+                <Suspense
+                  fallback={<LoadingText>Loading sharing…</LoadingText>}
+                >
                   <a className="review-action" href="#races">
                     Race friends
                   </a>
@@ -1494,9 +1725,11 @@ function PlayerApp({
           ) : (
             <section aria-live="polite">
               <h1>
-                {ratingError
-                  ? "Your rating is unavailable"
-                  : "Calculating your Elo"}
+                {ratingError ? (
+                  "Your rating is unavailable"
+                ) : (
+                  <LoadingText>Calculating your Elo</LoadingText>
+                )}
               </h1>
               {ratingError ? (
                 <button
@@ -1558,48 +1791,25 @@ function PlayerApp({
         </main>
       ) : null}
 
-      {view === "practice" && !activePractice && (
-        <p role="status">
-          {snapshot.status === "checking" || openingReviewMistake
-            ? "Opening practice…"
-            : "This practice position is unavailable."}
-        </p>
-      )}
+      {view === "practice" &&
+        !activePractice &&
+        (snapshot.status === "checking" || openingReviewMistake ? (
+          <LoadingState>Opening puzzle…</LoadingState>
+        ) : (
+          <p role="status">This practice position is unavailable.</p>
+        ))}
       {view === "practice" && activePractice !== null ? (
         <PracticePosition
           key={activePractice.id}
-          compact={extensionPanel}
+          compact
           exercise={activePractice.exercise}
           gamePrompt={activePractice.gamePrompt}
+          goal={activePractice.goal}
           analyzeReply={loadReviewReply}
           assessPosition={readBoardPosition}
           onRatedGame={() => {
             openGame("rated");
           }}
-          onTrainingPlan={() => {
-            if (
-              parentPage()?.startsWith("#study/") ||
-              parentPage() === "#skill-tree"
-            )
-              returnToParent(() => {
-                setView("training");
-              });
-            else setView("training");
-          }}
-          onAnotherPosition={
-            anotherExercise === undefined
-              ? undefined
-              : () => {
-                  openPractice({
-                    id: anotherExercise.id,
-                    exercise: anotherExercise,
-                    seenExercises: [
-                      ...activePractice.seenExercises,
-                      activePractice.exercise.id,
-                    ],
-                  });
-                }
-          }
           onComplete={() => {
             if (savedMistake) {
               void completeReviewMistake(history.name, savedMistake.id)
@@ -1613,7 +1823,16 @@ function PlayerApp({
                 });
               return;
             }
-            if (!duePractice.some(({ id }) => id === activePractice.id)) return;
+            if (!duePractice.some(({ id }) => id === activePractice.id)) {
+              try {
+                history.completePractice(
+                  "skill-puzzle-v1:" + activePractice.exercise.id,
+                );
+              } catch {
+                setMistakeSaveError("Practice completion could not be saved.");
+              }
+              return;
+            }
             try {
               history.completePractice(activePractice.id);
               window.dispatchEvent(new Event("chesscue-history"));
@@ -1629,23 +1848,21 @@ function PlayerApp({
 
       {view === "import" ? (
         <main className="content-shell content-shell--narrow">
-          {extensionPanel && (
-            <button
-              type="button"
-              className="lesson-back"
-              onClick={() => {
-                setView("review-home");
-              }}
-            >
-              Back to Review
-            </button>
-          )}
-          {location.protocol === "chrome-extension:" &&
-          location.hash.startsWith("#lichess/") ? (
-            <LichessImport
+          <button
+            type="button"
+            className="lesson-back"
+            onClick={() => {
+              setView("review-home");
+            }}
+          >
+            Back to Review
+          </button>
+          {location.protocol === "chrome-extension:" && gameImportSite ? (
+            <ExternalGameImport
               key={location.hash}
               route={location.hash}
-              importGame={importLichessGame}
+              site={gameImportSite}
+              importGame={importExternalGame}
               review={analyzeGame}
               manual={() => {
                 setView("import", "#import");
@@ -1665,239 +1882,60 @@ function PlayerApp({
         </main>
       ) : null}
 
-      {view === "training" && (
-        <header className="training-header">
-          <h1>{extensionPanel ? "Skill tree" : "Training plan"}</h1>
-          <PracticeSection name="ChessCue curriculum">
+      {view === "training" && panelLessons && (
+        <main className="content-shell">
+          {location.hash.split("/").length === 2 && (
+            <button
+              type="button"
+              className="lesson-back"
+              aria-label="Back to Skill tree"
+              onClick={() => {
+                returnToParent(() => {
+                  setView("training");
+                });
+              }}
+            >
+              Back to Skill tree
+            </button>
+          )}
+          {panelLessons}
+        </main>
+      )}
+      {view === "training" && !panelLessons && (
+        <section className="training-header">
+          <ScreenHeader title="Skill tree" />
+          <PracticeSection
+            name="ChessCue curriculum"
+            loading={<LoadingState>Loading skill tree…</LoadingState>}
+          >
             <PracticeCurriculum
               recommendation={curriculumRecommendation}
+              lessons={renderCardLessons}
+              onOpenSkill={openSkillPuzzle}
               onPractice={(exercise) => {
                 openPractice({ id: exercise.id, exercise });
               }}
             />
           </PracticeSection>
-          {mistakeSaveError && <p role="status">{mistakeSaveError}</p>}
-          {reviewMistakes.some(({ completed }) => !completed) && (
-            <section
-              className="side-panel-follow-up review-mistake-queue"
-              aria-label="Mistakes from PGN reviews"
-            >
-              <h2>Mistakes from PGN reviews</h2>
-              <ul>
-                {reviewMistakes
-                  .filter(({ completed }) => !completed)
-                  .flatMap((mistake) => {
-                    const drill = reviewMistakePractice(mistake);
-                    if (!drill) return [];
-                    return [
-                      <li key={mistake.id}>
-                        <button
-                          type="button"
-                          className="review-action"
-                          onClick={() => {
-                            openPractice({
-                              id: mistake.id,
-                              exercise: drill.exercise,
-                            });
-                          }}
-                        >
-                          Retry {drill.attemptedSan}
-                        </button>
-                      </li>,
-                    ];
-                  })}
-              </ul>
-            </section>
-          )}
-          {extensionPanel && recentReviewDrill && (
-            <section
-              className="side-panel-follow-up"
-              aria-label="Practice from your last review"
-            >
-              <h2>From your last review</h2>
-              <button
-                type="button"
-                className="primary-link"
-                onClick={() => {
-                  startGameDrill(recentReviewDrill);
+          {!extensionPanel &&
+            snapshot.status === "ready" &&
+            snapshot.games.length === 0 && (
+              <TrainingAnalysisStatus
+                state={snapshot}
+                onPlay={() => {
+                  openGame("rated");
                 }}
-              >
-                {recentReviewDrill.moveLabel}
-              </button>
-            </section>
-          )}
-          <PracticeSection name="Shared puzzle library">
-            <SharedPuzzleLibrary
-              onPractice={({ exercise }) => {
-                openPractice({ id: exercise.id, exercise });
-              }}
-            />
-          </PracticeSection>
-        </header>
+                onImport={() => {
+                  setView("import");
+                }}
+              />
+            )}
+          {mistakeSaveError && <p role="status">{mistakeSaveError}</p>}
+        </section>
       )}
-      {view === "training" ? (
-        <GameAnalysisSection
-          {...(extensionPanel
-            ? { className: "shared-puzzle-library practice-game-analysis" }
-            : {})}
-        >
-          {extensionPanel && <summary>Game analysis by skill</summary>}
-          <SkillTree
-            profile={profile}
-            selected={selectedSkill}
-            onSelect={(skill) => {
-              const hash = "#study/" + skill;
-              if (hash !== location.hash) {
-                enterPage(hash, history.name);
-                setStudyVisit((n) => n + 1);
-              }
-              setSelectedSkill(skill);
-            }}
-            lessons={(skill) => {
-              const topic =
-                skill === "rook" || skill === "endgames"
-                  ? "rook"
-                  : skill === "threats"
-                    ? "attack"
-                    : undefined;
-              if (skill !== "vision" && topic === undefined) return null;
-              return (
-                <PracticeSection
-                  name="Lessons"
-                  loading={<p role="status">Opening lessons…</p>}
-                >
-                  <StudySkill.Provider value={skill}>
-                    <StudyScreen
-                      key={skill + String(studyVisit)}
-                      history={snapshot}
-                      pattern={
-                        skill === "vision" && snapshot.status === "ready"
-                          ? snapshot.plan.practice[0]
-                          : undefined
-                      }
-                      initialTopic={topic}
-                      analyzeReply={loadReviewReply}
-                      assessPosition={readBoardPosition}
-                      storageKey={history.key("chesscue-study-roadmaps-v1")}
-                      profile={profile}
-                    />
-                  </StudySkill.Provider>
-                </PracticeSection>
-              );
-            }}
-            snapshot={snapshot}
-            onImport={() => {
-              setView("import");
-            }}
-            onPlay={() => {
-              openGame("rated");
-            }}
-            evidence={
-              snapshot.status === "ready"
-                ? snapshot.plan.backRank
-                : { total: 0, found: 0, missedFen: null }
-            }
-            verifiedDrill={gameDrill}
-            onStartDrill={startGameDrill}
-            duePractice={
-              snapshot.status === "ready"
-                ? duePractice.filter((item) =>
-                    snapshot.games.some(
-                      (game) =>
-                        game.id === item.sourceGameId && game.moves.length > 0,
-                    ),
-                  )
-                : []
-            }
-            onDuePractice={(id) => {
-              const item = duePractice.find((practice) => practice.id === id);
-              if (!item) return;
-              openPractice(item);
-            }}
-            gameTraining={
-              trainingGame && (
-                <GameTraining
-                  key={gameDrill?.exercise.id ?? trainingGame.id}
-                  drill={gameDrill}
-                  message={
-                    gameDrill
-                      ? null
-                      : "Open the game review to see its checked positions."
-                  }
-                  onCue={setDrillCue}
-                  onRetry={startGameDrill}
-                  onFollowUp={(exercise, question) => {
-                    openPractice({
-                      id: exercise.id,
-                      exercise: question
-                        ? { ...exercise, prompt: question }
-                        : exercise,
-                    });
-                  }}
-                  onReview={() => {
-                    analyzeGame(trainingGame);
-                  }}
-                  onRatedGame={() => {
-                    openGame("rated");
-                  }}
-                  observations={
-                    gameDrill === null
-                      ? 0
-                      : profile.mastery[
-                          gameDrill.exercise.theme ===
-                          "premature-central-exchange"
-                            ? "central-pawn-tension"
-                            : gameDrill.exercise.theme
-                        ].evidenceCount
-                  }
-                  storageKey={history.key("chesscue-game-training-path-v1")}
-                />
-              )
-            }
-            onPractice={(theme) => {
-              const exercise = transferExercisesForTheme(theme).find(
-                (item) => item.difficulty === "unlabeled",
-              );
-              if (!exercise) return;
-              const scheduled = duePractice.find(
-                (item) => item.exercise.id === exercise.id,
-              );
-              openPractice(scheduled ?? { id: exercise.id, exercise });
-            }}
-            focusGame={
-              gameDrill &&
-              profile.mastery[profile.nextGame.focus].evidenceCount > 0 &&
-              (gameDrill.exercise.theme === "premature-central-exchange"
-                ? "central-pawn-tension"
-                : gameDrill.exercise.theme) === profile.nextGame.focus ? (
-                <>
-                  <CurriculumCard
-                    prescription={{
-                      ...profile.nextGame,
-                      targetElo: ratedOpponentElo(targetElo),
-                    }}
-                    mastery={profile.mastery[profile.nextGame.focus]}
-                  />
-                  <button
-                    className="primary-link"
-                    type="button"
-                    onClick={() => {
-                      openGame("coached");
-                    }}
-                  >
-                    Play this focus game
-                  </button>
-                </>
-              ) : null
-            }
-          />
-        </GameAnalysisSection>
-      ) : null}
 
       {view === "review" ? (
         <main className="content-shell review-page">
-          {(!extensionPanel || analysis.status !== "ready" || missingGame) &&
-            reviewBackButton}
           {savedReviewRoute === gameRoute && !missingGame && (
             <p role="status" className="review-page__notice">
               Opened your saved review.
@@ -1915,6 +1953,7 @@ function PlayerApp({
             </p>
           ) : analysis.status === "running" ? (
             <section className="review-page__state" aria-live="polite">
+              <LoadingMark large />
               <p className="section-kicker">Stockfish review</p>
               <h1>Analyzing your game</h1>
               <p>
@@ -1948,56 +1987,67 @@ function PlayerApp({
                 game={analysis.game}
                 analysis={analysis.analysis}
                 coachProvider={reviewCoachProvider}
-                reviewBack={extensionPanel ? reviewBackButton : undefined}
+                reviewTitle={
+                  reviewMatchup
+                    ? (reviewMatchup.opponent
+                        ? "vs. " + reviewMatchup.opponent + " · "
+                        : "") + reviewMatchup.result
+                    : undefined
+                }
                 reviewSource={
-                  extensionPanel ? (
-                    <p className="review-page__notice">
-                      {analysis.game.origin.type === "pgn-upload" &&
-                      /^lichess-[a-z0-9]{8}\.pgn$/i.test(
-                        analysis.game.origin.sourceName,
-                      ) ? (
-                        <a
-                          href={
-                            "https://lichess.org/" +
-                            analysis.game.origin.sourceName.slice(8, -4)
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Lichess game
-                        </a>
-                      ) : analysis.game.origin.type === "tutor" ? (
-                        "ChessCue game"
-                      ) : (
-                        "Imported game"
-                      )}
-                    </p>
+                  analysis.game.origin.type === "pgn-upload" &&
+                  /^lichess-[a-z0-9]{8}\.pgn$/i.test(
+                    analysis.game.origin.sourceName,
+                  ) ? (
+                    <a
+                      href={
+                        "https://lichess.org/" +
+                        analysis.game.origin.sourceName.slice(8, -4)
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Lichess game"
+                      title="Open Lichess game"
+                    >
+                      <span aria-hidden="true">↗</span>
+                    </a>
                   ) : undefined
                 }
-                compact={extensionPanel}
-                onMistake={
-                  analysis.game.origin.type === "tutor"
-                    ? undefined
-                    : (evidence) => {
-                        if (!analysis.game.result || !analysis.game.completedAt)
-                          return;
-                        void saveReviewMistake(
-                          history.name,
-                          analysis.game.id,
-                          evidence,
-                        )
-                          .then(() => {
-                            window.dispatchEvent(
-                              new Event("chesscue-review-practice"),
-                            );
-                          })
-                          .catch(() => {
-                            setMistakeSaveError(
-                              "A review mistake could not be saved for practice.",
-                            );
-                          });
-                      }
-                }
+                compact
+                onMistake={async (evidence) => {
+                  const game = analysis.game;
+                  if (!game.result || !game.completedAt) return null;
+                  const unitId = unitForPosition(
+                    { fen: evidence.fen, theme: "other" },
+                    [
+                      ...(snapshot.status === "ready" ? snapshot.moves : []),
+                      ...observedGameMoves(game, analysis.analysis),
+                    ],
+                    game.id,
+                  );
+                  try {
+                    const added = await saveReviewMistake(
+                      history.name,
+                      game.id,
+                      evidence,
+                      unitId,
+                    );
+                    if (!added) return null;
+                    window.dispatchEvent(new Event("chesscue-review-practice"));
+                  } catch {
+                    setMistakeSaveError(
+                      "A review mistake could not be saved for practice.",
+                    );
+                    return null;
+                  }
+                  return import("../domain/material/installed-curriculum").then(
+                    ({ skillLocation }) => ({
+                      location: skillLocation(unitId),
+                      unitId,
+                    }),
+                    () => ({ location: "", unitId }),
+                  );
+                }}
                 onTrainingComplete={
                   reviewPerspective
                     ? null

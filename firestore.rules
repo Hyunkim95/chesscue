@@ -45,14 +45,16 @@ service cloud.firestore {
     function uuid(id) { return id is string && id.matches('[a-f0-9-]{36}'); }
     function elo(value) { return value == null || (value is int && value >= 0); }
     function validGoal(g) {
-      return g is map && g.keys().hasOnly(['kind','value']) && g.kind in ['gain','milestone']
-        && g.value is int && g.value > 0 && g.value <= 10000;
+      return g is map && ((g.kind == 'highest' && g.keys().hasOnly(['kind']))
+        || (g.kind in ['gain','milestone'] && g.keys().hasOnly(['kind','value'])
+          && g.value is int && g.value > 0 && g.value <= 10000));
     }
     function validMember(m) {
-      return m.keys().hasOnly(['name','joinedAt','startingElo','baseline','current','target','crossedAt','disputed','publishedAt'])
+      return m.keys().hasOnly(['name','joinedAt','startingElo','baseline','current','peak','target','crossedAt','disputed','publishedAt'])
         && m.name is string && m.name.size() > 0 && m.name.size() <= 100
         && m.joinedAt is string && m.joinedAt.size() == 24
         && elo(m.startingElo) && elo(m.baseline) && elo(m.current) && elo(m.target)
+        && elo(m.get('peak', null))
         && (m.crossedAt == null || (m.crossedAt is string && m.crossedAt.size() == 24))
         && m.disputed is bool && (!('publishedAt' in m) || m.publishedAt is timestamp);
     }
@@ -71,7 +73,7 @@ service cloud.firestore {
           && request.resource.data.get('publishedAt',request.time) == request.time
           && getAfter(/databases/$(database)/documents/races/$(raceId)).data.version == 1;
         allow update: if ownsUserScope(uid) && validMember(request.resource.data)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['current','crossedAt','target','baseline','disputed','publishedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['current','peak','crossedAt','target','baseline','disputed','publishedAt'])
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['publishedAt'])
             || request.resource.data.publishedAt == request.time)
           && (!resource.data.disputed || request.resource.data.disputed);

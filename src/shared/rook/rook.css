@@ -3,18 +3,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.35rem;
-  border-bottom: 1px solid var(--cue-line);
 }
 
-.rook-chat__header > div > h2 {
+.rook-chat__header > .rook-chat__title {
   margin: 0;
-  font: 600 1.5rem/1.1 var(--cue-display);
-}
-
-.rook-chat__header > div > p {
-  margin: 0.15rem 0 0.25rem;
-  color: var(--cue-muted);
-  font-size: 0.76rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .rook-chat__messages {
@@ -94,16 +89,19 @@
   grid-template-columns: minmax(0, 1fr);
   grid-auto-flow: column;
   grid-auto-columns: auto;
-  gap: 0.2rem;
+  padding-inline: 0.15rem;
+  border: 1px solid var(--cue-line);
+  border-radius: var(--cue-radius-control);
+  background: var(--cue-paper-deep);
 }
 
 .rook-chat__composer input {
   min-width: 0;
   min-height: 44px;
   padding: 0.35rem 0.42rem;
-  border: 1px solid var(--cue-line);
-  border-radius: 2px;
-  background: var(--cue-canvas);
+  border: 0;
+  border-radius: var(--cue-radius-control);
+  background: transparent;
   color: var(--cue-ink);
   font-family: inherit;
   font-size: 1rem;
@@ -115,10 +113,20 @@
   cursor: pointer;
   font: inherit;
   font-weight: 700;
-  padding-inline: 0.65rem;
-  background: var(--cue-action-fill);
-  color: var(--cue-action-ink);
-  clip-path: var(--cue-button-cut);
+  padding-inline: 0;
+  background: transparent;
+  color: var(--cue-ink);
+  border-radius: var(--cue-radius-control);
+}
+
+.game-review .rook-chat__composer > button:not(.chess-board__square) {
+  padding-inline: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.rook-chat__send:hover:not(:disabled) {
+  color: var(--cue-gold);
 }
 
 .rook-chat__send:focus-visible {
@@ -148,19 +156,10 @@
 .rook-chat__message small {
   color: var(--cue-muted);
 }
-.rook-chat__source {
-  margin-top: 0.65rem;
-  color: var(--cue-muted);
-  font-size: 0.85rem;
-}
-.rook-chat__source summary {
-  cursor: pointer;
-}
 .rook-chat__composer button:disabled {
   opacity: 0.6;
   cursor: default;
 }
-.rook-chat__source summary:focus-visible,
 .rook-chat__composer input:focus-visible {
   outline: 2px solid var(--cue-gold);
 }
@@ -212,4 +211,98 @@ button.rook-send-icon {
   place-items: center;
   min-width: 44px;
   min-height: 44px;
+}
+
+.rook-conversation-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+}
+
+.rook-conversation-icon {
+  position: relative;
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+}
+
+.rook-conversation-icon::before,
+.rook-conversation-icon::after {
+  position: absolute;
+  content: "";
+}
+
+.rook-conversation-icon::before {
+  inset: 0.15rem 0.03rem 0.26rem;
+  border: 2px solid currentColor;
+  border-radius: 0.2rem;
+}
+
+.rook-conversation-icon::after {
+  inset: 0.62rem 0.52rem 0.08rem 0.22rem;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.rook-board-message .rook-chat__turn {
+  align-items: center;
+}
+.rook-board-message .rook-chat__message {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.45rem;
+  border-inline-start-color: var(--rook-board-message-accent, var(--cue-pine));
+  background: var(--cue-paper-deep);
+  font-size: 1rem;
+}
+.rook-board-message .rook-chat__message::before {
+  background: var(--rook-board-message-accent, var(--cue-pine));
+}
+.rook-board-dock .rook-chat__composer {
+  margin-block-start: 0.25rem;
+}
+
+.rook-board-dock .rook-chat__messages {
+  max-height: clamp(13.5rem, 29dvh, 15rem);
+  overscroll-behavior-y: contain;
+}
+
+.rook-board-dock .rook-chat__message {
+  font-size: 1rem;
+}
+
+.rook-speech-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.5rem;
+  max-height: min(10rem, 30dvh);
+  overflow-y: auto;
+  padding: 0.35rem 0.45rem;
+  color: var(--cue-ink);
+  font-size: 0.8125rem;
+  background: var(--cue-paper-deep);
+}
+
+.rook-speech-status small {
+  flex-basis: 100%;
+  color: var(--cue-muted);
+  font-size: inherit;
+}
+
+.rook-speech-status > :is(button, a),
+.game-review .rook-speech-status > button:not(.chess-board__square) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cue-gold);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }

@@ -12,8 +12,8 @@ interface Position {
 }
 
 const INSET = 12;
-const WIDTH = 108;
-const HEIGHT = 56;
+const WIDTH = 90;
+const HEIGHT = 44;
 const home: Position = { x: 1, y: 1 };
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const directions: Partial<Record<string, readonly [number, number]>> = {
@@ -71,10 +71,15 @@ export function RookLauncher({
   const suppressClick = useRef(false);
 
   function move(from: Position, x: number, y: number) {
+    const tabsHeight =
+      document
+        .querySelector(".panel-tabs:not(.panel-tabs--header)")
+        ?.getBoundingClientRect().height ?? 0;
     const next = {
       x: clamp(from.x + x / Math.max(1, window.innerWidth - WIDTH - 2 * INSET)),
       y: clamp(
-        from.y + y / Math.max(1, window.innerHeight - HEIGHT - 2 * INSET),
+        from.y +
+          y / Math.max(1, window.innerHeight - tabsHeight - HEIGHT - 2 * INSET),
       ),
     };
     current.current = next;
@@ -110,7 +115,7 @@ export function RookLauncher({
           width: WIDTH,
           height: HEIGHT,
           left: `calc(${String(INSET)}px + ${String(position.x)} * (100% - ${String(WIDTH + 2 * INSET)}px))`,
-          top: `calc(${String(INSET)}px + ${String(position.y)} * (100% - ${String(HEIGHT + 2 * INSET)}px))`,
+          top: `calc(${String(INSET)}px + ${String(position.y)} * (100% - var(--panel-nav-height, 0px) - ${String(HEIGHT + 2 * INSET)}px))`,
         }}
       >
         {open && (

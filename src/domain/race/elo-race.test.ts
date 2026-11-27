@@ -60,3 +60,38 @@ it("awards equal recorded times joint first and withholds a disputed placing", (
   }
   expect(firstCrossing([{ ...early, disputed: true }, late])).toBeNull();
 });
+
+it("keeps the highest Elo held since joining through later losses", () => {
+  const member = { startingElo: 1450, joinedAt: join };
+  const goal = { kind: "highest" } as const;
+  const history = [
+    entry(1, 1600, 1580),
+    entry(2, 1580, 1450),
+    entry(3, 1450, 1470),
+    entry(4, 1470, 1420),
+  ];
+  expect(raceProgress(history.slice(0, 2), member, goal)).toHaveProperty(
+    "peak",
+    1450,
+  );
+  expect(raceProgress(history, member, goal)).toMatchObject({
+    peak: 1470,
+    current: 1420,
+    crossedAt: null,
+    target: null,
+  });
+});
+
+it("starts counting at the first published rating for a player in placement", () => {
+  const member = { startingElo: null, joinedAt: join };
+  const goal = { kind: "highest" } as const;
+  const provisional = { ...entry(3, 1700, 1730), placementGame: 4 };
+  const published = { ...entry(4, 1730, 1600), placementGame: 5 };
+  expect(raceProgress([provisional], member, goal)).toHaveProperty(
+    "peak",
+    null,
+  );
+  expect(
+    raceProgress([provisional, published, entry(5, 1600, 1550)], member, goal),
+  ).toHaveProperty("peak", 1600);
+});

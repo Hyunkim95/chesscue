@@ -20,6 +20,12 @@ export interface VerifiedGameDrill {
   readonly phase: MoveAnalysisFact["phase"];
   readonly backRank: boolean;
   readonly mateInOne?: boolean;
+  // The board model's unit for the checked line, added after the drill is built.
+  readonly predictedUnit?: {
+    readonly unitId: string;
+    readonly probability: number;
+    readonly model: string;
+  };
   readonly completedAt: string;
   readonly imported: boolean;
   readonly followUps: readonly VerifiedTransferExercise[];

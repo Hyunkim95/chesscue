@@ -1,3 +1,4 @@
+import { LoadingMark, LoadingState } from "../../shared/loading/LoadingState";
 import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { Chess, type Square } from "chess.js";
@@ -82,6 +83,7 @@ export function ShareWin({
       <button
         className="review-action"
         disabled={busy}
+        aria-busy={busy}
         onClick={() => {
           setBusy(true);
           setMessage("");
@@ -121,7 +123,7 @@ export function ShareWin({
             });
         }}
       >
-        Create win link
+        {busy && <LoadingMark />} Create win link
       </button>
       {url && <CopyLink label="Shared win link" url={url} />}{" "}
       {message && <p role="alert">{message}</p>}
@@ -198,12 +200,10 @@ export function SharedWinView({
       <h1>Shared win</h1>
       {win ? (
         <WinPosition win={win} />
+      ) : error || unavailable ? (
+        <p>This win link is unavailable.</p>
       ) : (
-        <p>
-          {error || unavailable
-            ? "This win link is unavailable."
-            : "Loading the position…"}
-        </p>
+        <LoadingState>Loading the position…</LoadingState>
       )}
       <button className="primary-link" onClick={onPlay}>
         Play your own game
@@ -228,7 +228,9 @@ function WinPosition({ win }: { win: SharedWin }) {
         {win.name} won as {win.side}.
         {win.elo === null ? "" : " " + win.elo.toString() + " Elo"}
         {win.target === null
-          ? ""
+          ? win.raceElo === null
+            ? ""
+            : ` · Race best ${win.raceElo.toString()} Elo when shared`
           : " · Race goal " +
             win.target.toString() +
             (win.raceElo === null

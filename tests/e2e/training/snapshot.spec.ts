@@ -5,7 +5,9 @@ test("builds the player snapshot from distinct games and opens each cited positi
 }) => {
   test.setTimeout(90000);
   await page.goto("/#skill-tree");
-  await expect(page.getByRole("group", { name: "Chess skills" })).toBeVisible({
+  await expect(
+    page.getByRole("region", { name: "Curriculum skill tree" }),
+  ).toBeVisible({
     timeout: 3000,
   });
   await expect(
@@ -19,11 +21,11 @@ test("builds the player snapshot from distinct games and opens each cited positi
   ).toHaveCount(0);
   await expect(
     page
-      .getByRole("main")
+      .getByRole("region", { name: "Practice from your games" })
       .getByRole("button", { name: "Play a game", exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("main")
+    .getByRole("region", { name: "Practice from your games" })
     .getByRole("button", { name: "Import games", exact: true })
     .click();
   const pgn = (file: string, move: number, row: string) =>
@@ -40,45 +42,32 @@ test("builds the player snapshot from distinct games and opens each cited positi
     page.getByText("2 accepted, 0 duplicate, 0 rejected"),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Training plan", exact: true })
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("button", { name: "Practice", exact: true })
     .click();
-  await expect(
-    page.getByText(
-      /In 2 of your games, Stockfish found a stronger move involving one-move threats/,
-    ),
-  ).toBeVisible({ timeout: 30000 });
-  const snap = page.getByRole("region", { name: "Moves from your games" });
-  const pattern = snap.getByText("One-move threats · 2 moves across 2 games", {
-    exact: true,
-  });
-  await expect(pattern).toBeVisible({ timeout: 30000 });
-  await expect(
-    snap.getByRole("button", { name: "Replay 28. Rd2" }),
-  ).toBeHidden();
-  await page
-    .getByRole("button", {
-      name: /Piece safety.*(?:Explore|Practice ready|In progress)/,
-    })
-    .click();
-  await expect(pattern).toBeHidden();
-  await page.getByRole("button", { name: /Threats.*From your game/ }).click();
-  for (const [move, from] of [
-    ["28. Rd2", "d1"],
-    ["36. Rc2", "c1"],
-  ] as const) {
-    await pattern.click();
-    await snap
-      .getByRole("button", { name: "Replay " + move, exact: true })
+  const recommended = page.locator(
+    ".practice-tree__node[data-recommended=true]",
+  );
+  await expect(recommended).toBeVisible({ timeout: 30000 });
+  const seen = new Set<string>();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await recommended.click();
+    const board = page.getByRole("grid");
+    const rook = board.getByRole("gridcell", { name: /White rook on [cd]1/ });
+    await expect(rook).toBeVisible();
+    const file = (await rook.getAttribute("aria-label"))?.match(
+      /on ([cd])1/,
+    )?.[1];
+    if (!file) throw Error("Expected a rook from an imported game.");
+    seen.add(file);
+    await rook.click();
+    await board
+      .getByRole("gridcell", { name: new RegExp("Empty " + file + "8") })
       .click();
-    await expect(
-      page.getByRole("gridcell", { name: "White rook on " + from }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Back to training plan" }).click();
+    await expect(page.getByText("Good move", { exact: true })).toBeVisible();
+    await page
+      .getByRole("button", { name: "Back to Practice", exact: true })
+      .click();
   }
-  await page.getByRole("button", { name: "Account", exact: true }).click();
-  await expect(
-    page.getByRole("region", { name: "Your training profile" }),
-  ).toContainText("Evidence from 2 imported games and 0 tutor games.", {
-    timeout: 2500,
-  });
+  expect(seen).toEqual(new Set(["c", "d"]));
 });

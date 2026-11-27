@@ -1,3 +1,4 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
 import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
 
@@ -15,11 +16,13 @@ export function RookEvaluation({
   assess,
   knownScore,
   checking,
+  hidden,
 }: {
   readonly fen: string;
   readonly assess?: AssessPosition | null | undefined;
   readonly knownScore?: number | undefined;
   readonly checking: boolean;
+  readonly hidden?: boolean;
 }) {
   const [response, setResponse] = useState<{
     readonly fen: string;
@@ -54,8 +57,12 @@ export function RookEvaluation({
       : { kind: "estimate", whiteCentipawns: knownScore });
   if (result === null) {
     return (
-      <div className="rook-evaluation" role="status">
-        {search || checking ? "Checking evaluation…" : "Evaluation unavailable"}
+      <div className="rook-evaluation" role="status" hidden={hidden}>
+        {search || checking ? (
+          <LoadingText>Checking evaluation…</LoadingText>
+        ) : (
+          "Evaluation unavailable"
+        )}
       </div>
     );
   }
@@ -91,7 +98,7 @@ export function RookEvaluation({
       ? Math.max(4, Math.min(96, estimatedShare))
       : estimatedShare;
   return (
-    <div className="rook-evaluation">
+    <div className="rook-evaluation" hidden={hidden}>
       <span>Stockfish</span>
       <div
         className="rook-evaluation__bar"

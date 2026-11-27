@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { z } from "zod";
 import type { PlayerHistory } from "../infrastructure/persistence/player-history";
 import type { CompletedGameAnalysis } from "../application/analyze-game/analyze-completed-game";
 import type { GameRecord } from "../domain/game/types";
@@ -12,6 +13,63 @@ import {
   snapshotGames,
 } from "../domain/curriculum/playing-snapshot";
 import { ANALYSIS_VERSION } from "./adaptive-profile";
+import {
+  boardSequence,
+  predictBoardUnits,
+} from "../domain/curriculum/board-unit-model";
+
+// Adds the board model's unit to each drill so the practice recommendation
+// follows the tactic in the missed line. Results are cached per position and
+// line; without the model the classifier fallback in unitForDrill applies.
+async function addBoardUnits(
+  moves: ObservedMove[],
+  history: PlayerHistory,
+  isCurrent: () => boolean,
+) {
+  const { loadBoardUnitModel } =
+    await import("../infrastructure/models/board-unit-model-asset");
+  const model = await loadBoardUnitModel();
+  if (!model) return;
+  const prediction = z.object({
+    unitId: z.string().min(1),
+    probability: z.number().min(0).max(1),
+  });
+  for (const [index, entry] of moves.entries()) {
+    if (!isCurrent()) return;
+    if (entry.drill.mateInOne || entry.drill.backRank) continue;
+    const { fen, verification } = entry.drill.exercise;
+    const fens = boardSequence(fen, verification.principalVariation);
+    if (!fens) continue;
+    const key = history.key(JSON.stringify([model.name, fens]));
+    let cached: z.infer<typeof prediction> | undefined;
+    try {
+      const stored = prediction.safeParse(
+        JSON.parse(localStorage.getItem(key) ?? "null"),
+      );
+      if (stored.success) cached = stored.data;
+    } catch {
+      // An unreadable cache entry is recomputed.
+    }
+    const top = cached ?? predictBoardUnits(model, fens)[0];
+    if (!top) continue;
+    if (!cached) {
+      try {
+        localStorage.setItem(key, JSON.stringify(top));
+      } catch {
+        // Storage is a cache only.
+      }
+      // Yield between predictions so the panel stays responsive.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    moves[index] = {
+      ...entry,
+      drill: {
+        ...entry.drill,
+        predictedUnit: { ...top, model: model.name },
+      },
+    };
+  }
+}
 
 export type SnapshotState =
   | { status: "checking" }
@@ -140,6 +198,10 @@ export function usePlayingSnapshot(
           // A verified mate remains playable even without a model label.
         }
       }
+      // Board-model units come after the mate labels: mates never use them, and
+      // running them first would delay the back-rank recommendation.
+      await addBoardUnits(moves, history, isCurrent);
+      publish();
     }
     void prepare().catch(() => {
       if (isCurrent())

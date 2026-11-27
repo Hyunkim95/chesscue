@@ -39,12 +39,70 @@ export function RatingProgress({
     )
     .join(" ");
   const count = placementCount(result ?? history.at(-1));
+  const chart =
+    recent.length > 1 ? (
+      <figure>
+        <figcaption>Last {recent.length} rated games</figcaption>
+        <svg
+          viewBox="0 0 300 60"
+          role="img"
+          aria-label={`Elo history: ${scores.join(", ")}`}
+        >
+          <polyline
+            points={points}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        <div className="rating-progress__scale" aria-hidden="true">
+          <span>{recent[0]?.after}</span>
+          <span>{recent.at(-1)?.after}</span>
+        </div>
+      </figure>
+    ) : null;
+  if (result === undefined) {
+    const tier = count === null ? rankForElo(rating).name : null;
+    const remaining = PLACEMENT_GAMES - (count ?? 0);
+    return (
+      <section className="profile-rank" aria-label="Your Elo">
+        <div className="profile-rank__hero">
+          <div className="profile-rank__badge" aria-hidden="true">
+            {tier ? <img src={rankArt[tier]} alt="" /> : <span>♘</span>}
+          </div>
+          <p className="section-kicker">Current rank</p>
+          <h2>{tier ?? "Unranked"}</h2>
+          {tier ? (
+            <p className="profile-rank__rating">
+              {rating.toLocaleString()} ChessCue Elo
+            </p>
+          ) : (
+            <>
+              <p>
+                {remaining} placement {remaining === 1 ? "game" : "games"} left
+              </p>
+              <div className="profile-rank__placements" aria-hidden="true">
+                {Array.from({ length: PLACEMENT_GAMES }, (_, index) => (
+                  <i key={index} data-complete={index < (count ?? 0)} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        {chart}
+        {onRankPath && (
+          <button type="button" className="review-action" onClick={onRankPath}>
+            View rank path
+          </button>
+        )}
+      </section>
+    );
+  }
   if (count !== null)
     return (
       <section className="rating-progress" aria-label="Your Elo">
-        <p className="section-kicker">
-          {result ? "Rated game · " + result.result : "Your rank"}
-        </p>
+        <p className="section-kicker">Rated game · {result.result}</p>
         <h2>Unranked</h2>
         <p>
           Placement · {count} of {PLACEMENT_GAMES}
@@ -77,11 +135,8 @@ export function RatingProgress({
     );
   return (
     <section className="rating-progress" aria-label="Your Elo">
-      <p className="section-kicker">
-        {result === undefined ? "Your rank" : `Rated game · ${result.result}`}
-      </p>
-      {result === undefined && <h2>{rankForElo(rating).name}</h2>}
-      {result?.placementGame === PLACEMENT_GAMES && (
+      <p className="section-kicker">Rated game · {result.result}</p>
+      {result.placementGame === PLACEMENT_GAMES && (
         <h2>You placed in {rankForElo(result.after).name}</h2>
       )}
       <div className="rating-progress__figure">
@@ -94,9 +149,7 @@ export function RatingProgress({
           alt={rankForElo(rating).name + " tier"}
         />
       </div>
-      {change !== null &&
-      result !== undefined &&
-      result.placementGame === undefined ? (
+      {change !== null && result.placementGame === undefined ? (
         <p>
           <strong>
             {change > 0 ? "+" : ""}
@@ -108,33 +161,12 @@ export function RatingProgress({
             : "CPU " + String(result.opponentElo) + " Elo"}
         </p>
       ) : null}
-      {result?.placementGame === PLACEMENT_GAMES && (
+      {result.placementGame === PLACEMENT_GAMES && (
         <p>
           Placement complete · {PLACEMENT_GAMES} of {PLACEMENT_GAMES}
         </p>
       )}
-      {recent.length > 1 ? (
-        <figure>
-          <figcaption>Last {recent.length} rated games</figcaption>
-          <svg
-            viewBox="0 0 300 60"
-            role="img"
-            aria-label={`Elo history: ${scores.join(", ")}`}
-          >
-            <polyline
-              points={points}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-          <div className="rating-progress__scale" aria-hidden="true">
-            <span>{recent[0]?.after}</span>
-            <span>{recent.at(-1)?.after}</span>
-          </div>
-        </figure>
-      ) : null}
+      {chart}
       {onRankPath && (
         <button type="button" className="review-action" onClick={onRankPath}>
           View rank path

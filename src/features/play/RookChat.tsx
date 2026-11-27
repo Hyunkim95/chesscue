@@ -1,10 +1,12 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
 import { starterPack } from "../../domain/material/pack";
 import {
   RookMessage,
+  RookBoardShelf,
   RookChatHeader,
   RookComposer,
 } from "../../shared/rook/RookMessage";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { CoachMoment } from "../../domain/game/coach-moments";
 import { rookReply, type RookReplyChoice } from "../../domain/game/rook-reply";
@@ -15,7 +17,8 @@ import {
   type RookNote,
 } from "../../infrastructure/persistence/rook-notes";
 import { ChessBoard } from "../board/ChessBoard";
-import { useRookSpeech } from "./use-rook-speech";
+import { useRookSpeech } from "../../shared/rook/use-rook-speech";
+import { RookSpeechStatus } from "../../shared/rook/RookSpeechStatus";
 import "./rook-chat.css";
 
 function AudioNote({
@@ -49,6 +52,10 @@ export function RookChat({
   game,
   moments,
   scope,
+  inline,
+  boardFeedback,
+  conversationOpen,
+  onConversationOpen,
   observations,
   onObservations,
   onClose,
@@ -56,6 +63,10 @@ export function RookChat({
   readonly game: GameRecord;
   readonly moments: readonly CoachMoment[];
   readonly scope: string;
+  readonly inline: boolean;
+  readonly boardFeedback?: ReactNode;
+  readonly conversationOpen: boolean;
+  readonly onConversationOpen: () => void;
   readonly observations: boolean;
   readonly onObservations: (enabled: boolean) => void;
   readonly onClose: () => void;
@@ -99,10 +110,11 @@ export function RookChat({
   useEffect(() => {
     const element = log.current;
     if (element) element.scrollTop = element.scrollHeight;
-  }, [moments, notes]);
+  }, [moments, notes, conversationOpen]);
 
   async function sendText(text: string, atPly: number) {
     if (composing.current !== null || !text.trim()) return;
+    if (inline) onConversationOpen();
     const operation = new AbortController();
     composing.current = operation;
     setSaving(true);
@@ -189,84 +201,158 @@ export function RookChat({
     voice.state.status === "starting" || voice.state.status === "installing";
   const finishingVoice = voice.state.status === "finishing";
   const replayMove = game.moves[(replay?.ply ?? 0) - 1];
+  const observationSetting = (
+    <label className="rook-chat__setting">
+      <input
+        type="checkbox"
+        checked={observations}
+        onChange={(event) => {
+          onObservations(event.currentTarget.checked);
+        }}
+      />
+      Flag learning moments
+    </label>
+  );
 
-  return (
-    <>
-      <RookChatHeader context="Coached game">
-        <button
-          className="rook-chat__icon"
-          type="button"
-          aria-label="Close Rook chat"
-          onClick={onClose}
-        >
-          <span aria-hidden="true">×</span>
-        </button>
-      </RookChatHeader>
-      <div
-        className="rook-chat__messages"
-        role="log"
-        aria-label="Messages with Rook"
-        ref={log}
+  const composer = (
+    <RookComposer
+      value={message}
+      onFocus={inline ? onConversationOpen : undefined}
+      onChange={setMessage}
+      disabled={saving || recording || finishingVoice}
+      onSend={() => {
+        void sendText(message.trim(), game.moves.length);
+      }}
+    >
+      <button
+        className="rook-chat__icon"
+        type="button"
+        aria-label={recording ? "Finish speaking" : "Talk to Rook"}
+        title={recording ? "Finish speaking" : "Talk to Rook"}
+        data-recording={recording}
+        disabled={requestingVoice || finishingVoice || saving}
+        onClick={() => {
+          if (recording) {
+            voice.stop();
+            return;
+          }
+          if (inline) onConversationOpen();
+          voicePly.current = game.moves.length;
+          void voice.start();
+        }}
       >
-        {entries.length === 0 && (
-          <RookMessage>
-            Keep playing. I’ll mark a moment here when one is worth revisiting.
-          </RookMessage>
+        <span
+          className={recording ? "rook-chat__stop" : "rook-chat__mic"}
+          aria-hidden="true"
+        />
+        {recording && (
+          <span aria-hidden="true" className="rook-chat__stop-label">
+            Done
+          </span>
         )}
-        {entries.map((entry) =>
-          entry.kind === "coach" ? (
-            <RookMessage
-              key={`coach-${String(entry.ply)}`}
-              context={atMove(entry.ply)}
-            >
-              <strong>{entry.moment.title}</strong>
-              <p>{entry.moment.detail}</p>
-              <button
-                className="rook-chat__link"
-                type="button"
-                onClick={() => {
-                  setReplay({
-                    moment: entry.moment,
-                    ply: entry.moment.replayPly,
-                  });
-                }}
+      </button>
+    </RookComposer>
+  );
+  const conversation = (
+    <>
+      {conversationOpen && (
+        <div
+          className="rook-chat__messages"
+          role="log"
+          aria-label="Messages with Rook"
+          ref={log}
+        >
+          {entries.map((entry) =>
+            entry.kind === "coach" ? (
+              <RookMessage
+                key={`coach-${String(entry.ply)}`}
+                context={atMove(entry.ply)}
               >
-                Replay this moment
-              </button>
-            </RookMessage>
-          ) : entry.kind === "reply" ? (
-            <RookMessage key={entry.id} context={atMove(entry.ply)}>
-              <p>{entry.text}</p>
-              {moments.find(({ ply }) => ply === entry.momentPly) && (
+                <strong>{entry.moment.title}</strong>
+                <p>{entry.moment.detail}</p>
                 <button
                   className="rook-chat__link"
                   type="button"
                   onClick={() => {
-                    const moment = moments.find(
-                      ({ ply }) => ply === entry.momentPly,
-                    );
-                    if (moment) setReplay({ moment, ply: moment.replayPly });
+                    setReplay({
+                      moment: entry.moment,
+                      ply: entry.moment.replayPly,
+                    });
                   }}
                 >
-                  Show on the board
+                  Replay this moment
                 </button>
-              )}
-            </RookMessage>
-          ) : (
-            <RookMessage player key={entry.id} context={atMove(entry.ply)}>
-              {entry.kind === "text" ? (
+              </RookMessage>
+            ) : entry.kind === "reply" ? (
+              <RookMessage key={entry.id} context={atMove(entry.ply)}>
                 <p>{entry.text}</p>
-              ) : (
-                <>
-                  <strong>Voice note</strong>
-                  <AudioNote audio={entry.audio} label="Saved voice note" />
-                </>
-              )}
-            </RookMessage>
-          ),
-        )}
-      </div>
-      {replay !== null && (
+                {moments.find(({ ply }) => ply === entry.momentPly) && (
+                  <button
+                    className="rook-chat__link"
+                    type="button"
+                    onClick={() => {
+                      const moment = moments.find(
+                        ({ ply }) => ply === entry.momentPly,
+                      );
+                      if (moment) setReplay({ moment, ply: moment.replayPly });
+                    }}
+                  >
+                    Show on the board
+                  </button>
+                )}
+              </RookMessage>
+            ) : (
+              <RookMessage player key={entry.id} context={atMove(entry.ply)}>
+                {entry.kind === "text" ? (
+                  <p>{entry.text}</p>
+                ) : (
+                  <>
+                    <strong>Voice note</strong>
+                    <AudioNote audio={entry.audio} label="Saved voice note" />
+                  </>
+                )}
+              </RookMessage>
+            ),
+          )}
+        </div>
+      )}
+    </>
+  );
+  const speechStatus = (
+    <RookSpeechStatus
+      voice={voice}
+      downloadLabel="Download offline speech"
+      onOnline={() => {
+        voicePly.current = game.moves.length;
+      }}
+    />
+  );
+  return (
+    <>
+      {!inline && (
+        <RookChatHeader>
+          <button
+            className="rook-chat__icon"
+            type="button"
+            aria-label="Close Rook chat"
+            onClick={onClose}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </RookChatHeader>
+      )}
+      {inline ? (
+        <RookBoardShelf
+          open={conversationOpen}
+          conversation={conversation}
+          composer={composer}
+          inputStatus={speechStatus}
+          guidance={boardFeedback}
+        />
+      ) : (
+        conversation
+      )}
+      {conversationOpen && replay !== null && (
         <section className="rook-chat__replay" aria-label="Rook’s replay">
           <ChessBoard
             label="Sideline replay board"
@@ -276,146 +362,58 @@ export function RookChat({
           />
           {replay.ply > replay.moment.replayPly && (
             <button
-              className="rook-chat__link"
+              className="rook-chat__icon graphic-control"
               type="button"
+              aria-label="Back one move"
+              title="Back one move"
               onClick={() => {
                 setReplay({ ...replay, ply: replay.ply - 1 });
               }}
             >
-              Back one move
+              <span aria-hidden="true">‹</span>
             </button>
           )}
           {replay.ply < replay.moment.ply && (
             <button
-              className="rook-chat__link"
+              className="rook-chat__icon graphic-control"
               type="button"
+              aria-label="Show next move"
+              title="Show next move"
               onClick={() => {
                 setReplay({ ...replay, ply: replay.ply + 1 });
               }}
             >
-              Show next move
+              <span aria-hidden="true">›</span>
             </button>
           )}
           <button
-            className="rook-chat__link"
+            className="rook-chat__icon graphic-control"
             type="button"
+            aria-label="Close replay"
+            title="Close replay"
             onClick={() => {
               setReplay(null);
             }}
           >
-            Close replay
+            <span aria-hidden="true">×</span>
           </button>
         </section>
       )}
-      {(requestingVoice || recording || finishingVoice) && (
-        <div className="rook-chat__recording">
-          <span role="status">
-            {requestingVoice
-              ? voice.state.status === "installing"
-                ? "Downloading offline speech…"
-                : "Opening microphone…"
-              : recording
-                ? voice.state.status === "listening" && voice.state.text
-                  ? voice.state.text
-                  : "Listening…"
-                : "Finishing speech…"}
-          </span>
-          {requestingVoice && (
-            <button
-              className="rook-chat__link"
-              type="button"
-              onClick={voice.cancel}
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      )}
-      {voice.state.status === "setup" && (
-        <div className="rook-chat__recording">
-          <span>Offline speech is unavailable right now.</span>
-          {voice.state.download && navigator.onLine && (
-            <button
-              type="button"
-              className="rook-chat__link"
-              onClick={() => {
-                void voice.start("install");
-              }}
-            >
-              Download offline speech
-            </button>
-          )}
-          {navigator.onLine && (
-            <>
-              <span>Online speech uses your browser’s speech service.</span>
-              <button
-                type="button"
-                className="rook-chat__link"
-                onClick={() => {
-                  voicePly.current = game.moves.length;
-                  void voice.start("online");
-                }}
-              >
-                Use online speech
-              </button>
-            </>
-          )}
-        </div>
-      )}
-      <RookComposer
-        value={message}
-        onChange={setMessage}
-        disabled={saving || recording || finishingVoice}
-        onSend={() => {
-          void sendText(message.trim(), game.moves.length);
-        }}
-      >
-        <button
-          className="rook-chat__icon"
-          type="button"
-          aria-label={recording ? "Finish speaking" : "Talk to Rook"}
-          title={recording ? "Finish speaking" : "Talk to Rook"}
-          data-recording={recording}
-          disabled={requestingVoice || finishingVoice || saving}
-          onClick={() => {
-            if (recording) {
-              voice.stop();
-              return;
-            }
-            voicePly.current = game.moves.length;
-            void voice.start();
-          }}
-        >
-          <span
-            className={recording ? "rook-chat__stop" : "rook-chat__mic"}
-            aria-hidden="true"
-          />
-          {recording && (
-            <span aria-hidden="true" className="rook-chat__stop-label">
-              Done
-            </span>
-          )}
-        </button>
-      </RookComposer>
-      {(notice || saving || voice.state.status === "error") && (
+      {!inline && speechStatus}
+      {!inline && composer}
+      {(notice || saving) && (
         <p className="rook-chat__status" aria-live="polite">
-          {voice.state.status === "error"
-            ? voice.state.message
-            : saving
-              ? "Rook is thinking…"
-              : notice}
+          {saving ? <LoadingText>Rook is thinking…</LoadingText> : notice}
         </p>
       )}
-      <label className="rook-chat__setting">
-        <input
-          type="checkbox"
-          checked={observations}
-          onChange={(event) => {
-            onObservations(event.currentTarget.checked);
-          }}
-        />
-        Flag learning moments
-      </label>
+      {inline ? (
+        <details className="board-reference">
+          <summary>Rook settings</summary>
+          {observationSetting}
+        </details>
+      ) : (
+        observationSetting
+      )}
     </>
   );
 }

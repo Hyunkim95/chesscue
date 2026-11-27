@@ -1,0 +1,590 @@
+[
+ {
+  "fens": [
+   "4r3/4bpkp/3P2pN/6P1/1p2qn1P/5N2/1P1Q1P2/3R2K1 b - - 0 30",
+   "4r3/4bpkp/3P2pN/6P1/1p3n1P/5q2/1P1Q1P2/3R2K1 w - - 0 31",
+   "4r3/4bpkp/3P2pN/6P1/1p3Q1P/5q2/1P3P2/3R2K1 b - - 0 31",
+   "4r3/4bpkp/3P2pN/6P1/1p3q1P/8/1P3P2/3R2K1 w - - 0 32"
+  ],
+  "unit": "count-captures",
+  "probability": 0.9603
+ },
+ {
+  "fens": [
+   "2k2rr1/Qp6/7p/3NPp2/2qP1p2/2P5/7P/1R3R1K b - - 0 29",
+   "2k2rr1/Qp6/7p/3qPp2/3P1p2/2P5/7P/1R3R1K w - - 0 30",
+   "2k2rr1/Qp6/7p/3qPp2/3P1p2/2P2R2/7P/1R5K b - - 1 30",
+   "2k2rr1/Qp6/7p/4Pp2/3P1p2/2P2q2/7P/1R5K w - - 0 31"
+  ],
+  "unit": "count-captures",
+  "probability": 0.8843
+ },
+ {
+  "fens": [
+   "r1k4r/pp1RB2p/2p5/4bppb/2P1p3/1P2P1P1/P3NP1P/3R2K1 b - - 7 22",
+   "r1k4r/pp1RB2p/2p5/4bpp1/2P1p3/1P2P1P1/P3bP1P/3R2K1 w - - 0 23",
+   "r1kR3r/pp2B2p/2p5/4bpp1/2P1p3/1P2P1P1/P3bP1P/3R2K1 b - - 1 23"
+  ],
+  "unit": "test-a-sacrifice",
+  "probability": 0.7532
+ },
+ {
+  "fens": [
+   "r1bq3k/ppp1n2p/2np1rp1/4p3/2B1P2N/3P1Q2/PPP2PPP/R3K2R w KQ - 0 12",
+   "r1bq3k/ppp1n2p/2np1Qp1/4p3/2B1P2N/3P4/PPP2PPP/R3K2R b KQ - 0 12"
+  ],
+  "unit": "count-captures",
+  "probability": 0.7445
+ },
+ {
+  "fens": [
+   "8/6k1/5R2/4n1Kr/6P1/8/8/8 w - - 0 59",
+   "8/6k1/5R2/4n1KP/8/8/8/8 b - - 0 59",
+   "8/5nk1/5R2/6KP/8/8/8/8 w - - 1 60",
+   "8/5nk1/5R2/5K1P/8/8/8/8 b - - 2 60"
+  ],
+  "unit": "calculate-replies",
+  "probability": 0.6419
+ },
+ {
+  "fens": [
+   "6k1/pQ6/2pp2p1/7p/3P2n1/8/PPP3PP/4qN1K b - - 6 31",
+   "6k1/pQ6/2pp2p1/7p/3P2n1/8/PPP3PP/5q1K w - - 0 32"
+  ],
+  "unit": "count-captures",
+  "probability": 0.9447
+ },
+ {
+  "fens": [
+   "rn2k2r/ppp1bpp1/6q1/3N3p/3P2N1/8/PPP2PKP/R1B1QR2 b kq - 2 13",
+   "rn2k2r/ppp1bpp1/8/3N3p/3P2q1/8/PPP2PKP/R1B1QR2 w kq - 0 14",
+   "rn2k2r/ppp1bpp1/8/3N3p/3P2q1/8/PPP2P1P/R1B1QR1K b kq - 1 14",
+   "rn2k2r/ppp1bpp1/8/3N3p/3P4/5q2/PPP2P1P/R1B1QR1K w kq - 2 15"
+  ],
+  "unit": "count-captures",
+  "probability": 0.716
+ },
+ {
+  "fens": [
+   "8/2k2pp1/P6p/1P1r4/3K4/8/8/8 w - - 0 40",
+   "8/2k2pp1/P6p/1P1K4/8/8/8/8 b - - 0 40",
+   "8/5pp1/Pk5p/1P1K4/8/8/8/8 w - - 1 41",
+   "8/5pp1/Pk1K3p/1P6/8/8/8/8 b - - 2 41"
+  ],
+  "unit": "calculate-replies",
+  "probability": 0.7697
+ },
+ {
+  "fens": [
+   "8/4kppp/2K5/3nPp2/6P1/7P/6N1/8 w - - 0 38",
+   "8/4kppp/8/3KPp2/6P1/7P/6N1/8 b - - 0 38",
+   "8/4kp1p/6p1/3KPp2/6P1/7P/6N1/8 w - - 0 39",
+   "8/4kp1p/6p1/3KPP2/8/7P/6N1/8 b - - 0 39"
+  ],
+  "unit": "count-captures",
+  "probability": 0.9727
+ },
+ {
+  "fens": [
+   "8/8/3k4/1p1p1bPp/1PpP1K2/2P5/8/8 w - - 0 46",
+   "8/8/3k4/1p1p1KPp/1PpP4/2P5/8/8 b - - 0 46",
+   "8/4k3/8/1p1p1KPp/1PpP4/2P5/8/8 w - - 1 47",
+   "8/4k3/6P1/1p1p1K1p/1PpP4/2P5/8/8 b - - 0 47"
+  ],
+  "unit": "count-captures",
+  "probability": 0.5346
+ },
+ {
+  "fens": [
+   "rn2kb1r/pp1b1ppp/1q2pB2/3p4/3P4/2N2N2/PPP1QPPP/R3KB1R b KQkq - 0 8",
+   "rn2kb1r/pp1b1ppp/4pB2/3p4/3P4/2N2N2/PqP1QPPP/R3KB1R w KQkq - 0 9",
+   "rn2kb1r/pp1b1ppp/4pB2/3p4/3P4/5N2/PqP1QPPP/R2NKB1R b KQkq - 1 9",
+   "rn2k2r/pp1b1ppp/4pB2/3p4/1b1P4/5N2/PqP1QPPP/R2NKB1R w KQkq - 2 10"
+  ],
+  "unit": "double-attack",
+  "probability": 0.802
+ },
+ {
+  "fens": [
+   "8/1pk4p/1pn1p3/1K2p1p1/1PN1P3/2P2PP1/7P/8 b - - 5 31",
+   "8/npk4p/1p2p3/1K2p1p1/1PN1P3/2P2PP1/7P/8 w - - 6 32",
+   "8/npk4p/1p2p3/4p1p1/KPN1P3/2P2PP1/7P/8 b - - 7 32",
+   "8/npk4p/4p3/1p2p1p1/KPN1P3/2P2PP1/7P/8 w - - 0 33"
+  ],
+  "unit": "double-attack",
+  "probability": 0.9103
+ },
+ {
+  "fens": [
+   "8/6pp/PR3p2/1P1kb3/8/5P1P/6K1/r5B1 b - - 0 49",
+   "8/6pp/PR3p2/1P1kb3/8/5P1P/6K1/6r1 w - - 0 50",
+   "8/6pp/PR3p2/1P1kb3/8/5P1P/8/6K1 b - - 0 50",
+   "8/6pp/PR3p2/1P1k4/3b4/5P1P/8/6K1 w - - 1 51"
+  ],
+  "unit": "change-the-defender",
+  "probability": 0.9432
+ },
+ {
+  "fens": [
+   "6k1/1pp3p1/pb5p/3Ppr2/BP4q1/6Q1/PB3P1K/R4R2 b - - 1 25",
+   "6k1/1pp3p1/pb5p/3Pp2r/BP4q1/6Q1/PB3P1K/R4R2 w - - 2 26",
+   "6k1/1pp3p1/pb5p/3Pp2r/BP4q1/6Q1/PB3PK1/R4R2 b - - 3 26",
+   "6k1/1pp3p1/pb5p/3Pp2r/BP2q3/6Q1/PB3PK1/R4R2 w - - 4 27"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.8969
+ },
+ {
+  "fens": [
+   "2rqk1r1/p3pp2/1p1p2pB/8/3QP3/2P2R2/b5PP/4R1K1 w - - 0 22",
+   "2rqk1r1/p3pp2/1p1p2pB/8/Q3P3/2P2R2/b5PP/4R1K1 b - - 1 22",
+   "2r1k1r1/p2qpp2/1p1p2pB/8/Q3P3/2P2R2/b5PP/4R1K1 w - - 2 23",
+   "2r1k1r1/p2qpp2/1p1p2pB/8/4P3/2P2R2/Q5PP/4R1K1 b - - 0 23"
+  ],
+  "unit": "double-attack",
+  "probability": 0.8872
+ },
+ {
+  "fens": [
+   "7Q/4kppp/p3p3/1pN5/5Pn1/5qP1/PPPK3P/R1B4R b - - 4 20",
+   "7Q/4kppp/p3p3/1pN5/5Pn1/4q1P1/PPPK3P/R1B4R w - - 5 21",
+   "7Q/4kppp/p3p3/1pN5/5Pn1/4q1P1/PPP4P/R1BK3R b - - 6 21",
+   "7Q/4kppp/p3p3/1pN5/5P2/4q1P1/PPP2n1P/R1BK3R w - - 7 22"
+  ],
+  "unit": "double-attack",
+  "probability": 0.7501
+ },
+ {
+  "fens": [
+   "8/pp4k1/2p3p1/3nRr2/3P1PK1/2P5/PP6/5R2 b - - 0 36",
+   "8/pp4k1/2p3p1/3nr3/3P1PK1/2P5/PP6/5R2 w - - 0 37",
+   "8/pp4k1/2p3p1/3nP3/5PK1/2P5/PP6/5R2 b - - 0 37",
+   "8/pp4k1/2p3p1/4P3/5PK1/2P1n3/PP6/5R2 w - - 1 38"
+  ],
+  "unit": "double-attack",
+  "probability": 0.8929
+ },
+ {
+  "fens": [
+   "6k1/p5p1/5n2/6R1/2p4P/2P2Q2/P6K/4q3 b - - 4 37",
+   "6k1/p5p1/5n2/6R1/2p4q/2P2Q2/P6K/8 w - - 0 38",
+   "6k1/p5p1/5n2/6R1/2p4q/2P4Q/P6K/8 b - - 1 38",
+   "6k1/p5p1/5n2/6q1/2p5/2P4Q/P6K/8 w - - 0 39"
+  ],
+  "unit": "double-attack",
+  "probability": 0.6316
+ },
+ {
+  "fens": [
+   "8/1p3ppk/2p4p/1pB1n3/4r3/7P/6P1/4RR1K b - - 1 31",
+   "8/1p3ppk/2p4p/1pB1n3/8/7P/6P1/4rR1K w - - 0 32",
+   "8/1p3ppk/2p4p/1pB1n3/8/7P/6P1/4R2K b - - 0 32"
+  ],
+  "unit": "test-a-sacrifice",
+  "probability": 0.209
+ },
+ {
+  "fens": [
+   "r2r4/7k/p3Q2p/3q2p1/4N1Pn/1P6/2P2P1P/5R1K w - - 5 31",
+   "r2r4/7k/p6p/3Q2p1/4N1Pn/1P6/2P2P1P/5R1K b - - 0 31",
+   "r7/7k/p6p/3r2p1/4N1Pn/1P6/2P2P1P/5R1K w - - 0 32",
+   "r7/7k/p4N1p/3r2p1/6Pn/1P6/2P2P1P/5R1K b - - 1 32"
+  ],
+  "unit": "change-the-defender",
+  "probability": 0.9636
+ },
+ {
+  "fens": [
+   "r3k2r/1p3pp1/pqb1pn1p/3p3Q/8/P1P5/1PB2PPP/R1B1R1K1 w kq - 1 18",
+   "r3k2r/1p3pp1/pqb1Rn1p/3p3Q/8/P1P5/1PB2PPP/R1B3K1 b kq - 0 18",
+   "r4k1r/1p3pp1/pqb1Rn1p/3p3Q/8/P1P5/1PB2PPP/R1B3K1 w - - 1 19",
+   "r4k1r/1p3pp1/pqb2R1p/3p3Q/8/P1P5/1PB2PPP/R1B3K1 b - - 0 19"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.8938
+ },
+ {
+  "fens": [
+   "r4r2/p3Npk1/5qb1/2R3Q1/8/8/P3nPPP/5R1K w - - 3 29",
+   "r4r2/p4pk1/5qb1/2R2NQ1/8/8/P3nPPP/5R1K b - - 4 29",
+   "r4r2/p4pk1/6b1/2R2qQ1/8/8/P3nPPP/5R1K w - - 0 30",
+   "r4r2/p4pk1/6b1/5RQ1/8/8/P3nPPP/5R1K b - - 0 30"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9048
+ },
+ {
+  "fens": [
+   "r4rk1/p1p1bppp/1p6/3PP1q1/3Q2P1/3B1PBb/PP2R2P/R5K1 b - - 1 22",
+   "r4rk1/p1p2ppp/1p6/2bPP1q1/3Q2P1/3B1PBb/PP2R2P/R5K1 w - - 2 23",
+   "r4rk1/p1p2ppp/1p6/2QPP1q1/6P1/3B1PBb/PP2R2P/R5K1 b - - 0 23",
+   "r4rk1/p1p2ppp/8/2pPP1q1/6P1/3B1PBb/PP2R2P/R5K1 w - - 0 24"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9552
+ },
+ {
+  "fens": [
+   "rn2r1k1/p5p1/2pb1p2/1P1pq2p/R7/1Q2P2P/1P1BKN2/7R w - - 2 24",
+   "rn2r1k1/p5p1/2pb1p2/1P1pq2p/4R3/1Q2P2P/1P1BKN2/7R b - - 3 24",
+   "r3r1k1/p2n2p1/2pb1p2/1P1pq2p/4R3/1Q2P2P/1P1BKN2/7R w - - 4 25",
+   "r3r1k1/p2n2p1/2pb1p2/1P1pR2p/8/1Q2P2P/1P1BKN2/7R b - - 0 25"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9197
+ },
+ {
+  "fens": [
+   "4r1k1/pQ1R1p1p/6p1/2P2q2/PP1b4/8/5PPP/5RK1 b - - 0 26",
+   "4r1k1/pQ1R1p1p/6p1/2P5/PP1b4/8/5qPP/5RK1 w - - 0 27",
+   "4r1k1/pQ1R1p1p/6p1/2P5/PP1b4/8/5RPP/6K1 b - - 0 27",
+   "6k1/pQ1R1p1p/6p1/2P5/PP1b4/8/5RPP/4r1K1 w - - 1 28"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9407
+ },
+ {
+  "fens": [
+   "3k1r2/p1rp2R1/1p1Np3/4P2p/7P/Pb6/1PPR4/2K5 b - - 4 42",
+   "3k4/p1rp2R1/1p1Np3/4P2p/7P/Pb6/1PPR4/2K2r2 w - - 5 43",
+   "3k4/p1rp2R1/1p1Np3/4P2p/7P/Pb6/1PP5/2KR1r2 b - - 6 43",
+   "3k4/p2p2R1/1p1Np3/4P2p/7P/Pb6/1Pr5/2KR1r2 w - - 0 44"
+  ],
+  "unit": "change-the-defender",
+  "probability": 0.9179
+ },
+ {
+  "fens": [
+   "2k5/1p3p2/p1p1p3/P3np2/1Pq4r/3R1Q2/5P2/3R2K1 w - - 2 31",
+   "2kR4/1p3p2/p1p1p3/P3np2/1Pq4r/5Q2/5P2/3R2K1 b - - 3 31",
+   "3R4/1pk2p2/p1p1p3/P3np2/1Pq4r/5Q2/5P2/3R2K1 w - - 4 32",
+   "3R4/1pk2p2/p1p1p3/P3np2/1Pq4r/6Q1/5P2/3R2K1 b - - 5 32"
+  ],
+  "unit": "double-attack",
+  "probability": 0.4656
+ },
+ {
+  "fens": [
+   "8/7k/2q3b1/7r/3B1Qp1/1P1p4/P1rR2P1/3R2K1 b - - 7 43",
+   "8/7k/2q3b1/7r/3B1Qp1/1P1p4/P2r2P1/3R2K1 w - - 0 44",
+   "8/7k/2q3b1/7r/3B1Qp1/1P1p4/P2R2P1/6K1 b - - 0 44",
+   "8/7k/6b1/7r/3B1Qp1/1P1p4/P2R2P1/2q3K1 w - - 1 45"
+  ],
+  "unit": "change-the-defender",
+  "probability": 0.9116
+ },
+ {
+  "fens": [
+   "8/1Q2b1k1/p3r1p1/3p1P2/1p2q3/6R1/P4R2/6K1 w - - 0 39",
+   "8/1Q2b1k1/p3P1p1/3p4/1p2q3/6R1/P4R2/6K1 b - - 0 39",
+   "8/1Q2b1k1/p3P1p1/3p4/1p6/6R1/P4R2/4q1K1 w - - 1 40",
+   "8/1Q2b1k1/p3P1p1/3p4/1p6/6R1/P4RK1/4q3 b - - 2 40"
+  ],
+  "unit": "count-captures",
+  "probability": 0.9431
+ },
+ {
+  "fens": [
+   "5kqr/p1r2b1p/5Q2/1Bb2pp1/8/8/PPP3PP/4R2K w - - 0 25",
+   "4Rkqr/p1r2b1p/5Q2/1Bb2pp1/8/8/PPP3PP/7K b - - 1 25"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.513
+ },
+ {
+  "fens": [
+   "8/8/p7/1p5R/6p1/1P4P1/r3k3/6K1 w - - 1 44",
+   "8/8/p7/1p6/6p1/1P4P1/r3k2R/6K1 b - - 2 44",
+   "8/8/p7/1p6/6p1/1P3kP1/r6R/6K1 w - - 3 45",
+   "8/8/p7/1p6/6p1/1P3kP1/R7/6K1 b - - 0 45"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.959
+ },
+ {
+  "fens": [
+   "8/p4pk1/8/1P1Q2pp/8/4PKPP/5P2/q7 b - - 2 45",
+   "8/p4pk1/8/1P1Q2pp/8/4PKPP/5P2/7q w - - 3 46",
+   "8/p4pk1/8/1P1Q2pp/8/4P1PP/4KP2/7q b - - 4 46",
+   "8/p4pk1/8/1P1q2pp/8/4P1PP/4KP2/8 w - - 0 47"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9475
+ },
+ {
+  "fens": [
+   "5r1r/2qk3n/p2p2p1/1p1P4/PPp2R1p/2P4P/2BN3B/5RK1 w - - 3 31",
+   "5r1r/2qk1R1n/p2p2p1/1p1P4/PPp4p/2P4P/2BN3B/5RK1 b - - 4 31",
+   "3k1r1r/2q2R1n/p2p2p1/1p1P4/PPp4p/2P4P/2BN3B/5RK1 w - - 5 32",
+   "3k1r1r/2R4n/p2p2p1/1p1P4/PPp4p/2P4P/2BN3B/5RK1 b - - 0 32"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9424
+ },
+ {
+  "fens": [
+   "7R/5p2/4b2p/4P3/4K1P1/7k/7b/8 w - - 0 49",
+   "8/5p2/4b2R/4P3/4K1P1/7k/7b/8 b - - 0 49",
+   "8/5p2/4b2R/4P3/4K1k1/8/7b/8 w - - 0 50",
+   "8/5p2/4b3/4P3/4K1k1/8/7R/8 b - - 0 50"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.929
+ },
+ {
+  "fens": [
+   "r3qrk1/p1p3pp/1bpp4/4p3/1PP1P3/P1Q4P/5PP1/R1B2RK1 b - - 0 16",
+   "r3qrk1/p1p3pp/2pp4/4p3/1PPbP3/P1Q4P/5PP1/R1B2RK1 w - - 1 17",
+   "r3qrk1/p1p3pp/2pp4/4p3/1PPbP3/P5QP/5PP1/R1B2RK1 b - - 2 17",
+   "r3qrk1/p1p3pp/2pp4/4p3/1PP1P3/P5QP/5PP1/b1B2RK1 w - - 0 18"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9475
+ },
+ {
+  "fens": [
+   "2k4r/1p4p1/p1p5/4q2p/1P6/P7/5QPP/1KRr1B1R b - - 1 28",
+   "2k4r/1p4p1/p1p5/4q2p/1P6/P7/5QPP/1Kr2B1R w - - 0 29",
+   "2k4r/1p4p1/p1p5/4q2p/1P6/P7/5QPP/2K2B1R b - - 0 29",
+   "2k4r/1p4p1/p1p5/7p/1P6/P7/5QPP/q1K2B1R w - - 1 30"
+  ],
+  "unit": "change-the-defender",
+  "probability": 0.915
+ },
+ {
+  "fens": [
+   "4r1k1/pp3p2/3q2p1/b2Q4/8/P3P1Pp/1P3P1P/3R1K1R b - - 0 25",
+   "4r1k1/pp3p2/q5p1/b2Q4/8/P3P1Pp/1P3P1P/3R1K1R w - - 1 26",
+   "4r1k1/pp3p2/q5p1/b7/8/P2QP1Pp/1P3P1P/3R1K1R b - - 2 26",
+   "3r2k1/pp3p2/q5p1/b7/8/P2QP1Pp/1P3P1P/3R1K1R w - - 3 27"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9302
+ },
+ {
+  "fens": [
+   "2k5/p7/2pR2N1/6p1/2P5/1P1K1n1P/P3r3/8 b - - 2 33",
+   "2k5/p7/2pR2N1/6p1/2P5/1P1K1n1P/P2r4/8 w - - 3 34",
+   "2k5/p7/2pR2N1/6p1/2P1K3/1P3n1P/P2r4/8 b - - 4 34",
+   "2k5/p7/2pr2N1/6p1/2P1K3/1P3n1P/P7/8 w - - 0 35"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9575
+ },
+ {
+  "fens": [
+   "8/p5Q1/1p2p3/3k2p1/8/P6P/1P1K1Pq1/8 w - - 0 41",
+   "8/pQ6/1p2p3/3k2p1/8/P6P/1P1K1Pq1/8 b - - 1 41",
+   "8/pQ6/1p2p3/4k1p1/8/P6P/1P1K1Pq1/8 w - - 2 42",
+   "8/p7/1p2p3/4k1p1/8/P6P/1P1K1PQ1/8 b - - 0 42"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9664
+ },
+ {
+  "fens": [
+   "5rk1/pp3ppp/1qp5/8/2PQP3/P4P2/1P4PP/3R2K1 b - - 0 30",
+   "3r2k1/pp3ppp/1qp5/8/2PQP3/P4P2/1P4PP/3R2K1 w - - 1 31",
+   "3r2k1/pp3ppp/1Qp5/8/2P1P3/P4P2/1P4PP/3R2K1 b - - 0 31",
+   "6k1/pp3ppp/1Qp5/8/2P1P3/P4P2/1P4PP/3r2K1 w - - 0 32"
+  ],
+  "unit": "line-tactics",
+  "probability": 0.9621
+ },
+ {
+  "fens": [
+   "3k1r2/pp3q1p/2p1R1pQ/3p4/3P4/2P5/PP3PPP/R5K1 b - - 0 22",
+   "3k1r2/pp5p/2p1R1pQ/3p4/3P4/2P5/PP3qPP/R5K1 w - - 0 23",
+   "3k1r2/pp5p/2p1R1pQ/3p4/3P4/2P5/PP3qPP/R6K b - - 1 23",
+   "3k1r2/pp5p/2p1R1pQ/3p4/3P4/2P5/PP4PP/R4q1K w - - 2 24"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9658
+ },
+ {
+  "fens": [
+   "r4rk1/1pp3pp/3p4/pP6/P1P1p3/4P3/Q3BqPP/3RN2K b - - 1 22",
+   "r4rk1/1pp3pp/3p4/pP6/P1P1p3/4P3/Q3B1PP/3RNq1K w - - 2 23",
+   "r4rk1/1pp3pp/3p4/pP6/P1P1p3/4P3/Q5PP/3RNB1K b - - 0 23",
+   "r5k1/1pp3pp/3p4/pP6/P1P1p3/4P3/Q5PP/3RNr1K w - - 0 24"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.962
+ },
+ {
+  "fens": [
+   "2r4k/6p1/p3p2p/3pPp2/P4P2/1Q6/3q2PP/1R1B3K b - - 2 34",
+   "2r4k/6p1/p3p2p/3pPp2/P4P2/1Q6/6PP/1R1Bq2K w - - 3 35"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9652
+ },
+ {
+  "fens": [
+   "2r1R3/3k1pBp/p2p4/1p1P4/6R1/1B6/P4PPP/6K1 b - - 0 30",
+   "4R3/3k1pBp/p2p4/1p1P4/6R1/1B6/P4PPP/2r3K1 w - - 1 31",
+   "4R3/3k1pBp/p2p4/1p1P4/6R1/8/P4PPP/2rB2K1 b - - 2 31",
+   "4R3/3k1pBp/p2p4/1p1P4/6R1/8/P4PPP/3r2K1 w - - 0 32"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9613
+ },
+ {
+  "fens": [
+   "r1krR3/ppp2B2/5p1p/8/8/8/PPP2PPP/2K5 w - - 2 21",
+   "r1krR3/ppp5/4Bp1p/8/8/8/PPP2PPP/2K5 b - - 3 21",
+   "rk1rR3/ppp5/4Bp1p/8/8/8/PPP2PPP/2K5 w - - 4 22",
+   "rk1R4/ppp5/4Bp1p/8/8/8/PPP2PPP/2K5 b - - 0 22"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9428
+ },
+ {
+  "fens": [
+   "6k1/5p2/4n1pp/3Q4/P6B/4P3/N1q2PPP/6K1 b - - 4 37",
+   "6k1/5p2/4n1pp/3Q4/P6B/4P3/N4PPP/1q4K1 w - - 5 38",
+   "6k1/5p2/4n1pp/3Q4/P6B/4P3/5PPP/1qN3K1 b - - 6 38",
+   "6k1/5p2/4n1pp/3Q4/P6B/4P3/5PPP/2q3K1 w - - 0 39"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9221
+ },
+ {
+  "fens": [
+   "R4bk1/6pp/8/6P1/7P/1PPB2q1/2P2r2/1K3R2 w - - 7 34",
+   "R4bk1/6pp/8/6P1/2B4P/1PP3q1/2P2r2/1K3R2 b - - 8 34",
+   "R4bk1/5rpp/8/6P1/2B4P/1PP3q1/2P5/1K3R2 w - - 9 35",
+   "R4bk1/5Bpp/8/6P1/7P/1PP3q1/2P5/1K3R2 b - - 0 35"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9382
+ },
+ {
+  "fens": [
+   "r3n2k/6pp/1np1r3/p2p4/P2b2P1/2N3BP/1PP3K1/3R1R2 w - - 0 28",
+   "r3nR1k/6pp/1np1r3/p2p4/P2b2P1/2N3BP/1PP3K1/3R4 b - - 1 28"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9659
+ },
+ {
+  "fens": [
+   "6k1/5ppp/p1p1rb2/8/3p4/2q1B1QP/Pr3PP1/1R2R1K1 w - - 0 23",
+   "1Q4k1/5ppp/p1p1rb2/8/3p4/2q1B2P/Pr3PP1/1R2R1K1 b - - 1 23",
+   "1r4k1/5ppp/p1p1rb2/8/3p4/2q1B2P/P4PP1/1R2R1K1 w - - 0 24",
+   "1R4k1/5ppp/p1p1rb2/8/3p4/2q1B2P/P4PP1/4R1K1 b - - 0 24"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9451
+ },
+ {
+  "fens": [
+   "r4r1k/6p1/p6p/4Q3/3P4/P1P1R3/2q2PPP/R5K1 b - - 0 23",
+   "r4r1k/6p1/p6p/4Q3/3P4/P1P1R3/5qPP/R5K1 w - - 0 24",
+   "r4r1k/6p1/p6p/4Q3/3P4/P1P1R3/5qPP/R6K b - - 1 24",
+   "r4r1k/6p1/p6p/4Q3/3P4/P1P1R3/6PP/R4q1K w - - 2 25"
+  ],
+  "unit": "mating-patterns",
+  "probability": 0.9543
+ },
+ {
+  "fens": [
+   "6k1/5pbp/1q4p1/p3P3/Pp1pQP2/1Pr3P1/2P4P/2R1R1K1 b - - 4 33",
+   "6k1/5pbp/1q4p1/p3P3/Pp2QP2/1Prp2P1/2P4P/2R1R1K1 w - - 0 34",
+   "6k1/5pbp/1q4p1/p3P3/Pp3P2/1PrpQ1P1/2P4P/2R1R1K1 b - - 1 34",
+   "6k1/5pbp/6p1/p3P3/Pp3P2/1Prpq1P1/2P4P/2R1R1K1 w - - 0 35"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9256
+ },
+ {
+  "fens": [
+   "r1bqk2r/ppp1np1p/4p1p1/3p4/3bPB2/3B4/PPP2PPP/RN1Q1RK1 w kq - 0 9",
+   "r1bqk2r/ppp1np1p/4p1p1/1B1p4/3bPB2/8/PPP2PPP/RN1Q1RK1 b kq - 1 9",
+   "r1bqk2r/pp2np1p/2p1p1p1/1B1p4/3bPB2/8/PPP2PPP/RN1Q1RK1 w kq - 0 10",
+   "r1bqk2r/pp2np1p/2p1p1p1/1B1p4/3QPB2/8/PPP2PPP/RN3RK1 b kq - 0 10"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9645
+ },
+ {
+  "fens": [
+   "7r/8/5R2/3pB1k1/3P4/5PK1/8/3r4 w - - 5 45",
+   "7r/8/5R2/3pB1k1/3P1P2/6K1/8/3r4 b - - 0 45",
+   "7r/8/5R2/3pB2k/3P1P2/6K1/8/3r4 w - - 1 46",
+   "7r/8/8/3pBR1k/3P1P2/6K1/8/3r4 b - - 2 46"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9046
+ },
+ {
+  "fens": [
+   "1r3rk1/1Q1b1ppp/3p3n/p1pN4/4q3/2P5/PP2B1PP/R3KR2 w Q - 0 19",
+   "1r3rk1/1Q1b1ppp/3p1N1n/p1p5/4q3/2P5/PP2B1PP/R3KR2 b Q - 1 19",
+   "1r3rk1/1Q1b1p1p/3p1p1n/p1p5/4q3/2P5/PP2B1PP/R3KR2 w Q - 0 20",
+   "1r3rk1/3b1p1p/3p1p1n/p1p5/4Q3/2P5/PP2B1PP/R3KR2 b Q - 0 20"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9485
+ },
+ {
+  "fens": [
+   "r2qk2r/p1p2ppp/3b4/3Q1p2/3PN3/4P3/PPP2PPP/R1B1K2R b KQkq - 0 13",
+   "r2qk2r/p1p2ppp/8/3Q1p2/1b1PN3/4P3/PPP2PPP/R1B1K2R w KQkq - 1 14",
+   "r2qk2r/p1p2ppp/8/3Q1p2/1b1PN3/2P1P3/PP3PPP/R1B1K2R b KQkq - 0 14",
+   "r3k2r/p1p2ppp/8/3q1p2/1b1PN3/2P1P3/PP3PPP/R1B1K2R w KQkq - 0 15"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9618
+ },
+ {
+  "fens": [
+   "2r2rk1/1pq2p1p/p3p1p1/3pP3/4nP2/2N1P2R/PPQ3PP/2R3K1 w - - 2 20",
+   "2r2rk1/1pq2p1p/p3p1p1/3pP3/4NP2/4P2R/PPQ3PP/2R3K1 b - - 0 20",
+   "2r2rk1/1pq2p1p/p3p1p1/4P3/4pP2/4P2R/PPQ3PP/2R3K1 w - - 0 21",
+   "2r2rk1/1pQ2p1p/p3p1p1/4P3/4pP2/4P2R/PP4PP/2R3K1 b - - 0 21"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9426
+ },
+ {
+  "fens": [
+   "1r6/p1p1k3/1b2p1rp/4P1q1/3P2B1/1Q5P/PP3PP1/R3K2R b KQ - 0 22",
+   "1r6/p1p1k3/4p1rp/b3P1q1/3P2B1/1Q5P/PP3PP1/R3K2R w KQ - 1 23",
+   "1r6/p1p1k3/4p1rp/b3P1q1/3P2B1/1Q5P/PP3PP1/R4K1R b - - 2 23",
+   "8/p1p1k3/4p1rp/b3P1q1/3P2B1/1r5P/PP3PP1/R4K1R w - - 0 24"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9373
+ },
+ {
+  "fens": [
+   "1r4k1/p1p2p2/5p1p/8/3P4/2RbPN2/P3rPPP/R4K2 b - - 4 22",
+   "1r4k1/p1p2p2/5p1p/8/3P4/2RbPN2/r4PPP/R4K2 w - - 0 23",
+   "1r4k1/p1p2p2/5p1p/8/3P4/3RPN2/r4PPP/R4K2 b - - 0 23",
+   "1r4k1/p1p2p2/5p1p/8/3P4/3RPN2/5PPP/r4K2 w - - 0 24"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9126
+ },
+ {
+  "fens": [
+   "3q2k1/p3p1bp/1p2P1p1/2pNn1B1/2b5/3r4/PP2Q1PP/5RK1 w - - 0 20",
+   "3q2k1/p3N1bp/1p2P1p1/2p1n1B1/2b5/3r4/PP2Q1PP/5RK1 b - - 0 20",
+   "3q3k/p3N1bp/1p2P1p1/2p1n1B1/2b5/3r4/PP2Q1PP/5RK1 w - - 1 21",
+   "3q3k/p5bp/1p2P1N1/2p1n1B1/2b5/3r4/PP2Q1PP/5RK1 b - - 0 21"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.6486
+ },
+ {
+  "fens": [
+   "4r1k1/p4ppp/1p1P4/1q2n3/R4Q2/7P/5PP1/4R1K1 b - - 1 28",
+   "4r1k1/p4ppp/1p1P4/1q6/R4Q2/5n1P/5PP1/4R1K1 w - - 2 29",
+   "4r1k1/p4ppp/1p1P4/1q6/R4Q2/5P1P/5P2/4R1K1 b - - 0 29",
+   "6k1/p4ppp/1p1P4/1q6/R4Q2/5P1P/5P2/4r1K1 w - - 0 30"
+  ],
+  "unit": "open-attack-line",
+  "probability": 0.9527
+ }
+]

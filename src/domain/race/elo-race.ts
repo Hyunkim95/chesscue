@@ -2,10 +2,13 @@ import { z } from "zod";
 import { placementCount, type RatingEntry } from "../game/rating";
 
 export const raceId = z.uuid();
-export const goalSchema = z.object({
-  kind: z.enum(["gain", "milestone"]),
-  value: z.number().int().positive().max(10000),
-});
+export const goalSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("highest") }),
+  z.object({
+    kind: z.enum(["gain", "milestone"]),
+    value: z.number().int().positive().max(10000),
+  }),
+]);
 export type RaceGoal = z.infer<typeof goalSchema>;
 export const raceSchema = z.object({ version: z.literal(1), goal: goalSchema });
 const elo = z.number().int().nonnegative();
@@ -15,6 +18,7 @@ export const memberSchema = z.object({
   startingElo: elo.nullable(),
   baseline: elo.nullable(),
   current: elo.nullable(),
+  peak: elo.nullable().optional(),
   target: elo.nullable(),
   crossedAt: z.iso.datetime().nullable(),
   disputed: z.boolean(),
@@ -29,15 +33,27 @@ export function raceProgress(
     (entry) => placementCount(entry) === null,
   );
   const baseline = member.startingElo ?? firstPublished?.after ?? null;
+  const latest = history.at(-1);
+  const current =
+    latest && placementCount(latest) === null ? latest.after : null;
+  if (goal.kind === "highest") {
+    let peak = baseline;
+    for (const entry of history) {
+      if (
+        entry.completedAt > member.joinedAt &&
+        placementCount(entry) === null &&
+        (peak === null || entry.after > peak)
+      )
+        peak = entry.after;
+    }
+    return { baseline, current, peak, target: null, crossedAt: null };
+  }
   const target =
     goal.kind === "milestone"
       ? goal.value
       : baseline === null
         ? null
         : baseline + goal.value;
-  const latest = history.at(-1);
-  const current =
-    latest && placementCount(latest) === null ? latest.after : null;
   const crossedAt =
     baseline === null || target === null || target <= baseline
       ? null
@@ -66,9 +82,14 @@ export function firstCrossing(
   );
 }
 export function goalLabel(goal: RaceGoal) {
-  return goal.kind === "gain"
-    ? `Gain ${goal.value.toString()} Elo`
-    : `Reach ${goal.value.toString()} Elo`;
+  switch (goal.kind) {
+    case "highest":
+      return "Highest Elo";
+    case "gain":
+      return `Gain ${goal.value.toString()} Elo`;
+    case "milestone":
+      return `Reach ${goal.value.toString()} Elo`;
+  }
 }
 export const winSchema = z.object({
   name: memberSchema.shape.name,

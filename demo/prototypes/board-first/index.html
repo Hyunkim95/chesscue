@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ChessCue prototypes · A vs B</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      body {
+        margin: 0;
+        background: #2a2f2c;
+        color: #eee;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+        padding: 18px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      p {
+        margin: 0 0 14px;
+        color: #c9cfcb;
+      }
+      .row {
+        display: flex;
+        gap: 28px;
+        flex-wrap: wrap;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      iframe {
+        width: 400px;
+        height: 800px;
+        border: 0;
+        border-radius: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ChessCue · clickable prototypes (not the app)</h1>
+    <p>
+      Try it: Start → tap the white knight (f3) → g5. Rook replies on the board.
+      Then take the queen on e6. Hint runs the check, capture, threat scan.
+    </p>
+    <div class="row">
+      <figure>
+        <figcaption>A · Observatory Quest (keeps the brand)</figcaption>
+        <iframe src="proto.html?theme=a"></iframe>
+      </figure>
+      <figure>
+        <figcaption>B · Bright Academy (closer to Duolingo)</figcaption>
+        <iframe src="proto.html?theme=b"></iframe>
+      </figure>
+    </div>
+  </body>
+</html>

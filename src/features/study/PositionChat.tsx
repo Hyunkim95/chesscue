@@ -1,10 +1,14 @@
+import { isSidePanel } from "../../shared/navigation/side-panel";
+import { BoardBack } from "../../shared/navigation/BoardBack";
+import { LoadingText } from "../../shared/loading/LoadingState";
 import { starterPack } from "../../domain/material/pack";
 import { fenSchema } from "./study-history";
 import { z } from "zod";
 import { useEntryState } from "../../shared/navigation/history-entry";
 import {
   RookMessage,
-  RookChatHeader,
+  RookBoardShelf,
+  RookConversationButton,
   RookComposer,
 } from "../../shared/rook/RookMessage";
 import {
@@ -18,6 +22,9 @@ import {
 import { Chess, type Square, type PieceSymbol } from "chess.js";
 import { moveNotation } from "../../domain/study/historical-game";
 import { ChessBoard } from "../board/ChessBoard";
+import { NextMovePill } from "../board/BoardHintControls";
+import { PromotionPiece } from "../board/PromotionPiece";
+import { pieceNames } from "../board/board-pieces";
 import { analyzeReviewReply } from "../../application/analyze-game/analyze-review-reply";
 import { StockfishAnalysisEngine } from "../../infrastructure/engine/stockfish-analysis-engine";
 import { detectOnDeviceCapability } from "../../infrastructure/ai/on-device-capability";
@@ -45,6 +52,7 @@ export function PositionChat({
   question,
   orientation = "white",
   backLabel = "Back to roadmap",
+  backVisible = true,
   sources,
   connection,
   replay = false,
@@ -56,6 +64,7 @@ export function PositionChat({
   question: string;
   orientation?: PlayerColor;
   backLabel?: string;
+  backVisible?: boolean;
   sources?: ReactNode;
   connection?: ReactNode;
   replay?: boolean;
@@ -77,6 +86,8 @@ export function PositionChat({
     [],
   );
   const [message, setMessage] = useState("");
+  const [discussionOpen, setDiscussionOpen] = useState(false);
+  const chatInput = useRef<HTMLInputElement>(null);
   const [turns, setTurns] = useState<(StudyTurn & { context: string })[]>([]);
   const [nano, setNano] = useState<NanoState>("checking");
   const [download, setDownload] = useState(0);
@@ -110,7 +121,7 @@ export function PositionChat({
   useEffect(() => {
     if (transcript.current)
       transcript.current.scrollTop = transcript.current.scrollHeight;
-  }, [turns]);
+  }, [turns, discussionOpen]);
   const board = new Chess(fen);
   const line = useMemo(() => {
     if (!replay) return [];
@@ -172,6 +183,7 @@ export function PositionChat({
     active.current = run;
     const current = () => !run.signal.aborted;
     setThinking(true);
+    setDiscussionOpen(true);
     setNotice("");
     setMessage("");
     const context =
@@ -252,19 +264,116 @@ export function PositionChat({
       if (current()) setThinking(false);
     }
   }
+  const positionTitle = (
+    <>
+      <h2 className="study-board__title" tabIndex={-1}>
+        {fen === lesson.fen || replay ? lesson.title : "Study position"}
+      </h2>
+    </>
+  );
+  const boardCues = (
+    <>
+      {promotion && (
+        <div
+          className="study-actions"
+          role="group"
+          aria-label="Choose promotion"
+        >
+          Promote to{" "}
+          {(["q", "r", "b", "n"] as const).map((p) => (
+            <button
+              className="review-action piece-choice"
+              key={p}
+              aria-label={pieceNames[p]}
+              title={pieceNames[p]}
+              onClick={() => {
+                play(promotion, p);
+              }}
+            >
+              <PromotionPiece piece={p} color={board.turn()} />
+            </button>
+          ))}
+        </div>
+      )}
+      {turns.length === 0 && (
+        <div className="rook-board-message study-board__cue">
+          <RookMessage>
+            <p>
+              {fen === lesson.fen
+                ? question
+                : "Ask about this position or describe a change to the board."}
+            </p>
+          </RookMessage>
+        </div>
+      )}
+    </>
+  );
+  const positionFeedback = (
+    <>
+      {line.at(-1)?.after === fen && (
+        <span role="status">End of recorded line</span>
+      )}
+      {engineLine && (
+        <p>
+          <strong>Stockfish line</strong> {engineLine}
+        </p>
+      )}
+    </>
+  );
+  const conversation = (
+    <>
+      {discussionOpen && (
+        <div
+          ref={transcript}
+          className="rook-chat__messages"
+          role="log"
+          aria-label="Study conversation"
+        >
+          {turns.map((turn, i) => (
+            <RookMessage
+              key={i}
+              player={turn.speaker === "You"}
+              context={turn.context}
+            >
+              <p>{turn.text}</p>
+              {turn.speaker !== "You" && (
+                <small className="rook-chat__byline">
+                  {turn.speaker === "Study library"
+                    ? "Built-in position commands"
+                    : turn.speaker}
+                </small>
+              )}
+            </RookMessage>
+          ))}
+        </div>
+      )}
+    </>
+  );
+  const composer = (
+    <RookComposer
+      value={message}
+      inputRef={chatInput}
+      onFocus={
+        isSidePanel
+          ? () => {
+              setDiscussionOpen(true);
+            }
+          : undefined
+      }
+      onChange={setMessage}
+      onSend={() => {
+        void send();
+      }}
+      disabled={thinking}
+    />
+  );
   return (
     <section
       ref={content}
-      className="content-shell study-shell"
+      className="content-shell study-shell study-board-position"
       aria-label="Lessons and position practice"
     >
-      <button className="study-back" onClick={onBack}>
-        <span aria-hidden="true">‹ </span>
-        {backLabel}
-      </button>
-      <h2 tabIndex={-1}>
-        {fen === lesson.fen || replay ? lesson.title : "Study position"}
-      </h2>
+      {backVisible && <BoardBack label={backLabel} onBack={onBack} />}
       <div className="study-columns study-workbench">
         <section aria-label="Practice position" className="study-board">
           <ChessBoard
@@ -276,49 +385,11 @@ export function PositionChat({
             legalTargets={legal.map((m) => m.to)}
             disabled={thinking}
           />
-          {promotion && (
-            <div className="study-actions">
-              Promote to{" "}
-              {(["q", "r", "b", "n"] as const).map((p, i) => (
-                <button
-                  className="review-action"
-                  key={p}
-                  onClick={() => {
-                    play(promotion, p);
-                  }}
-                >
-                  {["Queen", "Rook", "Bishop", "Knight"][i]}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="study-actions">
-            {nextRecorded && (
-              <button
-                type="button"
-                className="primary-link"
-                disabled={thinking}
-                onClick={() => {
-                  change(nextRecorded.after);
-                }}
-              >
-                Play {moveNotation(nextRecorded)}
-              </button>
-            )}
-            {line.at(-1)?.after === fen && (
-              <span role="status">End of recorded line</span>
-            )}
-            <strong>
-              {board.isGameOver()
-                ? board.isCheckmate()
-                  ? "Checkmate"
-                  : "Draw"
-                : board.turn() === "w"
-                  ? "White to move"
-                  : "Black to move"}
-            </strong>
+          {!isSidePanel && positionTitle}
+          {!isSidePanel && boardCues}
+          <div className="board-action-row board-action-row--anchored study-board__controls">
             <button
-              className="review-action"
+              className="review-action board-action--quiet"
               disabled={thinking || trail.length === 0}
               onClick={() => {
                 const last = trail.at(-1);
@@ -334,80 +405,61 @@ export function PositionChat({
             >
               Undo
             </button>
+            {nextRecorded && (
+              <NextMovePill
+                label={"Play " + moveNotation(nextRecorded)}
+                disabled={thinking}
+                onClick={() => {
+                  change(nextRecorded.after);
+                }}
+              />
+            )}
             <button
-              className="review-action"
+              className="review-action board-action--quiet"
+              aria-label="Reset position"
               disabled={thinking || fen === lesson.fen}
               onClick={() => {
                 change(lesson.fen);
               }}
             >
-              Reset position
+              Reset
             </button>
-          </div>
-          {fen === lesson.fen && (
-            <details
-              open={showGame}
-              onToggle={(e) => {
-                setShowGame(e.currentTarget.open);
+            <RookConversationButton
+              expanded={discussionOpen}
+              onClick={() => {
+                setDiscussionOpen(!discussionOpen);
+                if (!discussionOpen)
+                  chatInput.current?.focus({ preventScroll: true });
               }}
-            >
-              <summary>What happened in the game?</summary>
-              <p>{lesson.insight}</p>
-              <p>{lesson.continuation.join(" ")}</p>
-            </details>
-          )}
-          {fen !== lesson.fen && alternateBoard}
-          {sources}
-          {engineLine && (
-            <p>
-              <strong>Stockfish line</strong> {engineLine}
+            />
+            <p className="board-turn" aria-live="polite">
+              {board.isGameOver()
+                ? board.isCheckmate()
+                  ? "Checkmate"
+                  : "Draw"
+                : board.turn() === "w"
+                  ? "White to move"
+                  : "Black to move"}
             </p>
-          )}
+          </div>
         </section>
         <div className="study-sidebar">
-          {fen === lesson.fen && connection}
-          <section className="study-panel study-chat">
-            <RookChatHeader
-              context={fen === lesson.fen ? lesson.title : "Study position"}
-            />
-            <div
-              ref={transcript}
-              className="rook-chat__messages"
-              role="log"
-              aria-label="Study conversation"
-            >
-              {turns.length === 0 && (
-                <RookMessage>
-                  {fen === lesson.fen
-                    ? question
-                    : "Ask about this position or describe a change to the board."}
-                </RookMessage>
-              )}
-              {turns.map((turn, i) => (
-                <RookMessage
-                  key={i}
-                  player={turn.speaker === "You"}
-                  context={turn.context}
-                >
-                  <p>{turn.text}</p>
-                  {turn.speaker !== "You" && (
-                    <small className="rook-chat__byline">
-                      {turn.speaker === "Study library"
-                        ? "Built-in position commands"
-                        : turn.speaker}
-                    </small>
-                  )}
-                </RookMessage>
-              ))}
-            </div>
-            <RookComposer
-              value={message}
-              onChange={setMessage}
-              onSend={() => {
-                void send();
-              }}
-              disabled={thinking}
-            />
+          <section className="rook-board-dock" aria-label="Discuss with Rook">
+            {isSidePanel ? (
+              <RookBoardShelf
+                open={discussionOpen}
+                conversation={conversation}
+                composer={composer}
+                guidance={boardCues}
+                notes={positionFeedback}
+              />
+            ) : (
+              <>
+                {conversation}
+                {composer}
+                {positionFeedback}
+              </>
+            )}
             {thinking && (
               <button
                 type="button"
@@ -423,20 +475,29 @@ export function PositionChat({
             )}
 
             {(notice || thinking) && (
-              <p role="status">{thinking ? "Rook is thinking…" : notice}</p>
+              <p role="status">
+                {thinking ? (
+                  <LoadingText>Rook is thinking…</LoadingText>
+                ) : (
+                  notice
+                )}
+              </p>
             )}
-            <details className="rook-chat__source">
+            <details className="board-reference">
               <summary>Study tools</summary>
+              {isSidePanel && positionTitle}
               {nano === "ready" ? (
                 <p>Gemini Nano · On this device</p>
               ) : (
                 <>
                   <p>
-                    {nano === "unavailable" || !ai
-                      ? "Built-in position commands · Nano unavailable on this device"
-                      : nano === "checking"
-                        ? "Checking Gemini Nano…"
-                        : "Built-in position commands · Gemini Nano can chat on this device"}
+                    {nano === "unavailable" || !ai ? (
+                      "Built-in position commands · Nano unavailable on this device"
+                    ) : nano === "checking" ? (
+                      <LoadingText>Checking Gemini Nano…</LoadingText>
+                    ) : (
+                      "Built-in position commands · Gemini Nano can chat on this device"
+                    )}
                   </p>
                   {ai &&
                     ["available", "downloadable", "preparing"].includes(
@@ -447,17 +508,41 @@ export function PositionChat({
                         disabled={nano === "preparing" || thinking}
                         onClick={() => void prepare()}
                       >
-                        {nano === "preparing"
-                          ? "Preparing Nano · " + String(download) + "%"
-                          : nano === "downloadable"
-                            ? "Download Gemini Nano"
-                            : "Enable Gemini Nano"}
+                        {nano === "preparing" ? (
+                          <LoadingText>
+                            Preparing Nano · {String(download)}%
+                          </LoadingText>
+                        ) : nano === "downloadable" ? (
+                          "Download Gemini Nano"
+                        ) : (
+                          "Enable Gemini Nano"
+                        )}
                       </button>
                     )}
                 </>
               )}
             </details>
+            {fen === lesson.fen && (
+              <details
+                className="board-reference"
+                open={showGame}
+                onToggle={(e) => {
+                  setShowGame(e.currentTarget.open);
+                }}
+              >
+                <summary>What happened in the game?</summary>
+                <p>{lesson.insight}</p>
+                <p>{lesson.continuation.join(" ")}</p>
+              </details>
+            )}
+            {sources && (
+              <details className="board-reference">
+                <summary>Sources</summary>
+                {sources}
+              </details>
+            )}
           </section>
+          {fen === lesson.fen ? connection : alternateBoard}
         </div>
       </div>
     </section>

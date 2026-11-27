@@ -4,6 +4,7 @@ interface Props {
   readonly name: string;
   readonly children: ReactNode;
   readonly loading?: ReactNode;
+  readonly fallback?: ReactNode;
 }
 
 export class PracticeSection extends Component<Props, { failed: boolean }> {
@@ -27,6 +28,7 @@ export class PracticeSection extends Component<Props, { failed: boolean }> {
           >
             Reload Practice
           </button>
+          {this.props.fallback}
         </div>
       );
     }

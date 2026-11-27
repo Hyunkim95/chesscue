@@ -1,3 +1,6 @@
+import { LoadingText } from "../shared/loading/LoadingState";
+import { EmptyState } from "../shared/empty-state/EmptyState";
+import { ScreenHeader } from "../shared/navigation/ScreenHeader";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
@@ -30,7 +33,7 @@ async function readActiveGame(): Promise<Context> {
     const url = new URL(tab.url);
     const gameId =
       url.origin === "https://lichess.org"
-        ? /^\/([a-zA-Z0-9]{8})(?:[a-zA-Z0-9]{4})?(?:\/(?:white|black))?\/?$/.exec(
+        ? /^\/(?:game\/)?([a-zA-Z0-9]{8})(?:[a-zA-Z0-9]{4})?(?:\/(?:white|black))?\/?$/.exec(
             url.pathname,
           )?.[1]
         : undefined;
@@ -53,20 +56,22 @@ async function readActiveGame(): Promise<Context> {
 
 export function SidePanelReview({
   repository,
+  watchLichess = true,
   historyRevision,
-  lastReview,
   openGame,
-  resumeReview,
+  openSavedGame,
   importPgn,
 }: {
+  readonly watchLichess?: boolean;
   readonly repository: GameRepository;
   readonly historyRevision: number;
-  readonly lastReview: string | null;
   readonly openGame: (route: string) => void;
-  readonly resumeReview: (route: string) => void;
+  readonly openSavedGame: (route: string) => void;
   readonly importPgn: () => void;
 }) {
-  const [context, setContext] = useState<Context>({ status: "checking" });
+  const [context, setContext] = useState<Context>({
+    status: watchLichess ? "checking" : "none",
+  });
 
   const [library, setLibrary] = useState<Library>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -86,6 +91,7 @@ export function SidePanelReview({
   }, [repository, historyRevision, attempt]);
 
   useEffect(() => {
+    if (!watchLichess) return;
     let revision = 0;
     const refresh = () => {
       const request = ++revision;
@@ -123,11 +129,26 @@ export function SidePanelReview({
       chrome.tabs.onUpdated.removeListener(onTabUpdated);
       chrome.runtime.onMessage.removeListener(onMessage);
     };
-  }, []);
+  }, [watchLichess]);
 
+  const showEmpty =
+    library.status === "ready" &&
+    library.games.length === 0 &&
+    context.status === "none";
+  const importButton = (
+    <button
+      type="button"
+      className={
+        context.status === "finished" ? "review-action" : "primary-link"
+      }
+      onClick={importPgn}
+    >
+      Import PGN
+    </button>
+  );
   return (
     <main className="content-shell side-panel-review">
-      <h1>Review</h1>
+      <ScreenHeader title="Review" />
       {context.status === "finished" && (
         <button
           type="button"
@@ -142,7 +163,22 @@ export function SidePanelReview({
       {context.status === "active" && (
         <p role="status">Finish your Lichess game to review it with Rook.</p>
       )}
-      {library.status === "loading" && <p role="status">Loading games…</p>}
+      {showEmpty ? (
+        <EmptyState
+          art="review"
+          title="Review your first game"
+          description="Import a completed game to explore its turning point with Rook."
+        >
+          {importButton}
+        </EmptyState>
+      ) : (
+        importButton
+      )}
+      {library.status === "loading" && (
+        <p role="status">
+          <LoadingText>Loading games…</LoadingText>
+        </p>
+      )}
       {library.status === "failed" && (
         <div role="alert">
           <p>Your saved games could not be loaded.</p>
@@ -166,7 +202,7 @@ export function SidePanelReview({
                 <button
                   type="button"
                   onClick={() => {
-                    resumeReview("#review/" + encodeURIComponent(id));
+                    openSavedGame("#review/" + encodeURIComponent(id));
                   }}
                 >
                   <strong>{title}</strong>
@@ -176,26 +212,7 @@ export function SidePanelReview({
               </li>
             ))}
           </ol>
-        ) : (
-          <p>
-            No saved games yet. Import a PGN or open a finished Lichess game to
-            start your first review.
-          </p>
-        ))}
-      {lastReview && (
-        <button
-          type="button"
-          className="review-action"
-          onClick={() => {
-            resumeReview(lastReview);
-          }}
-        >
-          Resume last review
-        </button>
-      )}
-      <button type="button" className="review-action" onClick={importPgn}>
-        Import PGN
-      </button>
+        ) : null)}
     </main>
   );
 }

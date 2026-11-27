@@ -1,0 +1,36 @@
+.board-hint-button {
+  white-space: nowrap;
+}
+
+.board-next-move,
+.game-review .rook-exploration__transport button.board-next-move {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.35rem 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cue-action-fill);
+  color: var(--cue-action-ink);
+  box-shadow: 0 4px 14px #0008;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.board-next-move__icon {
+  width: 0.55rem;
+  height: 0.7rem;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+:is(.board-hint-button, .board-next-move):disabled {
+  cursor: default;
+  opacity: 0.6;
+}

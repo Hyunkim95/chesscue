@@ -39,48 +39,49 @@ function pgnStamp(tags: Map<string, string>, importedAt: string) {
   return displayStamp(importedAt, true);
 }
 
+export function reviewGameSummary(game: GameRecord) {
+  if (!game.completedAt || !game.result) return null;
+  let opponent: string | undefined;
+  let title: string;
+  let stamp = displayStamp(game.completedAt);
+  if (game.origin.type === "tutor") {
+    const elo = game.origin.beginnerOpponent?.target ?? game.origin.opponentElo;
+    opponent = tutorGameMode(game) === "rated" ? "Rated CPU" : "Coached CPU";
+    title = opponent + (elo === undefined ? "" : " · " + String(elo));
+  } else {
+    // Only read the canonical PGN tag section. Listing history needs no move replay.
+    const tagSection = game.pgn.split(/\r?\n\s*\r?\n/, 1)[0] ?? "";
+    const tags = new Map<string, string>();
+    for (const match of tagSection.matchAll(
+      /^\[(White|Black|UTCDate|UTCTime|Date|Event) "(.+)"\]\r?$/gm,
+    )) {
+      const [, key, raw] = match;
+      if (key && raw && raw !== "?")
+        tags.set(key, raw.replace(/\\(["\\])/g, "$1"));
+    }
+    opponent = game.playerColor
+      ? tags.get(game.playerColor === "white" ? "Black" : "White")
+      : undefined;
+    title = opponent
+      ? "vs. " + opponent
+      : (tags.get("Event") ?? "Imported game");
+    stamp = pgnStamp(tags, game.completedAt);
+  }
+  const result =
+    game.result === "draw"
+      ? "Draw"
+      : game.playerColor
+        ? game.result === game.playerColor + "-win"
+          ? "Win"
+          : "Loss"
+        : game.result === "white-win"
+          ? "White won"
+          : "Black won";
+  return { id: game.id, title, opponent, result, stamp };
+}
+
 export function reviewGameList(games: readonly GameRecord[]) {
   return games
-    .flatMap((game) => {
-      if (!game.completedAt || !game.result) return [];
-      let title: string;
-      let stamp = displayStamp(game.completedAt);
-      if (game.origin.type === "tutor") {
-        const elo =
-          game.origin.beginnerOpponent?.target ?? game.origin.opponentElo;
-        title =
-          (tutorGameMode(game) === "rated" ? "Rated CPU" : "Coached CPU") +
-          (elo === undefined ? "" : " · " + String(elo));
-      } else {
-        // Only read the canonical PGN tag section. Listing history needs no move replay.
-        const tagSection = game.pgn.split(/\r?\n\s*\r?\n/, 1)[0] ?? "";
-        const tags = new Map<string, string>();
-        for (const match of tagSection.matchAll(
-          /^\[(White|Black|UTCDate|UTCTime|Date|Event) "(.+)"\]\r?$/gm,
-        )) {
-          const [, key, raw] = match;
-          if (key && raw && raw !== "?")
-            tags.set(key, raw.replace(/\\(["\\])/g, "$1"));
-        }
-        const opponent =
-          game.playerColor &&
-          tags.get(game.playerColor === "white" ? "Black" : "White");
-        title = opponent
-          ? "vs. " + opponent
-          : (tags.get("Event") ?? "Imported game");
-        stamp = pgnStamp(tags, game.completedAt);
-      }
-      const result =
-        game.result === "draw"
-          ? "Draw"
-          : game.playerColor
-            ? game.result === game.playerColor + "-win"
-              ? "Win"
-              : "Loss"
-            : game.result === "white-win"
-              ? "White won"
-              : "Black won";
-      return [{ id: game.id, title, result, stamp }];
-    })
+    .flatMap((game) => reviewGameSummary(game) ?? [])
     .sort((a, b) => b.stamp.order - a.stamp.order || a.id.localeCompare(b.id));
 }

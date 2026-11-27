@@ -1,9 +1,8 @@
-import { generatedMove } from "../../../src/test/generated-position";
 import { Chess } from "chess.js";
 
 import { expect, test } from "@playwright/test";
 
-test("builds a verified offline drill and a training path from the same game", async ({
+test("recommends and solves a verified puzzle from an imported game offline", async ({
   page,
   context,
 }) => {
@@ -14,8 +13,9 @@ test("builds a verified offline drill and a training path from the same game", a
   });
   await page
     .getByRole("navigation", { name: "Primary navigation" })
-    .getByRole("button", { name: "Import games", exact: true })
+    .getByRole("button", { name: "Review", exact: true })
     .click();
+  await page.getByRole("button", { name: "Import PGN", exact: true }).click();
   await page
     .getByLabel("Paste completed PGN games")
     .fill(
@@ -27,52 +27,26 @@ test("builds a verified offline drill and a training path from the same game", a
     .getByRole("button", { name: "Import games", exact: true })
     .click();
   await expect(page).toHaveURL(/#review\//);
-  await page.goto("/#skill-tree");
-  await page.getByRole("button", { name: /Threats/ }).click();
   await expect(
-    page.getByText("Training path from your game", { exact: true }),
-  ).toBeVisible({ timeout: 15000 });
-  await context.setOffline(true);
-  await page.getByText("Training path from your game", { exact: true }).click();
-  await expect(page.getByText(/Move 28 · Imported game/)).toBeVisible({
-    timeout: 30_000,
-  });
-  await page.getByText("Show what Stockfish checked").click();
-  await expect(
-    page.getByText("You played Rd2. Stockfish’s stronger move was Rd8#."),
+    page.getByRole("region", { name: "Explore with Rook" }),
   ).toBeVisible();
-  const recommended = page.locator('.skill-node[data-recommended="true"]');
-  await expect(recommended).toContainText("Threats");
-  await recommended.getByRole("button", { name: "Start drill" }).click();
+  await page.goto("/#skill-tree");
+  const recommended = page.locator(
+    ".practice-tree__node[data-recommended=true]",
+  );
+  await expect(recommended).toBeVisible({ timeout: 15000 });
+  await context.setOffline(true);
+  await recommended.click();
   await expect(
-    page.getByRole("heading", { name: "Retry move 28" }),
+    page.getByRole("gridcell", { name: "White rook on d1" }),
   ).toBeVisible();
   await page.getByRole("gridcell", { name: "White rook on d1" }).click();
   await page.getByRole("gridcell", { name: /Empty d8/ }).click();
-  await expect(
-    page.getByText("Stockfish-verified drill from your game"),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Back to training plan" }).click();
-  await context.setOffline(false);
-  await page.getByText("Training path from your game", { exact: true }).click();
-  await page.getByRole("button", { name: "Build path online" }).click();
-  const path = page.getByRole("region", { name: "Verified training path" });
-  await expect(path.getByText("Cached Gemini training path")).toBeVisible({
-    timeout: 30_000,
-  });
-  await expect(
-    path.getByRole("button", { name: "Replay move 28" }),
-  ).toBeVisible();
-  await path
-    .getByRole("button", { name: "Try a verified follow-up position" })
+  await expect(page.getByText("Good move", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Back to Practice", exact: true })
     .click();
-  await expect(
-    page.getByRole("gridcell", {
-      name: new RegExp(
-        "on " + generatedMove("one-move-threat", "close").move.from + "$",
-      ),
-    }),
-  ).toBeVisible();
+  await expect(recommended).toBeFocused();
 });
 
 test("opens the rank path and trains the threats branch from the skill tree", async ({
@@ -84,18 +58,20 @@ test("opens the rank path and trains the threats branch from the skill tree", as
       .getByRole("navigation", { name: "Primary navigation" })
       .getByRole("button", { name: "Rank path" }),
   ).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Training plan", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Training plan", exact: true }),
+    page.getByRole("heading", { name: "Skill tree", exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("group", { name: "Chess skills" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Curriculum skill tree" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Skill tree", exact: true }),
   ).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole("group", { name: "Chess skills" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Curriculum skill tree" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Your training profile" }),
   ).toHaveCount(0);
@@ -112,17 +88,15 @@ test("opens the rank path and trains the threats branch from the skill tree", as
   await expect(
     page.getByRole("heading", { name: "Crown", exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
   await page
-    .getByRole("button", { name: "Training plan", exact: true })
+    .getByRole("button", {
+      name: "See the opponent’s next threat",
+      exact: true,
+    })
     .click();
-  await page.getByRole("button", { name: /Threats/ }).click();
-  await page.getByRole("button", { name: "Practice this skill" }).click();
   await expect(
-    page.getByRole("gridcell", {
-      name: new RegExp(
-        "on " + generatedMove("one-move-threat", "unlabeled").move.from + "$",
-      ),
-    }),
+    page.getByRole("region", { name: "Explore with Rook" }),
   ).toBeVisible();
 });
 
@@ -185,17 +159,21 @@ test("replays a real rated miss without changing rank or mastery on retry", asyn
     );
   }, fen);
   await page.reload();
-  await page
-    .getByRole("button", { name: "Training plan", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Replay the missed mate" }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const recommended = page.locator(
+    ".practice-tree__node[data-recommended=true]",
+  );
+  await expect(recommended).toBeVisible();
+  await recommended.click();
   await page.getByRole("gridcell", { name: "White rook on e1" }).click();
   await page.getByRole("gridcell", { name: /Empty e8/ }).click();
-  await expect(page.locator(".skill-retry").getByRole("status")).toHaveText(
-    "Checkmate. You found the finish.",
-  );
-  await expect(page.getByText(/Found 0 of 1 back-rank mates/)).toBeVisible();
+  await expect(page.getByText("Good move", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Account", exact: true }).click();
+  const rank = page.getByRole("region", { name: "Your Elo" });
+  await expect(
+    rank.getByRole("heading", { name: "Sapphire" }),
+  ).toBeInViewport();
+  await expect(rank.getByText("1,434 ChessCue Elo")).toBeInViewport();
   await page.getByRole("button", { name: "View rank path" }).click();
   await expect(page.getByText("1,434 ChessCue Elo")).toBeVisible();
 });

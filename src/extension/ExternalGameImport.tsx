@@ -1,12 +1,20 @@
+import { LoadingState } from "../shared/loading/LoadingState";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { GameRecord, PlayerColor } from "../domain/game/types";
-import { fetchCompletedGame, type LichessExport } from "./lichess-export";
+import { fetchCompletedGame } from "./lichess-export";
+import { ChessComArchiveMiss, fetchChessComGame } from "./chess-com-export";
+import type { CompletedGameExport, GameSite } from "./external-game";
 
 import { PGN_SHARING_NOTICE } from "../domain/import/sharing";
 
 interface Props {
   route: string;
-  importGame: (game: LichessExport, color: PlayerColor) => Promise<GameRecord>;
+  site: GameSite;
+  importGame: (
+    game: CompletedGameExport,
+    color: PlayerColor,
+    site: GameSite,
+  ) => Promise<GameRecord>;
   review: (record: GameRecord) => void;
   manual: () => void;
 }
@@ -14,17 +22,25 @@ type State =
   | { status: "loading" }
   | {
       status: "choose";
-      game: LichessExport;
+      game: CompletedGameExport;
       suggested: PlayerColor | undefined;
     }
   | { status: "saving" }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; hasOlder: boolean };
 
-export function LichessImport({ route, importGame, review, manual }: Props) {
+export function ExternalGameImport({
+  route,
+  site,
+  importGame,
+  review,
+  manual,
+}: Props) {
+  const siteName = site === "chesscom" ? "Chess.com" : "Lichess";
+  const [archiveBatch, searchOlder] = useState(0);
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, retry] = useState(0);
   const [choice, setChoice] = useState<{
-    game: LichessExport;
+    game: CompletedGameExport;
     color: PlayerColor;
   } | null>(null);
   const save = useEffectEvent(importGame);
@@ -34,11 +50,15 @@ export function LichessImport({ route, importGame, review, manual }: Props) {
     async function load() {
       const [, id, player] = route.split("/");
       const game =
-        choice?.game ?? (await fetchCompletedGame(id ?? "", controller.signal));
+        choice?.game ??
+        (site === "chesscom"
+          ? await fetchChessComGame(route, archiveBatch, controller.signal)
+          : await fetchCompletedGame(id ?? "", controller.signal));
       if (controller.signal.aborted) return;
       if (!choice) {
         const color = (["white", "black"] as const).find(
           (side) =>
+            site === "lichess" &&
             player &&
             game.players[side].user?.id.toLowerCase() === player.toLowerCase(),
         );
@@ -46,7 +66,7 @@ export function LichessImport({ route, importGame, review, manual }: Props) {
         return;
       }
       setState({ status: "saving" });
-      const record = await save(game, choice.color);
+      const record = await save(game, choice.color, site);
       controller.signal.throwIfAborted();
       open(record);
     }
@@ -54,6 +74,7 @@ export function LichessImport({ route, importGame, review, manual }: Props) {
       if (!controller.signal.aborted)
         setState({
           status: "error",
+          hasOlder: cause instanceof ChessComArchiveMiss && cause.hasOlder,
           message:
             cause instanceof Error
               ? cause.message
@@ -63,9 +84,9 @@ export function LichessImport({ route, importGame, review, manual }: Props) {
     return () => {
       controller.abort();
     };
-  }, [route, attempt, choice]);
+  }, [route, site, attempt, choice, archiveBatch]);
   return (
-    <section className="import-panel" aria-label="Lichess game">
+    <section className="import-panel" aria-label={siteName + " game"}>
       <h1>
         {state.status === "choose"
           ? state.suggested
@@ -74,12 +95,15 @@ export function LichessImport({ route, importGame, review, manual }: Props) {
           : "Practise this game"}
       </h1>
       {state.status === "loading" && (
-        <p role="status">Checking the Lichess result…</p>
+        <LoadingState>Checking the {siteName} result…</LoadingState>
       )}
-      {state.status === "saving" && <p role="status">Opening your review…</p>}
+      {state.status === "saving" && (
+        <LoadingState>Opening your review…</LoadingState>
+      )}
       {state.status === "choose" && (
         <div className="import-panel__actions">
           <p>{PGN_SHARING_NOTICE}</p>
+          {site === "chesscom" && <p>ChessCue is independent of Chess.com.</p>}
           {(state.suggested
             ? [state.suggested]
             : (["white", "black"] as const)
@@ -114,6 +138,17 @@ export function LichessImport({ route, importGame, review, manual }: Props) {
             >
               Try again
             </button>
+            {state.hasOlder && (
+              <button
+                type="button"
+                onClick={() => {
+                  setState({ status: "loading" });
+                  searchOlder((batch) => batch + 1);
+                }}
+              >
+                Search older archives
+              </button>
+            )}
             <button type="button" onClick={manual}>
               Import PGN
             </button>

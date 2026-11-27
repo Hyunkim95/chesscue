@@ -1,3 +1,4 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
 import type { AuthoredCue } from "../../domain/material/verified";
 import { exerciseSchema } from "../../domain/material/verified";
 import { starterPack } from "../../domain/material/pack";
@@ -236,20 +237,24 @@ export function GameTraining({
               disabled={pending !== null}
               onClick={() => void act("nano")}
             >
-              {pending === "nano"
-                ? "Preparing a local prompt…"
-                : "Personalize with Gemini Nano"}
+              {pending === "nano" ? (
+                <LoadingText>Preparing a local prompt…</LoadingText>
+              ) : (
+                "Personalize with Gemini Nano"
+              )}
             </button>
             <button
               className="review-action"
               disabled={!online || pending !== null}
               onClick={() => void act("cloud")}
             >
-              {pending === "cloud"
-                ? "Building your path…"
-                : online
-                  ? "Build path online"
-                  : "Go online to build a path"}
+              {pending === "cloud" ? (
+                <LoadingText>Building your path…</LoadingText>
+              ) : online ? (
+                "Build path online"
+              ) : (
+                "Go online to build a path"
+              )}
             </button>
           </div>
           {path && (

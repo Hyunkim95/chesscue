@@ -6,7 +6,7 @@ const playerName = () => {
 };
 
 if (
-  /^\/[a-zA-Z0-9]{8}(?:[a-zA-Z0-9]{4})?(?:\/(?:white|black))?\/?$/.test(
+  /^\/(?:game\/)?[a-zA-Z0-9]{8}(?:[a-zA-Z0-9]{4})?(?:\/(?:white|black))?\/?$/.test(
     location.pathname,
   )
 ) {

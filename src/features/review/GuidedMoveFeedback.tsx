@@ -1,10 +1,14 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
 import { z } from "zod";
 import { useEntryState } from "../../shared/navigation/history-entry";
 import { RookMessage } from "../../shared/rook/RookMessage";
 import { Chess } from "chess.js";
 import { useEffect, useState, type ReactNode } from "react";
 
-import type { ReviewReply } from "../../application/analyze-game/analyze-review-reply";
+import type {
+  ReviewReply,
+  ReviewSearchPurpose,
+} from "../../application/analyze-game/analyze-review-reply";
 import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import {
   buildReviewCoachingRequest,
@@ -32,6 +36,7 @@ export type AnalyzeReply = (
   fen: string,
   signal: AbortSignal,
   compareAlternatives?: boolean,
+  purpose?: ReviewSearchPurpose,
 ) => Promise<ReviewReply | null>;
 
 function validatedFrames(
@@ -322,7 +327,7 @@ export function GuidedMoveFeedback({
       </div>
       {waitingForReply ? (
         <p className="game-review__line-player" role="status">
-          Checking their reply…
+          <LoadingText>Checking their reply…</LoadingText>
         </p>
       ) : null}
       {primary && (
@@ -431,7 +436,7 @@ function HybridCoachNote({
   if (result === null) {
     return (
       <p className="game-review__provenance" role="status">
-        Rook is preparing feedback…
+        <LoadingText>Rook is preparing feedback…</LoadingText>
       </p>
     );
   }

@@ -179,7 +179,7 @@
   padding: 0.3rem 0.55rem;
   color: var(--cue-action-ink);
   background: var(--cue-action-fill);
-  clip-path: var(--cue-button-cut);
+  border-radius: var(--cue-radius-control);
   font-size: clamp(0.72rem, 2.7vw, 0.88rem);
   font-weight: 850;
   white-space: nowrap;
@@ -206,16 +206,7 @@
 .skill-detail::after {
   content: "";
   position: absolute;
-  clip-path: polygon(
-    16px 0,
-    calc(100% - 16px) 0,
-    100% 16px,
-    100% calc(100% - 16px),
-    calc(100% - 16px) 100%,
-    16px 100%,
-    0 calc(100% - 16px),
-    0 16px
-  );
+  border-radius: var(--cue-radius-card);
 }
 .skill-detail::before {
   inset: 0;
@@ -284,19 +275,9 @@
   outline-offset: 3px;
 }
 
-.training-analysis-status,
-.training-empty p {
+.training-analysis-status {
   color: var(--cue-muted);
   margin: 0.25rem 0;
-}
-.training-empty__actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-.training-empty button {
-  margin-top: 0.5rem;
 }
 .skill-move-evidence {
   margin-block: 1rem;

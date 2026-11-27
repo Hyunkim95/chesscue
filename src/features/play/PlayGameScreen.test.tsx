@@ -78,15 +78,21 @@ describe("PlayGameScreen", () => {
   it("lets the player move and shows the CPU reply without coaching", async () => {
     const repository = new MemoryRepository();
     const engine = new ReadyEngine();
+    const analyzeCoachMove = vi.fn();
     render(
       <PlayGameScreen
         engine={engine}
+        analyzeCoachMove={analyzeCoachMove}
         repository={repository}
         createGameId={() => gameId("game-1")}
         createPositionId={() => positionId("position-1")}
       />,
     );
     await screen.findByText("Your move");
+    expect(
+      screen.queryByRole("button", { name: "Next move" }),
+    ).not.toBeInTheDocument();
+    expect(analyzeCoachMove).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("gridcell", { name: "White pawn on e2" }));
     fireEvent.click(screen.getByRole("gridcell", { name: "Empty e4" }));
@@ -116,6 +122,47 @@ describe("PlayGameScreen", () => {
       trainingFocus: "development",
       openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
     });
+  });
+
+  it("offers progressive hints and previews without making the coached move", async () => {
+    const repository = new MemoryRepository();
+    const engine = new ReadyEngine();
+    const analyzeCoachMove = vi
+      .fn()
+      .mockResolvedValue({ line: ["e2e4"], evaluationCpFromSideToMove: 45 });
+    render(
+      <PlayGameScreen
+        mode="coached"
+        engine={engine}
+        analyzeCoachMove={analyzeCoachMove}
+        repository={repository}
+        createGameId={() => gameId("game-hints")}
+        createPositionId={() => positionId("position-hints")}
+      />,
+    );
+    await screen.findByText("Your move");
+    expect(analyzeCoachMove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Hint" }));
+    await screen.findAllByRole("gridcell", { name: /Rook hint/ });
+    expect(document.querySelector("[data-move-cue-arrow]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More hint" }));
+    expect(
+      screen.getByRole("gridcell", {
+        name: /White pawn on e2.*Rook highlight/,
+      }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Next move" }));
+    expect(await screen.findByText(/Rook suggests e4/)).toBeVisible();
+    expect(
+      document.querySelector('[data-move-cue-arrow="e2:e4"]'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("gridcell", { name: /White pawn on e2/ }),
+    ).toBeVisible();
+    expect(screen.getByRole("gridcell", { name: "Empty e4" })).toBeVisible();
+    expect(repository.records.at(-1)?.moves).toHaveLength(0);
+    expect(engine.request).toBeNull();
+    expect(analyzeCoachMove).toHaveBeenCalledTimes(1);
   });
 
   it("preserves the terminal resignation state", async () => {

@@ -1,5 +1,6 @@
 .chess-board {
   --board-ink: #192925;
+  position: relative;
   width: min(100%, 44rem);
   min-width: 0;
   border: 3px solid #ac8e5b;
@@ -11,6 +12,7 @@
 }
 
 .chess-board__grid {
+  position: relative;
   display: grid;
   aspect-ratio: 1;
   grid-template-rows: repeat(8, minmax(0, 1fr));
@@ -79,6 +81,141 @@ button.chess-board__square:not(:disabled) {
   pointer-events: none;
 }
 
+.chess-board__square--control-gained {
+  box-shadow: inset 0 0 0 2px #23594a;
+}
+
+.chess-board__square--control-lost {
+  box-shadow: inset 0 0 0 2px #994e36;
+}
+
+button.chess-board__square--control-inspected {
+  outline: 3px solid var(--cue-action-fill);
+  outline-offset: -4px;
+}
+
+.chess-board__control-mark {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  display: grid;
+  width: clamp(12px, 4.5cqw, 17px);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--cue-action-ink);
+  font-size: clamp(10px, 4cqw, 15px);
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.chess-board__square--control-gained .chess-board__control-mark {
+  background: var(--cue-pine);
+}
+
+.chess-board__square--control-lost .chess-board__control-mark {
+  background: var(--cue-coral);
+}
+
+.chess-board__control-arrows {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.chess-board__cue-arrow {
+  --board-arrow: #ad331f;
+  opacity: 0.58;
+}
+
+.chess-board__cue-arrow--control {
+  --board-arrow: #835016;
+}
+
+.chess-board__cue-arrow--tried {
+  --board-arrow: #1c2621;
+  opacity: 0.8;
+}
+
+.chess-board__cue-shaft {
+  stroke: var(--board-arrow);
+  stroke-width: 0.072;
+  stroke-linecap: round;
+}
+
+.chess-board__cue-arrow:not(.chess-board__cue-arrow--move)
+  .chess-board__cue-shaft {
+  stroke-width: 0.06;
+  stroke-dasharray: 0.24 0.224;
+}
+
+.chess-board__cue-arrow.chess-board__cue-arrow--tried .chess-board__cue-shaft {
+  stroke-width: 0.08;
+}
+
+/* Checks, captures and threats scan: colour plus line style per kind. */
+.chess-board__cue-arrow--scan-check {
+  --board-arrow: #c2402a;
+  opacity: 0.85;
+}
+.chess-board__cue-arrow--scan-capture {
+  --board-arrow: #b7791f;
+  opacity: 0.85;
+}
+.chess-board__cue-arrow--scan-threat {
+  --board-arrow: #2f6db3;
+  opacity: 0.85;
+}
+.chess-board__cue-arrow.chess-board__cue-arrow--scan-check
+  .chess-board__cue-shaft {
+  stroke-width: 0.072;
+  stroke-dasharray: none;
+}
+.chess-board__cue-arrow.chess-board__cue-arrow--scan-threat
+  .chess-board__cue-shaft {
+  stroke-dasharray: 0.06 0.16;
+}
+
+.chess-board__cue-tip {
+  fill: var(--board-arrow);
+}
+
+.chess-board__piece--ghost {
+  opacity: 0.42;
+}
+
+.chess-board__hint-mark {
+  position: absolute;
+  inset: 7%;
+  z-index: 2;
+  border: 2px dashed #873c2f;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.chess-board__cue-mark {
+  position: absolute;
+  z-index: 4;
+  inset-block-end: 2px;
+  inset-inline-end: 2px;
+  display: grid;
+  min-width: clamp(13px, 4.5cqw, 17px);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 3px;
+  background: #6f3125;
+  color: #fff2d4;
+  font-size: clamp(9px, 3cqw, 13px);
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .chess-board__piece {
   font-family: var(--cue-chess-font);
   font-size: 10.2cqw;
@@ -92,6 +229,24 @@ button.chess-board__square:not(:disabled) {
   paint-order: stroke fill;
 }
 
+.chess-board__piece--sliding {
+  position: relative;
+  z-index: 4;
+  animation: chess-board-slide 240ms ease-out both;
+}
+
+@keyframes chess-board-slide {
+  to {
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chess-board__piece--sliding {
+    animation-duration: 1ms;
+  }
+}
+
 .chess-board__coordinate {
   position: absolute;
   right: 4px;
@@ -101,9 +256,33 @@ button.chess-board__square:not(:disabled) {
   pointer-events: none;
 }
 
+.chess-board__edge-coordinate {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  color: #172f22;
+  font-size: clamp(0.625rem, 3cqw, 0.75rem);
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.chess-board__edge-coordinate--rank {
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+}
+
+.chess-board__edge-coordinate--file {
+  inset-block-end: 2px;
+  inset-inline-end: 2px;
+}
+
 @media (max-width: 520px) {
   .chess-board__coordinate {
     display: none;
+  }
+
+  .chess-board__edge-coordinate {
+    display: block;
   }
 }
 
@@ -111,4 +290,15 @@ button.chess-board__square:not(:disabled) {
   box-shadow:
     inset 0 0 0 3px #ffc86a,
     inset 0 0 0 5px #49330d;
+}
+
+button.piece-choice {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.35rem;
+}
+
+.promotion-piece {
+  display: inline-block;
+  font: 1.6rem/1 var(--cue-chess-font);
 }

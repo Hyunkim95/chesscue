@@ -10,6 +10,7 @@ export default tseslint.config(
       "coverage",
       "playwright-report",
       "test-results",
+      "research_notes/**",
       "public/stockfish/**",
       "eslint.config.js",
     ],

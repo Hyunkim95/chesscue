@@ -1,39 +1,50 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
+import { EmptyState } from "../../shared/empty-state/EmptyState";
 import { useEffect, useState } from "react";
 
 import { z } from "zod";
-import seedJson from "../../../scripts/material/library-seed.generated.json?raw";
-import expansionJson from "../../../scripts/material/library-expansion.generated.json?raw";
 import { useEntryState } from "../../shared/navigation/history-entry";
-import {
-  librarySeedSchema,
-  type LibraryPuzzle,
-} from "../../domain/material/puzzle-library";
+import type { LibraryPuzzle } from "../../domain/material/puzzle-library";
+import { installed, merge, puzzlesByRating } from "./puzzle-catalog";
 
-const seed = librarySeedSchema.parse(JSON.parse(seedJson));
-const expansion = librarySeedSchema.parse(JSON.parse(expansionJson));
-const installed = {
-  motifs: [...seed.motifs, ...expansion.motifs],
-  curricula: [...seed.curricula, ...expansion.curricula],
-  puzzles: [...seed.puzzles, ...expansion.puzzles],
-};
+type OpenPuzzle = (puzzle: LibraryPuzzle) => void;
 
-function merge<T extends { id: string; version: number }>(
-  base: readonly T[],
-  updates: readonly T[],
-) {
-  const latest = new Map(base.map((item) => [item.id, item]));
-  for (const item of updates) {
-    if (item.version >= (latest.get(item.id)?.version ?? 0)) {
-      latest.set(item.id, item);
-    }
-  }
-  return [...latest.values()];
+function PuzzleButtons({
+  puzzles,
+  onPractice,
+}: {
+  readonly puzzles: readonly LibraryPuzzle[];
+  readonly onPractice: OpenPuzzle;
+}) {
+  return (
+    <ol className="practice-puzzles" aria-label="Puzzles by rating">
+      {puzzles.map((puzzle, index) => {
+        const rating =
+          puzzle.rating === null
+            ? "unrated"
+            : "rating " + String(puzzle.rating);
+        return (
+          <li key={puzzle.id}>
+            <button
+              type="button"
+              aria-label={`Open puzzle ${String(index + 1)}, ${rating}`}
+              onClick={() => {
+                onPractice(puzzle);
+              }}
+            >
+              <span aria-hidden="true">▷</span> {puzzle.rating ?? "Unrated"}
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
 }
 
 export function SharedPuzzleLibrary({
   onPractice,
 }: {
-  readonly onPractice: (puzzle: LibraryPuzzle) => void;
+  readonly onPractice: OpenPuzzle;
 }) {
   const [expanded, setExpanded] = useEntryState(
     "library.open",
@@ -103,11 +114,9 @@ export function SharedPuzzleLibrary({
   const byId = new Map(available.map((puzzle) => [puzzle.id, puzzle]));
   const ordered = [
     ...(course?.puzzleIds.flatMap((id) => byId.get(id) ?? []) ?? []),
-    ...available
-      .filter((item) => !course?.puzzleIds.includes(item.id))
-      .sort(
-        (left, right) => (left.rating ?? Infinity) - (right.rating ?? Infinity),
-      ),
+    ...puzzlesByRating(
+      available.filter((item) => !course?.puzzleIds.includes(item.id)),
+    ),
   ];
 
   return (
@@ -146,29 +155,18 @@ export function SharedPuzzleLibrary({
           {ordered.length > 0 ? (
             <>
               <p className="practice-ratings-label">Puzzle ratings</p>
-              <ol className="practice-puzzles" aria-label="Puzzles by rating">
-                {ordered.map((puzzle, index) => (
-                  <li key={puzzle.id}>
-                    <button
-                      type="button"
-                      aria-label={`Open puzzle ${String(index + 1)}, ${puzzle.rating === null ? "unrated" : "rating " + String(puzzle.rating)}`}
-                      onClick={() => {
-                        onPractice(puzzle);
-                      }}
-                    >
-                      <span aria-hidden="true">▷</span>{" "}
-                      {puzzle.rating ?? "Unrated"}
-                    </button>
-                  </li>
-                ))}
-              </ol>
+              <PuzzleButtons puzzles={ordered} onPractice={onPractice} />
             </>
-          ) : (
+          ) : loading ? (
             <p role="status">
-              {loading
-                ? "Loading puzzles…"
-                : "No puzzles are available for this motif."}
+              <LoadingText>Loading puzzles…</LoadingText>
             </p>
+          ) : (
+            <EmptyState
+              art="practice"
+              title="No puzzles for this motif"
+              description="Choose another motif to keep practicing."
+            />
           )}
         </>
       )}

@@ -1,3 +1,4 @@
+import { LoadingState, LoadingText } from "../../shared/loading/LoadingState";
 import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import type { AnalyzeReply } from "../review/GuidedMoveFeedback";
 import { starterPack } from "../../domain/material/pack";
@@ -32,6 +33,7 @@ import type { MovePattern } from "../../domain/curriculum/playing-snapshot";
 import { studyOrigin } from "../../domain/study/study-connection";
 import { HistoricalStudy } from "./HistoricalStudy";
 import { LessonChallenge } from "./LessonChallenge";
+import { ChessBoard } from "../board/ChessBoard";
 import "./study.css";
 
 type RequestState =
@@ -298,7 +300,7 @@ export function StudyScreen({
         className="content-shell study-shell"
         aria-label="Lessons and position practice"
       >
-        <p role="status">Opening your games…</p>
+        <LoadingState>Opening your games…</LoadingState>
       </section>
     );
   if (!library && games.length > 0)
@@ -367,9 +369,11 @@ export function StudyScreen({
               disabled={!ai || !searchGoal || state.status === "researching"}
               onClick={() => void research()}
             >
-              {state.status === "researching"
-                ? "Finding and verifying a game…"
-                : "Find game with Gemini"}
+              {state.status === "researching" ? (
+                <LoadingText>Finding and verifying a game…</LoadingText>
+              ) : (
+                "Find game with Gemini"
+              )}
             </button>
             <button
               className="review-action"
@@ -418,9 +422,24 @@ export function StudyScreen({
       <ol className="skill-challenge-list">
         {course.lessons.map((step, index) => (
           <li key={step.title}>
+            <div className="skill-challenge-list__diagram" aria-hidden="true">
+              <ChessBoard
+                fen={step.fen}
+                orientation={step.fen.split(" ")[1] === "b" ? "black" : "white"}
+                label="Challenge starting position"
+              />
+            </div>
             <div>
               <h3>{step.title}</h3>
-              <p>{roadmap.questions[index]}</p>
+              <p
+                className={
+                  roadmap.questions[index] === step.question
+                    ? "skill-challenge-list__accessible-objective"
+                    : undefined
+                }
+              >
+                {roadmap.questions[index]}
+              </p>
             </div>
             <button
               type="button"
@@ -428,6 +447,7 @@ export function StudyScreen({
                 index === roadmap.startAt ? "primary-link" : "review-action"
               }
               aria-label={"Play " + step.title}
+              title={"Play " + step.title}
               onClick={() => {
                 enterStudy("challenge-" + String(index));
                 if (!draft) open(roadmap);
@@ -435,7 +455,7 @@ export function StudyScreen({
                 setLesson(index);
               }}
             >
-              Play <span aria-hidden="true">▸</span>
+              <span aria-hidden="true">▶</span>
             </button>
           </li>
         ))}

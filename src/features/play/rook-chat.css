@@ -25,13 +25,12 @@
   justify-content: center;
   gap: 0.35rem;
   padding: 0.3rem;
-  border: 1px solid var(--cue-gold);
-  border-radius: 8px;
-  background: linear-gradient(145deg, #2b4437, #12271e 75%);
-  box-shadow: 0 4px 20px #000a;
-  color: var(--cue-gold);
+  border: 1px solid var(--cue-line);
+  border-radius: 999px;
+  background: var(--cue-paper-deep);
+  color: var(--cue-ink);
   cursor: grab;
-  font-size: 0.96rem;
+  font-size: 0.85rem;
   font-weight: 750;
   touch-action: none;
   user-select: none;
@@ -48,7 +47,7 @@
   width: min(12rem, calc(100vw - 2rem));
   padding: 0.52rem 0.65rem;
   border: 1px solid var(--cue-gold);
-  border-radius: 8px;
+  border-radius: var(--cue-radius-card);
   background: #152b22;
   box-shadow: 0 4px 16px #0007;
   color: var(--cue-ink);
@@ -88,8 +87,8 @@
 }
 
 .rook-toggle::before {
-  width: 1.85rem;
-  height: 2.45rem;
+  width: 1.35rem;
+  height: 1.85rem;
   background: url("../../assets/brand/rook.webp") center / contain no-repeat;
   content: "";
 }
@@ -118,9 +117,14 @@
   max-width: 17rem;
   min-width: 0;
   margin-top: 2.55rem;
-  padding: 0.65rem;
-  border: 1px solid var(--cue-line);
-  background: linear-gradient(155deg, #1c352a, var(--cue-paper) 75%);
+}
+
+.rook-chat .rook-chat__header .rook-chat__icon {
+  color: var(--cue-muted);
+}
+
+.rook-chat .rook-chat__messages:empty {
+  padding: 0;
 }
 
 .rook-chat__icon,
@@ -222,6 +226,10 @@
 }
 
 @media (max-width: 1020px) {
+  .rook-float[data-open="true"] {
+    visibility: hidden;
+  }
+
   .rook-float__speech {
     display: none;
   }

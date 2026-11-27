@@ -121,7 +121,7 @@
   font-weight: 750;
   background: var(--cue-paper-deep);
   border: 1px solid var(--cue-line);
-  border-radius: 0.7rem;
+  border-radius: var(--cue-radius-control);
   cursor: pointer;
 }
 
@@ -305,7 +305,7 @@
   padding: clamp(1.5rem, 5vw, 3.5rem);
   gap: 1.3rem;
   border: 1px solid var(--cue-line);
-  border-radius: 1rem;
+  border-radius: var(--cue-radius-card);
   background: var(--cue-paper);
   box-shadow: var(--cue-shadow);
 }
@@ -362,13 +362,11 @@
   line-height: 1.55;
 }
 
-.game-review__replay,
 .game-review__technical {
   color: var(--cue-muted);
   border-top: 1px solid var(--cue-line);
 }
 
-.game-review__replay summary,
 .game-review__technical summary {
   min-height: 2.75rem;
   padding-block: 0.75rem;
@@ -395,7 +393,7 @@
   .game-review__guide {
     padding: 1rem;
     background: var(--cue-paper);
-    border-radius: 1rem;
+    border-radius: var(--cue-radius-card);
   }
 }
 
@@ -520,7 +518,7 @@
 }
 
 .game-review__debrief-findings button[aria-pressed="true"],
-.game-review__debrief-actions .game-review__debrief-explore {
+.game-review__debrief-actions .review-action.game-review__debrief-explore {
   border-color: var(--cue-gold);
   color: var(--cue-gold);
 }
@@ -541,27 +539,11 @@
   margin-inline: auto;
 }
 
-.review-navigation {
-  display: flex;
+.chesscue-sidebar .game-review__debrief-board .review-board {
+  width: 100%;
+  max-width: max(17rem, calc(100svh - 22rem));
+}
+
+.game-review__debrief-notes--compact .game-review__debrief-actions {
   align-items: center;
-  justify-content: space-between;
-  margin-block-end: 0.5rem;
-}
-
-.review-navigation__icon {
-  display: inline-grid;
-  place-items: center;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--cue-ink);
-  cursor: pointer;
-  font-size: 1.25rem;
-}
-
-.review-navigation__icon[aria-pressed="true"] {
-  color: var(--cue-gold);
-  border-color: var(--cue-line);
 }

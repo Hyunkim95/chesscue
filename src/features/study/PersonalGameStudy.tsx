@@ -10,6 +10,7 @@ import { buildGameReplay } from "../../domain/analysis/replay-game";
 import { tutorGameMode, type GameRecord } from "../../domain/game/types";
 import type { StudyAI } from "../../infrastructure/ai/study-gemini";
 import { PositionChat } from "./PositionChat";
+import { ChessBoard } from "../board/ChessBoard";
 
 function sourceLabel(game: GameRecord) {
   if (game.origin.type !== "tutor") return "Imported game";
@@ -105,6 +106,13 @@ export function PersonalGameStudy({
       {position ? (
         <ul className="skill-challenge-list">
           <li>
+            <div className="skill-challenge-list__diagram" aria-hidden="true">
+              <ChessBoard
+                fen={position.fen}
+                orientation={side}
+                label="Position from your game"
+              />
+            </div>
             <div>
               <h3>{position.title}</h3>
               <p>
@@ -114,6 +122,8 @@ export function PersonalGameStudy({
             </div>
             <button
               className="primary-link"
+              aria-label="Play this position"
+              title="Play this position"
               onClick={() => {
                 enterStudy("personal-position");
                 setChosenFen(position.fen);
@@ -121,7 +131,7 @@ export function PersonalGameStudy({
                 setPractice(true);
               }}
             >
-              Play this position
+              <span aria-hidden="true">▶</span>
             </button>
           </li>
         </ul>

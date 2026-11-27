@@ -70,7 +70,7 @@ test("brings Coach into a rated game and resumes the same board as unrated", asy
   await expect(
     page.getByRole("button", { name: "Check position" }),
   ).toBeEnabled();
-  await page.getByRole("button", { name: "Training plan" }).click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(history).toHaveText(moves);
   await expect(
@@ -88,7 +88,7 @@ test("brings Coach into a rated game and resumes the same board as unrated", asy
   await page.getByRole("button", { name: "Back to play" }).click();
   await page.getByRole("button", { name: "Account", exact: true }).click();
   await expect(page.getByRole("region", { name: "Your Elo" })).toContainText(
-    "Placement · 0 of 5",
+    "5 placement games left",
   );
 });
 
@@ -113,17 +113,14 @@ test("shows the rated result before opening review", async ({ page }) => {
     "Placement · 1 of 5",
   );
   await page.getByRole("button", { name: "Review this game" }).click();
-  await expect(page.getByRole("heading", { name: "Game debrief" })).toBeVisible(
-    { timeout: 30_000 },
-  );
+  const rook = page.getByRole("region", { name: "Explore with Rook" });
+  await expect(rook.getByLabel("Ask Rook")).toBeVisible({ timeout: 30000 });
   await page.getByRole("button", { name: "Back to game result" }).click();
   await expect(page.getByRole("region", { name: "Your Elo" })).toContainText(
     "Rated game · Lost",
   );
   await page.goForward();
-  await expect(
-    page.getByRole("heading", { name: "Game debrief" }),
-  ).toBeVisible();
+  await expect(rook.getByLabel("Ask Rook")).toBeVisible();
 });
 
 test("reload resumes the exact in-progress tutor game", async ({ page }) => {
@@ -215,11 +212,11 @@ async function resumeCoachedGame(
   await page.getByRole("button", { name: "Coached", exact: true }).click();
 }
 
-for (const [label, san] of [
-  ["Queen", "Q"],
-  ["Rook", "R"],
-  ["Bishop", "B"],
-  ["Knight", "N"],
+for (const [label, san, symbol] of [
+  ["Queen", "Q", "♕"],
+  ["Rook", "R", "♖"],
+  ["Bishop", "B", "♗"],
+  ["Knight", "N", "♘"],
 ] as const) {
   test(`chooses ${label} before committing promotion in Play`, async ({
     page,
@@ -246,7 +243,10 @@ for (const [label, san] of [
       ).toBeFocused();
       await board.getByRole("gridcell", { name: "Empty a8" }).click();
     }
-    await picker.getByRole("button", { name: label, exact: true }).click();
+    const piece = picker.getByRole("button", { name: label, exact: true });
+    await expect(piece).toHaveText(symbol);
+    expect((await piece.boundingBox())?.width).toBeGreaterThanOrEqual(44);
+    await piece.click();
     await expect(
       page.getByRole("list", { name: "Move history" }),
     ).toContainText("a8=" + san);
@@ -254,6 +254,53 @@ for (const [label, san] of [
 }
 
 test.describe("Coached sideline", () => {
+  test("Rook flags an allowed mate after the opponent misses it", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.getByRole("status")).toHaveText("Your move");
+    await resumeCoachedGame(page, new Chess(), ["f3", "e5", "g4", "Nc6"]);
+    await expect(page.getByRole("status")).toHaveText("Your move");
+    const unread = page.getByRole("button", {
+      name: "Rook, new learning moment",
+      exact: true,
+    });
+    await expect(unread).toHaveAttribute("aria-expanded", "false", {
+      timeout: 6_000,
+    });
+    await unread.click();
+    const chat = page.getByRole("region", { name: "Rook chat" });
+    await expect(chat).toContainText("Your opponent had mate in 1");
+    await expect(chat).toContainText("Qh4#");
+  });
+
+  test("Rook flags a hanging piece even when the opponent plays a different reply", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.getByRole("status")).toHaveText("Your move");
+    await resumeCoachedGame(
+      page,
+      new Chess("2r3k1/8/8/8/4N3/8/8/6K1 w - - 0 1"),
+      ["Nc5", "Kf7"],
+    );
+    await expect(page.getByRole("status")).toHaveText("Your move");
+    await expect(
+      page.getByRole("gridcell", { name: "White knight on c5" }),
+    ).toBeVisible();
+    const unread = page.getByRole("button", {
+      name: "Rook, new learning moment",
+      exact: true,
+    });
+    await expect(unread).toHaveAttribute("aria-expanded", "false", {
+      timeout: 6_000,
+    });
+    await unread.click();
+    const chat = page.getByRole("region", { name: "Rook chat" });
+    await expect(chat).toContainText("Stockfish found a stronger move");
+    await expect(chat).toContainText("Rxc5 takes the knight on c5");
+  });
+
   test("Rook flags when the opponent takes a piece you just moved", async ({
     page,
   }) => {
@@ -494,12 +541,12 @@ test.describe("Coached sideline", () => {
     ).toBeVisible();
     await page.getByRole("button", { name: "Resign game" }).click();
     await expect(
-      page.getByRole("heading", { name: "Game debrief" }),
+      page.getByRole("region", { name: "Explore with Rook" }).getByRole("grid"),
     ).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Back to play" }).click();
     await page.getByRole("button", { name: "Account", exact: true }).click();
     await expect(page.getByRole("region", { name: "Your Elo" })).toContainText(
-      "Placement · 0 of 5",
+      "5 placement games left",
     );
   });
 });

@@ -205,8 +205,13 @@ export class StockfishAnalysisEngine implements AnalysisEngine {
       worker.postMessage(
         `setoption name MultiPV value ${String(Math.max(1, Math.min(5, request.multiPv)))}`,
       );
+      if (request.depth !== undefined) worker.postMessage("ucinewgame");
       worker.postMessage(`position fen ${request.fen}`);
-      worker.postMessage(`go movetime ${String(searchTimeMs)}`);
+      worker.postMessage(
+        request.depth === undefined
+          ? `go movetime ${String(searchTimeMs)}`
+          : `go depth ${String(request.depth)} movetime ${String(searchTimeMs)}`,
+      );
     });
   }
 

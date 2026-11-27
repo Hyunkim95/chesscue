@@ -6,7 +6,120 @@
 .race-view h1 {
   margin-block: 0.6em;
 }
-.race-view a,
+
+.race-leaderboard-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(5.5rem, 29%, 10rem);
+  align-items: center;
+  min-height: 5.25rem;
+  padding-inline-start: clamp(0.75rem, 4%, 1.25rem);
+  border: 1px solid var(--cue-line);
+  border-radius: var(--cue-radius-card);
+  background: var(--cue-paper);
+}
+
+.race-leaderboard-banner h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.race-leaderboard-banner__art {
+  position: relative;
+  align-self: stretch;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 44% 72% at 47% 60%, #3c85676b, transparent),
+    radial-gradient(ellipse 38% 70% at 75% 65%, #95693b70, transparent);
+}
+
+.race-leaderboard-banner__art img {
+  position: absolute;
+  inset-block-end: 0.15rem;
+  inset-inline-end: 0;
+  width: 67%;
+  height: 88%;
+  object-fit: contain;
+}
+
+.race-leaderboard-banner__art img:first-child {
+  inset-block-end: 0.7rem;
+  inset-inline-end: 35%;
+  width: 60%;
+  height: 76%;
+}
+
+.race-view--sign-in {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 68px);
+}
+
+.race-view--sign-in .empty-state {
+  flex-shrink: 0;
+  margin-block: auto;
+  border: 0;
+  background: transparent;
+}
+
+.race-view--sign-in .empty-state__art {
+  align-items: center;
+  height: clamp(7rem, 26dvh, 15rem);
+  gap: clamp(0.5rem, 6vw, 2rem);
+  background:
+    radial-gradient(ellipse 48% 48% at 30% 56%, #95693b4c, transparent),
+    radial-gradient(ellipse 48% 48% at 74% 54%, #3c85675e, transparent);
+}
+
+.race-view--sign-in .empty-state__art::before {
+  inset: 35% 25%;
+  border-color: #ad8e4670;
+  box-shadow:
+    0 0 1.25rem #ad8e4633,
+    inset 0 0 1.25rem #8cc6aa22;
+  transform: none;
+}
+
+.race-view--sign-in .empty-state__art img {
+  height: 80%;
+  width: 33%;
+  object-position: center;
+}
+
+.race-view--sign-in .empty-state__art img:first-child {
+  scale: 1.35;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (offset-path: ellipse(25% 15% at 50% 50%)) {
+    .race-view--sign-in .empty-state__art img {
+      --race-orbit-start: 0%;
+      --race-orbit-end: 100%;
+      position: absolute;
+      height: 66%;
+      offset-path: ellipse(25% 15% at 50% 50%);
+      offset-rotate: 0deg;
+      animation: race-piece-orbit 4s ease-in-out both;
+    }
+
+    .race-view--sign-in .empty-state__art img:first-child {
+      --race-orbit-start: 50%;
+      --race-orbit-end: 150%;
+      width: 44%;
+      max-width: 9.45rem;
+      scale: none;
+    }
+  }
+}
+
+@keyframes race-piece-orbit {
+  from {
+    offset-distance: var(--race-orbit-start);
+  }
+  to {
+    offset-distance: var(--race-orbit-end);
+  }
+}
+.race-view a:not(.primary-link),
 .race-copy a,
 .account-progress > a {
   color: var(--accent, #ecc98b);
@@ -55,7 +168,7 @@
   color: inherit;
   background: #182722;
   border: 1px solid #627469;
-  border-radius: 0.35rem;
+  border-radius: var(--cue-radius-control);
   padding: 0.65rem;
   max-width: 100%;
   min-width: 0;

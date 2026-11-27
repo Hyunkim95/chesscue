@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { isSidePanel } from "../navigation/side-panel";
 
 interface RecognitionOptions {
   readonly langs: readonly string[];
@@ -14,10 +15,11 @@ interface RookRecognition {
   interimResults: boolean;
   processLocally?: boolean;
   onstart: (() => void) | null;
+  onaudiostart: (() => void) | null;
   onresult: ((event: { results: ArrayLike<SpeechResult> }) => void) | null;
   onerror: ((event: { error: string }) => void) | null;
   onend: (() => void) | null;
-  start(): void;
+  start(track?: MediaStreamTrack): void;
   stop(): void;
   abort(): void;
 }
@@ -30,7 +32,13 @@ type SpeechState =
   | { readonly status: "idle" | "starting" | "finishing" | "installing" }
   | { readonly status: "listening"; readonly text: string }
   | { readonly status: "setup"; readonly download: boolean }
-  | { readonly status: "error"; readonly message: string };
+  | { readonly status: "permission" }
+  | { readonly status: "ready" }
+  | {
+      readonly status: "error";
+      readonly message: string;
+      readonly onlineRetry?: boolean;
+    };
 
 const language = "en-US";
 const localOptions: RecognitionOptions = {
@@ -87,7 +95,15 @@ async function installOfflineSpeech(
   }
 }
 
-export function useRookSpeech(onMessage: (text: string) => void) {
+interface SpeechInputOptions {
+  readonly useMicrophoneTrack?: boolean;
+  readonly onInputLevel?: (level: number) => void;
+}
+
+export function useRookSpeech(
+  onMessage: (text: string) => void,
+  { useMicrophoneTrack, onInputLevel }: SpeechInputOptions = {},
+) {
   const [state, setState] = useState<SpeechState>({ status: "idle" });
   const request = useRef<AbortController | null>(null);
   const finish = useRef<(() => void) | null>(null);
@@ -133,11 +149,31 @@ export function useRookSpeech(onMessage: (text: string) => void) {
     const controller = new AbortController();
     request.current = controller;
     setState({ status: mode === "install" ? "installing" : "starting" });
+    let microphone: MediaStream | undefined;
+    let audioContext: AudioContext | undefined;
+    let levelTimer: number | undefined;
+    let sampledInput = false;
+    let peakLevel = 0;
+    function releaseMicrophone() {
+      window.clearInterval(levelTimer);
+      if (audioContext) {
+        void audioContext.close().catch(() => undefined);
+        audioContext = undefined;
+      }
+      onInputLevel?.(0);
+      for (const track of microphone?.getTracks() ?? []) track.stop();
+      microphone = undefined;
+    }
+    controller.signal.addEventListener("abort", releaseMicrophone, {
+      once: true,
+    });
+
     function done(next: SpeechState) {
       if (request.current !== controller || controller.signal.aborted)
         return false;
       request.current = null;
       finish.current = null;
+      releaseMicrophone();
       setState(next);
       return true;
     }
@@ -148,7 +184,9 @@ export function useRookSpeech(onMessage: (text: string) => void) {
         return;
       }
       if (mode === "local" && Recognition.available !== undefined) {
-        const available = await Recognition.available(localOptions);
+        const available = await Recognition.available(localOptions).catch(
+          () => "unavailable",
+        );
         if (available !== "available") {
           done({
             status: "setup",
@@ -165,7 +203,7 @@ export function useRookSpeech(onMessage: (text: string) => void) {
         );
         done(
           installed
-            ? { status: "idle" }
+            ? { status: "ready" }
             : {
                 status: "error",
                 message:
@@ -175,6 +213,78 @@ export function useRookSpeech(onMessage: (text: string) => void) {
         return;
       }
       if (controller.signal.aborted) return;
+      let microphoneTrack: MediaStreamTrack | undefined;
+      const needsTrack = isSidePanel || useMicrophoneTrack === true;
+      if (isSidePanel) {
+        const permission = await navigator.permissions
+          .query({ name: "microphone" })
+          .catch(() => null);
+        controller.signal.throwIfAborted();
+        if (permission && permission.state !== "granted") {
+          done({ status: "permission" });
+          return;
+        }
+      }
+      if (needsTrack) {
+        try {
+          microphone = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          controller.signal.throwIfAborted();
+        } catch (error) {
+          releaseMicrophone();
+          done(
+            error instanceof DOMException && error.name === "NotAllowedError"
+              ? isSidePanel
+                ? { status: "permission" }
+                : {
+                    status: "error",
+                    message:
+                      "Allow microphone access in this browser, then tap Speak.",
+                  }
+              : {
+                  status: "error",
+                  message:
+                    "Chrome couldn’t open your microphone. Check that it’s connected and selected in Chrome.",
+                },
+          );
+          return;
+        }
+        microphoneTrack = microphone
+          .getAudioTracks()
+          .find((track) => track.readyState === "live");
+        if (!microphoneTrack) {
+          done({
+            status: "error",
+            message: "Chrome couldn’t find an active microphone.",
+          });
+          return;
+        }
+        if (onInputLevel) {
+          try {
+            audioContext = new AudioContext();
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            audioContext.createMediaStreamSource(microphone).connect(analyser);
+            const samples = new Float32Array(analyser.fftSize);
+            void audioContext.resume().catch(() => undefined);
+            levelTimer = window.setInterval(() => {
+              if (audioContext?.state !== "running") return;
+              analyser.getFloatTimeDomainData(samples);
+              sampledInput = true;
+              const energy = samples.reduce(
+                (sum, value) => sum + value * value,
+                0,
+              );
+              const level = Math.min(1, 4 * Math.sqrt(energy / samples.length));
+              peakLevel = Math.max(peakLevel, level);
+              onInputLevel(level);
+            }, 50);
+          } catch {
+            // Speech recognition can continue if the meter is unavailable.
+          }
+        }
+      }
       if ("processLocally" in recognition)
         recognition.processLocally = mode === "local";
       recognition.lang = language;
@@ -183,25 +293,43 @@ export function useRookSpeech(onMessage: (text: string) => void) {
       let transcript = "";
       let endTimer: number | undefined;
       function clearTimers() {
+        window.clearTimeout(audioTimer);
         window.clearTimeout(timer);
         window.clearTimeout(endTimer);
       }
+      function noTranscript() {
+        if (sampledInput && peakLevel < 0.025) {
+          done({
+            status: "error",
+            message:
+              "The mic opened, but its input stayed quiet. Check your input device or try Speak again.",
+          });
+          return;
+        }
+        done({
+          status: "error",
+          message: sampledInput
+            ? "The mic picked up sound, but speech recognition returned no words."
+            : "Speech recognition ended without a transcript.",
+          ...(useMicrophoneTrack && mode === "local" && { onlineRetry: true }),
+        });
+      }
+
       function complete() {
         clearTimers();
         if (transcript) {
           if (done({ status: "idle" })) send.current(transcript);
         } else {
-          done({
-            status: "error",
-            message:
-              "I didn’t catch any speech. Try the mic again or type a message.",
-          });
+          noTranscript();
         }
       }
-      recognition.onstart = () => {
+      const onAudio = () => {
+        window.clearTimeout(audioTimer);
         if (request.current === controller)
           setState({ status: "listening", text: "" });
       };
+      if (needsTrack) recognition.onaudiostart = onAudio;
+      else recognition.onstart = onAudio;
       recognition.onresult = ({ results }) => {
         if (request.current !== controller) return;
         const spoken = Array.from(results);
@@ -213,15 +341,20 @@ export function useRookSpeech(onMessage: (text: string) => void) {
         if (heard) transcript = heard;
         if (heard && spoken.some(({ isFinal }) => isFinal)) {
           finish.current?.();
-        } else if (endTimer === undefined) {
+        } else if (heard && endTimer === undefined) {
           setState({ status: "listening", text: transcript });
         }
       };
       recognition.onend = complete;
       recognition.onerror = ({ error }) => {
         clearTimers();
-        if (
+        if (error === "no-speech") {
+          noTranscript();
+        } else if (error === "not-allowed" && isSidePanel) {
+          done({ status: "permission" });
+        } else if (
           error === "language-not-supported" ||
+          error === "language-unavailable" ||
           error === "service-not-allowed"
         ) {
           done({
@@ -234,7 +367,9 @@ export function useRookSpeech(onMessage: (text: string) => void) {
             message:
               error === "not-allowed"
                 ? "Microphone access was denied. Allow it in your browser to talk to Rook."
-                : "Speech recognition couldn’t finish. Try the mic again or type a message.",
+                : error === "audio-capture"
+                  ? "Chrome couldn’t capture microphone audio. Check the selected input and try again."
+                  : "Speech recognition couldn’t finish. Try the mic again or type a message.",
           });
         }
       };
@@ -263,8 +398,22 @@ export function useRookSpeech(onMessage: (text: string) => void) {
       const timer = window.setTimeout(() => {
         finish.current?.();
       }, 30_000);
+      const audioTimer = needsTrack
+        ? window.setTimeout(() => {
+            clearTimers();
+            if (
+              done({
+                status: "error",
+                message:
+                  "Chrome opened the microphone but speech recognition didn’t receive audio. Check the selected input and try again.",
+              })
+            )
+              recognition.abort();
+          }, 8_000)
+        : undefined;
       try {
-        recognition.start();
+        if (microphoneTrack) recognition.start(microphoneTrack);
+        else recognition.start();
       } catch (error) {
         clearTimers();
         throw error;
