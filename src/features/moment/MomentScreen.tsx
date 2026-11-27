@@ -291,6 +291,36 @@ function voiceCommand(text: string): VoiceCommand | undefined {
 // A reason only a Stockfish search can give.
 const SEARCH = Symbol("search");
 
+// The one option a reply to "Which move?" names, if exactly one fits.
+function pickedChoice<T extends { readonly move: SanMove }>(
+  text: string,
+  options: readonly T[],
+): T | undefined {
+  const bare = (san: string) => san.replace(/[+#]/g, "").toLowerCase();
+  const words = text.toLowerCase();
+  const tokens = words.match(/[a-z0-9=+#-]+/g) ?? [];
+  const bySan = options.filter(({ move }) =>
+    tokens.some((token) => bare(token) === bare(move.san)),
+  );
+  if (bySan.length === 1) return bySan[0];
+  const squares = words.match(/\b[a-h][1-8]\b/g) ?? [];
+  const bySquare = options.filter(({ move }) =>
+    squares.some(
+      (square) =>
+        move.uci.slice(0, 2) === square || move.uci.slice(2, 4) === square,
+    ),
+  );
+  if (bySquare.length === 1) return bySquare[0];
+  const described = describedMoves(
+    text,
+    options.map(({ move }) => move),
+  );
+  const [only] = described;
+  return described.length === 1 && only
+    ? options.find(({ move }) => move.uci === only.uci)
+    : undefined;
+}
+
 // "What if…" about another move, played out once the move is known.
 const WHAT_IF_QUESTION =
   /^\s*(?:what if|what about|why not|could (?:you|i) (?:have )?)/i;
@@ -428,7 +458,12 @@ export function MomentScreen({
   >();
   // Moves to choose from when a question describes more than one.
   const [choices, setChoices] = useState<
-    readonly { readonly label: string; readonly run: () => void }[] | undefined
+    | readonly {
+        readonly label: string;
+        readonly move: SanMove;
+        readonly run: () => void;
+      }[]
+    | undefined
   >();
   const [sheet, setSheet] = useState<"celebrate" | "missed" | undefined>();
   // Created in the effect so StrictMode's mount, unmount and remount leaves a
@@ -1571,6 +1606,23 @@ export function MomentScreen({
   }
 
   async function ask(text: string) {
+    // A reply to "Which move?" is read against the options first: the move,
+    // either of its squares, or the words, among those options only.
+    if (choices) {
+      const picked = pickedChoice(text, choices);
+      if (picked) {
+        setChoices(undefined);
+        picked.run();
+        return;
+      }
+      if (!WHY_QUESTION.test(text) && !WHAT_IF_QUESTION.test(text)) {
+        setSay({
+          text: `Which one: ${choices.map(({ move }) => move.san).join(" or ")}? Tap it, or name the square it goes to.`,
+          mood: "hmm",
+        });
+        return;
+      }
+    }
     // A new question replaces any offer or choice left from the last one.
     setConfirm(undefined);
     setChoices(undefined);
@@ -1628,6 +1680,7 @@ export function MomentScreen({
         setChoices(
           options.map((move) => ({
             label: `What if ${move.san}?`,
+            move,
             run: () => {
               found.play(move.uci);
             },
@@ -1653,9 +1706,16 @@ export function MomentScreen({
         setConfirm(undefined);
         setChoices(
           options.map((move) => ({
-            label: `Why ${move.san}?`,
+            // "why not take the pawn" keeps its "why not".
+            label: `${/^\s*why not\b/i.test(text) ? "Why not" : "Why"} ${move.san}?`,
+            move,
+            // Answered like the typed question it came from, so it never
+            // gives the answer away while the player is still solving.
             run: () => {
-              act({ kind: "why", uci: move.uci });
+              answerInPlace(
+                { kind: "why", uci: move.uci },
+                `Rook understood · why · ${move.san}`,
+              );
             },
           })),
         );

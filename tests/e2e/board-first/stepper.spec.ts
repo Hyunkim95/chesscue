@@ -235,3 +235,27 @@ test("once solved, any position on the board can be explored", async ({
   );
   await expect(page.locator(".rook-bubble__text")).toContainText("Qh6");
 });
+
+test("a reply to Which move? picks the option it names", async ({ page }) => {
+  const bubble = page.locator(".rook-bubble__text");
+  const ask = page.getByRole("textbox", { name: "Ask Rook" });
+  const choices = page.getByRole("group", { name: "Which move" });
+  for (const reply of ["Qxg5", "g5", "the queen takes on g5"]) {
+    await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
+    await expect(
+      page.getByRole("heading", { name: /White to move/ }),
+    ).toBeVisible({ timeout: 30_000 });
+    await ask.fill("why not take the pawn");
+    await ask.press("Enter");
+    await expect(
+      choices.getByRole("button", { name: "Why not Qxg5+?" }),
+    ).toBeVisible();
+    await ask.fill(reply);
+    await ask.press("Enter");
+    // Still solving, so Rook keeps the answer to himself, but he understood.
+    await expect(bubble).toHaveText(
+      "Play it on the board and I'll tell you how it does.",
+    );
+    await expect(choices).toHaveCount(0);
+  }
+});
