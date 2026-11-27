@@ -13,6 +13,7 @@ import {
   PIECE_VALUE,
   attackedBy,
   joinedAnd,
+  linesFor,
   onMinorHome,
   opponent,
   piecesOf,
@@ -249,7 +250,115 @@ function learnerFrame(after: Chess, move: Move): StoryFrame {
   };
 }
 
-function rookFrame(after: Chess, move: Move, forced: boolean): StoryFrame {
+// What Rook's move wins time against: two or more of the learner's pieces
+// hit at once by the moved piece, or else a line it uncovers for another of
+// Rook's pieces onto something worth taking. One per caption.
+type Threat =
+  | {
+      readonly kind: "fork";
+      readonly targets: readonly { square: Square; type: PieceSymbol }[];
+    }
+  | {
+      readonly kind: "uncovered";
+      readonly from: Square;
+      readonly piece: PieceSymbol;
+      readonly square: Square;
+      readonly type: PieceSymbol;
+    };
+
+function threatOf(before: Chess, after: Chess, move: Move): Threat | undefined {
+  const learner = opponent(move.color);
+  const worth = (square: Square, type: PieceSymbol, by: PieceSymbol) =>
+    type === "k" ||
+    (type !== "p" &&
+      (after.attackers(square, learner).length === 0 ||
+        PIECE_VALUE[type] > PIECE_VALUE[by]));
+  const targets = attackedBy(after, move.to)
+    .filter(({ square, type }) => worth(square, type, move.piece))
+    .toSorted((a, b) => (a.type === "k" ? -1 : b.type === "k" ? 1 : 0))
+    .slice(0, MAX_TARGETS)
+    .map(({ square, type }) => ({ square, type }));
+  if (targets.length >= 2) return { kind: "fork", targets };
+  for (const { square: from, type: piece } of piecesOf(after, move.color)) {
+    if (from === move.to || !linesFor(piece).length) continue;
+    if (before.get(from)?.type !== piece) continue;
+    const earlier = new Set(
+      attackedBy(before, from).map(({ square }) => square),
+    );
+    const target = attackedBy(after, from)
+      .filter(
+        ({ square, type }) =>
+          !earlier.has(square) && worth(square, type, piece),
+      )
+      .toSorted((a, b) => PIECE_VALUE[b.type] - PIECE_VALUE[a.type])[0];
+    if (target)
+      return {
+        kind: "uncovered",
+        from,
+        piece,
+        square: target.square,
+        type: target.type,
+      };
+  }
+  return undefined;
+}
+
+// The square of the piece a capture removes, which differs from the
+// destination only en passant.
+function capturedSquare(move: Move): Square {
+  if (!move.isEnPassant()) return move.to;
+  const square = SQUARES.find(
+    (candidate) => candidate === `${move.to[0] ?? ""}${move.from[1] ?? ""}`,
+  );
+  return square ?? move.to;
+}
+
+function threatFrame(
+  after: Chess,
+  move: Move,
+  threat: Threat,
+  moved: BoardArrow,
+): StoryFrame {
+  const your = ({ square, type }: { square: Square; type: PieceSymbol }) =>
+    `your ${PIECE_NAME[type]} on ${square}`;
+  const fork = threat.kind === "fork";
+  const targets = fork ? threat.targets : [threat];
+  const object = fork
+    ? `${joinedAnd(threat.targets.map(your))} at once`
+    : `my ${PIECE_NAME[threat.piece]} on ${threat.from} onto ${your(threat)}`;
+  const [verb, participle] = fork
+    ? ["attack", "attacking"]
+    : ["open", "opening"];
+  const caption = move.captured
+    ? `I take your ${PIECE_NAME[move.captured]} with ${move.san} and ${verb} ${object}.`
+    : `I answer ${move.san}, ${participle} ${object}.`;
+  return {
+    fen: after.fen(),
+    moveUci: move.lan,
+    by: "rook",
+    control: [],
+    arrows: [
+      moved,
+      ...targets.map(({ square }) =>
+        attack(fork ? move.to : threat.from, square),
+      ),
+    ],
+    outlines: [
+      ...(move.captured
+        ? [{ square: capturedSquare(move), tone: "coral" as const }]
+        : []),
+      ...targets.map(({ square }) => ({ square, tone: "coral" as const })),
+    ],
+    caption,
+  };
+}
+
+function rookFrame(
+  before: Chess,
+  after: Chess,
+  move: Move,
+  forced: boolean,
+): StoryFrame {
   const base = {
     fen: after.fen(),
     moveUci: move.lan,
@@ -257,18 +366,32 @@ function rookFrame(after: Chess, move: Move, forced: boolean): StoryFrame {
     control: [],
   };
   const moved: BoardArrow = { from: move.from, to: move.to, kind: "reply" };
-  if (forced)
+  const threat = move.san.startsWith("O-O")
+    ? undefined
+    : threatOf(before, after, move);
+  if (threat) return threatFrame(after, move, threat, moved);
+  if (forced) {
+    // Usually forced by a check: the checking pieces are drawn on the king.
+    const [king] = before.inCheck() ? kingSquare(before, move.color) : [];
     return {
       ...base,
-      arrows: [moved],
-      outlines: [],
+      arrows: [
+        moved,
+        ...(king
+          ? before
+              .attackers(king, opponent(move.color))
+              .map((checker) => attack(checker, king))
+          : []),
+      ],
+      outlines: [{ square: king ?? move.to, tone: "coral" }],
       caption: `I have to play ${move.san}.`,
     };
+  }
   if (move.captured)
     return {
       ...base,
       arrows: [moved],
-      outlines: [],
+      outlines: [{ square: capturedSquare(move), tone: "coral" }],
       caption: `I take your ${PIECE_NAME[move.captured]} with ${move.san}.`,
     };
   if (after.inCheck()) {
@@ -311,14 +434,24 @@ function rookFrame(after: Chess, move: Move, forced: boolean): StoryFrame {
   if (control.length > 0)
     return {
       ...base,
-      arrows: [moved],
+      arrows: [
+        moved,
+        ...control.map(
+          (square): BoardArrow => ({
+            from: move.to,
+            to: square,
+            kind: "control",
+          }),
+        ),
+      ],
       outlines: control.map((square) => ({ square, tone: "coral" as const })),
       caption: `I answer ${move.san}, covering ${joinedAnd(control)}.`,
     };
   return {
     ...base,
     arrows: [moved],
-    outlines: [],
+    // A developing move marks the square the piece comes into play on.
+    outlines: deeds.develops ? [{ square: move.to, tone: "jade" }] : [],
     caption: deeds.develops
       ? `I answer ${move.san}, bringing my ${PIECE_NAME[move.piece]} into play.`
       : `I answer ${move.san}.`,
@@ -345,12 +478,13 @@ export function lineStoryboard(
   for (const uci of line.slice(0, plies)) {
     if (board.isGameOver()) break;
     const forced = board.moves().length === 1;
+    const before = new Chess(board.fen());
     const move = play(board, uci);
     if (!move) break;
     frames.push(
       move.color === learnerColor
         ? learnerFrame(board, move)
-        : rookFrame(board, move, forced),
+        : rookFrame(before, board, move, forced),
     );
   }
   return frames;

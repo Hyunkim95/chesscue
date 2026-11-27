@@ -275,3 +275,48 @@ test("a moment from the opening offers the game's opening once shown, never befo
     });
   }
 });
+
+test("trying the game's move, Why not names and draws the fork it allowed", async ({
+  page,
+}) => {
+  test.setTimeout(ANALYSIS_TEST_TIMEOUT);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const game = finishedGame(
+    "11111111-2222-4333-8444-0000000000a3",
+    "rated",
+    "black",
+  );
+  await injectGame(page, game);
+  await expect(
+    page.getByRole("button", { name: /^Look at (them|it)$/ }),
+  ).toBeVisible({ timeout: 60_000 });
+  // The moment before the game's 5...Nxd5; the order of moments can vary
+  // with the analysis, so it is opened directly.
+  await page.goto(`/?ui=board-first#moment/${game.id}%3A10`);
+  await expect(
+    page.getByRole("heading", { name: /Black to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  // The game's 5...Nxd5, played again on the board.
+  await page.getByRole("gridcell", { name: /^Black knight on f6/ }).click();
+  await page.getByRole("gridcell", { name: /^White pawn on d5/ }).click();
+  // Before the try is checked, "Why not Nxd5?" is the game move's preview.
+  await expect(page.getByRole("button", { name: "↺ Try again" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await page.getByRole("button", { name: "Why not Nxd5?" }).click();
+  await page.getByRole("button", { name: "Next step" }).click();
+  await expect(page.locator(".rook-bubble__text")).toHaveText(
+    "I take your pawn with Nxf7 and attack your queen on d8 and your rook on h8 at once.",
+  );
+  await expect(page.locator(".chess-board__cue-arrow--attack")).toHaveCount(2);
+  for (const width of [320, 420]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    await page.screenshot({
+      path: test.info().outputPath(`allowed-fork-${String(width)}.png`),
+      fullPage: true,
+    });
+  }
+});

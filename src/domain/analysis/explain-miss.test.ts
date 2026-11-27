@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { explainMissedLine } from "./explain-miss";
+import { explainAllowedLine, explainMissedLine } from "./explain-miss";
 
 test("explains a missed knight fork and what it wins", () => {
   const explanation = explainMissedLine({
@@ -116,4 +116,53 @@ test("reads further and names every skipped move when the payoff comes late", ()
       "The king on g8 is stuck behind its own pieces on f7, g7, h7. " +
       "You played Rxb2 instead, which misses a forced checkmate.",
   );
+});
+
+// What the player's own move allowed, from real Lichess games graded by two
+// coaches (research_notes/positional-reasons, audit cases 13, 16, 17 and 3).
+test("explains the fork a king move allowed, naming the player's pieces as yours", () => {
+  expect(
+    explainAllowedLine({
+      fen: "r5nr/pppkbpp1/n2p1q1p/1Q1Pp3/4P3/2N2N2/PPP2PPP/R1B1K2R b KQ - 3 10",
+      line: ["d7d8", "b5b7", "a8b8", "b7a6", "f6g6", "e1g1"],
+    })?.text,
+  ).toBe(
+    "After Kd8, White plays Qxb7, attacking your rook on a8 (undefended) and your knight on a6 (undefended) at the same time. " +
+      "After you reply Rb8, Qxa6 takes your knight on a6, which had no defender. " +
+      "White ends up 4 points of material ahead.",
+  );
+});
+
+test("names the capture before the discovered attack it opens", () => {
+  expect(
+    explainAllowedLine({
+      fen: "2kr3r/1pp2pp1/p1nbqn2/3p3p/3N4/1P2P1P1/PBP2PBP/R2QK2R b KQ - 0 13",
+      line: ["d6e5", "d4e6", "e5b2", "e6d8", "b2c3", "e1f1"],
+    })?.text,
+  ).toBe(
+    "After Be5, White plays Nxe6, taking your queen on e6. " +
+      "Moving the knight off d4 opens the line for the white bishop on b2, which now attacks your bishop on e5. " +
+      "After you reply Bxb2, Nxd8 takes your rook on d8. " +
+      "White ends up 11 points of material ahead.",
+  );
+});
+
+test("says when the reply takes a piece that had no defender", () => {
+  expect(
+    explainAllowedLine({
+      fen: "2N1kb1r/1p1n1ppp/3Bpn2/3p4/6b1/5N2/qPP1Q1PP/2KR1B1R b k - 1 13",
+      line: ["f8d6", "c8d6", "e8e7"],
+    })?.text,
+  ).toMatch(
+    /^After Bxd6, White plays Nxd6\+, taking your bishop on d6, which had no defender\. White /,
+  );
+});
+
+test("stays silent when the reply wins material without a tactic to name", () => {
+  expect(
+    explainAllowedLine({
+      fen: "r1b2rk1/pp2bppp/1q2p3/4N3/1n1Pp3/1P2B2P/P4PP1/RN1QR1K1 b - - 1 15",
+      line: ["e7d6", "b1d2", "f7f5", "d2c4", "b6a6", "c4d6", "a6d6", "e3c1"],
+    }),
+  ).toBeUndefined();
 });

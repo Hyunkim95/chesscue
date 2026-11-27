@@ -261,3 +261,62 @@ it("adds no payoff to a mate or a line that wins nothing", () => {
     payoffFrame(start, lineStoryboard(start, ["g1f3", "d7d5"])),
   ).toBeUndefined();
 });
+
+// Lichess 71JEGeuZ: after Kd8, Qxb7 hits the loose rook and knight at once.
+it("names and draws a fork in Rook's reply", () => {
+  const [, reply] = lineStoryboard(
+    "r5nr/pppkbpp1/n2p1q1p/1Q1Pp3/4P3/2N2N2/PPP2PPP/R1B1K2R b KQ - 3 10",
+    ["d7d8", "b5b7", "a8b8"],
+  );
+  expect(reply?.by).toBe("rook");
+  expect(reply?.moveUci).toBe("b5b7");
+  expect(reply?.caption).toBe(
+    "I take your pawn with Qxb7 and attack your rook on a8 and your knight on a6 at once.",
+  );
+  expect(reply?.arrows).toEqual([
+    { from: "b5", to: "b7", kind: "reply" },
+    { from: "b7", to: "a8", kind: "attack" },
+    { from: "b7", to: "a6", kind: "attack" },
+  ]);
+  expect(reply?.outlines.map(({ square }) => square)).toEqual([
+    "b7",
+    "a8",
+    "a6",
+  ]);
+});
+
+// Lichess zkd3x5b1: after Nc3, d4 uncovers the bishop on e6 onto the queen.
+it("names and draws the line Rook's reply uncovers", () => {
+  const [, reply] = lineStoryboard(
+    "2r3k1/p4ppp/1p2bn2/q2p4/8/1Q2P1B1/PP3PPP/1N3RK1 w - - 2 21",
+    ["b1c3", "d5d4", "b3a4"],
+  );
+  expect(reply?.caption).toBe(
+    "I answer d4, opening my bishop on e6 onto your queen on b3.",
+  );
+  expect(reply?.arrows).toEqual([
+    { from: "d5", to: "d4", kind: "reply" },
+    { from: "e6", to: "b3", kind: "attack" },
+  ]);
+  expect(reply?.outlines).toEqual([{ square: "b3", tone: "coral" }]);
+});
+
+// Every claim in a caption is drawn: a capture outlines the piece taken, and
+// a move forced by check shows the check.
+it("draws the piece Rook takes and the check that forces his move", () => {
+  const [, take] = lineStoryboard(KNIGHT_FORK, ["f5h6", "g7h6"]);
+  expect(take?.caption).toBe("I take your knight with gxh6.");
+  expect(take?.outlines).toEqual([{ square: "h6", tone: "coral" }]);
+
+  // Nf7+ leaves the king on h8 one move.
+  const [, forced] = lineStoryboard("7k/6pp/8/6N1/8/8/8/6K1 w - - 0 1", [
+    "g5f7",
+    "h8g8",
+  ]);
+  expect(forced?.caption).toBe("I have to play Kg8.");
+  expect(forced?.outlines).toEqual([{ square: "h8", tone: "coral" }]);
+  expect(forced?.arrows).toEqual([
+    { from: "h8", to: "g8", kind: "reply" },
+    { from: "f7", to: "h8", kind: "attack" },
+  ]);
+});
