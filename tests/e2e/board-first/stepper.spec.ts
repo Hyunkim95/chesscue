@@ -62,18 +62,43 @@ test("a player steps through the answer, branches with their own move and asks a
   await expect(stepper).toContainText("2 / 3");
   await expect(bubble).toHaveText("I have to play Kh8.");
 
-  // A typed question on a frame, offline with no on-device model: Rook says
-  // so and the board stays on the frame. Routing and the answer on the frame
-  // are covered by MomentScreen.test.tsx, since no model runs here.
+  // A typed "why" about a move in the line is answered by code, offline
+  // too, and the board stays on the frame.
   await context.setOffline(true);
   const ask = page.getByRole("textbox", { name: "Ask Rook" });
   await ask.fill("why Kh8?");
   await ask.press("Enter");
-  await expect(bubble).toHaveText("I didn't catch that. Tap a chip instead.", {
-    timeout: 20_000,
-  });
+  await expect(bubble).toHaveText("Kh8 is my only legal move.");
   await expect(stepper).toContainText("2 / 3");
   await expect(square(page, "Black king on h8")).toBeVisible();
   await next.click();
   await expect(bubble).toHaveText("Qg7# is checkmate.");
+});
+
+test("a question in words is answered on the step without moving the board", async ({
+  page,
+}) => {
+  await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  const bubble = page.locator(".rook-bubble__text");
+  const stepper = page.getByRole("group", { name: "Step through the line" });
+  await page.getByRole("button", { name: "Show me" }).click();
+  await page.getByRole("button", { name: "Next step" }).click();
+  await page.getByRole("button", { name: "Next step" }).click();
+  await expect(stepper).toContainText("3 / 3");
+  const queen = square(page, "White queen on g7");
+  await expect(queen).toBeVisible();
+
+  const ask = page.getByRole("textbox", { name: "Ask Rook" });
+  await ask.fill("why would queen take");
+  await ask.press("Enter");
+  await expect(bubble).toContainText("Qxg5+ takes my pawn");
+  await expect(stepper).toContainText("3 / 3");
+  await expect(queen).toBeVisible();
+  await expect(page.getByText("Something else")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Show it on the board" }),
+  ).toBeVisible();
 });

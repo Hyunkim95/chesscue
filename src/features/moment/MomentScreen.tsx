@@ -29,7 +29,10 @@ import {
   type StoryFrame,
 } from "../../domain/analysis/line-storyboard";
 import { scanHint } from "../../domain/analysis/forcing-moves";
-import { mentionedMove } from "../../domain/game/exploration-intent";
+import {
+  describedMoves,
+  mentionedMove,
+} from "../../domain/game/exploration-intent";
 import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
 import { chipsFor, type SanMove } from "../../domain/session/chips";
@@ -207,6 +210,20 @@ function storyMoves(story: Story): (SanMove & { readonly index: number })[] {
   });
 }
 
+// What Rook can answer, said when a question does not reach a move.
+const ANSWERABLE =
+  "I can explain a move. Name it, like “why Qxg5?”, or describe it, like “why would the queen take?”";
+
+function legalMoves(fen: string): SanMove[] {
+  try {
+    return new Chess(fen)
+      .moves({ verbose: true })
+      .map(({ lan, san }) => ({ uci: lan, san }));
+  } catch {
+    return [];
+  }
+}
+
 // Questions whose answer would change the position on screen. Typed, they
 // are answered in place and offered as a button.
 function movesBoard(action: RoutedAction): boolean {
@@ -295,6 +312,11 @@ export function MomentScreen({
   >(new Map());
   const [confirm, setConfirm] = useState<
     Extract<QuestionOutcome, { kind: "confirm" }> | undefined
+  >();
+  // Moves to choose from when a question describes more than one.
+  const [choices, setChoices] = useState<
+    | readonly { readonly label: string; readonly action: RoutedAction }[]
+    | undefined
   >();
   const [sheet, setSheet] = useState<"celebrate" | "missed" | undefined>();
   // Created in the effect so StrictMode's mount, unmount and remount leaves a
@@ -758,6 +780,7 @@ export function MomentScreen({
 
   function act(action: RoutedAction, understood?: string) {
     setConfirm(undefined);
+    setChoices(undefined);
     const fen = view.fen;
     const key = `ask:${action.kind}${"uci" in action ? `:${action.uci}` : ""}`;
     if (action.kind !== "done" && action.kind !== "something-else")
@@ -903,6 +926,7 @@ export function MomentScreen({
   // would move the board is offered as a button instead of done.
   function answerInPlace(action: RoutedAction, understood: string) {
     const offer = (label: string, text: string) => {
+      setChoices(undefined);
       setConfirm({ kind: "confirm", action, label, understood });
       setSay({ text, mood: "idle", understood });
     };
@@ -940,15 +964,50 @@ export function MomentScreen({
   }
 
   async function ask(text: string) {
-    setBusy(true);
-    setSay({ text: "Let me think…", mood: "think" });
-    // On a frame, a question is about the position shown; a move it names
-    // from the line, or else the frame's own move, is the one it asks about.
+    // On a frame, a question is about the position shown. The move it is
+    // about comes from code, never the model: one it names from the line,
+    // one it describes in words ("why would the queen take") from the line
+    // or the board, or else the frame's own move.
     const frame = story?.frames[story.step];
     const played = story ? storyMoves(story) : [];
+    const named = mentionedMove(text, played);
+    const inLine = named ? [] : describedMoves(text, played);
+    const candidates = named
+      ? [named]
+      : inLine.length > 0
+        ? inLine
+        : describedMoves(text, legalMoves(view.fen));
+    const resolved =
+      candidates.find((move) => move.uci === frame?.moveUci) ??
+      (candidates.length === 1 ? candidates[0] : undefined);
+    if (/^\s*why\b/i.test(text)) {
+      if (resolved) {
+        answerInPlace(
+          { kind: "why", uci: resolved.uci },
+          `Rook understood · why · ${resolved.san}`,
+        );
+        return;
+      }
+      if (candidates.length > 1) {
+        const options = candidates.slice(0, 3);
+        setConfirm(undefined);
+        setChoices(
+          options.map((move) => ({
+            label: `Why ${move.san}?`,
+            action: { kind: "why", uci: move.uci } as const,
+          })),
+        );
+        setSay({
+          text: `Which move: ${options.map(({ san }) => san).join(" or ")}?`,
+          mood: "hmm",
+        });
+        return;
+      }
+    }
+    setBusy(true);
+    setSay({ text: "Let me think…", mood: "think" });
     const boardMove =
-      mentionedMove(text, played) ??
-      played.find((move) => move.uci === frame?.moveUci);
+      resolved ?? played.find((move) => move.uci === frame?.moveUci);
     const outcome = await askRook(
       {
         text,
@@ -968,6 +1027,10 @@ export function MomentScreen({
         act(outcome.action, outcome.understood);
         return;
       case "confirm":
+        if (outcome.action.kind === "something-else") {
+          setSay({ text: ANSWERABLE, mood: "hmm" });
+          return;
+        }
         setConfirm(outcome);
         setSay({
           text: `Did you mean: ${outcome.label}`,
@@ -983,10 +1046,7 @@ export function MomentScreen({
         });
         return;
       case "unrouted":
-        setSay({
-          text: "I didn't catch that. Tap a chip instead.",
-          mood: "hmm",
-        });
+        setSay({ text: ANSWERABLE, mood: "hmm" });
     }
   }
 
@@ -1200,25 +1260,34 @@ export function MomentScreen({
             ))}
           </ul>
         )}
-        {confirm ? (
+        {confirm || choices ? (
           <div className="ui-chip-row" role="group" aria-label="Did you mean">
-            <button
-              type="button"
-              className="ui-chip ui-chip--primary"
-              onClick={() => {
-                act(confirm.action, confirm.understood);
-              }}
-            >
-              {confirm.label}
-            </button>
+            {(confirm
+              ? [{ label: confirm.label, action: confirm.action }]
+              : (choices ?? [])
+            ).map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                className="ui-chip ui-chip--primary"
+                onClick={() => {
+                  setChoices(undefined);
+                  act(option.action, confirm?.understood);
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
             <button
               type="button"
               className="ui-chip"
               onClick={() => {
-                act({ kind: "something-else" });
+                setConfirm(undefined);
+                setChoices(undefined);
+                setSay({ text: ANSWERABLE, mood: "idle" });
               }}
             >
-              Something else
+              Never mind
             </button>
           </div>
         ) : (

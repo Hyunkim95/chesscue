@@ -285,7 +285,7 @@ it("asks why not the player's try and shows what it costs without the answer", a
   expect(document.querySelector("[data-move-cue-arrow='f3:g5']")).toBeNull();
 });
 
-it("answers a typed question about a move in the line on the frame it was played", async () => {
+it("answers a typed why about a move in the line by code, staying on the frame", async () => {
   const asked: { fen: string; boardMoveSan?: string | undefined }[] = [];
   renderFork((question) => {
     asked.push(question);
@@ -309,14 +309,15 @@ it("answers a typed question about a move in the line on the frame it was played
   const form = input.closest("form");
   if (!form) throw new Error("The ask bar has no form");
   fireEvent.submit(form);
-  // Offline, Rook confirms before acting.
-  fireEvent.click(await screen.findByRole("button", { name: "Why Kf6?" }));
-  expect(asked[0]?.boardMoveSan).toBe("Kf6");
-  expect(asked[0]?.fen).toMatch(/^2r5\/8\/4Nk2/);
-  expect(bubble()).toHaveTextContent("Kf6 gets my king out of check.");
+  // A "why" naming a move in the line is answered by code on that move,
+  // without the router and without leaving the frame.
+  expect(
+    await screen.findByText("Kf6 gets my king out of check."),
+  ).toBeVisible();
+  expect(asked).toEqual([]);
   expect(
     screen.getByRole("group", { name: "Step through the line" }),
-  ).toHaveTextContent("2 / 4");
+  ).toHaveTextContent("3 / 4");
 });
 
 it("answers a typed question in place and only moves the board when asked", async () => {
@@ -343,7 +344,9 @@ it("answers a typed question in place and only moves the board when asked", asyn
     .map((cell) => cell.getAttribute("aria-label"));
 
   const input = screen.getByRole("textbox", { name: "Ask Rook" });
-  fireEvent.change(input, { target: { value: "why would the knight take" } });
+  fireEvent.change(input, {
+    target: { value: "explain the knight capture" },
+  });
   const form = input.closest("form");
   if (!form) throw new Error("The ask bar has no form");
   fireEvent.submit(form);

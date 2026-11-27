@@ -58,6 +58,43 @@ export function mentionedMove<T extends { readonly san: string }>(
   return undefined;
 }
 
+const PIECE_WORDS: readonly (readonly [RegExp, string])[] = [
+  [/\bkings?\b/, "K"],
+  [/\bqueens?\b/, "Q"],
+  [/\brooks?\b/, "R"],
+  [/\bbishops?\b/, "B"],
+  [/\b(?:knights?|horses?)\b/, "N"],
+  [/\bpawns?\b/, "P"],
+];
+const CAPTURE_WORDS =
+  /\b(?:take|takes|taking|took|capture|captures|capturing|captured|grab|grabs|eat|eats)\b/;
+
+// Moves described in words, such as "why would the queen take" or "knight to
+// f5": the given moves that match the piece named, a capture or check, and
+// any square named. Empty when the words describe no move.
+export function describedMoves<T extends { readonly san: string }>(
+  text: string,
+  moves: readonly T[],
+): T[] {
+  const lower = text.toLowerCase();
+  const piece = PIECE_WORDS.find(([words]) => words.test(lower))?.[1];
+  const capture = CAPTURE_WORDS.test(lower);
+  const check = /\bcheck/.test(lower);
+  const squares = lower.match(/\b[a-h][1-8]\b/g) ?? [];
+  if (!piece && !capture && !check && squares.length === 0) return [];
+  return moves.filter(({ san }) => {
+    const lead = san.startsWith("O-O")
+      ? "K"
+      : (/^[KQRBN]/.exec(san)?.[0] ?? "P");
+    if (piece && lead !== piece) return false;
+    if (capture && !san.includes("x")) return false;
+    if (check && !/[+#]/.test(san)) return false;
+    return (
+      squares.length === 0 || squares.some((square) => san.includes(square))
+    );
+  });
+}
+
 export function routeExploration(input: {
   readonly intent: ExplorationIntent;
   readonly text: string;
