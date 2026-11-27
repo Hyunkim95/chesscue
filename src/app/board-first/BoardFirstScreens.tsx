@@ -104,6 +104,16 @@ function questionRouters() {
   return routers;
 }
 
+function analyzePosition(fen: string, multiPv: number, signal: AbortSignal) {
+  return engine.analyze({
+    fen,
+    multiPv,
+    depth: 14,
+    timeBudgetMs: 2_000,
+    signal,
+  });
+}
+
 async function puzzleMoment(
   puzzle: FollowUpPuzzle,
   sourceLabel: string,
@@ -339,6 +349,7 @@ export function BoardFirstScreens({
             checkMove={(uci, signal) =>
               checkTry({ position: moment, uci, engine, signal })
             }
+            analyzePosition={analyzePosition}
             askRook={async (question, signal) => {
               const available = await questionRouters();
               return routeQuestion({

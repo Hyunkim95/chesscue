@@ -59,6 +59,11 @@ test("a new player finds the warm-up idea on a retry and sees it recapped", asyn
   await expect(page.getByRole("button", { name: "Done ✓" })).toBeVisible({
     timeout: 30_000,
   });
+  // Kh8 is Rook's only legal reply, so there is no other defence to ask about.
+  await expect(
+    page.getByRole("button", { name: /What if you'd played/ }),
+  ).toHaveCount(0);
+
   // Show, don't tell: the reason plays on the board, frame by frame.
   await page.getByRole("button", { name: "Why does it work?" }).click();
   await expect(bubble).toContainText("Qxg5+");

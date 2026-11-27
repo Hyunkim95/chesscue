@@ -15,7 +15,7 @@ export interface ChipContext {
   readonly reply?: SanMove | undefined;
   // Stockfish's best move that is not the solution, for "What if …?".
   readonly bestNonSolution?: SanMove | undefined;
-  // Rook's best defence against the solution.
+  // Rook's best defence other than his main-line reply; none when forced.
   readonly bestDefence?: SanMove | undefined;
   readonly quiet: boolean;
   readonly online: boolean;

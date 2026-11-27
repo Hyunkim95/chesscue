@@ -1,4 +1,4 @@
-import { Chess, type Move, type Square } from "chess.js";
+import { Chess, type Color, type Move, type Square } from "chess.js";
 
 import type { BoardArrow } from "./board-move-cues";
 import { PIECE_VALUE, attackedBy, opponent } from "./board-relations";
@@ -110,9 +110,12 @@ function rookFrame(after: Chess, move: Move, forced: boolean): StoryFrame {
   };
 }
 
+// The learner moves first unless `learner` says otherwise, as in "What if
+// you'd played …?", where the line starts with Rook's move.
 export function lineStoryboard(
   fen: string,
   line: readonly string[],
+  learner?: Color,
 ): readonly StoryFrame[] {
   const frames: StoryFrame[] = [];
   let board: Chess;
@@ -121,8 +124,10 @@ export function lineStoryboard(
   } catch {
     return [];
   }
-  const learner = board.turn();
-  for (const uci of line.slice(0, STORY_LEARNER_MOVES * 2 - 1)) {
+  const learnerColor = learner ?? board.turn();
+  const plies =
+    STORY_LEARNER_MOVES * 2 - (board.turn() === learnerColor ? 1 : 0);
+  for (const uci of line.slice(0, plies)) {
     if (board.isGameOver()) break;
     const forced = board.moves().length === 1;
     let move: Move;
@@ -136,7 +141,7 @@ export function lineStoryboard(
       break;
     }
     frames.push(
-      move.color === learner
+      move.color === learnerColor
         ? learnerFrame(board, move)
         : rookFrame(board, move, forced),
     );

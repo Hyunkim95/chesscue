@@ -10,6 +10,10 @@ import type {
   QuestionOutcome,
   RoutedAction,
 } from "../../application/route-question/route-question";
+import type {
+  AnalysisEngineFailure,
+  PositionAnalysis,
+} from "../../application/analyze-game/analysis-engine";
 import type { BoardArrow } from "../../domain/analysis/board-move-cues";
 import {
   lineStoryboard,
@@ -137,6 +141,7 @@ export function MomentScreen({
   moment,
   online,
   checkMove,
+  analyzePosition,
   askRook,
   onComplete,
   onContinue,
@@ -147,6 +152,12 @@ export function MomentScreen({
     uci: string,
     signal: AbortSignal,
   ) => Promise<Result<CheckedTry, CheckFailure>>;
+  // Stockfish's top lines for a position, used to find Rook's other defences.
+  readonly analyzePosition: (
+    fen: string,
+    multiPv: number,
+    signal: AbortSignal,
+  ) => Promise<Result<PositionAnalysis, AnalysisEngineFailure>>;
   readonly askRook: (
     question: { text: string; fen: string; boardMoveUci?: string | undefined },
     signal: AbortSignal,
@@ -191,6 +202,39 @@ export function MomentScreen({
       : session.state.attempts;
   const result = sessionResult(session);
   const storyboard = lineStoryboard(moment.fen, moment.solutionLine);
+  const afterSolution = (() => {
+    try {
+      return new Chess(moment.fen).move(uciMove(moment.bestUci)).after;
+    } catch {
+      return undefined;
+    }
+  })();
+  const learnerColor = moment.fen.split(" ")[1] === "b" ? "b" : "w";
+
+  // Once solved, find Rook's best defence other than his main-line reply, for
+  // "What if you'd played …?". A forced reply has no alternative.
+  const [defence, setDefence] = useState<
+    (SanMove & { readonly line: readonly string[] }) | undefined
+  >();
+  const solved = kind === "solved";
+  useEffect(() => {
+    if (!solved || afterSolution === undefined) return;
+    if (new Chess(afterSolution).moves().length < 2) return;
+    const signal = controller.current.signal;
+    void analyzePosition(afterSolution, 2, signal).then((analysis) => {
+      if (!analysis.ok || signal.aborted) return;
+      const other = analysis.value.candidates.find(
+        ({ uci }) => uci !== moment.solutionLine[1],
+      );
+      const san = other ? sanFor(afterSolution, other.uci) : undefined;
+      if (other && san)
+        setDefence({
+          uci: other.uci,
+          san,
+          line: [other.uci, ...other.principalVariation.slice(1)],
+        });
+    });
+  }, [solved, afterSolution, analyzePosition, moment.solutionLine]);
   const bestSan = sanFor(moment.fen, moment.bestUci) ?? moment.bestUci;
 
   function send(...events: SessionEvent[]) {
@@ -289,7 +333,10 @@ export function MomentScreen({
     setBusy(false);
     if (!checked.ok) {
       setSay({
-        text: "I couldn't check that move just now.",
+        text:
+          checked.error.code === "illegal"
+            ? "That move isn't possible from the start. Tap ↺ Reset and play it on the board."
+            : "I couldn't check that move just now.",
         mood: "hmm",
         understood,
       });
@@ -451,6 +498,14 @@ export function MomentScreen({
         void preview(action.uci, understood);
         return;
       case "what-if":
+        if (action.uci === defence?.uci && afterSolution) {
+          playStoryboard(
+            lineStoryboard(afterSolution, defence.line, learnerColor),
+            "idle",
+            understood,
+          );
+          return;
+        }
         void preview(action.uci, understood);
         return;
       case "show-line":
@@ -535,17 +590,7 @@ export function MomentScreen({
         playedInGame: moment.playedInGame,
         reply,
         bestNonSolution: moment.bestNonSolution,
-        bestDefence:
-          moment.solutionLine[1] === undefined
-            ? undefined
-            : {
-                uci: moment.solutionLine[1],
-                san:
-                  sanFor(
-                    new Chess(moment.fen).move(uciMove(moment.bestUci)).after,
-                    moment.solutionLine[1],
-                  ) ?? moment.solutionLine[1],
-              },
+        bestDefence: defence,
         quiet: false,
         online,
       });

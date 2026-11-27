@@ -31,3 +31,17 @@ it("stops at an illegal move and refuses a bad position", () => {
   ).toHaveLength(1);
   expect(lineStoryboard("not a fen", ["e2e4"])).toEqual([]);
 });
+
+it("starts with Rook's move when the line is a what-if for his defence", () => {
+  // After 1. Ng5+ in the fork position, Rook tries Kf6 instead of Kg8.
+  const frames = lineStoryboard(
+    "2r5/5k2/4q3/1rBp2N1/p2P1p2/PpR3Pp/1P2KP1P/2R5 b - - 0 35",
+    ["f7f6", "g5e6", "f6e6"],
+    "w",
+  );
+  expect(frames.map(({ by }) => by)).toEqual(["rook", "learner", "rook"]);
+  expect(frames[0]?.caption).toBe("I answer Kf6+.");
+  expect(frames[1]?.caption).toBe(
+    "Nxe6 takes my queen and attacks my pawn on f4, which nothing defends.",
+  );
+});
