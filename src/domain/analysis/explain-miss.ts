@@ -19,8 +19,8 @@ import { isMateScore } from "./classify-experiment";
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/3";
-export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/1";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/4";
+export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/2";
 
 type FactKind =
   | "mate"
@@ -49,6 +49,8 @@ export interface MissedLineExplanation {
 // explanation reads five, so the shorter and less noisy reading wins when both
 // apply.
 const SHORT_LINE = 3;
+// Plies without a capture or promotion after which the material is settled.
+const STABLE_PLIES = 4;
 const LONG_LINE = 5;
 const SETUP: readonly FactKind[] = [
   "mate",
@@ -366,35 +368,60 @@ interface LineReading {
 }
 
 // Replays `learnerMoves` moves of the side that starts the line and states
-// what it wins. The viewer's pieces are named "your".
+// what it wins. The viewer's pieces are named "your". The material is counted
+// from `countFrom`, the line's start unless given.
 function readLine(
   fen: string,
   line: readonly string[],
   learnerMoves: number,
   viewer?: Color,
+  countFrom?: Chess,
 ): LineReading | undefined {
-  let board: Chess;
-  const moves: Move[] = [];
-  const boards: Chess[] = [];
+  const plies = learnerMoves * 2 - 1;
+  const played: Move[] = [];
   try {
-    board = new Chess(fen);
-    boards.push(new Chess(board.fen()));
-    for (const uci of line.slice(0, learnerMoves * 2 - 1)) {
-      if (board.isGameOver()) break;
-      moves.push(board.move(uci));
-      boards.push(new Chess(board.fen()));
+    const replay = new Chess(fen);
+    for (const uci of line) {
+      if (replay.isGameOver()) break;
+      played.push(replay.move(uci));
     }
   } catch {
-    return undefined;
+    // The line ends at its first illegal move.
+    if (played.length < Math.min(plies, line.length)) return undefined;
+  }
+  // The count is stated only where the material settles: the reading goes on
+  // until the line makes no capture or promotion for STABLE_PLIES plies, so
+  // a take-back after an in-between check is counted too.
+  let end = Math.min(plies, played.length);
+  for (
+    let index = end;
+    index < played.length && index < end + STABLE_PLIES;
+    index += 1
+  ) {
+    const move = played[index];
+    if (move?.captured !== undefined || move?.promotion !== undefined)
+      end = index + 1;
+  }
+  const moves = played.slice(0, end);
+  const board = new Chess(fen);
+  const boards: Chess[] = [new Chess(fen)];
+  for (const move of moves) {
+    board.move(move.lan);
+    boards.push(new Chess(board.fen()));
   }
   const [firstMove] = moves;
   const start = boards[0];
   if (!firstMove || !start) return undefined;
   const us = firstMove.color;
-  const { gain, balance, mated } = lineOutcome(start, board, us);
-  // Only a line whose payoff is inside the replayed moves is explained here.
-  // Longer combinations keep the move-consequence plan.
-  if (!mated && gain < 2) return undefined;
+  const { gain, balance, mated } = lineOutcome(countFrom ?? start, board, us);
+  // Only a line whose payoff is inside the usual reach is explained here, and
+  // only if it still holds once the material settles. Longer combinations
+  // keep the move-consequence plan.
+  const withinReach = boards[Math.min(plies, moves.length)];
+  const reached =
+    withinReach && lineOutcome(countFrom ?? start, withinReach, us);
+  if (!mated && (gain < 2 || !reached || (!reached.mated && reached.gain < 2)))
+    return undefined;
 
   const facts: Fact[] = [];
   moves.forEach((move, index) => {
@@ -438,9 +465,9 @@ function readLine(
   // Name every move between the last fact shown and the next, so no move in
   // the line is skipped silently.
   let shownPly = setup ? 0 : -1;
-  const lead = (fact: Fact) => {
-    const between = moves.slice(shownPly + 1, fact.ply);
-    shownPly = fact.ply;
+  const lead = ({ ply }: { readonly ply: number }) => {
+    const between = moves.slice(shownPly + 1, ply);
+    shownPly = ply;
     const [only] = between;
     if (between.length === 1 && only)
       return only.color === viewer
@@ -457,7 +484,10 @@ function readLine(
         ? payoff.text
         : lead(payoff) + lower(payoff.text),
     );
-  if (!mated) rest.push(materialText(SIDE[us], gain, balance));
+  // Moves read past the usual end, until the material settles, are named
+  // before the count they set.
+  const settled = moves.length > plies ? lead({ ply: moves.length }) : "";
+  if (!mated) rest.push(settled + materialText(SIDE[us], gain, balance));
   return { firstMove, setup, bridge, rest };
 }
 
@@ -503,9 +533,12 @@ export function explainAllowedLine(input: {
     return undefined;
   }
   const viewer = played.color;
+  // Counted from before the player's move, so a piece it took first is not
+  // counted as the opponent's gain.
+  const before = new Chess(input.fen);
   const reading =
-    allowedReading(after.fen(), reply, SHORT_LINE, viewer) ??
-    allowedReading(after.fen(), reply, LONG_LINE, viewer);
+    allowedReading(after.fen(), reply, SHORT_LINE, viewer, before) ??
+    allowedReading(after.fen(), reply, LONG_LINE, viewer, before);
   if (!reading?.setup) return undefined;
   const { firstMove, setup, rest } = reading;
   return { text: [replySentence(played, firstMove, setup), ...rest].join(" ") };
@@ -545,8 +578,9 @@ function allowedReading(
   line: readonly string[],
   learnerMoves: number,
   viewer: Color,
+  countFrom: Chess,
 ): LineReading | undefined {
-  const reading = readLine(fen, line, learnerMoves, viewer);
+  const reading = readLine(fen, line, learnerMoves, viewer, countFrom);
   if (!reading) return undefined;
   const telling =
     (reading.setup !== undefined && TELLING.has(reading.setup.kind)) ||

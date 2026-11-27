@@ -450,7 +450,7 @@ test("explains a missed knight fork from the checked line, offline", async () =>
     );
     await expect(explanation).toHaveAttribute(
       "data-wording-version",
-      "missed-line-facts/3",
+      "missed-line-facts/4",
     );
     for (const width of [320, 420]) {
       await page.setViewportSize({ width, height: 760 });

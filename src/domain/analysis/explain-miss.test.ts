@@ -12,7 +12,7 @@ test("explains a missed knight fork and what it wins", () => {
   expect(explanation?.text).toBe(
     "Nxg5+ attacks the black king on f7 and the black queen on e6 at the same time. " +
       "After Black replies Kf6, Nxe6 takes the black queen on e6. " +
-      "White wins 10 points of material and ends up 8 points ahead. " +
+      "After fxg3 fxg3 Kxe6, White wins 7 points of material and ends up 5 points ahead. " +
       "You played gxf4 instead, which Stockfish rates 7.8 pawns worse.",
   );
 });
@@ -147,15 +147,27 @@ test("names the capture before the discovered attack it opens", () => {
   );
 });
 
+// Lichess CmFQb10N: g6 leaves the queen on d7 to the rook on d1.
 test("says when the reply takes a piece that had no defender", () => {
+  expect(
+    explainAllowedLine({
+      fen: "r4rk1/pp1q1ppn/2p1p3/4P2p/1P6/P1N3PP/2P1QP2/3R1RK1 b - - 0 20",
+      line: ["g7g6", "d1d7", "a7a5", "c3e4", "a5b4", "a3b4", "b7b6", "f1d1"],
+    })?.text,
+  ).toMatch(
+    /^After g6, White plays Rxd7, taking your queen on d7, which had no defender\. /,
+  );
+});
+
+// Bxd6 takes a bishop and Nxd6+ only takes one back: the move cost nothing
+// within the line, so there is no material lesson to state.
+test("counts what the player's own move took before the reply", () => {
   expect(
     explainAllowedLine({
       fen: "2N1kb1r/1p1n1ppp/3Bpn2/3p4/6b1/5N2/qPP1Q1PP/2KR1B1R b k - 1 13",
       line: ["f8d6", "c8d6", "e8e7"],
-    })?.text,
-  ).toMatch(
-    /^After Bxd6, White plays Nxd6\+, taking your bishop on d6, which had no defender\. White /,
-  );
+    }),
+  ).toBeUndefined();
 });
 
 test("stays silent when the reply wins material without a tactic to name", () => {
