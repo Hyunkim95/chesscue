@@ -64,11 +64,13 @@ test("a new player finds the warm-up idea on a retry and sees it recapped", asyn
     page.getByRole("button", { name: /What if you'd played/ }),
   ).toHaveCount(0);
 
-  // Show, don't tell: the reason plays on the board, frame by frame.
+  // Show, don't tell: the player steps through the reason on the board.
   await page.getByRole("button", { name: "Why does it work?" }).click();
   await expect(bubble).toContainText("Qxg5+");
   await expect(page.locator("[data-move-cue-arrow='g5:d2']")).toHaveCount(1);
-  await expect(bubble).toHaveText("Qg7# is checkmate.", { timeout: 10_000 });
+  await page.getByRole("button", { name: "Next step" }).click();
+  await page.getByRole("button", { name: "Next step" }).click();
+  await expect(bubble).toHaveText("Qg7# is checkmate.");
   await page.getByRole("button", { name: "↺ Reset" }).click();
   await expect(square(page, "White queen on g4")).toBeVisible();
 
@@ -247,9 +249,11 @@ test("after a missed warm-up, Today offers an honest practice puzzle whose line 
     page.getByRole("heading", { name: /White to move/ }),
   ).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Show me" }).click();
+  // The payoff is the line's last step.
+  const next = page.getByRole("button", { name: "Next step" });
+  while (await next.isEnabled()) await next.click();
   await expect(page.locator(".rook-bubble").first()).toContainText(
     "You've won",
-    { timeout: 20_000 },
   );
   // The squares where material was won are outlined.
   await expect(

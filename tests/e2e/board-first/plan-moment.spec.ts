@@ -220,8 +220,7 @@ for (const width of [360, 1280]) {
     await page.screenshot({
       path: `test-results/plan-moment-story-${String(width)}.png`,
     });
-    await expect(bubble).toHaveText("I take your pawn with exd5.", {
-      timeout: 10_000,
-    });
+    await page.getByRole("button", { name: "Next step" }).click();
+    await expect(bubble).toHaveText("I take your pawn with exd5.");
   });
 }

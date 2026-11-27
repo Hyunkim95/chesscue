@@ -125,11 +125,13 @@ export function checksAnswer(fen: string): BoardAnswer {
   };
 }
 
-// "Why {Rook's reply}?": what the reply does, from the board only.
-export function replyReason(fen: string, uci: string): string {
+// What one of Rook's moves does that the board shows plainly: a mate, a
+// capture, a check or an escape from check. Undefined for a quiet move.
+export function rookMoveReason(fen: string, uci: string): string | undefined {
   try {
     const board = new Chess(fen);
     const wasInCheck = board.inCheck();
+    const forced = board.moves().length === 1;
     const move = board.move({
       from: uci.slice(0, 2),
       to: uci.slice(2, 4),
@@ -138,10 +140,34 @@ export function replyReason(fen: string, uci: string): string {
     if (move.san.includes("#")) return `${move.san} is checkmate.`;
     if (move.captured)
       return `${move.san} takes your ${NAME[move.captured]} on ${move.to}.`;
+    if (forced) return `${move.san} is my only legal move.`;
     if (wasInCheck) return `${move.san} gets my king out of check.`;
     if (move.san.includes("+")) return `${move.san} gives check.`;
-    return `Stockfish rates ${move.san} as my best answer.`;
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// "Why {Rook's reply}?": what the reply does, from the board only.
+export function replyReason(fen: string, uci: string): string {
+  const reason = rookMoveReason(fen, uci);
+  if (reason) return reason;
+  try {
+    const san = new Chess(fen).move({
+      from: uci.slice(0, 2),
+      to: uci.slice(2, 4),
+      ...(uci.length > 4 ? { promotion: uci.slice(4) } : {}),
+    }).san;
+    return `Stockfish rates ${san} as my best answer.`;
   } catch {
     return "Play it on the board and I'll show you.";
   }
 }
+
+// After a try whose cost the line shows only in Stockfish's evaluation.
+export const STANDING_AFTER = {
+  missed: "level",
+  worse: "better",
+  costly: "winning",
+} as const;

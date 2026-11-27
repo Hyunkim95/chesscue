@@ -50,6 +50,17 @@ for (const width of [320, 420]) {
       await expect(
         page.getByRole("textbox", { name: "Ask Rook" }),
       ).toBeVisible();
+      // The answer waits for the player to step through it.
+      const stepper = page.getByRole("group", {
+        name: "Step through the line",
+      });
+      await expect(stepper).toContainText("1 / 3");
+      await page.getByRole("button", { name: "Next step" }).click();
+      await expect(stepper).toContainText("2 / 3");
+      await noSideScroll(page);
+      await page.screenshot({
+        path: `test-results/extension-stepper-${String(width)}.png`,
+      });
       await page
         .getByRole("button", { name: "Done ✓" })
         .click({ timeout: 20_000 });

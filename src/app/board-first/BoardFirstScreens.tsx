@@ -443,6 +443,9 @@ export function BoardFirstScreens({
             checkMove={(uci, signal) =>
               checkTry({ position: active, uci, engine, signal })
             }
+            checkFrom={(position, uci, signal) =>
+              checkTry({ position, uci, engine, signal })
+            }
             analyzePosition={analyzePosition}
             askRook={async (question, signal) => {
               const available = await questionRouters();

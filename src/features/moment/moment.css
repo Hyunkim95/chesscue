@@ -28,6 +28,34 @@
   min-height: var(--ui-space-target);
 }
 
+/* ◀ k / N ▶ under Rook's caption: the line moves on only when the player
+   steps. */
+.moment__stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moment__stepper .ui-pill {
+  min-width: var(--ui-space-target);
+  padding: 0 12px;
+}
+
+.moment__stepper .ui-pill[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: 0 3px 0 var(--ui-color-shade);
+}
+
+.moment__step {
+  min-width: 52px;
+  font: 700 14px var(--ui-font-body);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ui-color-muted);
+}
+
 .moment__tries {
   display: flex;
   flex-wrap: wrap;

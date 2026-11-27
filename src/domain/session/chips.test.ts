@@ -41,6 +41,30 @@ describe("chipsFor", () => {
     expect(labels("done")).toEqual([]);
   });
 
+  it("asks why not the player's own try, within three questions", () => {
+    const tried: ChipContext = { ...FORK, tried: { uci: "c3c5", san: "Rxc5" } };
+    expect(labels("tried", tried)).toEqual([
+      "Why not Rxc5?",
+      "Why Kg8?",
+      "Your threats now?",
+    ]);
+    expect(labels("second-miss", tried)).toEqual([
+      "Scan for me",
+      "Why not Rxc5?",
+      "What if exf4?",
+    ]);
+    expect(labels("shown", tried)).toEqual([
+      "Why does it work?",
+      "What if you'd played Kg6?",
+      "Why not Rxc5?",
+      "Done ✓",
+    ]);
+    expect(chipsFor("tried", tried)[0]?.action).toEqual({
+      kind: "why",
+      uci: "c3c5",
+    });
+  });
+
   it("never names the best move before the position is solved", () => {
     const leaky: ChipContext = {
       ...FORK,

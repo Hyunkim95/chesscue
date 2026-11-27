@@ -50,9 +50,26 @@ function sanOf(fen: string, uci: string): string | undefined {
   }
 }
 
-export function routedLabel(action: RoutedAction, fen: string): string {
+export function routedLabel(
+  action: RoutedAction,
+  fen: string,
+  boardMove?: { readonly uci: string; readonly san: string },
+): string {
   return describe[action.kind](
-    "uci" in action ? sanOf(fen, action.uci) : undefined,
+    "uci" in action ? moveName(fen, action.uci, boardMove) : undefined,
+  );
+}
+
+// A move on the board that was already played, such as one in a line the
+// learner is stepping through, is not legal in the shown position, so its
+// name comes with it.
+function moveName(
+  fen: string,
+  uci: string,
+  boardMove: { readonly uci: string; readonly san: string } | undefined,
+): string | undefined {
+  return (
+    sanOf(fen, uci) ?? (boardMove?.uci === uci ? boardMove.san : undefined)
   );
 }
 
@@ -87,6 +104,7 @@ export async function routeQuestion({
   fen,
   learnerPlayed,
   boardMoveUci,
+  boardMoveSan,
   online,
   cloud,
   device,
@@ -96,6 +114,7 @@ export async function routeQuestion({
   readonly fen: string;
   readonly learnerPlayed?: string | undefined;
   readonly boardMoveUci?: string | undefined;
+  readonly boardMoveSan?: string | undefined;
   readonly online: boolean;
   readonly cloud: QuestionRouter | undefined;
   readonly device: QuestionRouter | undefined;
@@ -127,8 +146,12 @@ export async function routeQuestion({
       kind: "play-it-on-the-board",
       understood: `${model} understood · ${intent}`,
     };
-  const label = routedLabel(action, fen);
-  const understood = `${model} understood · ${intent}${"uci" in action ? ` · ${sanOf(fen, action.uci) ?? action.uci}` : ""}`;
+  const boardMove =
+    boardMoveUci === undefined || boardMoveSan === undefined
+      ? undefined
+      : { uci: boardMoveUci, san: boardMoveSan };
+  const label = routedLabel(action, fen, boardMove);
+  const understood = `${model} understood · ${intent}${"uci" in action ? ` · ${moveName(fen, action.uci, boardMove) ?? action.uci}` : ""}`;
   if (!confirm) return { kind: "act", action, understood };
   return { kind: "confirm", action, label, understood };
 }

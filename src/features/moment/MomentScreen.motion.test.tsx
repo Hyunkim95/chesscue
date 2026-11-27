@@ -45,6 +45,7 @@ it("plays the tapped move on the board before the engine answers, and takes it b
           answer = resolve;
         })
       }
+      checkFrom={() => new Promise(() => undefined)}
       analyzePosition={() => new Promise(() => undefined)}
       askRook={() => Promise.resolve({ kind: "unrouted" })}
       onComplete={() => undefined}

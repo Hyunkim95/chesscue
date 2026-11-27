@@ -17,6 +17,8 @@ export interface ChipContext {
   readonly bestNonSolution?: SanMove | undefined;
   // Rook's best defence other than his main-line reply; none when forced.
   readonly bestDefence?: SanMove | undefined;
+  // The player's latest not-best try, for "Why not {move}?".
+  readonly tried?: SanMove | undefined;
   readonly quiet: boolean;
   readonly online: boolean;
 }
@@ -61,8 +63,20 @@ export function playerHasCheck(fen: string): boolean {
   }
 }
 
+function whyNot(tried: SanMove | undefined): Chip[] {
+  return tried
+    ? [
+        {
+          id: `why-not:${tried.uci}`,
+          label: `Why not ${tried.san}?`,
+          action: { kind: "why", uci: tried.uci },
+        },
+      ]
+    : [];
+}
+
 function questions(kind: SessionKind, context: ChipContext): Chip[] {
-  const { reply, playedInGame, bestNonSolution, bestDefence } = context;
+  const { reply, playedInGame, bestNonSolution, bestDefence, tried } = context;
   switch (kind) {
     case "before":
       return [
@@ -96,6 +110,7 @@ function questions(kind: SessionKind, context: ChipContext): Chip[] {
       ];
     case "tried":
       return [
+        ...whyNot(tried),
         ...(reply
           ? [
               {
@@ -118,6 +133,7 @@ function questions(kind: SessionKind, context: ChipContext): Chip[] {
     case "second-miss":
       return [
         { id: "scan", label: "Scan for me", action: { kind: "scan" } },
+        ...whyNot(tried),
         ...(bestNonSolution
           ? [
               {
@@ -146,6 +162,7 @@ function questions(kind: SessionKind, context: ChipContext): Chip[] {
               } as const,
             ]
           : []),
+        ...whyNot(tried),
       ];
     case "done":
       return [];

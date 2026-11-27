@@ -60,6 +60,23 @@ it("takes the move from written notation, never from words", async () => {
   ).toMatchObject({ kind: "act", action: { kind: "what-if", uci: "c3b3" } });
 });
 
+it("names a move already played on the shown frame", async () => {
+  // Black's Kf6 was played to reach this frame, so it is not legal here.
+  expect(
+    await ask("why did you go there?", {
+      online: false,
+      device: router("Gemini Nano", "why"),
+      boardMoveUci: "f7f6",
+      boardMoveSan: "Kf6",
+    }),
+  ).toEqual({
+    kind: "confirm",
+    action: { kind: "why", uci: "f7f6" },
+    label: "Why Kf6?",
+    understood: "Gemini Nano understood · why · Kf6",
+  });
+});
+
 it("falls back to the device model with confirmation when the cloud fails", async () => {
   expect(
     await ask("any danger?", { cloud: router("Gemini Flash", undefined) }),

@@ -2,9 +2,106 @@ import { expect, it } from "vitest";
 
 import {
   alternativeFrame,
+  costFrame,
+  insteadFrame,
   lineStoryboard,
   payoffFrame,
+  refutationStoryboard,
 } from "./line-storyboard";
+
+// Lichess 0jcIg: Nd4+ forks king and rook.
+const KNIGHT_FORK = "1R6/6p1/1p2k2p/3n1N2/6P1/pr3PK1/8/8 w - - 0 47";
+const KNIGHT_LINE = ["f5d4", "e6e5", "d4b3"];
+const WARM_UP = "r4rk1/ppq2p1p/4pP2/3pP1p1/6Q1/2P5/PP1n2PP/R4R1K w - - 0 19";
+
+it("says what a tried move costs from Rook's side, and draws it", () => {
+  const knight = lineStoryboard(KNIGHT_FORK, ["f5h6", "g7h6"]);
+  const won = costFrame(KNIGHT_FORK, knight, "w", KNIGHT_LINE);
+  expect(won?.caption).toBe("I win your knight for a pawn.");
+  expect(won?.outlines).toEqual([{ square: "h6", tone: "coral" }]);
+  expect(won?.by).toBe("rook");
+  expect(won?.fen).toBe(knight.at(-1)?.fen);
+
+  // A quiet try lets the forked rook walk away.
+  const quiet = lineStoryboard(KNIGHT_FORK, ["b8b7", "b3b2"]);
+  const kept = costFrame(KNIGHT_FORK, quiet, "w", KNIGHT_LINE);
+  expect(kept?.caption).toBe("I keep my rook.");
+  expect(kept?.outlines).toEqual([{ square: "b2", tone: "coral" }]);
+  expect(costFrame(KNIGHT_FORK, quiet, "w")).toBeUndefined();
+
+  // A back-rank try.
+  const backRank = "4r1k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1";
+  const mate = costFrame(
+    backRank,
+    lineStoryboard(backRank, ["a1a3", "e8e1"]),
+    "w",
+  );
+  expect(mate?.caption).toBe("That lets me mate.");
+  expect(mate?.outlines).toEqual([{ square: "g1", tone: "coral" }]);
+  expect(mate?.arrows).toEqual([{ from: "e1", to: "g1", kind: "attack" }]);
+
+  // Missing a mate: Rook's king gets away.
+  const escape = costFrame(
+    WARM_UP,
+    lineStoryboard(WARM_UP, ["f1f2", "d2f3"]),
+    "w",
+    ["g4g5", "g8h8", "g5g7"],
+  );
+  expect(escape?.caption).toBe("My king gets away.");
+  expect(escape?.outlines).toEqual([{ square: "g8", tone: "coral" }]);
+});
+
+it("closes a refutation with the line move and what it wins", () => {
+  const fork = insteadFrame(KNIGHT_FORK, KNIGHT_LINE, "w");
+  expect(fork?.caption).toBe("Nd4+ instead wins the rook.");
+  expect(fork?.fen).toBe(KNIGHT_FORK);
+  expect(fork?.arrows).toEqual([{ from: "f5", to: "d4", kind: "preview" }]);
+  expect(fork?.outlines).toEqual([{ square: "b3", tone: "jade" }]);
+  expect(insteadFrame(WARM_UP, ["g4g5", "g8h8", "g5g7"], "w")?.caption).toBe(
+    "Qxg5+ instead leads to mate.",
+  );
+  expect(insteadFrame(WARM_UP, ["g5g7"], "w")).toBeUndefined();
+});
+
+it("plays a refutation and names the line move only once the answer is known", () => {
+  const before = refutationStoryboard({
+    fen: KNIGHT_FORK,
+    line: ["b8b7", "b3b2"],
+    learner: "w",
+    standing: "better",
+    instead: KNIGHT_LINE,
+    answerKnown: false,
+  });
+  expect(before.map(({ caption }) => caption)).toEqual([
+    "Rb7 attacks my pawn on g7, which nothing defends.",
+    "I answer Rb2.",
+    "I keep my rook.",
+  ]);
+  const after = refutationStoryboard({
+    fen: KNIGHT_FORK,
+    line: ["b8b7", "b3b2"],
+    learner: "w",
+    standing: "better",
+    instead: KNIGHT_LINE,
+    answerKnown: true,
+  });
+  expect(after.at(-1)?.caption).toBe("Nd4+ instead wins the rook.");
+
+  // No material changes hands: Stockfish's verdict closes the line.
+  const start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  const level = refutationStoryboard({
+    fen: start,
+    line: ["a2a3", "e7e5"],
+    learner: "w",
+    standing: "level",
+    instead: ["e2e4", "e7e5"],
+    answerKnown: true,
+  });
+  expect(level.map(({ caption }) => caption).slice(-2)).toEqual([
+    "After a3 the position stays level.",
+    "Stockfish prefers e4 here.",
+  ]);
+});
 
 it("draws the fork, the forced reply and the mate", () => {
   const frames = lineStoryboard(

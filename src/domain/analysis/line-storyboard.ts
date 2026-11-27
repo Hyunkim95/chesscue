@@ -1,5 +1,6 @@
 import {
   Chess,
+  SQUARES,
   type Color,
   type Move,
   type PieceSymbol,
@@ -493,4 +494,306 @@ export function payoffFrame(
         ? `You've won ${pieceList(won)}.`
         : `You've won ${pieceList(won)} for ${pieceList(lost)}.`,
   };
+}
+
+interface Capture {
+  readonly by: Color;
+  readonly piece: PieceSymbol;
+  // Where the capture happened, and where the taken piece started the line.
+  readonly at: Square;
+  readonly origin: Square;
+}
+
+interface Replay {
+  readonly board: Chess;
+  readonly captures: readonly Capture[];
+  // Each piece's square now, mapped to the square it started the line on.
+  readonly origins: ReadonlyMap<Square, Square>;
+}
+
+const asSquare = (name: string): Square | undefined =>
+  SQUARES.find((square) => square === name);
+
+// The rook's squares when the king castles to the given square.
+const CASTLE_ROOK: Readonly<
+  Partial<Record<Square, readonly [Square, Square]>>
+> = {
+  g1: ["h1", "f1"],
+  c1: ["a1", "d1"],
+  g8: ["h8", "f8"],
+  c8: ["a8", "d8"],
+};
+
+// Plays a line and follows every piece back to where it started, so a piece
+// won in one line can be found in another.
+function replay(fen: string, line: readonly string[]): Replay | undefined {
+  let board: Chess;
+  try {
+    board = new Chess(fen);
+  } catch {
+    return undefined;
+  }
+  const origins = new Map<Square, Square>();
+  for (const row of board.board())
+    for (const piece of row) if (piece) origins.set(piece.square, piece.square);
+  const captures: Capture[] = [];
+  for (const uci of line) {
+    const move = play(board, uci);
+    if (!move) return undefined;
+    const origin = origins.get(move.from) ?? move.from;
+    origins.delete(move.from);
+    const taken = move.isEnPassant()
+      ? asSquare(`${move.to.slice(0, 1)}${move.from.slice(1)}`)
+      : move.to;
+    if (move.captured && taken) {
+      captures.push({
+        by: move.color,
+        piece: move.captured,
+        at: taken,
+        origin: origins.get(taken) ?? taken,
+      });
+      origins.delete(taken);
+    }
+    origins.set(move.to, origin);
+    const rook =
+      move.isKingsideCastle() || move.isQueensideCastle()
+        ? CASTLE_ROOK[move.to]
+        : undefined;
+    if (rook) {
+      const [from, to] = rook;
+      origins.set(to, origins.get(from) ?? from);
+      origins.delete(from);
+    }
+  }
+  return { board, captures, origins };
+}
+
+const worth = (pieces: readonly PieceSymbol[]) =>
+  pieces.reduce((sum, piece) => sum + PIECE_VALUE[piece], 0);
+
+function wonBy(replayed: Replay, color: Color): PieceSymbol[] {
+  return replayed.captures
+    .filter(({ by }) => by === color)
+    .map(({ piece }) => piece);
+}
+
+function captureSquares(
+  replayed: Replay,
+  color: Color,
+  where: "at" | "origin",
+): Square[] {
+  return [
+    ...new Set(
+      replayed.captures
+        .filter(({ by }) => by === color)
+        .map((capture) => capture[where]),
+    ),
+  ];
+}
+
+// "your knight" or "the rook" for one piece, "a rook and a pawn" for more.
+function oneOrList(pieces: readonly PieceSymbol[], article: string): string {
+  const [only] = pieces;
+  return pieces.length === 1 && only
+    ? `${article} ${PIECE_NAME[only]}`
+    : pieceList(pieces);
+}
+
+function mated(board: Chess, color: Color): boolean {
+  return board.isCheckmate() && board.turn() === color;
+}
+
+// The last frame of a refutation, from Rook's side: what the tried move costs
+// the learner, drawn on the board. "That lets me mate.", "I win your knight."
+// or, against the line the learner could have played, "I keep my rook." None
+// when the line shows no such cost.
+export function costFrame(
+  fen: string,
+  frames: readonly StoryFrame[],
+  learner: Color,
+  // The line move and what follows it from the same position.
+  instead?: readonly string[],
+): StoryFrame | undefined {
+  const last = frames.at(-1);
+  const tried = replay(
+    fen,
+    frames.map(({ moveUci }) => moveUci),
+  );
+  if (!last || !tried) return undefined;
+  const rook = opponent(learner);
+  const base = {
+    fen: last.fen,
+    moveUci: "",
+    by: "rook" as const,
+    control: [],
+  };
+  const { board } = tried;
+  if (mated(board, learner)) {
+    const kings = kingSquare(board, learner);
+    return {
+      ...base,
+      arrows: kings.flatMap((king) =>
+        board.attackers(king, rook).map((checker) => attack(checker, king)),
+      ),
+      outlines: kings.map((square) => ({ square, tone: "coral" as const })),
+      caption: "That lets me mate.",
+    };
+  }
+  const mine = wonBy(tried, rook);
+  const yours = wonBy(tried, learner);
+  if (worth(mine) > worth(yours))
+    return {
+      ...base,
+      arrows: [],
+      outlines: captureSquares(tried, rook, "at").map((square) => ({
+        square,
+        tone: "coral" as const,
+      })),
+      caption:
+        yours.length === 0
+          ? `I win ${oneOrList(mine, "your")}.`
+          : `I win ${oneOrList(mine, "your")} for ${pieceList(yours)}.`,
+    };
+  const line = instead ? replay(fen, instead) : undefined;
+  if (!line) return undefined;
+  if (mated(line.board, rook))
+    return {
+      ...base,
+      arrows: [],
+      outlines: kingSquare(board, rook).map((square) => ({
+        square,
+        tone: "coral" as const,
+      })),
+      caption: "My king gets away.",
+    };
+  const missed = line.captures
+    .filter(({ by }) => by === learner)
+    .toSorted((a, b) => PIECE_VALUE[b.piece] - PIECE_VALUE[a.piece]);
+  const [prize] = missed;
+  const gain =
+    worth(missed.map(({ piece }) => piece)) - worth(wonBy(line, rook));
+  if (!prize || gain <= 0 || worth(yours) - worth(mine) >= gain)
+    return undefined;
+  const kept = [...tried.origins].find(
+    ([, origin]) => origin === prize.origin,
+  )?.[0];
+  if (kept === undefined) return undefined;
+  return {
+    ...base,
+    arrows: [],
+    outlines: [{ square: kept, tone: "coral" }],
+    caption: `I keep my ${PIECE_NAME[prize.piece]}.`,
+  };
+}
+
+// The closing frame of a refutation once the answer is known: back at the
+// position, the line move drawn, with what it wins. "Rxb3 instead wins the
+// rook."
+export function insteadFrame(
+  fen: string,
+  line: readonly string[],
+  learner: Color,
+): StoryFrame | undefined {
+  const [lineUci] = line;
+  let start: Chess;
+  try {
+    start = new Chess(fen);
+  } catch {
+    return undefined;
+  }
+  const move = lineUci === undefined ? undefined : play(start, lineUci);
+  const shown = lineStoryboard(fen, line, learner);
+  const replayed = replay(
+    fen,
+    shown.map(({ moveUci }) => moveUci),
+  );
+  if (!move || !replayed) return undefined;
+  const rook = opponent(learner);
+  const base = {
+    fen,
+    moveUci: "",
+    by: "learner" as const,
+    arrows: [{ from: move.from, to: move.to, kind: "preview" as const }],
+    control: [],
+  };
+  if (mated(replayed.board, rook))
+    return {
+      ...base,
+      outlines: kingSquare(new Chess(fen), rook).map((square) => ({
+        square,
+        tone: "coral" as const,
+      })),
+      caption:
+        shown.length === 1
+          ? `${move.san} instead is checkmate.`
+          : `${move.san} instead leads to mate.`,
+    };
+  const won = wonBy(replayed, learner);
+  const lost = wonBy(replayed, rook);
+  if (worth(won) > worth(lost))
+    return {
+      ...base,
+      outlines: captureSquares(replayed, learner, "origin").map((square) => ({
+        square,
+        tone: "jade" as const,
+      })),
+      caption:
+        lost.length === 0
+          ? `${move.san} instead wins ${oneOrList(won, "the")}.`
+          : `${move.san} instead wins ${oneOrList(won, "the")} for ${pieceList(lost)}.`,
+    };
+  return {
+    ...base,
+    outlines: [],
+    caption: `Stockfish prefers ${move.san} here.`,
+  };
+}
+
+// How the position stands after a try whose cost the line does not show in
+// material, from Stockfish's evaluation.
+export type Standing = "level" | "better" | "winning";
+
+const STANDING: Readonly<Record<Standing, (san: string) => string>> = {
+  level: (san) => `After ${san} the position stays level.`,
+  better: (san) => `After ${san} I'm a little better.`,
+  winning: (san) => `After ${san} I'm winning.`,
+};
+
+// "Why not {move}?": the tried move, Rook's best answer and what follows,
+// ending with what it costs. Once the answer is known, one more frame shows
+// the line move instead.
+export function refutationStoryboard({
+  fen,
+  line,
+  learner,
+  standing,
+  instead,
+  answerKnown,
+}: {
+  readonly fen: string;
+  // The tried move and Stockfish's line after it.
+  readonly line: readonly string[];
+  readonly learner: Color;
+  readonly standing: Standing;
+  // The line move and what follows it from the same position.
+  readonly instead: readonly string[];
+  // Before the position is solved, the line move is never shown or named.
+  readonly answerKnown: boolean;
+}): readonly StoryFrame[] {
+  const frames = lineStoryboard(fen, line, learner);
+  const last = frames.at(-1);
+  const [first] = frames;
+  if (!last || !first) return [];
+  const triedSan = play(new Chess(fen), first.moveUci)?.san ?? first.moveUci;
+  const cost = costFrame(fen, frames, learner, instead) ?? {
+    fen: last.fen,
+    moveUci: "",
+    by: "rook" as const,
+    arrows: [],
+    outlines: [],
+    control: [],
+    caption: STANDING[standing](triedSan),
+  };
+  const closing = answerKnown ? insteadFrame(fen, instead, learner) : undefined;
+  return [...frames, cost, ...(closing ? [closing] : [])];
 }

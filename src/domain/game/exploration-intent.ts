@@ -45,6 +45,19 @@ export function writtenMove(text: string, fen: string): Move | undefined {
   return undefined;
 }
 
+// The first of the given moves written in the message, such as a move
+// already played in a line the learner is stepping through.
+export function mentionedMove<T extends { readonly san: string }>(
+  text: string,
+  moves: readonly T[],
+): T | undefined {
+  for (const token of text.match(NOTATION) ?? []) {
+    const move = moves.find(({ san }) => bare(san) === bare(token));
+    if (move) return move;
+  }
+  return undefined;
+}
+
 export function routeExploration(input: {
   readonly intent: ExplorationIntent;
   readonly text: string;

@@ -1,5 +1,11 @@
 import { Chess, SQUARES, type Square } from "chess.js";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 
 import type {
   CheckedTry,
@@ -19,9 +25,11 @@ import {
   alternativeFrame,
   lineStoryboard,
   payoffFrame,
+  refutationStoryboard,
   type StoryFrame,
 } from "../../domain/analysis/line-storyboard";
 import { scanHint } from "../../domain/analysis/forcing-moves";
+import { mentionedMove } from "../../domain/game/exploration-intent";
 import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
 import { chipsFor, type SanMove } from "../../domain/session/chips";
@@ -56,6 +64,8 @@ import { ChessBoard, type BoardOutline } from "../board/ChessBoard";
 import {
   checksAnswer,
   replyReason,
+  rookMoveReason,
+  STANDING_AFTER,
   threatsAnswer,
   tierLine,
   type BoardAnswer,
@@ -93,6 +103,28 @@ interface Say {
   readonly understood?: string | undefined;
 }
 
+// A line the player steps through one captioned frame at a time.
+interface Story {
+  // The position before the first frame.
+  readonly start: string;
+  readonly frames: readonly StoryFrame[];
+  readonly step: number;
+  readonly mood: RookMood;
+  // The moves of a line the player can branch from at their own turns:
+  // frame i plays moves[i].
+  readonly moves?: readonly string[] | undefined;
+  // A refutation goes back to the step the player branched from.
+  readonly back?: Story | "start" | undefined;
+}
+
+// A position in a line where the player may try their own move.
+interface Branch {
+  readonly fen: string;
+  // The line's move here and the rest of the line from it.
+  readonly line: readonly string[];
+  readonly back: Story | "start";
+}
+
 const GHOST: Record<Exclude<FeedbackTier, "best">, BoardArrow["kind"]> = {
   missed: "ghost-missed",
   worse: "ghost-worse",
@@ -104,9 +136,6 @@ const TRIES_CHIP: Record<Exclude<FeedbackTier, "best">, string> = {
   worse: "now worse",
   costly: "now losing",
 };
-
-// Long enough to read one caption and see its arrows.
-const STORY_STEP_MS = 2_400;
 
 function uciMove(uci: string) {
   return {
@@ -151,10 +180,47 @@ function ghostArrows(attempts: readonly Attempt[]): BoardArrow[] {
   );
 }
 
+function frameView(frame: StoryFrame): BoardView {
+  return {
+    fen: frame.fen,
+    lastMoveUci: frame.moveUci,
+    animate: true,
+    arrows: frame.arrows,
+    outlines: frame.outlines,
+    control: frame.control,
+  };
+}
+
+// The position a frame's move was played from.
+function beforeFrame(story: Story, index: number): string {
+  return index === 0 ? story.start : (story.frames[index - 1]?.fen ?? "");
+}
+
+// The moves the frames play, named, for questions about one of them.
+function storyMoves(story: Story): (SanMove & { readonly index: number })[] {
+  return story.frames.flatMap((frame, index) => {
+    const san = frame.moveUci
+      ? sanFor(beforeFrame(story, index), frame.moveUci)
+      : undefined;
+    return san ? [{ uci: frame.moveUci, san, index }] : [];
+  });
+}
+
+// Before the answer is known, a refutation stops before any move of the
+// player's that matches the answer, so it never shows it.
+function withoutAnswer(
+  line: readonly string[],
+  bestUci: string,
+): readonly string[] {
+  const at = line.findIndex((uci, index) => index > 0 && uci === bestUci);
+  return at === -1 ? line : line.slice(0, at);
+}
+
 export function MomentScreen({
   moment,
   online,
   checkMove,
+  checkFrom,
   analyzePosition,
   askRook,
   onComplete,
@@ -167,6 +233,13 @@ export function MomentScreen({
     uci: string,
     signal: AbortSignal,
   ) => Promise<Result<CheckedTry, CheckFailure>>;
+  // Checks a move the player tries at another point of the line, once the
+  // position is solved or shown. Never recorded as a try.
+  readonly checkFrom: (
+    position: MomentPosition,
+    uci: string,
+    signal: AbortSignal,
+  ) => Promise<Result<CheckedTry, CheckFailure>>;
   // Stockfish's top lines for a position, used to find Rook's other defences.
   readonly analyzePosition: (
     fen: string,
@@ -174,7 +247,12 @@ export function MomentScreen({
     signal: AbortSignal,
   ) => Promise<Result<PositionAnalysis, AnalysisEngineFailure>>;
   readonly askRook: (
-    question: { text: string; fen: string; boardMoveUci?: string | undefined },
+    question: {
+      text: string;
+      fen: string;
+      boardMoveUci?: string | undefined;
+      boardMoveSan?: string | undefined;
+    },
     signal: AbortSignal,
   ) => Promise<QuestionOutcome>;
   // Called once with the finished result, to record it.
@@ -192,9 +270,14 @@ export function MomentScreen({
     text: "Take your time. Look for checks, captures and threats.",
     mood: "idle",
   });
+  const [story, setStory] = useState<Story | undefined>();
   const [selected, setSelected] = useState<Square | undefined>();
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState<SanMove | undefined>();
+  // Stockfish's line after each try, for "Why not {move}?".
+  const [tryLines, setTryLines] = useState<
+    ReadonlyMap<string, readonly string[]>
+  >(new Map());
   const [confirm, setConfirm] = useState<
     Extract<QuestionOutcome, { kind: "confirm" }> | undefined
   >();
@@ -202,13 +285,11 @@ export function MomentScreen({
   // Created in the effect so StrictMode's mount, unmount and remount leaves a
   // live controller.
   const controller = useRef(new AbortController());
-  const timer = useRef<number | undefined>(undefined);
   useEffect(() => {
     const current = new AbortController();
     controller.current = current;
     return () => {
       current.abort();
-      window.clearTimeout(timer.current);
     };
   }, []);
 
@@ -235,6 +316,13 @@ export function MomentScreen({
     ...(payoff ? [payoff] : []),
     ...(alternative ? [alternative] : []),
   ];
+  const answerStory: Story = {
+    start: moment.fen,
+    frames: storyboard,
+    step: 0,
+    mood: "happy",
+    moves: solvedLine,
+  };
   const afterSolution = (() => {
     try {
       return new Chess(moment.fen).move(uciMove(solvedUci)).after;
@@ -270,15 +358,36 @@ export function MomentScreen({
   }, [solved, afterSolution, analyzePosition, solvedLine]);
   const bestSan = sanFor(moment.fen, moment.bestUci) ?? moment.bestUci;
 
+  // After the position is solved or shown, the player may try their own move
+  // at the start or at any of their turns in a line they are stepping
+  // through.
+  const branch: Branch | undefined = (() => {
+    if (!solved || view.previewTag) return undefined;
+    if (!story)
+      return view.fen === moment.fen && solvedLine.length > 0
+        ? { fen: moment.fen, line: solvedLine, back: "start" }
+        : undefined;
+    const frame = story.frames[story.step];
+    if (
+      !story.moves ||
+      !frame ||
+      frame.moveUci !== story.moves[story.step] ||
+      frame.fen.split(" ")[1] !== learnerColor
+    )
+      return undefined;
+    const line = story.moves.slice(story.step + 1);
+    return line.length > 0 ? { fen: frame.fen, line, back: story } : undefined;
+  })();
+
   function send(...events: SessionEvent[]) {
     setSession((current) => events.reduce(advanceSession, current));
   }
 
   // The board answers the tap at once; Rook's reply follows once the engine
   // has checked the move.
-  function showPlayed(uci: string, previewTag?: string) {
+  function showPlayed(uci: string, previewTag?: string, from = moment.fen) {
     try {
-      const after = new Chess(moment.fen).move(uciMove(uci)).after;
+      const after = new Chess(from).move(uciMove(uci)).after;
       setView({
         fen: after,
         lastMoveUci: uci,
@@ -291,13 +400,42 @@ export function MomentScreen({
     }
   }
 
-  function later(action: () => void, ms: number) {
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(action, ms);
+  // Show, don't tell: one captioned frame of a line on the board. The player
+  // steps through it and it stays until Reset.
+  function openStory(next: Story, understood?: string) {
+    const frame = next.frames[next.step];
+    if (!frame) {
+      setStory(undefined);
+      setSay({
+        text: `Stockfish rates ${bestSan} as the best move here.`,
+        mood: next.mood,
+        understood,
+      });
+      return;
+    }
+    setStory(next);
+    setSelected(undefined);
+    setView(frameView(frame));
+    setSay({ text: frame.caption, mood: next.mood, understood });
+  }
+
+  function stepTo(step: number) {
+    if (!story || busy) return;
+    const clamped = Math.max(0, Math.min(story.frames.length - 1, step));
+    if (clamped !== story.step) openStory({ ...story, step: clamped });
+  }
+
+  function onStepKey(event: KeyboardEvent<HTMLDivElement>) {
+    if (!story) return;
+    if (event.key === "ArrowLeft") stepTo(story.step - 1);
+    else if (event.key === "ArrowRight") stepTo(story.step + 1);
+    else return;
+    event.preventDefault();
   }
 
   function rewind(withScan: boolean) {
     const scan = withScan ? scanHint(moment.fen) : undefined;
+    setStory(undefined);
     setView({
       fen: moment.fen,
       arrows: [...ghostArrows(attempts), ...(scan?.arrows ?? [])],
@@ -340,6 +478,7 @@ export function MomentScreen({
     }
     const { attempt, afterFen, replyFen, replySan, line } = checked.value;
     send({ kind: "try", attempt });
+    setTryLines((current) => new Map(current).set(attempt.uci, line));
     if (attempt.tier === "best") {
       setSolvedLine(line);
       setView({
@@ -379,9 +518,137 @@ export function MomentScreen({
     });
   }
 
+  // A move of the player's own at a point of the line, once the answer is
+  // known: the line's move steps on; another is checked with Stockfish and
+  // either works too or plays out as Rook's refutation.
+  async function tryFrom(from: Branch, uci: string, understood?: string) {
+    setSelected(undefined);
+    const [lineUci] = from.line;
+    if (uci === lineUci) {
+      if (from.back === "start") openStory(answerStory, understood);
+      else openStory({ ...from.back, step: from.back.step + 1 }, understood);
+      return;
+    }
+    const san = sanFor(from.fen, uci);
+    if (lineUci === undefined || san === undefined) return;
+    send({ kind: "explore", key: `branch:${from.fen}:${uci}` });
+    setBusy(true);
+    const before = view;
+    showPlayed(uci, undefined, from.fen);
+    setSay({ text: "Let me see…", mood: "think", understood });
+    const signal = controller.current.signal;
+    const top = await analyzePosition(from.fen, 1, signal);
+    const bestCp = top.ok
+      ? top.value.candidates[0]?.evaluationCpFromSideToMove
+      : undefined;
+    const checked =
+      bestCp === undefined
+        ? undefined
+        : await checkFrom(
+            {
+              fen: from.fen,
+              bestUci: lineUci,
+              bestCp,
+              solutionLine: from.line,
+              ...(moment.toleranceCp === undefined
+                ? {}
+                : { toleranceCp: moment.toleranceCp }),
+            },
+            uci,
+            signal,
+          );
+    setBusy(false);
+    if (signal.aborted) return;
+    if (!checked?.ok) {
+      setView(before);
+      setSay({
+        text: "I couldn't check that move just now. Try it again.",
+        mood: "hmm",
+        understood,
+      });
+      return;
+    }
+    const { attempt, line } = checked.value;
+    if (attempt.tier === "best") {
+      const works = alternativeFrame(from.fen, lineUci, uci);
+      openStory(
+        {
+          start: from.fen,
+          frames: works ? [works] : [],
+          step: 0,
+          mood: "happy",
+          back: from.back,
+        },
+        understood,
+      );
+      if (!works) setSay({ text: `${san} works too.`, mood: "happy" });
+      return;
+    }
+    openStory(
+      {
+        start: from.fen,
+        frames: refutationStoryboard({
+          fen: from.fen,
+          line,
+          learner: learnerColor,
+          standing: STANDING_AFTER[attempt.tier],
+          instead: from.line,
+          answerKnown: true,
+        }),
+        step: 0,
+        mood: "cool",
+        back: from.back,
+      },
+      understood,
+    );
+  }
+
+  // "Why not {your move}?": the try, Rook's best answer and what it costs.
+  // Before the position is solved it never shows the answer.
+  function whyNot(tried: Attempt, understood?: string) {
+    const line = tryLines.get(tried.uci);
+    if (!line || tried.tier === "best") return false;
+    openStory(
+      {
+        start: moment.fen,
+        frames: refutationStoryboard({
+          fen: moment.fen,
+          line: solving ? withoutAnswer(line, moment.bestUci) : line,
+          learner: learnerColor,
+          standing: STANDING_AFTER[tried.tier],
+          instead: solvedLine,
+          answerKnown: !solving,
+        }),
+        step: 0,
+        mood: "cool",
+      },
+      understood,
+    );
+    return true;
+  }
+
+  // "Why {a move in the line}?": the frame where it was played, and what it
+  // does in that position.
+  function whyOnFrame(uci: string, understood?: string): boolean {
+    if (!story) return false;
+    const found = storyMoves(story).find((move) => move.uci === uci);
+    const frame = found ? story.frames[found.index] : undefined;
+    if (!found || !frame) return false;
+    const reason =
+      frame.by === "rook"
+        ? (rookMoveReason(beforeFrame(story, found.index), uci) ??
+          frame.caption)
+        : frame.caption;
+    setStory({ ...story, step: found.index });
+    setView(frameView(frame));
+    setSay({ text: reason, mood: "idle", understood });
+    return true;
+  }
+
   async function preview(uci: string, understood?: string) {
     if (solving) send({ kind: "help" });
     send({ kind: "explore", key: `preview:${uci}` });
+    setStory(undefined);
     setBusy(true);
     const before = view;
     showPlayed(uci, "Preview · not played");
@@ -434,48 +701,10 @@ export function MomentScreen({
     setSay({ text: answer.text, mood: "idle", understood });
   }
 
-  // Show, don't tell: the line plays on the board, one captioned frame at a
-  // time, and stays on its last frame until Reset.
-  function playStoryboard(
-    frames: readonly StoryFrame[],
-    mood: RookMood,
-    understood?: string,
-    then?: () => void,
-  ) {
-    if (frames.length === 0) {
-      setSay({
-        text: `Stockfish rates ${bestSan} as the best move here.`,
-        mood,
-        understood,
-      });
-      then?.();
-      return;
-    }
-    let step = 0;
-    const next = () => {
-      const frame = frames[step];
-      if (!frame) {
-        then?.();
-        return;
-      }
-      setView({
-        fen: frame.fen,
-        lastMoveUci: frame.moveUci,
-        animate: true,
-        arrows: frame.arrows,
-        outlines: frame.outlines,
-        control: frame.control,
-      });
-      setSay({ text: frame.caption, mood, understood });
-      step += 1;
-      later(next, STORY_STEP_MS);
-    };
-    next();
-  }
-
   function reset() {
-    window.clearTimeout(timer.current);
     setReply(undefined);
+    setStory(undefined);
+    setSelected(undefined);
     setView(
       solving
         ? { fen: moment.fen, arrows: ghostArrows(attempts), outlines: [] }
@@ -484,16 +713,21 @@ export function MomentScreen({
     setSay({
       text: solving
         ? "Back to the start. Your move."
-        : "Back to the start. Tap a chip to see it again.",
+        : "Back to the start. Play any move and I'll show you what happens.",
       mood: "idle",
     });
   }
 
-  // The answer plays on the board; the player can then ask about it and taps
-  // Done when ready.
+  function goBack(back: Story | "start") {
+    if (back === "start") reset();
+    else openStory(back);
+  }
+
+  // The answer opens on the board; the player steps through it, can ask
+  // about it and taps Done when ready.
   function showMe() {
     send({ kind: "show" });
-    playStoryboard(storyboard, "warm");
+    openStory({ ...answerStory, mood: "warm" });
   }
 
   function finish() {
@@ -501,6 +735,10 @@ export function MomentScreen({
     if (!finished) return;
     send({ kind: "finish" });
     onComplete(finished);
+  }
+
+  function legalAt(fen: string, uci: string): boolean {
+    return sanFor(fen, uci) !== undefined;
   }
 
   function act(action: RoutedAction, understood?: string) {
@@ -519,6 +757,7 @@ export function MomentScreen({
       case "scan": {
         send({ kind: "help" });
         const scan = scanHint(moment.fen);
+        setStory(undefined);
         setView({
           fen: moment.fen,
           arrows: [...ghostArrows(attempts), ...(scan?.arrows ?? [])],
@@ -534,15 +773,37 @@ export function MomentScreen({
         return;
       }
       case "why":
+      case "what-if": {
         if (action.uci === moment.bestUci && !solving) {
-          playStoryboard(storyboard, "happy", understood);
+          if (action.kind === "why" || !whyOnFrame(action.uci, understood))
+            openStory(answerStory, understood);
           return;
         }
-        if (action.uci === reply?.uci) {
+        if (
+          action.kind === "what-if" &&
+          action.uci === defence?.uci &&
+          afterSolution
+        ) {
+          openStory(
+            {
+              start: afterSolution,
+              frames: lineStoryboard(afterSolution, defence.line, learnerColor),
+              step: 0,
+              mood: "idle",
+              moves: defence.line,
+            },
+            understood,
+          );
+          return;
+        }
+        if (whyOnFrame(action.uci, understood)) return;
+        const tried = attempts.find(({ uci }) => uci === action.uci);
+        if (tried && whyNot(tried, understood)) return;
+        if (action.kind === "why" && action.uci === reply?.uci) {
           const beforeReply = new Chess(moment.fen);
-          const tried = attempts.at(-1);
+          const last = attempts.at(-1);
           try {
-            if (tried) beforeReply.move(uciMove(tried.uci));
+            if (last) beforeReply.move(uciMove(last.uci));
           } catch {
             // The reason falls back to a request to play the move.
           }
@@ -553,24 +814,19 @@ export function MomentScreen({
           });
           return;
         }
-        void preview(action.uci, understood);
-        return;
-      case "what-if":
-        if (action.uci === defence?.uci && afterSolution) {
-          playStoryboard(
-            lineStoryboard(afterSolution, defence.line, learnerColor),
-            "idle",
-            understood,
-          );
+        if (branch && legalAt(branch.fen, action.uci)) {
+          void tryFrom(branch, action.uci, understood);
           return;
         }
         void preview(action.uci, understood);
         return;
+      }
       case "show-line":
-        playStoryboard(storyboard, "happy", understood);
+        openStory(answerStory, understood);
         return;
       case "show-me":
-        showMe();
+        if (solving) showMe();
+        else openStory(answerStory, understood);
         return;
       case "plan":
         setSay({
@@ -598,8 +854,20 @@ export function MomentScreen({
   async function ask(text: string) {
     setBusy(true);
     setSay({ text: "Let me think…", mood: "think" });
+    // On a frame, a question is about the position shown; a move it names
+    // from the line, or else the frame's own move, is the one it asks about.
+    const frame = story?.frames[story.step];
+    const played = story ? storyMoves(story) : [];
+    const boardMove =
+      mentionedMove(text, played) ??
+      played.find((move) => move.uci === frame?.moveUci);
     const outcome = await askRook(
-      { text, fen: view.fen, boardMoveUci: undefined },
+      {
+        text,
+        fen: view.fen,
+        boardMoveUci: boardMove?.uci,
+        boardMoveSan: boardMove?.san,
+      },
       controller.current.signal,
     );
     setBusy(false);
@@ -630,20 +898,34 @@ export function MomentScreen({
     }
   }
 
-  function selectSquare(square: Square) {
-    if (busy || !solving || view.fen !== moment.fen) return;
-    if (selected && legalTargets(moment.fen, selected).includes(square)) {
-      const piece = new Chess(moment.fen).get(selected);
+  const atStart = view.fen === moment.fen;
+  // Where the board takes a move: the start while solving, or a point of the
+  // line once the answer is known.
+  const boardFen = busy
+    ? undefined
+    : solving
+      ? atStart && !view.previewTag
+        ? moment.fen
+        : undefined
+      : branch?.fen;
+
+  function selectSquare(target: Square) {
+    if (boardFen === undefined) return;
+    if (selected && legalTargets(boardFen, selected).includes(target)) {
+      const piece = new Chess(boardFen).get(selected);
       const promotes =
-        piece?.type === "p" && (square.endsWith("8") || square.endsWith("1"));
-      void tryMove(`${selected}${square}${promotes ? "q" : ""}`);
+        piece?.type === "p" && (target.endsWith("8") || target.endsWith("1"));
+      const uci = `${selected}${target}${promotes ? "q" : ""}`;
+      if (solving) void tryMove(uci);
+      else if (branch) void tryFrom(branch, uci);
       return;
     }
-    const piece = new Chess(moment.fen).get(square);
-    const turn = moment.fen.split(" ")[1];
-    setSelected(piece?.color === turn ? square : undefined);
+    const piece = new Chess(boardFen).get(target);
+    const turn = boardFen.split(" ")[1];
+    setSelected(piece?.color === turn ? target : undefined);
   }
 
+  const lastMiss = attempts.findLast(({ tier }) => tier !== "best");
   const chips: readonly Chip[] = confirm
     ? []
     : chipsFor(kind, {
@@ -653,11 +935,14 @@ export function MomentScreen({
         reply,
         bestNonSolution: moment.bestNonSolution,
         bestDefence: defence,
+        tried:
+          lastMiss && tryLines.has(lastMiss.uci)
+            ? { uci: lastMiss.uci, san: lastMiss.san }
+            : undefined,
         quiet: false,
         online,
       });
   const turn = moment.fen.split(" ")[1] === "w" ? "White" : "Black";
-  const atStart = view.fen === moment.fen;
   // Try again is the reset after a not-best move; Reset covers everything
   // else that changed the board: previews, answers and storyboards.
   // Neither shows while a played move waits on the engine.
@@ -669,8 +954,11 @@ export function MomentScreen({
     sheet === undefined &&
     !tryAgain &&
     (!atStart ||
+      story !== undefined ||
       view.outlines.length > 0 ||
       view.arrows.length > ghostArrows(attempts).length);
+  const stepper = story && story.frames.length > 1 ? story : undefined;
+  const back = story?.back;
   const missed = attempts.filter((attempt) => attempt.tier !== "best");
   const xp = result ? attemptXp(result) : 0;
   // A plan's goal marks its pieces on the bare starting board while the
@@ -703,9 +991,11 @@ export function MomentScreen({
           // Every change of position slides, including Reset.
           animateMove={view.animate ?? true}
           selectedSquare={selected ?? null}
-          legalTargets={selected ? legalTargets(moment.fen, selected) : []}
+          legalTargets={
+            selected && boardFen ? legalTargets(boardFen, selected) : []
+          }
           onSquareSelect={selectSquare}
-          disabled={busy || !solving || !atStart}
+          disabled={boardFen === undefined}
           extraArrows={
             goalMarks ? [...goalMarks.arrows, ...view.arrows] : view.arrows
           }
@@ -726,8 +1016,52 @@ export function MomentScreen({
           <RookCharacter mood={busy ? "think" : say.mood} />
           <RookBubble understood={say.understood}>{say.text}</RookBubble>
         </RookSays>
-        {(solving || showReset) && (
+        {stepper && (
+          <div
+            className="moment__stepper"
+            role="group"
+            aria-label="Step through the line"
+            onKeyDown={onStepKey}
+          >
+            {/* aria-disabled keeps focus on a button that reaches the end of
+                the line, so the arrow keys keep working. */}
+            <Pill
+              aria-label="Previous step"
+              onClick={() => {
+                stepTo(stepper.step - 1);
+              }}
+              aria-disabled={busy || stepper.step === 0}
+            >
+              ◀
+            </Pill>
+            <span className="moment__step">
+              {stepper.step + 1} / {stepper.frames.length}
+            </span>
+            <Pill
+              aria-label="Next step"
+              onClick={() => {
+                stepTo(stepper.step + 1);
+              }}
+              aria-disabled={busy || stepper.step === stepper.frames.length - 1}
+            >
+              ▶
+            </Pill>
+          </div>
+        )}
+        {(solving || showReset || back) && (
           <div className="moment__tools">
+            {back && (
+              <Pill
+                onClick={() => {
+                  goBack(back);
+                }}
+                disabled={busy}
+              >
+                {back === "start"
+                  ? "◀ Back to the start"
+                  : "◀ Back to the answer"}
+              </Pill>
+            )}
             {tryAgain && (
               <Button
                 onClick={() => {

@@ -8,7 +8,11 @@ import {
 import { afterEach, expect, it } from "vitest";
 
 import { checkTry } from "../../application/run-moment/check-try";
-import type { AnalysisEngine } from "../../application/analyze-game/analysis-engine";
+import type {
+  AnalysisCandidate,
+  AnalysisEngine,
+} from "../../application/analyze-game/analysis-engine";
+import type { QuestionOutcome } from "../../application/route-question/route-question";
 import { ok } from "../../shared/result/result";
 import { MomentScreen, type MomentSpec } from "./MomentScreen";
 
@@ -27,14 +31,45 @@ const FORK: MomentSpec = {
   unitId: "double-attack",
   source: { kind: "game", gameId: "g", ply: 1 },
 };
+// After 35. Nxg5+, where Rook has a choice of defences.
+const AFTER_FORK = "2r5/5k2/4q3/1rBp2N1/p2P1p2/PpR1P1Pp/1P2KP1P/2R5 b - - 0 35";
 
+const candidate = (
+  uci: string,
+  evaluationCpFromSideToMove: number,
+  principalVariation: readonly string[] = [uci],
+): AnalysisCandidate => ({
+  uci,
+  evaluationCpFromSideToMove,
+  principalVariation,
+  depth: 14,
+});
+
+// Stockfish's answer to any move it is asked about: Rook takes the bishop
+// on c5 when he can, or the pawn on f4.
 const engine: AnalysisEngine = {
   initialize: () => Promise.resolve(ok(undefined)),
-  analyze: () => Promise.resolve(ok({ candidates: [] })),
+  analyze: ({ fen }) =>
+    Promise.resolve(
+      ok({
+        candidates: [
+          fen.startsWith("2r5/8/4qk2")
+            ? candidate("b5c5", 300)
+            : candidate("g5f4", 50),
+        ],
+      }),
+    ),
   dispose: () => undefined,
 };
 
-function renderFork() {
+function renderFork(
+  askRook: (question: {
+    text: string;
+    fen: string;
+    boardMoveUci?: string | undefined;
+    boardMoveSan?: string | undefined;
+  }) => Promise<QuestionOutcome> = () => Promise.resolve({ kind: "unrouted" }),
+) {
   const analyses: { fen: string; multiPv: number }[] = [];
   render(
     <MomentScreen
@@ -43,29 +78,26 @@ function renderFork() {
       checkMove={(uci, signal) =>
         checkTry({ position: FORK, uci, engine, signal })
       }
+      checkFrom={(position, uci, signal) =>
+        checkTry({ position, uci, engine, signal })
+      }
       analyzePosition={(fen, multiPv) => {
         analyses.push({ fen, multiPv });
-        // Rook's main-line reply first, then the alternative Kg8.
+        // Rook's main-line reply first, then the alternative Kg8; anywhere
+        // else, the line's own move is best.
         return Promise.resolve(
           ok({
-            candidates: [
-              {
-                uci: "f7f6",
-                evaluationCpFromSideToMove: -700,
-                principalVariation: ["f7f6", "g5e6"],
-                depth: 14,
-              },
-              {
-                uci: "f7g8",
-                evaluationCpFromSideToMove: -720,
-                principalVariation: ["f7g8", "g5e6"],
-                depth: 14,
-              },
-            ],
+            candidates:
+              fen === AFTER_FORK
+                ? [
+                    candidate("f7f6", -700, ["f7f6", "g5e6"]),
+                    candidate("f7g8", -720, ["f7g8", "g5e6"]),
+                  ]
+                : [candidate("g5e6", 900)],
           }),
         );
       }}
-      askRook={() => Promise.resolve({ kind: "unrouted" })}
+      askRook={askRook}
       onComplete={() => undefined}
       onContinue={() => undefined}
     />,
@@ -75,6 +107,19 @@ function renderFork() {
 
 const square = (name: string) =>
   screen.getByRole("gridcell", { name: new RegExp(`^${name}`) });
+const bubble = () =>
+  screen.getByText(
+    (_, node) => node?.classList.contains("rook-bubble__text") ?? false,
+  );
+const next = () => {
+  fireEvent.click(screen.getByRole("button", { name: "Next step" }));
+};
+
+async function solveFork() {
+  fireEvent.click(square("White knight on f3"));
+  fireEvent.click(square("Black pawn on g5"));
+  await screen.findByRole("button", { name: "Done ✓" });
+}
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const PLAN: MomentSpec = {
@@ -101,18 +146,7 @@ it("marks a plan's goal on the board and replays the player's own good move", as
   const good: AnalysisEngine = {
     ...engine,
     analyze: () =>
-      Promise.resolve(
-        ok({
-          candidates: [
-            {
-              uci: "e7e5",
-              evaluationCpFromSideToMove: -20,
-              principalVariation: ["e7e5"],
-              depth: 14,
-            },
-          ],
-        }),
-      ),
+      Promise.resolve(ok({ candidates: [candidate("e7e5", -20)] })),
   };
   render(
     <MomentScreen
@@ -120,6 +154,9 @@ it("marks a plan's goal on the board and replays the player's own good move", as
       online={false}
       checkMove={(uci, signal) =>
         checkTry({ position: PLAN, uci, engine: good, signal })
+      }
+      checkFrom={(position, uci, signal) =>
+        checkTry({ position, uci, engine: good, signal })
       }
       analyzePosition={() => Promise.resolve(ok({ candidates: [] }))}
       askRook={() => Promise.resolve({ kind: "unrouted" })}
@@ -138,14 +175,12 @@ it("marks a plan's goal on the board and replays the player's own good move", as
   );
   // The player's own move and Rook's answer to it, not Rook's main line.
   expect(screen.getByText("e4 adds control of d5 and f5.")).toBeVisible();
+  next();
+  next();
   expect(
-    await screen.findByText(
-      "Nf3 works too. It also covers d4 and e5.",
-      {},
-      { timeout: 6_000 },
-    ),
+    screen.getByText("Nf3 works too. It also covers d4 and e5."),
   ).toBeVisible();
-}, 10_000);
+});
 
 it("offers Rook's other defence after solving and plays it from the solved position", async () => {
   const analyses = renderFork();
@@ -160,4 +195,126 @@ it("offers Rook's other defence after solving and plays it from the solved posit
     expect(screen.getByText("I answer Kg8.")).toBeVisible();
   });
   expect(screen.getByRole("button", { name: "↺ Reset" })).toBeVisible();
+});
+
+it("steps through the line only when the player steps, by button or arrow key", async () => {
+  renderFork();
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  const stepper = screen.getByRole("group", { name: "Step through the line" });
+  expect(stepper).toHaveTextContent("1 / 4");
+  expect(bubble()).toHaveTextContent(/^Nxg5\+ takes my pawn/);
+  expect(screen.getByRole("button", { name: "Previous step" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
+  // The board stays on the first frame until the player steps.
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  expect(stepper).toHaveTextContent("1 / 4");
+
+  next();
+  expect(stepper).toHaveTextContent("2 / 4");
+  expect(square("Black king on f6")).toBeVisible();
+  fireEvent.keyDown(stepper, { key: "ArrowRight" });
+  expect(bubble()).toHaveTextContent(/^Nxe6 takes my queen/);
+  fireEvent.keyDown(stepper, { key: "ArrowRight" });
+  expect(bubble()).toHaveTextContent("You've won a queen and a pawn.");
+  expect(screen.getByRole("button", { name: "Next step" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
+  fireEvent.keyDown(stepper, { key: "ArrowLeft" });
+  expect(stepper).toHaveTextContent("3 / 4");
+
+  fireEvent.click(screen.getByRole("button", { name: "↺ Reset" }));
+  expect(square("White knight on f3")).toBeVisible();
+  expect(
+    screen.queryByRole("group", { name: "Step through the line" }),
+  ).toBeNull();
+});
+
+it("lets the player try another move at their turn and shows why it is not as good", async () => {
+  renderFork();
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  next();
+  // After Kf6 it is the player's turn: Nf3 instead of Nxe6.
+  fireEvent.click(square("White knight on g5"));
+  fireEvent.click(square("Empty f3"));
+  // Rook's refutation opens on the player's own move.
+  const stepper = screen.getByRole("group", { name: "Step through the line" });
+  expect(
+    await screen.findByText("Nf3 adds control of d4 and e5."),
+  ).toBeVisible();
+  expect(stepper).toHaveTextContent("1 / 4");
+  next();
+  expect(bubble()).toHaveTextContent("I take your bishop with Rbxc5.");
+  next();
+  expect(bubble()).toHaveTextContent("I win your bishop.");
+  expect(square("Black rook on c5").className).toContain("outline-coral");
+  next();
+  expect(bubble()).toHaveTextContent("Nxe6 instead wins the queen.");
+
+  fireEvent.click(screen.getByRole("button", { name: "◀ Back to the answer" }));
+  expect(stepper).toHaveTextContent("2 / 4");
+  expect(square("Black king on f6")).toBeVisible();
+  // The line's own move steps on.
+  fireEvent.click(square("White knight on g5"));
+  fireEvent.click(square("Black queen on e6"));
+  expect(
+    screen.getByRole("group", { name: "Step through the line" }),
+  ).toHaveTextContent("3 / 4");
+});
+
+it("asks why not the player's try and shows what it costs without the answer", async () => {
+  renderFork();
+  fireEvent.click(square("White pawn on g3"));
+  fireEvent.click(square("Black pawn on f4"));
+  const chip = await screen.findByRole("button", { name: "Why not gxf4?" });
+  fireEvent.click(chip);
+  const stepper = screen.getByRole("group", { name: "Step through the line" });
+  expect(bubble()).toHaveTextContent(/^gxf4 takes my pawn/);
+  next();
+  expect(bubble()).toHaveTextContent("I take your pawn with gxf4.");
+  next();
+  expect(bubble()).toHaveTextContent("I keep my queen.");
+  expect(square("Black queen on e6").className).toContain("outline-coral");
+  expect(stepper).toHaveTextContent("3 / 3");
+  // Nothing names or draws the answer before it is found.
+  expect(document.body).not.toHaveTextContent(/Ng5|Nxg5/);
+  expect(document.querySelector("[data-move-cue-arrow='f3:g5']")).toBeNull();
+});
+
+it("answers a typed question about a move in the line on the frame it was played", async () => {
+  const asked: { fen: string; boardMoveSan?: string | undefined }[] = [];
+  renderFork((question) => {
+    asked.push(question);
+    return Promise.resolve(
+      question.boardMoveUci
+        ? {
+            kind: "confirm",
+            action: { kind: "why", uci: question.boardMoveUci },
+            label: `Why ${question.boardMoveSan ?? ""}?`,
+            understood: "Gemini Nano understood · why",
+          }
+        : { kind: "unrouted" },
+    );
+  });
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  next();
+  next();
+  const input = screen.getByRole("textbox", { name: "Ask Rook" });
+  fireEvent.change(input, { target: { value: "why Kf6?" } });
+  const form = input.closest("form");
+  if (!form) throw new Error("The ask bar has no form");
+  fireEvent.submit(form);
+  // Offline, Rook confirms before acting.
+  fireEvent.click(await screen.findByRole("button", { name: "Why Kf6?" }));
+  expect(asked[0]?.boardMoveSan).toBe("Kf6");
+  expect(asked[0]?.fen).toMatch(/^2r5\/8\/4Nk2/);
+  expect(bubble()).toHaveTextContent("Kf6 gets my king out of check.");
+  expect(
+    screen.getByRole("group", { name: "Step through the line" }),
+  ).toHaveTextContent("2 / 4");
 });
