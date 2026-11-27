@@ -384,14 +384,13 @@ it("opens with the point and stops once the material settles", () => {
     "1R6/6p1/1p2k2p/3n1N2/6P1/pr3PK1/8/8 w - - 0 47",
     ["f5d4", "e6e5", "d4b3"],
   );
+  // The point is said on the first move's own frame.
   expect(mate?.frames.map(({ caption }) => caption)).toEqual([
     "Qxg5+ leads to mate. It comes with check.",
-    "Qxg5+ takes my pawn, checks my king and attacks my knight on d2, which nothing defends.",
     "I have to play Kh8.",
     "Qg7# is checkmate.",
   ]);
-  // frames[i] plays moves[i]; the point frame plays nothing.
-  expect(mate?.moves).toEqual(["", "g4g5", "g8h8", "g5g7"]);
+  expect(mate?.moves).toEqual(["g4g5", "g8h8", "g5g7"]);
   expect(fork?.frames[0]?.caption).toBe(
     "Nc4 wins a bishop for two pawns. It hits two pieces at once.",
   );
@@ -408,4 +407,18 @@ it("opens with the point and stops once the material settles", () => {
       ["g1f3", "d7d5"],
     ),
   ).toBeUndefined();
+});
+
+it("names the net gain and a quiet move's mate threat", () => {
+  // Qxd2 Rxd2 Kxd2: queen for queen cancels, so the gain is the rook.
+  const swap = "3rk3/8/8/8/8/8/3q4/R2QK3 w - - 0 1";
+  expect(
+    payoffFrame(swap, lineStoryboard(swap, ["d1d2", "d8d2", "e1d2"]))?.caption,
+  ).toBe("You've won a rook.");
+  // Qf3 threatens Qxf7#, and says so with the mating move drawn.
+  const italian =
+    "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 2 3";
+  const [qf3] = lineStoryboard(italian, ["d1f3"]);
+  expect(qf3?.caption).toBe("Qf3 threatens mate with Qxf7#.");
+  expect(qf3?.arrows.map(({ from, to }) => `${from}${to}`)).toContain("f3f7");
 });

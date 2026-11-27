@@ -38,16 +38,14 @@ test("a player steps through the answer, branches with their own move and asks a
 
   // Show me opens the answer on its first step and waits for the player.
   await page.getByRole("button", { name: "Show me" }).click();
-  await expect(stepper).toContainText("1 / 4");
-  await expect(bubble).toHaveText("Qxg5+ leads to mate. It comes with check.");
+  await expect(stepper).toContainText("1 / 3");
+  await expect(bubble).toContainText("Qxg5+");
   await expect(previous).toBeDisabled();
   await next.click();
-  await expect(bubble).toContainText("Qxg5+ takes my pawn");
-  await next.click();
-  await expect(stepper).toContainText("3 / 4");
+  await expect(stepper).toContainText("2 / 3");
   await expect(bubble).toHaveText("I have to play Kh8.");
   await previous.click();
-  await expect(stepper).toContainText("2 / 4");
+  await expect(stepper).toContainText("1 / 3");
   await previous.press("ArrowRight");
   await expect(bubble).toHaveText("I have to play Kh8.");
 
@@ -61,7 +59,7 @@ test("a player steps through the answer, branches with their own move and asks a
   await expect(bubble).toHaveText("Qg7# instead is checkmate.");
   await expect(page.locator("[data-move-cue-arrow='g5:g7']")).toHaveCount(1);
   await back.click();
-  await expect(stepper).toContainText("3 / 4");
+  await expect(stepper).toContainText("2 / 3");
   await expect(bubble).toHaveText("I have to play Kh8.");
 
   // A typed "why" about a move in the line is answered by code, offline
@@ -71,7 +69,7 @@ test("a player steps through the answer, branches with their own move and asks a
   await ask.fill("why Kh8?");
   await ask.press("Enter");
   await expect(bubble).toHaveText("Kh8 is my only legal move.");
-  await expect(stepper).toContainText("3 / 4");
+  await expect(stepper).toContainText("2 / 3");
   await expect(square(page, "Black king on h8")).toBeVisible();
   await next.click();
   await expect(bubble).toHaveText("Qg7# is checkmate.");
@@ -89,16 +87,15 @@ test("a question in words is answered on the step without moving the board", asy
   await page.getByRole("button", { name: "Show me" }).click();
   await page.getByRole("button", { name: "Next step" }).click();
   await page.getByRole("button", { name: "Next step" }).click();
-  await page.getByRole("button", { name: "Next step" }).click();
-  await expect(stepper).toContainText("4 / 4");
+  await expect(stepper).toContainText("3 / 3");
   const queen = square(page, "White queen on g7");
   await expect(queen).toBeVisible();
 
   const ask = page.getByRole("textbox", { name: "Ask Rook" });
   await ask.fill("why would queen take");
   await ask.press("Enter");
-  await expect(bubble).toContainText("Qxg5+ takes my pawn");
-  await expect(stepper).toContainText("4 / 4");
+  await expect(bubble).toContainText("Qxg5+ leads to mate.");
+  await expect(stepper).toContainText("3 / 3");
   await expect(queen).toBeVisible();
   await expect(page.getByText("Something else")).toHaveCount(0);
   await expect(
@@ -121,7 +118,6 @@ for (const offline of [false, true])
     const stepper = page.getByRole("group", { name: "Step through the line" });
     const next = page.getByRole("button", { name: "Next step" });
     await page.getByRole("button", { name: "Show me" }).click();
-    await next.click();
     await next.click();
     await square(page, "White queen on g5").click();
     await square(page, "Empty h6").click();
@@ -168,7 +164,6 @@ test("a new question clears the choices left by the last one", async ({
   ).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Show me" }).click();
   await page.getByRole("button", { name: "Next step" }).click();
-  await page.getByRole("button", { name: "Next step" }).click();
   const ask = page.getByRole("textbox", { name: "Ask Rook" });
   await ask.fill("why did the queen move");
   await ask.press("Enter");
@@ -191,7 +186,6 @@ test("a what-if in words shows the options on the board, then plays the one pick
     page.getByRole("heading", { name: /White to move/ }),
   ).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Show me" }).click();
-  await page.getByRole("button", { name: "Next step" }).click();
   await page.getByRole("button", { name: "Next step" }).click();
   const ask = page.getByRole("textbox", { name: "Ask Rook" });
   await ask.fill("what if queen moves next to king");

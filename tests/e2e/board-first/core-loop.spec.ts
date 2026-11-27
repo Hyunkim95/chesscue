@@ -65,10 +65,7 @@ test("a new player finds the warm-up idea on a retry and sees it recapped", asyn
   ).toHaveCount(0);
 
   // Show, don't tell: the player steps through the reason on the board.
-  // It opens on the point, then plays the line until it lands.
   await page.getByRole("button", { name: "Why does it work?" }).click();
-  await expect(bubble).toHaveText("Qxg5+ leads to mate. It comes with check.");
-  await page.getByRole("button", { name: "Next step" }).click();
   await expect(bubble).toContainText("Qxg5+");
   await expect(page.locator("[data-move-cue-arrow='g5:d2']")).toHaveCount(1);
   await page.getByRole("button", { name: "Next step" }).click();

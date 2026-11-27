@@ -20,6 +20,7 @@ import {
   staticExchange,
 } from "./board-relations";
 import { CENTRE, byCentrality } from "./centre-control";
+import { dangerFacts } from "./danger-facts";
 
 // "Show, don't tell": a verified line as board frames. Each frame is one move
 // with arrows to what it attacks and a one-line caption, so the explanation
@@ -135,6 +136,23 @@ function quietLearnerFrame(after: Chess, move: Move): StoryFrame {
   };
   const moved: BoardArrow = { from: move.from, to: move.to, kind: "preview" };
   const deeds = deedsOf(move);
+  // A quiet move that threatens mate in one says so first, with the mating
+  // move drawn: "Ng5 threatens mate with Qf7#."
+  const mate = (dangerFacts(after.fen()) ?? []).find(
+    ({ kind }) => kind === "mate-threat",
+  );
+  const mating = mate ? /with (\S+)\.$/.exec(mate.text)?.[1] : undefined;
+  const route = mate?.id.slice("mate-threat:".length);
+  const from = SQUARES.find((square) => square === route?.slice(0, 2));
+  const to = SQUARES.find((square) => square === route?.slice(2, 4));
+  if (mate && mating && from && to)
+    return {
+      ...base,
+      arrows: [moved, attack(from, to)],
+      outlines: [{ square: mate.target, tone: "coral" as const }],
+      control: [],
+      caption: `${move.san} threatens mate with ${mating}.`,
+    };
   if (deeds.castles)
     return {
       ...base,
@@ -643,6 +661,14 @@ export function payoffFrame(
     } else lost.push(move.captured);
   }
   if (board.isCheckmate() || won.length === 0) return undefined;
+  // Name the net gain: a queen for a queen cancels out.
+  for (const piece of [...lost]) {
+    const at = won.indexOf(piece);
+    if (at === -1) continue;
+    won.splice(at, 1);
+    lost.splice(lost.indexOf(piece), 1);
+  }
+  if (won.length === 0) return undefined;
   // A result only counts once the exchange is over: a piece the side to move
   // can still win at once is counted as taken.
   const pending = pendingCapture(board);
@@ -975,10 +1001,9 @@ export function refutationStoryboard({
   return [...frames, cost, ...(closing ? [closing] : [])];
 }
 
-// "Why does it work?" (PRD §5.8): one frame that states the point with its
-// arrow, then the line only until the point lands and material settles, with
-// quiet moves named and nothing more, then the payoff. Frame 0 is the point
-// on the starting board, so `moves` starts with "" to keep frames[i] playing
+// "Why does it work?" (PRD §5.8): the first move's frame states the point,
+// then the line plays only until the point lands and material settles, with
+// quiet moves named and nothing more, then the payoff. frames[i] plays
 // moves[i]. Undefined when the line neither mates nor wins material once it
 // settles: a quiet line has no point to show.
 export function pointStoryboard(
@@ -1019,21 +1044,14 @@ export function pointStoryboard(
       ? `${san} wins ${payoff.caption.replace(/^You've won /, "").replace(/\.$/, "")}.`
       : undefined;
   if (!result) return undefined;
+  // The point is said on the first move's own frame, not a frame before it.
   const point: StoryFrame = {
-    fen,
-    moveUci: "",
-    by: first.by,
-    arrows: [
-      ...first.arrows.filter(({ kind }) => kind !== "preview"),
-      ...first.arrows.filter(({ kind }) => kind === "preview"),
-    ],
-    outlines: first.outlines,
-    control: [],
+    ...first,
     caption: `${result}${pointReason(fen, first.moveUci, mates)}`,
   };
   return {
-    frames: [point, ...kept, ...(payoff && !mates ? [payoff] : [])],
-    moves: ["", ...line],
+    frames: [point, ...kept.slice(1), ...(payoff && !mates ? [payoff] : [])],
+    moves: line,
   };
 }
 
@@ -1064,7 +1082,22 @@ function pointReason(fen: string, uci: string, mates: boolean): string {
   if (move.captured && board.attackers(move.to, them).length === 0)
     return " It has no defender.";
   if (move.san.includes("+")) return " It comes with check.";
-  return "";
+  const threat = threatAfter(board, move.color);
+  return threat ? ` It ${threat}.` : "";
+}
+
+// What a move threatens, from the other side's checked dangers: mate in one,
+// or a piece it can win. "threatens mate with Qf7#".
+function threatAfter(after: Chess, mover: Color): string | undefined {
+  if (after.turn() === mover) return undefined;
+  const facts = dangerFacts(after.fen()) ?? [];
+  const mate = facts.find(({ kind }) => kind === "mate-threat");
+  const mating = mate ? /with (\S+)\.$/.exec(mate.text)?.[1] : undefined;
+  if (mating) return `threatens mate with ${mating}`;
+  const win = facts.find(({ kind }) => kind === "wins-material");
+  return win
+    ? `threatens to win my ${PIECE_NAME[win.piece]} on ${win.target}`
+    : undefined;
 }
 
 // A move in the middle of a tactic that is not a check, capture or threat
