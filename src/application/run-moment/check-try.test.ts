@@ -55,7 +55,23 @@ it("accepts the best move without a search and answers with the line", async () 
     value: {
       attempt: { san: "Nxg5+", tier: "best", replyUci: "f7f6" },
       replySan: "Kf6",
+      line: ["f3g5", "f7f6", "g5e6"],
     },
+  });
+});
+
+it("returns a good move of the player's own with Stockfish's line after it", async () => {
+  // Within a plan's wider tolerance, a different move counts as best.
+  const { fake } = engine("f7g8", -700);
+  const result = await checkTry({
+    position: { ...FORK, toleranceCp: 75 },
+    uci: "c3c2",
+    engine: fake,
+    signal,
+  });
+  expect(result).toMatchObject({
+    ok: true,
+    value: { attempt: { tier: "best" }, line: ["c3c2", "f7g8"] },
   });
 });
 

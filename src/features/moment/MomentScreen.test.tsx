@@ -76,6 +76,77 @@ function renderFork() {
 const square = (name: string) =>
   screen.getByRole("gridcell", { name: new RegExp(`^${name}`) });
 
+const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const PLAN: MomentSpec = {
+  ...FORK,
+  id: "plan",
+  fen: START,
+  bestUci: "g1f3",
+  bestCp: 28,
+  solutionLine: ["g1f3", "g8f6"],
+  toleranceCp: 75,
+  goal: {
+    kind: "plan",
+    prompt: "Fight for the centre.",
+    arrows: [],
+    outlines: [
+      { square: "d4", tone: "jade" },
+      { square: "e4", tone: "jade" },
+    ],
+  },
+};
+
+it("marks a plan's goal on the board and replays the player's own good move", async () => {
+  // Stockfish rates e4 within the plan tolerance and answers e5.
+  const good: AnalysisEngine = {
+    ...engine,
+    analyze: () =>
+      Promise.resolve(
+        ok({
+          candidates: [
+            {
+              uci: "e7e5",
+              evaluationCpFromSideToMove: -20,
+              principalVariation: ["e7e5"],
+              depth: 14,
+            },
+          ],
+        }),
+      ),
+  };
+  render(
+    <MomentScreen
+      moment={PLAN}
+      online={false}
+      checkMove={(uci, signal) =>
+        checkTry({ position: PLAN, uci, engine: good, signal })
+      }
+      analyzePosition={() => Promise.resolve(ok({ candidates: [] }))}
+      askRook={() => Promise.resolve({ kind: "unrouted" })}
+      onComplete={() => undefined}
+      onContinue={() => undefined}
+    />,
+  );
+  expect(screen.getByText("Fight for the centre.")).toBeVisible();
+  expect(square("Empty d4").className).toContain("outline-jade");
+  fireEvent.click(square("White pawn on e2"));
+  // Selecting a piece keeps the goal marked.
+  expect(square("Empty e4").className).toContain("outline-jade");
+  fireEvent.click(square("Empty e4"));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Why does it work?" }),
+  );
+  // The player's own move and Rook's answer to it, not Rook's main line.
+  expect(screen.getByText("e4 adds control of d5 and f5.")).toBeVisible();
+  expect(
+    await screen.findByText(
+      "Nf3 works too. It also covers d4 and e5.",
+      {},
+      { timeout: 6_000 },
+    ),
+  ).toBeVisible();
+}, 10_000);
+
 it("offers Rook's other defence after solving and plays it from the solved position", async () => {
   const analyses = renderFork();
   fireEvent.click(square("White knight on f3"));

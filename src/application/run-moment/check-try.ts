@@ -28,6 +28,9 @@ export interface CheckedTry {
   readonly replyFen: string | undefined;
   readonly replySan: string | undefined;
   readonly playedCp: number;
+  // The tried move and Stockfish's line after it, so a good move of the
+  // player's own can be replayed as it is rather than as Rook's main line.
+  readonly line: readonly string[];
 }
 
 export type CheckFailure =
@@ -70,11 +73,13 @@ export async function checkTry({
   const after = new Chess(move.after);
   let playedCp: number;
   let replyUci: string | undefined;
+  let continuation: readonly string[] = [];
   if (after.isCheckmate()) playedCp = MATED_CP;
   else if (after.isDraw()) playedCp = 0;
   else if (move.lan === position.bestUci) {
     playedCp = position.bestCp;
     replyUci = position.solutionLine[1];
+    continuation = position.solutionLine.slice(1);
   } else {
     const analysis = await engine.analyze({
       fen: move.after,
@@ -91,6 +96,10 @@ export async function checkTry({
       });
     playedCp = -top.evaluationCpFromSideToMove;
     replyUci = top.uci;
+    continuation =
+      top.principalVariation[0] === top.uci
+        ? top.principalVariation
+        : [top.uci];
   }
   const reply = replyUci === undefined ? undefined : play(move.after, replyUci);
   const tier = feedbackTier({
@@ -111,5 +120,6 @@ export async function checkTry({
     replyFen: reply?.after,
     replySan: reply?.san,
     playedCp,
+    line: [move.lan, ...continuation],
   });
 }

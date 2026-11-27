@@ -16,6 +16,7 @@ import type {
 } from "../../application/analyze-game/analysis-engine";
 import type { BoardArrow } from "../../domain/analysis/board-move-cues";
 import {
+  alternativeFrame,
   lineStoryboard,
   type StoryFrame,
 } from "../../domain/analysis/line-storyboard";
@@ -211,10 +212,21 @@ export function MomentScreen({
       ? []
       : session.state.attempts;
   const result = sessionResult(session);
-  const storyboard = lineStoryboard(moment.fen, moment.solutionLine);
+  // The line the player solved it with: Rook's main line, or the player's own
+  // good move and Stockfish's answer to it, followed by Rook's move and what
+  // it adds.
+  const [solvedLine, setSolvedLine] = useState<readonly string[]>(
+    moment.solutionLine,
+  );
+  const solvedUci = solvedLine[0] ?? moment.bestUci;
+  const alternative = alternativeFrame(moment.fen, solvedUci, moment.bestUci);
+  const storyboard = [
+    ...lineStoryboard(moment.fen, solvedLine),
+    ...(alternative ? [alternative] : []),
+  ];
   const afterSolution = (() => {
     try {
-      return new Chess(moment.fen).move(uciMove(moment.bestUci)).after;
+      return new Chess(moment.fen).move(uciMove(solvedUci)).after;
     } catch {
       return undefined;
     }
@@ -234,7 +246,7 @@ export function MomentScreen({
     void analyzePosition(afterSolution, 2, signal).then((analysis) => {
       if (!analysis.ok || signal.aborted) return;
       const other = analysis.value.candidates.find(
-        ({ uci }) => uci !== moment.solutionLine[1],
+        ({ uci }) => uci !== solvedLine[1],
       );
       const san = other ? sanFor(afterSolution, other.uci) : undefined;
       if (other && san)
@@ -244,7 +256,7 @@ export function MomentScreen({
           line: [other.uci, ...other.principalVariation.slice(1)],
         });
     });
-  }, [solved, afterSolution, analyzePosition, moment.solutionLine]);
+  }, [solved, afterSolution, analyzePosition, solvedLine]);
   const bestSan = sanFor(moment.fen, moment.bestUci) ?? moment.bestUci;
 
   function send(...events: SessionEvent[]) {
@@ -295,9 +307,10 @@ export function MomentScreen({
       });
       return;
     }
-    const { attempt, afterFen, replyFen, replySan } = checked.value;
+    const { attempt, afterFen, replyFen, replySan, line } = checked.value;
     send({ kind: "try", attempt });
     if (attempt.tier === "best") {
+      setSolvedLine(line);
       setView({
         fen: afterFen,
         lastMoveUci: attempt.uci,
@@ -621,6 +634,17 @@ export function MomentScreen({
       view.arrows.length > ghostArrows(attempts).length);
   const missed = attempts.filter((attempt) => attempt.tier !== "best");
   const xp = result ? attemptXp(result) : 0;
+  // A plan's goal marks its pieces on the bare starting board while the
+  // player is solving; any answer drawn on the board replaces them.
+  const goalMarks =
+    moment.goal.kind === "plan" &&
+    solving &&
+    atStart &&
+    !view.previewTag &&
+    view.outlines.length === 0 &&
+    view.arrows.length === ghostArrows(attempts).length
+      ? moment.goal
+      : undefined;
 
   return (
     <div className="moment board-split">
@@ -642,8 +666,10 @@ export function MomentScreen({
           legalTargets={selected ? legalTargets(moment.fen, selected) : []}
           onSquareSelect={selectSquare}
           disabled={busy || !solving || !atStart}
-          extraArrows={view.arrows}
-          outlines={view.outlines}
+          extraArrows={
+            goalMarks ? [...goalMarks.arrows, ...view.arrows] : view.arrows
+          }
+          outlines={goalMarks ? goalMarks.outlines : view.outlines}
           previewTag={view.previewTag}
           spotSquare={view.spot}
           controlChanges={

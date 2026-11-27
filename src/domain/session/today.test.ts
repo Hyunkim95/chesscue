@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 
+import type { ObservedMove } from "../curriculum/game-drill";
 import { attemptRecord, forkObservation } from "../progress/test-fixtures";
 import { pickToday, type TodayInput } from "./today";
 
@@ -21,6 +22,49 @@ it("picks a new moment from the player's games first", () => {
   expect(pickToday({ ...empty, moments: [moment] })).toEqual({
     kind: "new",
     moment,
+  });
+});
+
+// The Two Knights after 4. Ng5, Black to move: a quiet position whose best
+// move is d5. `secondCp` is the second-best move's evaluation.
+function planMoment(secondCp: number): ObservedMove {
+  const base = forkObservation("retry", "2026-11-26T10:01:00Z", "plan-game");
+  const { exercise } = base.drill;
+  return {
+    ...base,
+    drill: {
+      ...base.drill,
+      exercise: {
+        ...exercise,
+        fen: "r1bqkb1r/pppp1ppp/2n2n2/4p1N1/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 5 4",
+        verification: {
+          ...exercise.verification,
+          principalVariation: ["d7d5", "e4d5", "c6a5"],
+          candidates: [
+            { uci: "d7d5", evaluationCp: -10 },
+            { uci: "f8c5", evaluationCp: secondCp },
+          ],
+        },
+      },
+    },
+  };
+}
+
+it("skips a plan position with several good moves for the next candidate", () => {
+  const fork = forkObservation("retry");
+  const unclear = planMoment(-40);
+  expect(pickToday({ ...empty, moments: [unclear, fork] })).toEqual({
+    kind: "new",
+    moment: fork,
+  });
+  // Nothing else to offer: the player has games, so they are caught up.
+  expect(pickToday({ ...empty, moments: [unclear] })).toEqual({
+    kind: "caught-up",
+  });
+  const clear = planMoment(-113);
+  expect(pickToday({ ...empty, moments: [clear, fork] })).toEqual({
+    kind: "new",
+    moment: clear,
   });
 });
 

@@ -20,6 +20,17 @@ export const CENTRE: readonly Square[] = [
   "f6",
 ];
 
+// The four squares in the middle of the board.
+export const CORE_CENTRE: readonly Square[] = ["d4", "e4", "d5", "e5"];
+
+// Core squares first, so a short list names the ones that matter most.
+export function byCentrality(squares: readonly Square[]): Square[] {
+  return [
+    ...squares.filter((square) => CORE_CENTRE.includes(square)),
+    ...squares.filter((square) => !CORE_CENTRE.includes(square)),
+  ];
+}
+
 export interface ControlChange {
   readonly gained: readonly Square[];
   readonly lost: readonly Square[];
