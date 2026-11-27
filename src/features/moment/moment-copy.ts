@@ -240,8 +240,8 @@ export function captureReasonFromBoard(
   }
 }
 
-// What a line costs and wins Rook, who moves first: "Taking your bishop
-// costs me a queen, but I get a bishop and a knight for her."
+// What a line costs and wins Rook, who moves first: "So I take your bishop
+// instead. It costs me a queen, but I get a bishop and a knight for her."
 export function sacrificeSentence(
   fen: string,
   line: readonly string[],
@@ -264,7 +264,7 @@ export function sacrificeSentence(
     }
     if (!first?.captured || lost.length === 0) return undefined;
     const own = first.piece === "q" ? "her" : "it";
-    return `Taking your ${NAME[first.captured]} costs me ${pieceWords(lost)}, but I get ${pieceWords(won)} for ${own}.`;
+    return `So I take your ${NAME[first.captured]} instead. It costs me ${pieceWords(lost)}, but I get ${pieceWords(won)} for ${own}.`;
   } catch {
     return undefined;
   }

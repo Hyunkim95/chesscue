@@ -1048,7 +1048,9 @@ export function MomentScreen({
   // other move, then what the capture costs and wins. "If my queen runs with
   // Qd2, you answer Nd3+ and I'm much worse off. Taking your bishop costs me
   // a queen, but I get a bishop and a knight for her."
-  async function searchedReason(uci: string): Promise<string | undefined> {
+  async function searchedReason(
+    uci: string,
+  ): Promise<{ readonly text: string; readonly story?: Story } | undefined> {
     const rook = rookMoveContext(uci);
     if (!rook) return undefined;
     const analysis = await analyzePosition(
@@ -1089,7 +1091,58 @@ export function MomentScreen({
         ? `If my ${PIECE_NAME[piece.type]} runs with ${altSan}`
         : `If I play ${altSan} instead`;
     const cost = sacrificeSentence(rook.before, [uci, ...rook.rest]);
-    return `${runs}, you answer ${replySan} and I'm much worse off.${cost ? ` ${cost}` : ""}`;
+    const text = `${runs}, you answer ${replySan} and I'm much worse off.${cost ? ` ${cost}` : ""}`;
+    // Show, don't tell: the escape plays on the board as a branch, then what
+    // it costs, then why the capture is better.
+    const escape = [
+      alternative.uci,
+      ...alternative.principalVariation.slice(1),
+    ];
+    const frames = lineStoryboard(rook.before, escape, learnerColor);
+    const [first, ...rest] = frames;
+    const last = frames.at(-1);
+    if (!first || !last) return { text };
+    const payoff = payoffFrame(rook.before, frames);
+    const closing: StoryFrame = {
+      fen: (payoff ?? last).fen,
+      moveUci: "",
+      by: "rook",
+      arrows: [],
+      outlines: [],
+      control: [],
+      caption:
+        cost ?? `So I take your ${capturedName(rook.before, uci)} instead.`,
+    };
+    return {
+      text,
+      story: {
+        start: rook.before,
+        frames: [
+          {
+            ...first,
+            caption: `${runs}, you answer ${replySan} and I'm much worse off.`,
+          },
+          ...rest,
+          ...(payoff ? [payoff] : []),
+          closing,
+        ],
+        step: 0,
+        mood: "cool",
+        back: story ?? "start",
+      },
+    };
+  }
+
+  function capturedName(fen: string, uci: string): string {
+    const piece = capturedBy(fen, uci);
+    return piece === "p" ||
+      piece === "n" ||
+      piece === "b" ||
+      piece === "r" ||
+      piece === "q" ||
+      piece === "k"
+      ? PIECE_NAME[piece]
+      : "piece";
   }
 
   // A typed question is answered where the player is looking. Anything that
@@ -1128,10 +1181,14 @@ export function MomentScreen({
           const uci = action.uci;
           void searchedReason(uci)
             .catch(() => undefined)
-            .then((text) => {
+            .then((found) => {
               setBusy(false);
+              if (found?.story) {
+                openStory(found.story, understood);
+                return;
+              }
               setSay({
-                text: text ?? captureFallback(uci),
+                text: found?.text ?? captureFallback(uci),
                 mood: "idle",
                 understood,
               });

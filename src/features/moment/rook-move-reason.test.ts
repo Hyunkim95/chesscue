@@ -71,7 +71,7 @@ it("says what Rook's sacrifice costs and wins", () => {
   const afterBf5 =
     "r3r1k1/ppp2ppp/3p1q2/2n2bN1/N1PP4/8/PPQ1P1PP/R1B1KB1R w KQ - 1 14";
   expect(sacrificeSentence(afterBf5, ["c2f5", "f6f5", "d4c5"])).toBe(
-    "Taking your bishop costs me a queen, but I get a bishop and a knight for her.",
+    "So I take your bishop instead. It costs me a queen, but I get a bishop and a knight for her.",
   );
   // From the board alone there is no reason to give up the queen.
   expect(
