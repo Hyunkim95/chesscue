@@ -98,7 +98,7 @@
 
   .board-split__main {
     justify-self: center;
-    width: min(100%, calc(100dvh - 150px));
+    width: min(100%, calc(100dvh - 190px));
   }
 
   .board-split__aside {
