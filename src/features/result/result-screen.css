@@ -1,0 +1,90 @@
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.result__card {
+  padding: 10px;
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-color-surface);
+  box-shadow:
+    0 5px 0 var(--ui-color-shade),
+    inset 0 0 0 2px color-mix(in srgb, var(--ui-color-brass) 25%, transparent);
+}
+
+.result__head {
+  display: grid;
+  gap: 2px;
+  padding: 10px 4px 4px;
+}
+
+.result__title {
+  margin: 0;
+  font: 600 24px/1.15 var(--ui-font-display);
+  color: var(--ui-color-ink);
+}
+
+.result__rank {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 0;
+  font: 700 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.result__detail--quiet {
+  font: 700 15px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.result__found {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 12px;
+  font: 600 20px/1.2 var(--ui-font-display);
+  color: var(--ui-color-ink);
+}
+
+.result__actions {
+  display: grid;
+  gap: 12px;
+}
+
+/* The existing Share this win disclosure, quiet under the actions. */
+.result__share .share-win {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  color: var(--ui-color-ink);
+}
+
+.result__share .share-win summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--ui-space-target);
+  font: 700 14px var(--ui-font-body);
+  color: var(--ui-color-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.result__share .share-win summary::-webkit-details-marker {
+  display: none;
+}
+
+.result__share .share-win summary:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  border-radius: var(--ui-radius-control);
+}
+
+.result__share .share-win select {
+  min-height: var(--ui-space-target);
+  color: var(--ui-color-ink);
+  background: var(--ui-color-deep);
+  border: 1px solid var(--ui-color-line);
+  border-radius: var(--ui-radius-control);
+}

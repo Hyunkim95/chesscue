@@ -48,6 +48,17 @@ import {
 } from "../domain/curriculum/recommend-unit";
 import { usePlayingSnapshot } from "./use-playing-snapshot";
 import { BoardFirstScreens } from "./board-first/BoardFirstScreens";
+import { gameMomentId } from "./board-first/moment-specs";
+import { finalPosition } from "../features/result/final-position";
+import {
+  ResultScreen,
+  type ResultMoments,
+} from "../features/result/ResultScreen";
+import { rankArt } from "../features/progression/rank-art";
+import { deriveProgress } from "../domain/progress/derive-progress";
+import type { MomentAttemptRecord } from "../domain/progress/types";
+import { AppShell } from "../shared/navigation/AppShell";
+import { Avatar, StreakChip, XpChip } from "../shared/ui/primitives";
 import { TabBar } from "../shared/navigation/TabBar";
 import {
   boardFirst,
@@ -108,6 +119,7 @@ import { err, ok } from "../shared/result/result";
 import { buildPlayerProfile, type PlayerProfile } from "../domain/curriculum";
 import {
   observedGameMoves,
+  type ObservedMove,
   type VerifiedGameDrill,
 } from "../domain/curriculum/game-drill";
 import { mateOpportunities } from "../domain/game/coach-moments";
@@ -815,7 +827,8 @@ function PlayerApp({
     history,
     view === "training" ||
       (view === "practice" && !curated && !mistakeDrill) ||
-      isBoardFirstView(view),
+      isBoardFirstView(view) ||
+      (boardFirst && view === "result"),
     snapshotRevision,
     loadGameAnalysis,
   );
@@ -1173,6 +1186,34 @@ function PlayerApp({
     reviewPerspective,
     refreshAdaptiveProfile,
   ]);
+  // Board-first result: this game's own analysis says whether Rook is still
+  // reading it, and stored attempts give the shell its streak and XP.
+  const [resultRead, setResultRead] = useState<{
+    readonly gameId: string;
+    readonly moves: readonly ObservedMove[] | "failed";
+  } | null>(null);
+  const [resultAttempts, setResultAttempts] = useState<
+    readonly MomentAttemptRecord[]
+  >([]);
+  useEffect(() => {
+    if (!boardFirst || view !== "result" || ratedGame === null) return;
+    let live = true;
+    void loadGameAnalysis(history, ratedGame).then((result) => {
+      if (live)
+        setResultRead({
+          gameId: ratedGame.id,
+          moves: result.ok
+            ? observedGameMoves(ratedGame, result.value)
+            : "failed",
+        });
+    });
+    void history.moments.listAll().then((listed) => {
+      if (live && listed.ok) setResultAttempts(listed.value);
+    });
+    return () => {
+      live = false;
+    };
+  }, [history, view, ratedGame]);
   const analyzeGame = useCallback(
     (game: GameRecord, perspective?: PlayerColor, saved = false) => {
       const target =
@@ -1487,6 +1528,120 @@ function PlayerApp({
         }}
       />
     );
+
+  if (boardFirst && view === "result") {
+    const game = ratedGame?.id === routedGameId(gameRoute) ? ratedGame : null;
+    const rated = game !== null && tutorGameMode(game) === "rated";
+    const read =
+      resultRead?.gameId === game?.id ? resultRead?.moves : undefined;
+    const ownMoves =
+      snapshot.status === "ready" && game !== null
+        ? snapshot.moves.filter((move) => move.game.id === game.id)
+        : [];
+    const retries = ownMoves
+      .filter(({ outcome }) => outcome === "retry")
+      .toSorted((a, b) => a.ply - b.ply);
+    // Rook keeps reading until the snapshot holds this game's moments, so
+    // "Look at them" always opens a position the moment screen can find.
+    const moments: ResultMoments =
+      read === "failed" || snapshot.status === "failed"
+        ? { kind: "failed" }
+        : read === undefined ||
+            snapshot.status !== "ready" ||
+            !snapshot.games.some(({ id }) => id === game?.id) ||
+            (retries.length === 0 &&
+              read.some(({ outcome }) => outcome === "retry") &&
+              snapshot.checked + snapshot.failed < snapshot.total)
+          ? { kind: "reading" }
+          : { kind: "found", count: retries.length };
+    const progress = deriveProgress({
+      attempts: resultAttempts,
+      games: snapshot.status === "ready" ? snapshot.moves : [],
+      // Only the streak and XP are shown here; neither reads the curriculum.
+      curriculum: [],
+      now: new Date(),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+    return (
+      <AppShell
+        mode={{
+          kind: "tabs",
+          current: "play",
+          onNavigate: (tab) => {
+            if (tab === "play") setView("play-mode");
+            else if (tab === "games") setView("review-home");
+            else setView(tab);
+          },
+          start: (
+            <>
+              <StreakChip days={progress.streak.current} />
+              <XpChip xp={progress.xp} />
+            </>
+          ),
+          end: (
+            <Avatar
+              name={user?.name ?? "You"}
+              badgeUrl={rankArt[rankForElo(targetElo).name]}
+              onClick={() => {
+                setView("profile");
+              }}
+            />
+          ),
+        }}
+      >
+        {game === null ? (
+          missingGame ? (
+            <p role="alert">
+              This game is unavailable in this player’s history.
+            </p>
+          ) : (
+            <LoadingState>Opening your game…</LoadingState>
+          )
+        ) : (
+          <ResultScreen
+            position={finalPosition(game)}
+            rating={
+              !rated
+                ? { kind: "unrated" }
+                : selectedRating !== undefined
+                  ? {
+                      kind: "rated",
+                      before: selectedRating.before,
+                      after: selectedRating.after,
+                    }
+                  : ratingError
+                    ? { kind: "failed" }
+                    : { kind: "loading" }
+            }
+            moments={moments}
+            share={
+              <Suspense>
+                <ShareWin
+                  game={game}
+                  uid={user?.uid ?? null}
+                  session={session}
+                />
+              </Suspense>
+            }
+            onLookAtMoments={() => {
+              const first = retries[0];
+              if (first)
+                setView(
+                  "moment",
+                  "#moment/" + encodeURIComponent(gameMomentId(first)),
+                );
+            }}
+            onPlayAgain={() => {
+              openGame(rated ? "rated" : "coached");
+            }}
+            onRetryRating={() => {
+              void refreshRatings();
+            }}
+          />
+        )}
+      </AppShell>
+    );
+  }
 
   function navigateSection(destination: PanelDestination) {
     setView(
