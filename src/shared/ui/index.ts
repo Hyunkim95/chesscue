@@ -3,6 +3,7 @@ export {
   Button,
   Chip,
   ChipRow,
+  CountUp,
   Modal,
   Pill,
   ProgressDots,

@@ -1,5 +1,5 @@
 import { Chess, SQUARES, type Square } from "chess.js";
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import type {
   BoardArrow,
@@ -7,6 +7,7 @@ import type {
 } from "../../domain/analysis/board-move-cues";
 import type { PlayerColor } from "../../domain/game/types";
 import { pieceNames, pieceSymbols } from "./board-pieces";
+import { NO_MOTION, pieceMotion } from "./piece-motion";
 import "./chess-board.css";
 
 const indices = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -35,6 +36,8 @@ export interface ChessBoardProps {
   readonly orientation?: PlayerColor;
   readonly className?: string;
   readonly lastMoveUci?: string | null | undefined;
+  // Pieces slide from the position shown before: one move, a move and its
+  // reply, or a Reset back to the start.
   readonly animateMove?: boolean;
   readonly highlightedSquare?: string | null;
   readonly focusSquares?: readonly Square[];
@@ -143,6 +146,20 @@ export function ChessBoard({
   previewTag,
   spotSquare,
 }: ChessBoardProps) {
+  // The position shown before this one, kept only when it should animate.
+  const [shown, setShown] = useState<{
+    readonly fen: string | undefined;
+    readonly from: string | undefined;
+  }>({ fen, from: undefined });
+  if (shown.fen !== fen)
+    setShown({ fen, from: animateMove ? shown.fen : undefined });
+  const motion = useMemo(
+    () =>
+      shown.from === undefined || fen === undefined
+        ? NO_MOTION
+        : pieceMotion(shown.from, fen),
+    [shown.from, fen],
+  );
   let board: ReturnType<Chess["board"]>;
   try {
     board = new Chess(fen).board();
@@ -152,9 +169,12 @@ export function ChessBoard({
   const order = orientation === "white" ? indices : indices.toReversed();
   const lastFrom = lastMoveUci?.slice(0, 2);
   const lastTo = lastMoveUci?.slice(2, 4);
-  const animatedOrigin = animateMove
-    ? SQUARES.find((square) => square === lastFrom)
-    : undefined;
+  // Without a position before (a board that opens on a move), the last
+  // move slides in.
+  const animatedOrigin =
+    animateMove && shown.from === undefined
+      ? SQUARES.find((square) => square === lastFrom)
+      : undefined;
   const arrows: readonly BoardArrow[] = [
     ...extraArrows,
     ...(controlTarget
@@ -176,13 +196,16 @@ export function ChessBoard({
               const square = SQUARES[row * 8 + column];
               if (square === undefined) return null;
               const piece = board[row]?.[column];
-              const slide =
-                animatedOrigin && square === lastTo
-                  ? {
-                      from: squareCenter(animatedOrigin, orientation),
-                      to: squareCenter(square, orientation),
-                    }
-                  : undefined;
+              const origin =
+                motion.slides.get(square) ??
+                (square === lastTo ? animatedOrigin : undefined);
+              const slide = origin
+                ? {
+                    from: squareCenter(origin, orientation),
+                    to: squareCenter(square, orientation),
+                  }
+                : undefined;
+              const appearing = motion.appearing.has(square);
               const dark = (row + column) % 2 === 1;
               const selected = selectedSquare === square;
               const target = legalTargets.includes(square);
@@ -240,7 +263,15 @@ export function ChessBoard({
                 <>
                   {piece == null ? null : (
                     <span
-                      className={`chess-board__piece chess-board__piece--${piece.color === "w" ? "white" : "black"}${slide ? " chess-board__piece--sliding" : ""}`}
+                      // A new key per position restarts the slide.
+                      key={
+                        origin
+                          ? `slide:${origin}:${String(fen)}`
+                          : appearing
+                            ? `appear:${String(fen)}`
+                            : "piece"
+                      }
+                      className={`chess-board__piece chess-board__piece--${piece.color === "w" ? "white" : "black"}${slide ? " chess-board__piece--sliding" : ""}${appearing ? " chess-board__piece--appearing" : ""}`}
                       style={
                         slide
                           ? {

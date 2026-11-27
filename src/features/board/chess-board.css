@@ -232,7 +232,12 @@ button.chess-board__square--control-inspected {
 .chess-board__piece--sliding {
   position: relative;
   z-index: 4;
-  animation: chess-board-slide 240ms ease-out both;
+  animation: chess-board-slide var(--ui-motion-slide, 240ms) ease-out both;
+}
+
+/* A captured piece coming back, as on Reset. */
+.chess-board__piece--appearing {
+  animation: chess-board-appear var(--ui-motion-slide, 240ms) ease-out both;
 }
 
 @keyframes chess-board-slide {
@@ -241,8 +246,16 @@ button.chess-board__square--control-inspected {
   }
 }
 
+@keyframes chess-board-appear {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .chess-board__piece--sliding {
+  .chess-board__piece--sliding,
+  .chess-board__piece--appearing {
     animation-duration: 1ms;
   }
 }

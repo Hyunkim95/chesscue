@@ -45,8 +45,10 @@ import { RookCharacter, type RookMood } from "../../shared/rook/RookCharacter";
 import {
   Button,
   ChipRow,
+  CountUp,
   Modal,
   Pill,
+  Ring,
   Sheet,
 } from "../../shared/ui/primitives";
 import { ChessBoard, type BoardOutline } from "../board/ChessBoard";
@@ -156,6 +158,7 @@ export function MomentScreen({
   askRook,
   onComplete,
   onContinue,
+  dailyGoal,
 }: {
   readonly moment: MomentSpec;
   readonly online: boolean;
@@ -176,6 +179,10 @@ export function MomentScreen({
   // Called once with the finished result, to record it.
   readonly onComplete: (result: MomentResult) => void;
   readonly onContinue: () => void;
+  // Today's goal, which fills on the celebration.
+  readonly dailyGoal?:
+    | { readonly done: number; readonly target: number }
+    | undefined;
 }) {
   const start: BoardView = { fen: moment.fen, arrows: [], outlines: [] };
   const [session, setSession] = useState<MomentSession>(startSession);
@@ -263,6 +270,23 @@ export function MomentScreen({
     setSession((current) => events.reduce(advanceSession, current));
   }
 
+  // The board answers the tap at once; Rook's reply follows once the engine
+  // has checked the move.
+  function showPlayed(uci: string, previewTag?: string) {
+    try {
+      const after = new Chess(moment.fen).move(uciMove(uci)).after;
+      setView({
+        fen: after,
+        lastMoveUci: uci,
+        arrows: [],
+        outlines: [],
+        previewTag,
+      });
+    } catch {
+      // An illegal move stays off the board; the check says so.
+    }
+  }
+
   function later(action: () => void, ms: number) {
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(action, ms);
@@ -297,10 +321,13 @@ export function MomentScreen({
   async function tryMove(uci: string) {
     setSelected(undefined);
     setBusy(true);
+    const before = view;
+    showPlayed(uci);
     setSay({ text: "Let me see…", mood: "think" });
     const checked = await checkMove(uci, controller.current.signal);
     setBusy(false);
     if (!checked.ok) {
+      setView(before);
       setSay({
         text: "I couldn't check that move just now. Try it again.",
         mood: "hmm",
@@ -352,10 +379,13 @@ export function MomentScreen({
     if (solving) send({ kind: "help" });
     send({ kind: "explore", key: `preview:${uci}` });
     setBusy(true);
+    const before = view;
+    showPlayed(uci, "Preview · not played");
     setSay({ text: "Let me see…", mood: "think", understood });
     const checked = await checkMove(uci, controller.current.signal);
     setBusy(false);
     if (!checked.ok) {
+      setView(before);
       setSay({
         text:
           checked.error.code === "illegal"
@@ -624,8 +654,11 @@ export function MomentScreen({
   const atStart = view.fen === moment.fen;
   // Try again is the reset after a not-best move; Reset covers everything
   // else that changed the board: previews, answers and storyboards.
-  const tryAgain = solving && kind !== "before" && !atStart && !view.previewTag;
+  // Neither shows while a played move waits on the engine.
+  const tryAgain =
+    !busy && solving && kind !== "before" && !atStart && !view.previewTag;
   const showReset =
+    !busy &&
     kind !== "done" &&
     sheet === undefined &&
     !tryAgain &&
@@ -661,7 +694,8 @@ export function MomentScreen({
           label={`${turn} to move. ${moment.sourceLabel}`}
           orientation={turn === "White" ? "white" : "black"}
           lastMoveUci={view.lastMoveUci}
-          animateMove={view.animate ?? false}
+          // Every change of position slides, including Reset.
+          animateMove={view.animate ?? true}
           selectedSquare={selected ?? null}
           legalTargets={selected ? legalTargets(moment.fen, selected) : []}
           onSquareSelect={selectSquare}
@@ -790,7 +824,23 @@ export function MomentScreen({
             </small>
           </div>
         )}
-        <p className="moment__xp">+{xp} XP</p>
+        <div className="moment__reward">
+          <p className="moment__xp">
+            <CountUp value={xp} format={(gained) => `+${String(gained)} XP`} />
+          </p>
+          {dailyGoal && (
+            <span className="moment__goal-ring">
+              <Ring
+                countUp
+                size="sm"
+                done={dailyGoal.done}
+                target={dailyGoal.target}
+                label={`Today: ${String(Math.min(dailyGoal.done, dailyGoal.target))} of ${String(dailyGoal.target)} positions`}
+              />
+              <small aria-hidden="true">today</small>
+            </span>
+          )}
+        </div>
         <Button wide onClick={onContinue}>
           Continue
         </Button>

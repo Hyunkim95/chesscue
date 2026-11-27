@@ -44,6 +44,11 @@
   cursor: pointer;
 }
 
+.app-shell__exit:active {
+  color: var(--ui-color-ink);
+  background: color-mix(in srgb, var(--ui-color-ink) 12%, transparent);
+}
+
 .app-shell__exit:focus-visible {
   outline: 3px solid var(--ui-color-gold);
 }
@@ -56,6 +61,26 @@
   gap: 12px;
   min-width: 0;
   padding: 12px var(--ui-space-gutter) 18px;
+}
+
+/* Switching tabs fades the new screen in; the tab bar stays still. Opacity
+   never changes where a tap lands, so the screen is usable at once. */
+.app-shell--tabs .app-shell__body,
+.app-frame:has(.board-first-tabs) > main {
+  animation: app-shell-screen-in var(--ui-motion-screen) ease-out;
+}
+
+@keyframes app-shell-screen-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell--tabs .app-shell__body,
+  .app-frame:has(.board-first-tabs) > main {
+    animation: none;
+  }
 }
 
 /* On wide screens the column stays phone-shaped and centred. */

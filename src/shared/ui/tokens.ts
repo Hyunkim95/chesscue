@@ -56,8 +56,13 @@ export const tokens = {
   },
   motion: {
     fast: "80ms",
+    // A tab's screen cross-fade and a piece sliding one move.
+    screen: "180ms",
+    slide: "240ms",
     base: "350ms",
     slow: "450ms",
+    // A number counting up, such as XP on the celebration.
+    count: "700ms",
     spring: "cubic-bezier(0.2, 1.3, 0.4, 1)",
   },
   space: {
