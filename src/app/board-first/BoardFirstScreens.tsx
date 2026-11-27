@@ -84,6 +84,12 @@ const warmUp = pack.puzzles
   .toSorted((a, b) => a.rating - b.rating)[0];
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const VOICE_KEY = "chesscue-rook-voice";
+// The last attempts read for each player, so a return from a legacy tab shows
+// Today at once while the list refreshes behind it.
+const attemptCache = new WeakMap<
+  PlayerHistory,
+  readonly MomentAttemptRecord[]
+>();
 
 function useOnline(): boolean {
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -195,7 +201,7 @@ export function BoardFirstScreens({
   const online = useOnline();
   const [attempts, setAttempts] = useState<
     readonly MomentAttemptRecord[] | undefined
-  >();
+  >(() => attemptCache.get(history));
   const [moment, setMoment] = useState<MomentSpec | "opening" | undefined>();
   const [voice, setVoice] = useState(() => {
     try {
@@ -209,7 +215,10 @@ export function BoardFirstScreens({
   useEffect(() => {
     let live = true;
     void history.moments.listAll().then((listed) => {
-      if (live) setAttempts(listed.ok ? listed.value : []);
+      if (!live) return;
+      const value = listed.ok ? listed.value : [];
+      attemptCache.set(history, value);
+      setAttempts(value);
     });
     return () => {
       live = false;

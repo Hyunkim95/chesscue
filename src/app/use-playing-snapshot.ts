@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import type { PlayerHistory } from "../infrastructure/persistence/player-history";
 import type { CompletedGameAnalysis } from "../application/analyze-game/analyze-completed-game";
@@ -93,8 +93,21 @@ export function usePlayingSnapshot(
   ) => Promise<Result<CompletedGameAnalysis, string>>,
 ) {
   const [state, setState] = useState<SnapshotState>({ status: "checking" });
+  // The inputs of the last run that finished. Switching to a screen that does
+  // not need the snapshot and back keeps it instead of rebuilding it.
+  const finished = useRef<
+    | { history: PlayerHistory; revision: number; analyze: typeof analyze }
+    | undefined
+  >(undefined);
   useEffect(() => {
     if (!enabled) return;
+    const done = finished.current;
+    if (
+      done?.history === history &&
+      done.revision === revision &&
+      done.analyze === analyze
+    )
+      return;
     const controller = new AbortController();
     const isCurrent = () => !controller.signal.aborted;
     async function prepare() {
@@ -116,6 +129,7 @@ export function usePlayingSnapshot(
           total: 0,
           plan: buildPlayingSnapshot([]),
         });
+        finished.current = { history, revision, analyze };
         return;
       }
       const cached = await history.analyses.listAll();
@@ -202,6 +216,7 @@ export function usePlayingSnapshot(
       // running them first would delay the back-rank recommendation.
       await addBoardUnits(moves, history, isCurrent);
       publish();
+      if (isCurrent()) finished.current = { history, revision, analyze };
     }
     void prepare().catch(() => {
       if (isCurrent())

@@ -175,3 +175,33 @@ test("on a wide screen the Not this time sheet is a centred modal over the board
   await sheet.getByRole("button", { name: "Continue" }).click();
   await expect(sheet).toBeHidden();
 });
+
+test("returning to Today from another tab shows it at once, without reloading", async ({
+  page,
+}) => {
+  await page.goto("/?ui=board-first");
+  await expect(
+    page.getByRole("heading", { name: "Warm-up position" }),
+  ).toBeVisible({ timeout: 20_000 });
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await nav.getByRole("button", { name: "Play" }).click();
+  await expect(page).toHaveURL(/#play/);
+  await page.evaluate(() => {
+    const seen = { loading: false };
+    Object.assign(window, { todaySeen: seen });
+    new MutationObserver(() => {
+      if (document.querySelector(".today__card--skeleton")) seen.loading = true;
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await nav.getByRole("button", { name: /^Today/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Warm-up position" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { todaySeen: { loading: boolean } }).todaySeen
+          .loading,
+    ),
+  ).toBe(false);
+});
