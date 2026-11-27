@@ -311,6 +311,21 @@ export function sacrificeSentence(
   }
 }
 
+// A capture reason checked against Stockfish's score at the end of the line,
+// for Rook. When he is still worse there, "for free" and "I come out ahead"
+// overstate it, so the reason says the capture does not save him.
+export function temperReason(reason: string, rookScore: number): string {
+  if (rookScore >= 0) return reason;
+  const ahead =
+    /^Even after you take back on ([a-h][1-8]), I come out ahead\.$/.exec(
+      reason,
+    );
+  if (ahead?.[1])
+    return `I win material on ${ahead[1]}, but it doesn't save me.`;
+  if (!/for free|so I take it|I win/.test(reason)) return reason;
+  return `${reason.replace(", so I take it for free.", ", so I take it.")} It doesn't save me, though.`;
+}
+
 export function rookMoveReason(
   fen: string,
   uci: string,

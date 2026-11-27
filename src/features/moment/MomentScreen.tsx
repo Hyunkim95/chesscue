@@ -87,6 +87,7 @@ import {
   replyReason,
   rookMoveReason,
   sacrificeSentence,
+  temperReason,
   STANDING_AFTER,
   threatsAnswer,
   tierLine,
@@ -1617,6 +1618,58 @@ export function MomentScreen({
           return;
         }
         const reason = found;
+        // A causal capture reason is checked against Stockfish's score at
+        // the end of the line before Rook says it.
+        const rook = rookMoveContext(action.uci);
+        if (
+          reason &&
+          rook &&
+          rook.rest.length > 0 &&
+          /for free|so I take it|come out ahead|I win/.test(reason)
+        ) {
+          const end = (() => {
+            try {
+              const board = new Chess(rook.before);
+              for (const uci of [action.uci, ...rook.rest])
+                board.move(uciMove(uci));
+              return board.fen();
+            } catch {
+              return undefined;
+            }
+          })();
+          if (end) {
+            setBusy(true);
+            setSay({ text: "Let me check that…", mood: "think", understood });
+            void analyzePosition(
+              end,
+              1,
+              AbortSignal.any([
+                controller.current.signal,
+                AbortSignal.timeout(8_000),
+              ]),
+            )
+              .catch(() => undefined)
+              .then((analysis) => {
+                setBusy(false);
+                const top = analysis?.ok
+                  ? analysis.value.candidates[0]
+                  : undefined;
+                const rookToMove = end.split(" ")[1] !== learnerColor;
+                const score =
+                  top === undefined
+                    ? 0
+                    : rookToMove
+                      ? top.evaluationCpFromSideToMove
+                      : -top.evaluationCpFromSideToMove;
+                setSay({
+                  text: temperReason(reason, score),
+                  mood: "idle",
+                  understood,
+                });
+              });
+            return;
+          }
+        }
         const onScreen =
           action.kind === "why" &&
           story?.frames[story.step]?.moveUci === action.uci;

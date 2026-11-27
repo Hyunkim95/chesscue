@@ -5,6 +5,7 @@ import {
   replyReason,
   rookMoveReason,
   sacrificeSentence,
+  temperReason,
   tierLine,
 } from "./moment-copy";
 
@@ -98,4 +99,21 @@ it("says what Rook's sacrifice costs and wins", () => {
   expect(
     captureReasonFromBoard(afterBf5, "c2f5", undefined, ["f6f5", "d4c5"]),
   ).toBeUndefined();
+});
+
+it("says a capture does not save Rook when Stockfish has him worse", () => {
+  expect(
+    temperReason(
+      "Nothing defends your knight on d2, so I take it for free.",
+      -518,
+    ),
+  ).toBe(
+    "Nothing defends your knight on d2, so I take it. It doesn't save me, though.",
+  );
+  expect(
+    temperReason("Even after you take back on d5, I come out ahead.", -12),
+  ).toBe("I win material on d5, but it doesn't save me.");
+  expect(
+    temperReason("Nothing defends your pawn on b7, so I take it for free.", 40),
+  ).toBe("Nothing defends your pawn on b7, so I take it for free.");
 });
