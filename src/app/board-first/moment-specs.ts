@@ -9,6 +9,7 @@ import {
   PLAN_TOLERANCE_CP,
   type MomentGoal,
 } from "../../domain/session/moment-goal";
+import { dangerMoment } from "../../domain/session/spot-danger";
 import type { MomentSpec } from "../../features/moment/MomentScreen";
 
 export interface UnitCopy {
@@ -49,6 +50,9 @@ export function gameMomentId(observed: ObservedMove): string {
   return `${observed.game.id}:${String(observed.ply)}`;
 }
 
+// How much of the game after the player's move "what happened" replays.
+const GAME_LINE_PLIES = 6;
+
 // A position from the player's own game, with Stockfish's verified line.
 export function momentFromGame(
   observed: ObservedMove,
@@ -74,8 +78,23 @@ export function momentFromGame(
         uci !== bestUci && best.evaluationCp - evaluationCp > tolerance,
     )
     .toSorted((a, b) => b.evaluationCp - a.evaluationCp)[0];
-  const played = observed.game.moves.find(({ ply }) => ply === observed.ply);
+  const { moves } = observed.game;
+  const played = moves.find(({ ply }) => ply === observed.ply);
+  const previous = moves.find(({ ply }) => ply === observed.ply - 1);
   const completed = observed.game.completedAt;
+  // Code chooses the format from the moment's facts; there is no mode menu.
+  const danger = dangerMoment({
+    fen: exercise.fen,
+    solutionLine: line,
+    lastMove: previous ? { uci: previous.uci, san: previous.san } : undefined,
+    gameLine: moves
+      .filter(
+        ({ ply }) =>
+          ply >= observed.ply && ply < observed.ply + GAME_LINE_PLIES,
+      )
+      .toSorted((a, b) => a.ply - b.ply)
+      .map(({ uci }) => uci),
+  });
   return {
     id: gameMomentId(observed),
     fen: exercise.fen,
@@ -91,6 +110,7 @@ export function momentFromGame(
     ...goalFields(goal),
     unitId,
     source: { kind: "game", gameId: observed.game.id, ply: observed.ply },
+    ...(danger ? { danger } : {}),
   };
 }
 

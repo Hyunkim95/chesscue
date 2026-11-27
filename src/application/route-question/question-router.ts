@@ -20,6 +20,16 @@ export interface QuestionContext {
   readonly legalMoves: readonly string[];
 }
 
+// Spot the danger: what the player says they see, and the checked facts
+// about the position it may match. The model never sees anything else.
+export interface DangerContext {
+  readonly text: string;
+  readonly facts: readonly { readonly id: string; readonly text: string }[];
+}
+
+// What a danger reading names: one of the supplied fact ids, or none.
+export const NO_DANGER = "none";
+
 export interface QuestionRouter {
   // The name shown in "… understood", such as "Gemini Flash".
   readonly model: string;
@@ -28,4 +38,10 @@ export interface QuestionRouter {
     context: QuestionContext,
     signal: AbortSignal,
   ): Promise<QuestionIntent | undefined>;
+  // One supplied fact id or NO_DANGER, never free text. undefined when the
+  // model is unavailable, fails or returns anything else.
+  readDanger(
+    context: DangerContext,
+    signal: AbortSignal,
+  ): Promise<string | undefined>;
 }

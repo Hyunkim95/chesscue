@@ -10,7 +10,11 @@ function router(
   model: string,
   intent: QuestionIntent | undefined,
 ): QuestionRouter {
-  return { model, route: () => Promise.resolve(intent) };
+  return {
+    model,
+    route: () => Promise.resolve(intent),
+    readDanger: () => Promise.resolve(undefined),
+  };
 }
 
 const ask = (

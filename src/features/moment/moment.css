@@ -16,6 +16,11 @@
   color: var(--ui-color-muted);
 }
 
+/* Spot the danger: the question is the heading, under who is to move. */
+.moment__prompt--danger small {
+  margin: 0 0 2px;
+}
+
 .moment__tools {
   display: flex;
   flex-wrap: wrap;

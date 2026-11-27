@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { checkTry } from "../../application/run-moment/check-try";
 import { momentRecord } from "../../application/run-moment/moment-record";
+import { readDanger } from "../../application/route-question/read-danger";
 import { routeQuestion } from "../../application/route-question/route-question";
 import type { QuestionRouter } from "../../application/route-question/question-router";
 import type { ObservedMove } from "../../domain/curriculum/game-drill";
@@ -32,6 +33,7 @@ import { rankArt } from "../../features/progression/rank-art";
 import { RecapScreen } from "../../features/recap/RecapScreen";
 import { SkyScreen } from "../../features/sky/SkyScreen";
 import { TodayScreen, type TodayState } from "../../features/today/TodayScreen";
+import { detectOnDeviceCapability } from "../../infrastructure/ai/on-device-capability";
 import { StockfishAnalysisEngine } from "../../infrastructure/engine/stockfish-analysis-engine";
 import type { PlayerHistory } from "../../infrastructure/persistence/player-history";
 import { AppShell } from "../../shared/navigation/AppShell";
@@ -216,6 +218,19 @@ export function BoardFirstScreens({
     }
   });
 
+  // Spot the danger reads typed words only with a model ready on the device.
+  const [nanoReady, setNanoReady] = useState(false);
+  useEffect(() => {
+    if (view !== "moment") return;
+    let live = true;
+    void detectOnDeviceCapability().then((capability) => {
+      if (live) setNanoReady(capability.status === "available");
+    });
+    return () => {
+      live = false;
+    };
+  }, [view]);
+
   const [attemptsRevision, setAttemptsRevision] = useState(0);
   useEffect(() => {
     let live = true;
@@ -258,16 +273,20 @@ export function BoardFirstScreens({
   );
   const loading = attempts === undefined || snapshot.status === "checking";
 
+  const todayMoment =
+    pick.kind === "new" || pick.kind === "returning"
+      ? momentFromGame(pick.moment, units)
+      : undefined;
   const todayState: TodayState = loading
     ? { kind: "loading" }
     : pick.kind === "new" || pick.kind === "returning"
       ? {
           kind: "position",
           fen: pick.moment.drill.exercise.fen,
-          sourceLabel:
-            momentFromGame(pick.moment, units)?.sourceLabel ?? "Your game",
+          sourceLabel: todayMoment?.sourceLabel ?? "Your game",
           prompt:
-            momentFromGame(pick.moment, units)?.goal.prompt ??
+            todayMoment?.danger?.question ??
+            todayMoment?.goal.prompt ??
             "Is there something here?",
           returning: pick.kind === "returning",
           origin: "game",
@@ -353,6 +372,10 @@ export function BoardFirstScreens({
       ? snapshot.games.find(({ id }) => id === source.gameId)
       : undefined;
   const opening = useOpeningReview(openingGame);
+  const dangers =
+    active !== undefined && active !== "opening"
+      ? active.danger?.facts
+      : undefined;
 
   function playToday() {
     if (pick.kind === "new" || pick.kind === "returning")
@@ -464,6 +487,17 @@ export function BoardFirstScreens({
               checkTry({ position, uci, engine, signal })
             }
             analyzePosition={analyzePosition}
+            readDanger={
+              dangers && nanoReady
+                ? async (text, signal) =>
+                    readDanger({
+                      text,
+                      facts: dangers,
+                      router: (await questionRouters()).device,
+                      signal,
+                    })
+                : undefined
+            }
             askRook={async (question, signal) => {
               const available = await questionRouters();
               return routeQuestion({

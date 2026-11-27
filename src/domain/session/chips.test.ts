@@ -105,6 +105,23 @@ describe("chipsFor", () => {
       }
   });
 
+  it("never asks about threats in the spot-the-danger format", () => {
+    const danger: ChipContext = {
+      ...FORK,
+      spotTheDanger: true,
+      tried: { uci: "c3c5", san: "Rxc5" },
+    };
+    expect(labels("before", danger)).toEqual([
+      "Any checks for me?",
+      "Why not gxf4?",
+    ]);
+    expect(labels("tried", danger)).toEqual(["Why not Rxc5?", "Why Kg8?"]);
+    for (const kind of ["before", "tried", "second-miss"] as const)
+      expect(
+        chipsFor(kind, danger).some(({ action }) => action.kind === "threats"),
+      ).toBe(false);
+  });
+
   it("hides chips whose condition does not hold", () => {
     const quietStart: ChipContext = {
       fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
