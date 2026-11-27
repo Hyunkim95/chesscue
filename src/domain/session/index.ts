@@ -18,3 +18,4 @@ export {
   type SessionEvent,
 } from "./session";
 export { momentKey, pickToday, type TodayInput, type TodayPick } from "./today";
+export { momentGoal, PLAN_TOLERANCE_CP, type MomentGoal } from "./moment-goal";

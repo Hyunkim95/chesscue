@@ -2,6 +2,7 @@ import { Chess, type Color, type Move, type Square } from "chess.js";
 
 import type { BoardArrow } from "./board-move-cues";
 import { PIECE_VALUE, attackedBy, opponent } from "./board-relations";
+import { centreControlChange } from "./centre-control";
 
 // "Show, don't tell": a verified line as board frames. Each frame is one move
 // with arrows to what it attacks and a one-line caption, so the explanation
@@ -15,6 +16,11 @@ export interface StoryFrame {
   readonly outlines: readonly {
     readonly square: Square;
     readonly tone: "coral" | "jade";
+  }[];
+  // Central squares a quiet move starts controlling.
+  readonly control: readonly {
+    readonly square: Square;
+    readonly change: "gained" | "lost";
   }[];
   readonly caption: string;
 }
@@ -38,6 +44,7 @@ function joined(parts: readonly string[]): string {
 }
 
 function learnerFrame(after: Chess, move: Move): StoryFrame {
+  const quiet = centreControlChange(move.before, move.lan);
   const them = opponent(move.color);
   if (after.isCheckmate()) {
     const kings = after.findPiece({ type: "k", color: them });
@@ -56,6 +63,7 @@ function learnerFrame(after: Chess, move: Move): StoryFrame {
           })),
       ],
       outlines: kings.map((square) => ({ square, tone: "coral" as const })),
+      control: [],
       caption: `${move.san} is checkmate.`,
     };
   }
@@ -75,6 +83,8 @@ function learnerFrame(after: Chess, move: Move): StoryFrame {
   );
   const took = move.captured ? `takes my ${NAME[move.captured]}` : undefined;
   const parts = [...(took ? [took] : []), ...hits];
+  // A quiet move is shown by the central squares it takes control of.
+  const gained = parts.length === 0 ? quiet.gained : [];
   return {
     fen: after.fen(),
     moveUci: move.lan,
@@ -88,10 +98,13 @@ function learnerFrame(after: Chess, move: Move): StoryFrame {
       })),
     ],
     outlines: targets.map(({ square }) => ({ square, tone: "coral" as const })),
+    control: gained.map((square) => ({ square, change: "gained" as const })),
     caption:
-      parts.length === 0
-        ? `Then ${move.san}.`
-        : `${move.san} ${joined(parts)}.`,
+      parts.length > 0
+        ? `${move.san} ${joined(parts)}.`
+        : gained.length > 0
+          ? `${move.san} adds control of ${joined(gained)} in the centre.`
+          : `Then ${move.san}.`,
   };
 }
 
@@ -102,6 +115,7 @@ function rookFrame(after: Chess, move: Move, forced: boolean): StoryFrame {
     by: "rook",
     arrows: [{ from: move.from, to: move.to, kind: "reply" }],
     outlines: [],
+    control: [],
     caption: forced
       ? `I have to play ${move.san}.`
       : move.captured

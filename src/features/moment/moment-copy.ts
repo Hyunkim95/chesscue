@@ -12,12 +12,18 @@ export function tierLine({
   trySan,
   replySan,
   preview,
+  plan = false,
 }: {
   readonly tier: FeedbackTier;
   readonly trySan: string;
   readonly replySan: string | undefined;
   readonly preview: boolean;
+  // A plan position has a stated goal rather than one winning move.
+  readonly plan?: boolean;
 }): string {
+  const stronger = plan
+    ? "Something does more for your goal here."
+    : "But something much stronger was here.";
   const answer = replySan ? `I answer ${replySan}. ` : "";
   const lead = preview
     ? `If you play ${trySan}, ${answer.toLowerCase()}`
@@ -28,13 +34,13 @@ export function tierLine({
         ? `${lead}${trySan} works.`.trim()
         : `That works. ${answer}`.trim();
     case "missed":
-      return `${lead}The position is level, so ${trySan} is playable. But something much stronger was here.`;
+      return `${lead}The position is level, so ${trySan} is playable. ${stronger}`;
     case "worse":
-      return `${lead}After ${trySan} I'm a little better. Something much stronger was here.`;
+      return `${lead}After ${trySan} I'm a little better. ${stronger.replace("But s", "S")}`;
     // Stockfish's evaluation says the position is lost, not why, so the
     // words claim no material.
     case "costly":
-      return `${lead}After ${trySan} I'm winning. Something much stronger was here.`;
+      return `${lead}After ${trySan} I'm winning. ${stronger.replace("But s", "S")}`;
   }
 }
 

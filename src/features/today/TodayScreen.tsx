@@ -13,8 +13,10 @@ export type TodayState =
       // "Your game vs Ahmed · Tuesday"
       readonly sourceLabel: string;
       readonly returning: boolean;
+      // What the player is working towards, such as "One move here wins material."
+      readonly prompt: string;
     }
-  | { readonly kind: "warm-up"; readonly fen: string }
+  | { readonly kind: "warm-up"; readonly fen: string; readonly prompt: string }
   | { readonly kind: "caught-up" };
 
 const WEEKDAY = new Intl.DateTimeFormat("en", {
@@ -119,7 +121,7 @@ export function TodayScreen({
         />
         <footer className="today__foot">
           <span className="today__turn">{turn} to move</span>
-          <span className="today__question">Is there something here?</span>
+          <span className="today__question">{state.prompt}</span>
         </footer>
       </section>
       <RookSays>

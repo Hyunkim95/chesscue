@@ -69,7 +69,7 @@ export function UiKit() {
       >
         <h1 className="kit-prompt">
           White to move
-          <small>Your game vs Ahmed · Tuesday · Is there something here?</small>
+          <small>Your game vs Ahmed · Tuesday</small>
         </h1>
         <ChessBoard
           fen={FEN}

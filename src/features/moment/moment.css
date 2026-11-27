@@ -79,3 +79,9 @@
   font: 900 18px var(--ui-font-body);
   color: var(--ui-color-brass);
 }
+
+.moment__goal {
+  margin: -4px 0 0;
+  font: 700 14px/1.35 var(--ui-font-body);
+  color: var(--ui-color-brass);
+}

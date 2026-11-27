@@ -23,6 +23,7 @@ import { scanHint } from "../../domain/analysis/forcing-moves";
 import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
 import { chipsFor, type SanMove } from "../../domain/session/chips";
+import type { MomentGoal } from "../../domain/session/moment-goal";
 import {
   advanceSession,
   sessionResult,
@@ -63,6 +64,8 @@ export interface MomentSpec extends MomentPosition {
   readonly sourceLabel: string;
   readonly playedInGame?: SanMove | undefined;
   readonly bestNonSolution?: SanMove | undefined;
+  // What the player is working towards, stated before they move.
+  readonly goal: MomentGoal;
   // The idea, named only after it is found.
   readonly ideaName: string | undefined;
   readonly unitId: string | undefined;
@@ -77,6 +80,7 @@ interface BoardView {
   readonly outlines: readonly BoardOutline[];
   readonly previewTag?: string | undefined;
   readonly spot?: Square | undefined;
+  readonly control?: StoryFrame["control"];
 }
 
 interface Say {
@@ -325,6 +329,7 @@ export function MomentScreen({
         trySan: attempt.san,
         replySan,
         preview: false,
+        plan: moment.goal.kind === "plan",
       }),
       mood: attempt.tier === "missed" ? "warm" : "cool",
     });
@@ -366,6 +371,7 @@ export function MomentScreen({
         trySan: attempt.san,
         replySan,
         preview: true,
+        plan: moment.goal.kind === "plan",
       }),
       mood: attempt.tier === "best" ? "happy" : "warm",
       understood,
@@ -411,6 +417,7 @@ export function MomentScreen({
         animate: true,
         arrows: frame.arrows,
         outlines: frame.outlines,
+        control: frame.control,
       });
       setSay({ text: frame.caption, mood, understood });
       step += 1;
@@ -619,8 +626,11 @@ export function MomentScreen({
     <div className="moment">
       <h1 className="moment__prompt">
         {turn} to move
-        <small>{moment.sourceLabel} · Is there something here?</small>
+        <small>{moment.sourceLabel}</small>
       </h1>
+      <p className={`moment__goal moment__goal--${moment.goal.kind}`}>
+        {moment.goal.prompt}
+      </p>
       <ChessBoard
         fen={view.fen}
         label={`${turn} to move. ${moment.sourceLabel}`}
@@ -635,6 +645,13 @@ export function MomentScreen({
         outlines={view.outlines}
         previewTag={view.previewTag}
         spotSquare={view.spot}
+        controlChanges={
+          view.control && view.control.length > 0
+            ? new Map(
+                view.control.map(({ square, change }) => [square, change]),
+              )
+            : undefined
+        }
       />
       <RookSays>
         <RookCharacter mood={busy ? "think" : say.mood} />

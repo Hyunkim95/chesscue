@@ -22,6 +22,7 @@ const FORK: MomentSpec = {
   bestCp: 723,
   solutionLine: ["f3g5", "f7f6", "g5e6"],
   sourceLabel: "Your game vs Ahmed · Tuesday",
+  goal: { kind: "material", prompt: "One move here wins material." },
   ideaName: "Attack two targets",
   unitId: "double-attack",
   source: { kind: "game", gameId: "g", ply: 1 },

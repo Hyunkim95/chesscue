@@ -16,6 +16,8 @@ export interface MomentPosition {
   readonly bestCp: number;
   // The best line, starting with bestUci.
   readonly solutionLine: readonly string[];
+  // How close to the best move counts as finding it; wider for plans.
+  readonly toleranceCp?: number;
 }
 
 export interface CheckedTry {
@@ -91,7 +93,13 @@ export async function checkTry({
     replyUci = top.uci;
   }
   const reply = replyUci === undefined ? undefined : play(move.after, replyUci);
-  const tier = feedbackTier({ bestCp: position.bestCp, playedCp });
+  const tier = feedbackTier({
+    bestCp: position.bestCp,
+    playedCp,
+    ...(position.toleranceCp === undefined
+      ? {}
+      : { toleranceCp: position.toleranceCp }),
+  });
   return ok({
     attempt: {
       uci: move.lan,

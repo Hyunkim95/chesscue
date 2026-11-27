@@ -235,10 +235,13 @@ function lineOutcome(start: Chess, end: Chess, us: Color) {
   };
 }
 
-// Whether the better line is a tactic: within the replayed moves it mates or
-// wins at least two points of material. A quiet defensive line is not.
-export function isTacticLine(fen: string, line: readonly string[]): boolean {
-  return [SHORT_LINE, LONG_LINE].some((learnerMoves) => {
+// What the better line wins within the replayed moves: a forced mate, at
+// least two points of material, or nothing (a quiet line).
+export function tacticKind(
+  fen: string,
+  line: readonly string[],
+): "mate" | "material" | undefined {
+  const outcomes = [SHORT_LINE, LONG_LINE].flatMap((learnerMoves) => {
     try {
       const board = new Chess(fen);
       const start = new Chess(fen);
@@ -247,12 +250,20 @@ export function isTacticLine(fen: string, line: readonly string[]): boolean {
         if (board.isGameOver()) break;
         board.move(uci);
       }
-      const { gain, mated } = lineOutcome(start, board, us);
-      return mated || gain >= 2;
+      return [lineOutcome(start, board, us)];
     } catch {
-      return false;
+      return [];
     }
   });
+  if (outcomes.some(({ mated }) => mated)) return "mate";
+  if (outcomes.some(({ gain }) => gain >= 2)) return "material";
+  return undefined;
+}
+
+// Whether the better line is a tactic: within the replayed moves it mates or
+// wins at least two points of material. A quiet defensive line is not.
+export function isTacticLine(fen: string, line: readonly string[]): boolean {
+  return tacticKind(fen, line) !== undefined;
 }
 
 // `line` starts with the better move. Scores are from the learner's side:

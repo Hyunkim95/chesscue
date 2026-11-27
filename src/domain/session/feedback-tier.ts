@@ -11,11 +11,13 @@ export const COSTLY_BELOW_CP = -400;
 export function feedbackTier({
   bestCp,
   playedCp,
+  toleranceCp = REVIEW_MOVE_TOLERANCE_CP,
 }: {
   readonly bestCp: number;
   readonly playedCp: number;
+  readonly toleranceCp?: number;
 }): FeedbackTier {
-  if (bestCp - playedCp <= REVIEW_MOVE_TOLERANCE_CP) return "best";
+  if (bestCp - playedCp <= toleranceCp) return "best";
   if (playedCp >= STILL_LEVEL_CP) return "missed";
   if (playedCp >= COSTLY_BELOW_CP) return "worse";
   return "costly";

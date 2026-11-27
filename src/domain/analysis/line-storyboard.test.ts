@@ -45,3 +45,15 @@ it("starts with Rook's move when the line is a what-if for his defence", () => {
     "Nxe6 takes my queen and attacks my pawn on f4, which nothing defends.",
   );
 });
+
+it("shows a quiet move by the central squares it takes control of", () => {
+  const [frame] = lineStoryboard(
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    ["g1f3"],
+  );
+  expect(frame?.caption).toBe("Nf3 adds control of d4 and e5 in the centre.");
+  expect(frame?.control).toEqual([
+    { square: "d4", change: "gained" },
+    { square: "e5", change: "gained" },
+  ]);
+});

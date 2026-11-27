@@ -21,6 +21,7 @@ import type {
   ProgressInput,
 } from "../../domain/progress/types";
 import { unitHistory } from "../../domain/progress/unit-history";
+import { momentGoal } from "../../domain/session/moment-goal";
 import { pickToday } from "../../domain/session/today";
 import {
   MomentScreen,
@@ -44,7 +45,12 @@ import {
 } from "../../shared/ui/primitives";
 import puzzlePack from "../../../scripts/material/follow-up-puzzles.generated.json" with { type: "json" };
 import type { SnapshotState } from "../use-playing-snapshot";
-import { gameMomentId, momentFromGame, momentFromPuzzle } from "./moment-specs";
+import {
+  gameMomentId,
+  momentFromGame,
+  momentFromPuzzle,
+  type UnitCopy,
+} from "./moment-specs";
 import type { BoardFirstView } from "./flag";
 import { serialEngine } from "./serial-engine";
 
@@ -57,6 +63,11 @@ const stages: readonly CurriculumStage[] = curriculum.stages.map((stage) => ({
 const unitTitles: ReadonlyMap<string, string> = new Map(
   curriculum.stages.flatMap(({ units }) =>
     units.map(({ id, title }) => [id, title]),
+  ),
+);
+const units: ReadonlyMap<string, UnitCopy> = new Map(
+  curriculum.stages.flatMap((stage) =>
+    stage.units.map(({ id, title, goal }) => [id, { title, goal }]),
   ),
 );
 const stageTitles: ReadonlyMap<string, string> = new Map(
@@ -114,6 +125,14 @@ function analyzePosition(fen: string, multiPv: number, signal: AbortSignal) {
   });
 }
 
+function puzzlePrompt(id: string): string {
+  const puzzle = pack.puzzles.find((entry) => entry.id === id);
+  return puzzle
+    ? momentGoal(puzzle.fen, puzzle.solution, units.get(puzzle.unitId)?.goal)
+        .prompt
+    : "Is there something here?";
+}
+
 function momentPath(id: string): string {
   return `#moment/${encodeURIComponent(id)}`;
 }
@@ -144,7 +163,7 @@ async function puzzleMoment(
     ? momentFromPuzzle(
         puzzle,
         top.evaluationCpFromSideToMove,
-        unitTitles,
+        units,
         sourceLabel,
       )
     : undefined;
@@ -232,7 +251,10 @@ export function BoardFirstScreens({
           kind: "position",
           fen: pick.moment.drill.exercise.fen,
           sourceLabel:
-            momentFromGame(pick.moment, unitTitles)?.sourceLabel ?? "Your game",
+            momentFromGame(pick.moment, units)?.sourceLabel ?? "Your game",
+          prompt:
+            momentFromGame(pick.moment, units)?.goal.prompt ??
+            "Is there something here?",
           returning: pick.kind === "returning",
         }
       : pick.kind === "similar"
@@ -240,10 +262,15 @@ export function BoardFirstScreens({
             kind: "position",
             fen: pack.puzzles.find(({ id }) => id === pick.puzzleId)?.fen ?? "",
             sourceLabel: "A position like ones from your games",
+            prompt: puzzlePrompt(pick.puzzleId),
             returning: false,
           }
         : pick.kind === "warm-up" && warmUp
-          ? { kind: "warm-up", fen: warmUp.fen }
+          ? {
+              kind: "warm-up",
+              fen: warmUp.fen,
+              prompt: puzzlePrompt(warmUp.id),
+            }
           : { kind: "caught-up" };
 
   async function open(target: ObservedMove | FollowUpPuzzle, label?: string) {
@@ -256,7 +283,7 @@ export function BoardFirstScreens({
     );
     const spec =
       "drill" in target
-        ? momentFromGame(target, unitTitles)
+        ? momentFromGame(target, units)
         : await puzzleMoment(
             target,
             label ?? "A position like ones from your games",
@@ -272,7 +299,7 @@ export function BoardFirstScreens({
   const restored = useMemo(() => {
     if (linked === undefined || linked.startsWith("puzzle:")) return undefined;
     const observed = games.find((entry) => gameMomentId(entry) === linked);
-    return observed ? momentFromGame(observed, unitTitles) : undefined;
+    return observed ? momentFromGame(observed, units) : undefined;
   }, [linked, games]);
   const unresolved =
     view === "moment" &&

@@ -3,7 +3,23 @@ import { Chess } from "chess.js";
 import type { ObservedMove } from "../../domain/curriculum/game-drill";
 import type { FollowUpPuzzle } from "../../domain/curriculum/follow-up-puzzles";
 import { unitForDrill } from "../../domain/curriculum/recommend-unit";
+import {
+  momentGoal,
+  PLAN_TOLERANCE_CP,
+  type MomentGoal,
+} from "../../domain/session/moment-goal";
 import type { MomentSpec } from "../../features/moment/MomentScreen";
+
+export interface UnitCopy {
+  readonly title: string;
+  readonly goal: string;
+}
+
+function goalFields(goal: MomentGoal) {
+  return goal.kind === "plan"
+    ? { goal, toleranceCp: PLAN_TOLERANCE_CP }
+    : { goal };
+}
 
 const WEEKDAY = new Intl.DateTimeFormat("en", { weekday: "long" });
 
@@ -35,7 +51,7 @@ export function gameMomentId(observed: ObservedMove): string {
 // A position from the player's own game, with Stockfish's verified line.
 export function momentFromGame(
   observed: ObservedMove,
-  unitTitles: ReadonlyMap<string, string>,
+  units: ReadonlyMap<string, UnitCopy>,
 ): MomentSpec | undefined {
   const { exercise } = observed.drill;
   const line = exercise.verification.principalVariation;
@@ -65,7 +81,8 @@ export function momentFromGame(
     bestNonSolution: nonSolution
       ? sanFor(exercise.fen, nonSolution.uci)
       : undefined,
-    ideaName: unitTitles.get(unitId),
+    ideaName: units.get(unitId)?.title,
+    ...goalFields(momentGoal(exercise.fen, line, units.get(unitId)?.goal)),
     unitId,
     source: { kind: "game", gameId: observed.game.id, ply: observed.ply },
   };
@@ -76,7 +93,7 @@ export function momentFromGame(
 export function momentFromPuzzle(
   puzzle: FollowUpPuzzle,
   bestCp: number,
-  unitTitles: ReadonlyMap<string, string>,
+  units: ReadonlyMap<string, UnitCopy>,
   sourceLabel: string,
 ): MomentSpec | undefined {
   const bestUci = puzzle.solution[0];
@@ -88,7 +105,10 @@ export function momentFromPuzzle(
     bestCp,
     solutionLine: puzzle.solution,
     sourceLabel,
-    ideaName: unitTitles.get(puzzle.unitId),
+    ideaName: units.get(puzzle.unitId)?.title,
+    ...goalFields(
+      momentGoal(puzzle.fen, puzzle.solution, units.get(puzzle.unitId)?.goal),
+    ),
     unitId: puzzle.unitId,
     source: { kind: "puzzle", puzzleId: puzzle.id },
   };
