@@ -492,6 +492,7 @@ export function BoardFirstScreens({
               navigate("recap");
             }}
             dailyGoal={progress.dailyGoal}
+            readsAloud={voice}
           />
         )}
       </AppShell>

@@ -54,6 +54,9 @@ import type {
 } from "../../domain/session/types";
 import type { Result } from "../../shared/result/result";
 import { AskBar } from "../../shared/rook/AskBar";
+import { useRookNarration } from "../../shared/rook/use-rook-narration";
+import { useRookSpeech } from "../../shared/rook/use-rook-speech";
+import { RookSpeechStatus } from "../../shared/rook/RookSpeechStatus";
 import { RookBubble, RookSays } from "../../shared/rook/RookBubble";
 import { RookCharacter, type RookMood } from "../../shared/rook/RookCharacter";
 import {
@@ -259,6 +262,18 @@ function storyMoves(story: Story): (SanMove & {
   });
 }
 
+// Hands-free: short spoken words that steer the walkthrough instead of
+// asking Rook something.
+type VoiceCommand = "next" | "back" | "reset" | "done";
+function voiceCommand(text: string): VoiceCommand | undefined {
+  const said = text.trim().toLowerCase().replace(/[.!?]/g, "");
+  if (/^(?:next|forward|go on|continue)$/.test(said)) return "next";
+  if (/^(?:back|previous|go back)$/.test(said)) return "back";
+  if (/^(?:reset|start again|start over)$/.test(said)) return "reset";
+  if (/^(?:done|finish|i'm done)$/.test(said)) return "done";
+  return undefined;
+}
+
 // A reason only a Stockfish search can give.
 const SEARCH = Symbol("search");
 
@@ -318,6 +333,7 @@ export function MomentScreen({
   onContinue,
   dailyGoal,
   openingFrames = [],
+  readsAloud = false,
 }: {
   readonly moment: MomentSpec;
   readonly online: boolean;
@@ -356,6 +372,8 @@ export function MomentScreen({
     | undefined;
   // The game's opening as board frames, when this position comes from it.
   readonly openingFrames?: readonly StoryFrame[] | undefined;
+  // The player's "Rook reads aloud" setting.
+  readonly readsAloud?: boolean;
 }) {
   const start: BoardView = { fen: moment.fen, arrows: [], outlines: [] };
   const [session, setSession] = useState<MomentSession>(startSession);
@@ -1528,6 +1546,43 @@ export function MomentScreen({
     }
   }
 
+  // Voice. The mic sends a spoken question as if typed. Hands-free, Rook
+  // reads each line aloud and then listens; "next", "back", "reset" and
+  // "done" steer the walkthrough.
+  const [handsFree, setHandsFree] = useState(false);
+  const handsFreeOn = useRef(false);
+  const narration = useRookNarration();
+  const heard = useRef<(text: string) => void>(() => undefined);
+  const voice = useRookSpeech((text) => {
+    heard.current(text);
+  });
+  const listening = voice.state.status === "listening";
+  useEffect(() => {
+    heard.current = (text) => {
+      const command = handsFreeOn.current ? voiceCommand(text) : undefined;
+      if (command === "next" && story) stepTo(story.step + 1);
+      else if (command === "back" && story) stepTo(story.step - 1);
+      else if (command === "reset") reset();
+      else if (command === "done" && (kind === "solved" || kind === "shown"))
+        act({ kind: "done" });
+      else void ask(text.trim().slice(0, 400));
+    };
+  });
+  const listen = useRef(voice.start);
+  useEffect(() => {
+    listen.current = voice.start;
+  });
+  const { readAloud, cancel: stopReading } = narration;
+  const spoken =
+    say.mood !== "think" && typeof say.text === "string" ? say.text : "";
+  useEffect(() => {
+    if (!spoken || !(handsFree || readsAloud)) return;
+    readAloud(spoken, () => {
+      if (handsFreeOn.current) void listen.current();
+    });
+  }, [spoken, handsFree, readsAloud, readAloud]);
+  useEffect(() => stopReading, [stopReading]);
+
   const atStart = view.fen === moment.fen;
   // Where the board takes a move: the start while solving, or a point of the
   // line once the answer is known.
@@ -1791,13 +1846,35 @@ export function MomentScreen({
           />
         )}
         {kind !== "done" && (
-          <AskBar
-            mode={online ? "online" : "offline"}
-            onAsk={(text) => {
-              void ask(text);
-            }}
-            disabled={busy}
-          />
+          <>
+            <AskBar
+              mode={online ? "online" : "offline"}
+              onAsk={(text) => {
+                void ask(text);
+              }}
+              onMic={() => {
+                if (listening) {
+                  voice.stop();
+                  return;
+                }
+                narration.cancel();
+                void voice.start();
+              }}
+              listening={listening}
+              handsFree={handsFree}
+              onHandsFree={() => {
+                const on = !handsFree;
+                handsFreeOn.current = on;
+                setHandsFree(on);
+                narration.cancel();
+                voice.cancel();
+                // Turning it on reads the current line, then listens.
+                if (on) narration.prepare();
+              }}
+              disabled={busy}
+            />
+            <RookSpeechStatus voice={voice} />
+          </>
         )}
       </div>
       <Modal

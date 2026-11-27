@@ -1,11 +1,12 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { checkTry } from "../../application/run-moment/check-try";
 import type {
@@ -15,6 +16,29 @@ import type {
 import type { QuestionOutcome } from "../../application/route-question/route-question";
 import { ok } from "../../shared/result/result";
 import { MomentScreen, type MomentSpec } from "./MomentScreen";
+
+// Voice: the speech hook is replaced so a test can "say" something.
+const speech = vi.hoisted(() => {
+  const state: { onMessage: (text: string) => void; listens: number } = {
+    onMessage: () => undefined,
+    listens: 0,
+  };
+  return state;
+});
+vi.mock("../../shared/rook/use-rook-speech", () => ({
+  useRookSpeech: (onMessage: (text: string) => void) => {
+    speech.onMessage = onMessage;
+    return {
+      state: { status: "idle" },
+      start: () => {
+        speech.listens += 1;
+        return Promise.resolve();
+      },
+      cancel: () => undefined,
+      stop: () => undefined,
+    };
+  },
+}));
 
 afterEach(cleanup);
 
@@ -479,4 +503,42 @@ it("offers the game's opening only after the position is solved", async () => {
   expect(
     screen.getByText("You left the book with h3. The usual move is Nf3."),
   ).toBeVisible();
+});
+
+it("hands-free reads each line aloud, listens, and steps on when told next", async () => {
+  const spoken: { text: string; onend: (() => void) | null }[] = [];
+  class Utterance {
+    lang = "";
+    voice: unknown = null;
+    onstart: (() => void) | null = null;
+    onend: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    constructor(public readonly text: string) {}
+  }
+  vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+  vi.stubGlobal("speechSynthesis", {
+    getVoices: () => [],
+    cancel: () => undefined,
+    speak: (utterance: Utterance) => spoken.push(utterance),
+  });
+  try {
+    renderFork();
+    await solveFork();
+    fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+    const steps = screen.getByRole("group", { name: "Step through the line" });
+    expect(steps).toHaveTextContent("1 / 4");
+    fireEvent.click(screen.getByRole("button", { name: "Hands-free voice" }));
+    const line = spoken.at(-1);
+    expect(line?.text).toBe(bubble().textContent);
+    const before = speech.listens;
+    line?.onend?.();
+    expect(speech.listens).toBe(before + 1);
+    act(() => {
+      speech.onMessage("Next.");
+    });
+    expect(steps).toHaveTextContent("2 / 4");
+    expect(spoken.at(-1)?.text).toBe(bubble().textContent);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });
