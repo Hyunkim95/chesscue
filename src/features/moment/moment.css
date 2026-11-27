@@ -74,9 +74,26 @@
   opacity: 0.75;
 }
 
-.moment__xp {
+.moment__reward {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
   margin: 0 0 12px;
+}
+
+.moment__goal-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.moment__xp {
+  margin: 0;
   font: 900 18px var(--ui-font-body);
+  font-variant-numeric: tabular-nums;
   color: var(--ui-color-brass);
 }
 

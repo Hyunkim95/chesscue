@@ -464,6 +464,7 @@ export function BoardFirstScreens({
             onContinue={() => {
               navigate("recap");
             }}
+            dailyGoal={progress.dailyGoal}
           />
         )}
       </AppShell>

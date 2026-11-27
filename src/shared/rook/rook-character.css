@@ -110,6 +110,12 @@
   margin: 0;
 }
 
+/* Each new line fades in, so a changed answer is noticed. */
+.rook-bubble__line {
+  display: block;
+  animation: rook-line-in var(--ui-motion-slide) ease-out;
+}
+
 .rook-bubble__text b,
 .rook-bubble__text strong {
   color: var(--ui-color-bubble-emphasis);
@@ -167,6 +173,11 @@
   background: var(--ui-color-jade);
   box-shadow: 0 3px 0 var(--ui-color-jade-dark);
   cursor: pointer;
+}
+
+.ask-bar__mic:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ui-color-jade-dark);
 }
 
 .ask-bar__mic svg {
@@ -235,10 +246,18 @@
   }
 }
 
+@keyframes rook-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rook-character,
   .rook-character__eye,
   .rook-bubble,
+  .rook-bubble__line,
   .ask-bar__mic--listening {
     animation: none;
     transition: none;

@@ -28,9 +28,26 @@
     0 4px 0 var(--ui-color-shade);
 }
 
+.ui-button,
+.ui-pill,
+.ui-chip {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Press feedback lands on the first frame (no transition on the way in) and
+   eases out on release, so a tap is never ignored even when the action then
+   waits on the engine. */
 .ui-button:active:not(:disabled) {
   transform: translateY(4px);
   box-shadow: 0 1px 0 var(--ui-color-brass-dark);
+  transition-duration: 0s;
+}
+
+.ui-button--ghost:active:not(:disabled) {
+  box-shadow:
+    inset 0 0 0 2px var(--ui-color-line),
+    0 1px 0 var(--ui-color-shade);
 }
 
 .ui-button:disabled {
@@ -62,6 +79,22 @@
   color: var(--ui-color-ink);
   background: var(--ui-color-deep);
   box-shadow: 0 3px 0 var(--ui-color-shade);
+  transition:
+    transform var(--ui-motion-fast),
+    box-shadow var(--ui-motion-fast),
+    background-color var(--ui-motion-fast);
+}
+
+.ui-pill:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--ui-color-shade);
+  background: color-mix(in srgb, var(--ui-color-ink) 12%, var(--ui-color-deep));
+  transition-duration: 0s;
+}
+
+.ui-pill:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .ui-chip-row {
@@ -80,6 +113,18 @@
   font: 600 13.5px var(--ui-font-body);
   color: var(--ui-color-ink);
   background: transparent;
+  transition:
+    transform var(--ui-motion-fast),
+    background-color var(--ui-motion-fast);
+  /* New chips pop in one after another (--ui-chip-index from ChipRow). */
+  animation: ui-chip-in var(--ui-motion-slide) var(--ui-motion-spring) backwards;
+  animation-delay: calc(var(--ui-chip-index, 0) * 50ms);
+}
+
+.ui-chip:active {
+  transform: scale(0.95);
+  background-color: color-mix(in srgb, var(--ui-color-ink) 12%, transparent);
+  transition-duration: 0s;
 }
 
 .ui-chip--primary {
@@ -88,6 +133,22 @@
   color: var(--ui-color-brass-ink);
   background: var(--ui-color-brass);
   box-shadow: 0 3px 0 var(--ui-color-brass-dark);
+}
+
+.ui-chip--primary:active {
+  transform: translateY(3px);
+  background-color: var(--ui-color-brass);
+  box-shadow: 0 0 0 var(--ui-color-brass-dark);
+}
+
+/* Read by screen readers, not drawn. */
+.ui-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .ui-sheet {
@@ -311,6 +372,10 @@
   cursor: pointer;
 }
 
+button.ui-avatar:active {
+  transform: scale(0.92);
+}
+
 span.ui-avatar {
   cursor: default;
 }
@@ -465,6 +530,13 @@ span.ui-avatar {
   }
 }
 
+@keyframes ui-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.9);
+  }
+}
+
 @keyframes ui-pop {
   40% {
     transform: scale(1.35);
@@ -473,6 +545,8 @@ span.ui-avatar {
 
 @media (prefers-reduced-motion: reduce) {
   .ui-button,
+  .ui-pill,
+  .ui-chip,
   .ui-sheet,
   .ui-sheet__backdrop,
   .ui-toggle__track,
@@ -481,6 +555,7 @@ span.ui-avatar {
   }
 
   .ui-stat-chip--pop,
+  .ui-chip,
   .ui-modal,
   .ui-modal__card {
     animation: none;

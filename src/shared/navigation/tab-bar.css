@@ -26,6 +26,19 @@
   color: var(--ui-color-muted);
   background: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    transform var(--ui-motion-fast),
+    background-color var(--ui-motion-fast);
+}
+
+/* Press feedback on the first frame, eased on release. */
+.tab-bar__tab:active {
+  transform: scale(0.94);
+  color: var(--ui-color-ink);
+  background: color-mix(in srgb, var(--ui-color-brass) 16%, transparent);
+  transition-duration: 0s;
 }
 
 .tab-bar__tab svg {
@@ -100,5 +113,11 @@
     top: 8px;
     right: auto;
     left: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar__tab {
+    transition: none;
   }
 }

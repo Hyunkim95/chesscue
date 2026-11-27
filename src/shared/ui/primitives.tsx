@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import type { Chip as SuggestionChip } from "../../domain/session/types";
+import { useCountUp } from "./motion";
 import "./ui.css";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -53,15 +54,19 @@ export function Chip({
   chip,
   onSelect,
   primary = false,
+  index = 0,
 }: {
   readonly chip: SuggestionChip;
   readonly onSelect: (chip: SuggestionChip) => void;
   readonly primary?: boolean;
+  // Its place in the row, which staggers the pop-in.
+  readonly index?: number;
 }) {
   return (
     <button
       type="button"
       className={`ui-chip${primary ? " ui-chip--primary" : ""}`}
+      style={{ "--ui-chip-index": String(index) } as CSSProperties}
       onClick={() => {
         onSelect(chip);
       }}
@@ -84,12 +89,13 @@ export function ChipRow({
   if (chips.length === 0) return null;
   return (
     <div className="ui-chip-row" role="group" aria-label={label}>
-      {chips.map((chip) => (
+      {chips.map((chip, index) => (
         <Chip
           key={chip.id}
           chip={chip}
           onSelect={onSelect}
           primary={chip.action.kind === "done"}
+          index={index}
         />
       ))}
     </div>
@@ -212,19 +218,42 @@ export function Modal({
   );
 }
 
-// Daily goal ring: done out of target, with the count in the middle.
+// Shows the counting number and gives screen readers the final text.
+export function CountUp({
+  value,
+  format,
+}: {
+  readonly value: number;
+  readonly format: (value: number) => string;
+}) {
+  const shown = useCountUp(value);
+  return (
+    <>
+      <span aria-hidden="true">{format(Math.round(shown))}</span>
+      <span className="ui-visually-hidden">{format(value)}</span>
+    </>
+  );
+}
+
+// Daily goal ring: done out of target, with the count in the middle. With
+// countUp the ring fills from empty as it appears, as on the celebration.
 export function Ring({
   done,
   target,
   size = "md",
   label,
+  countUp = false,
 }: {
   readonly done: number;
   readonly target: number;
   readonly size?: "sm" | "md" | "lg";
   readonly label: string;
+  readonly countUp?: boolean;
 }) {
-  const share = target > 0 ? Math.min(done, target) / target : 0;
+  const reached = Math.min(done, target);
+  const counted = useCountUp(reached);
+  const shown = countUp ? counted : reached;
+  const share = target > 0 ? shown / target : 0;
   return (
     <div
       className={`ui-ring ui-ring--${size}`}
@@ -233,7 +262,7 @@ export function Ring({
       style={{ "--ui-ring-share": `${String(share * 100)}%` } as CSSProperties}
     >
       <b aria-hidden="true">
-        {String(Math.min(done, target))}/{String(target)}
+        {String(Math.round(shown))}/{String(target)}
       </b>
     </div>
   );

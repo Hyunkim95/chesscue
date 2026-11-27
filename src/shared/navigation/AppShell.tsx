@@ -51,7 +51,13 @@ export function AppShell({
           </>
         )}
       </header>
-      <main className="app-shell__body">{children}</main>
+      {/* A new tab mounts a new body, which fades in (app-shell.css). */}
+      <main
+        key={mode.kind === "tabs" ? (mode.current ?? "tabs") : "focus"}
+        className="app-shell__body"
+      >
+        {children}
+      </main>
       {mode.kind === "tabs" && (
         <TabBar
           current={mode.current}
