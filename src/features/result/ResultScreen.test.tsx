@@ -7,6 +7,7 @@ import { finalPosition, type FinalPosition } from "./final-position";
 import {
   ResultScreen,
   type ResultMoments,
+  type ResultOpening,
   type ResultRating,
 } from "./ResultScreen";
 
@@ -24,11 +25,13 @@ function renderResult({
   rating = { kind: "rated", before: 1230, after: 1240 },
   moments = { kind: "found", count: 2 },
   share,
+  opening,
 }: {
   position?: FinalPosition;
   rating?: ResultRating;
   moments?: ResultMoments;
   share?: string;
+  opening?: ResultOpening;
 } = {}) {
   const callbacks = {
     onLookAtMoments: vi.fn(),
@@ -41,6 +44,7 @@ function renderResult({
       rating={rating}
       moments={moments}
       share={share}
+      opening={opening}
       {...callbacks}
     />,
   );
@@ -205,4 +209,61 @@ test("finalPosition reads the last move and the result from the player's side", 
   });
   expect(finalPosition({ ...game, playerColor: "black" }).outcome).toBe("won");
   expect(finalPosition({ ...game, result: "draw" }).outcome).toBe("draw");
+});
+
+const italian: ResultOpening = {
+  name: "Italian Game: Giuoco Piano",
+  summary: "You left the book on move 4",
+  frames: [
+    {
+      fen: "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+      moveUci: "f8c5",
+      by: "learner",
+      arrows: [
+        { from: "f3", to: "g5", kind: "tried" },
+        { from: "c2", to: "c3", kind: "move" },
+      ],
+      outlines: [],
+      control: [],
+      caption: "You left the book with Ng5. The usual move is c3.",
+    },
+    {
+      fen: "r1bqk1nr/pppp1ppp/2n5/2b1p1N1/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 5 4",
+      moveUci: "f3g5",
+      by: "learner",
+      arrows: [],
+      outlines: [{ square: "b1", tone: "coral" }],
+      control: [],
+      caption: "Ng5 moves the knight a second time.",
+    },
+  ],
+};
+
+test("the opening row steps through its frames on the board and resets", () => {
+  renderResult({ opening: italian });
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: /Opening\s*Italian Game: Giuoco Piano\s*You left the book on move 4/,
+    }),
+  );
+  expect(
+    screen.getByRole("grid", { name: "Opening, step 1 of 2" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("You left the book with Ng5. The usual move is c3."),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  expect(screen.getByText("Ng5 moves the knight a second time.")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "↺ Reset" }));
+  expect(screen.getByRole("grid", { name: "Final position" })).toBeVisible();
+  expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
+    "Rook found 2 moments in this game",
+  );
+});
+
+test("there is no opening row without frames", () => {
+  renderResult({ opening: { ...italian, frames: [] } });
+  expect(screen.queryByText("Italian Game: Giuoco Piano")).toBeNull();
 });

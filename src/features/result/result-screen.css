@@ -40,6 +40,77 @@
   color: var(--ui-color-muted);
 }
 
+/* The game's opening, under the result: tapping it plays its frames. */
+.result__opening {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--ui-space-target);
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-color-deep);
+  color: var(--ui-color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.result__opening:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  outline-offset: 2px;
+}
+
+.result__opening-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.result__opening-label {
+  font: 700 11px var(--ui-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-color-muted);
+}
+
+.result__opening-name {
+  font: 700 15px/1.25 var(--ui-font-body);
+  overflow-wrap: anywhere;
+}
+
+.result__opening-summary {
+  font: 600 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.result__opening-chevron {
+  font: 700 22px var(--ui-font-body);
+  color: var(--ui-color-brass);
+}
+
+.result__steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.result__steps .ui-pill {
+  min-width: var(--ui-space-target);
+}
+
+.result__step-count {
+  flex: 1;
+  min-width: 4em;
+  text-align: center;
+  font: 700 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
 .result__found {
   flex: 1;
   min-width: 0;

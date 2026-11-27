@@ -75,6 +75,8 @@ import {
   useState,
 } from "react";
 
+import type { MoveEvaluation } from "../domain/openings/opening-review";
+import { moveEvaluations, useOpeningReview } from "./use-opening-review";
 import {
   ANALYSIS_VERSION,
   completedAnalysisFromRecord,
@@ -1191,6 +1193,7 @@ function PlayerApp({
   const [resultRead, setResultRead] = useState<{
     readonly gameId: string;
     readonly moves: readonly ObservedMove[] | "failed";
+    readonly evaluations?: ReadonlyMap<number, MoveEvaluation>;
   } | null>(null);
   const [resultAttempts, setResultAttempts] = useState<
     readonly MomentAttemptRecord[]
@@ -1205,6 +1208,9 @@ function PlayerApp({
           moves: result.ok
             ? observedGameMoves(ratedGame, result.value)
             : "failed",
+          ...(result.ok
+            ? { evaluations: moveEvaluations(result.value.facts) }
+            : {}),
         });
     });
     void history.moments.listAll().then((listed) => {
@@ -1214,6 +1220,12 @@ function PlayerApp({
       live = false;
     };
   }, [history, view, ratedGame]);
+  const resultOpening = useOpeningReview(
+    boardFirst && view === "result" ? ratedGame : null,
+    resultRead !== null && resultRead.gameId === ratedGame?.id
+      ? resultRead.evaluations
+      : undefined,
+  );
   const analyzeGame = useCallback(
     (game: GameRecord, perspective?: PlayerColor, saved = false) => {
       const target =
@@ -1614,6 +1626,15 @@ function PlayerApp({
                     : { kind: "loading" }
             }
             moments={moments}
+            opening={
+              resultOpening.kind === "ready"
+                ? {
+                    name: resultOpening.review.opening.name,
+                    summary: resultOpening.review.summary,
+                    frames: resultOpening.review.frames,
+                  }
+                : undefined
+            }
             share={
               <Suspense>
                 <ShareWin

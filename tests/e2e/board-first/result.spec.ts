@@ -162,3 +162,68 @@ test("a rated loss shows the Elo change and opens Rook's first moment", async ({
     page.getByRole("heading", { name: /Black to move/ }),
   ).toBeVisible({ timeout: 30_000 });
 });
+
+test("the opening row plays where the game left the book, then the opening's ideas", async ({
+  page,
+}) => {
+  await injectGame(
+    page,
+    finishedGame("11111111-2222-4333-8444-0000000000b1", "coached", "white"),
+  );
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const row = page.getByRole("button", {
+    name: /^Opening\s*Italian Game: Two Knights Defense, Fried Liver Attack\s*You left the book on move 9/,
+  });
+  await expect(row).toBeVisible({ timeout: 20_000 });
+
+  for (const width of [320, 420]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    await page.screenshot({
+      path: test.info().outputPath(`opening-row-${String(width)}.png`),
+      fullPage: true,
+    });
+  }
+
+  await row.click();
+  await expect(
+    page.getByRole("grid", { name: "Opening, step 1 of 4" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "You left the book with a3. The usual move is Qe4, which controls d4 and e5.",
+    ),
+  ).toBeVisible();
+  // The move that left the book is the dashed try; the book move is drawn.
+  await expect(page.locator(".chess-board__cue-arrow--tried")).toHaveCount(1);
+  await expect(
+    page.getByRole("gridcell", { name: /^Empty a3/ }),
+  ).toHaveAccessibleDescription("Where the move that left the book landed.");
+  await expect(
+    page.getByRole("gridcell", { name: /^Empty e4/ }),
+  ).toHaveAccessibleDescription("Where the book move lands.");
+  for (const width of [320, 420]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    await page.screenshot({
+      path: test.info().outputPath(`opening-step-${String(width)}.png`),
+      fullPage: true,
+    });
+  }
+
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(
+    page.getByText(
+      "White prepares a centre with c3 and d4 while the bishop on c4 aims at f7.",
+    ),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "↺ Reset" }).click();
+  await expect(
+    page.getByRole("grid", { name: "Final position" }),
+  ).toBeVisible();
+  await expect(row).toBeVisible();
+});
