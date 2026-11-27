@@ -51,7 +51,7 @@ for (const width of [320, 420]) {
       await ask.fill("why would the queen take");
       await ask.press("Enter");
       await expect(page.locator(".rook-bubble__text")).toContainText(
-        "Qxg5+ takes my pawn",
+        "Qxg5+ leads to mate.",
       );
       await expect(page.getByText(/Did you mean/)).toHaveCount(0);
       await expect(
