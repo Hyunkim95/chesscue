@@ -1,9 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const accountEmulators = process.env.VITE_ACCOUNT_EMULATORS === "true";
+// A worktree sets E2E_PORT to run against its own build: with
+// reuseExistingServer, a shared port would test another checkout's build.
+const port = Number(process.env.E2E_PORT ?? "4173");
 const baseURL = accountEmulators
   ? "http://127.0.0.1:4187"
-  : "http://127.0.0.1:4173";
+  : `http://127.0.0.1:${String(port)}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -25,7 +28,7 @@ export default defineConfig({
   webServer: {
     command: accountEmulators
       ? "pnpm exec vite build --outDir node_modules/.cache/account-preview && pnpm preview --outDir node_modules/.cache/account-preview --host 127.0.0.1 --port 4187 --strictPort"
-      : "pnpm build && pnpm preview --host 127.0.0.1",
+      : `pnpm build && pnpm preview --host 127.0.0.1 --port ${String(port)} --strictPort`,
     ...(accountEmulators
       ? {
           env: {
