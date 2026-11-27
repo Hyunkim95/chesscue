@@ -145,3 +145,9 @@
     animation: none;
   }
 }
+
+@media (min-width: 960px) {
+  .recap-screen {
+    max-inline-size: 40rem;
+  }
+}

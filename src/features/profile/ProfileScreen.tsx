@@ -65,48 +65,52 @@ export function ProfileScreen(props: ProfileScreenProps) {
   const { progress } = props;
   return (
     <div className="profile-screen">
-      <ProfileHead {...props} />
-      <div className="profile-tiles">
-        <div className="profile-tile">
-          <b
-            className={`profile-tile__value profile-tile__value--flame${progress.streak.current === 0 ? " profile-tile__value--dim" : ""}`}
+      <div className="profile-screen__column">
+        <ProfileHead {...props} />
+        <div className="profile-tiles">
+          <div className="profile-tile">
+            <b
+              className={`profile-tile__value profile-tile__value--flame${progress.streak.current === 0 ? " profile-tile__value--dim" : ""}`}
+            >
+              <span aria-hidden="true">🔥 </span>
+              {progress.streak.current}
+            </b>
+            <small>day streak · best {String(progress.streak.best)}</small>
+          </div>
+          <div className="profile-tile">
+            <b className="profile-tile__value profile-tile__value--brass">
+              {progress.xp}
+            </b>
+            <small>XP · level {String(progress.level)}</small>
+          </div>
+          <button
+            type="button"
+            className="profile-tile profile-tile--link"
+            onClick={props.onOpenSky}
+            aria-label={`${String(progress.ideas.length)} ideas spotted. Open your sky`}
           >
-            <span aria-hidden="true">🔥 </span>
-            {progress.streak.current}
-          </b>
-          <small>day streak · best {String(progress.streak.best)}</small>
+            <b className="profile-tile__value profile-tile__value--jade">
+              {progress.ideas.length}
+            </b>
+            <small>
+              ideas spotted <span aria-hidden="true">✦ ›</span>
+            </small>
+          </button>
         </div>
-        <div className="profile-tile">
-          <b className="profile-tile__value profile-tile__value--brass">
-            {progress.xp}
-          </b>
-          <small>XP · level {String(progress.level)}</small>
-        </div>
-        <button
-          type="button"
-          className="profile-tile profile-tile--link"
-          onClick={props.onOpenSky}
-          aria-label={`${String(progress.ideas.length)} ideas spotted. Open your sky`}
-        >
-          <b className="profile-tile__value profile-tile__value--jade">
-            {progress.ideas.length}
-          </b>
-          <small>
-            ideas spotted <span aria-hidden="true">✦ ›</span>
-          </small>
-        </button>
+        <RankPath
+          current={props.rank.name}
+          rating={props.rating}
+          nextRank={props.nextRank}
+        />
       </div>
-      <RankPath
-        current={props.rank.name}
-        rating={props.rating}
-        nextRank={props.nextRank}
-      />
-      <Achievements
-        earned={progress.achievements}
-        unitTitles={props.unitTitles}
-        stageTitles={props.stageTitles}
-      />
-      <Settings {...props} />
+      <div className="profile-screen__column">
+        <Achievements
+          earned={progress.achievements}
+          unitTitles={props.unitTitles}
+          stageTitles={props.stageTitles}
+        />
+        <Settings {...props} />
+      </div>
     </div>
   );
 }

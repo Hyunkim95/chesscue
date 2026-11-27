@@ -345,3 +345,42 @@
     animation: none;
   }
 }
+
+/* Wide screens: the sky fills the space beside the rail, constellations in a
+   grid, scaled to fit the screen without scrolling. */
+@media (min-width: 960px) {
+  .sky-screen {
+    max-inline-size: none;
+    block-size: calc(100dvh - 96px);
+  }
+
+  .sky-region {
+    margin-inline: 0;
+    overflow: hidden;
+    border-radius: var(--ui-radius-card);
+  }
+
+  .sky-chart {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sky-svg {
+    flex: 1;
+    min-block-size: 520px;
+    height: 100%;
+  }
+
+  .sky-empty {
+    max-inline-size: none;
+    padding: 10px 0 0;
+  }
+
+  .sky-empty .rook-character {
+    width: 34px;
+  }
+
+  .sky-empty p {
+    font-size: 17px;
+  }
+}

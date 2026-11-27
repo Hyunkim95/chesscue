@@ -1,6 +1,7 @@
 /* Profile (design §3.7). Every value comes from tokens.ts (--ui-*). */
 
-.profile-screen {
+.profile-screen,
+.profile-screen__column {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -160,7 +161,8 @@
 .profile-ranks {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   margin: 0;
   padding: 12px 6px 10px;
   list-style: none;
@@ -419,5 +421,15 @@
 
   .profile-setting--sync-syncing .profile-setting__glyph {
     animation: none;
+  }
+}
+
+/* Wide screens: who you are on the left, what you've earned on the right. */
+@media (min-width: 960px) {
+  .profile-screen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    align-items: start;
+    gap: 32px;
   }
 }

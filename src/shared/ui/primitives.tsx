@@ -3,13 +3,13 @@ import {
   useId,
   useRef,
   useState,
-  useSyncExternalStore,
   type ButtonHTMLAttributes,
   type CSSProperties,
   type ReactNode,
 } from "react";
 
 import type { Chip as SuggestionChip } from "../../domain/session/types";
+import { useMediaQuery } from "./use-media-query";
 import "./ui.css";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -100,22 +100,6 @@ export function ChipRow({
 // centred modal over a dimmed backdrop, so it never sits in a corner.
 const WIDE_SHEET = "(min-width: 720px)";
 
-function subscribeWide(onChange: () => void): () => void {
-  if (typeof window.matchMedia !== "function") return () => undefined;
-  const query = window.matchMedia(WIDE_SHEET);
-  query.addEventListener("change", onChange);
-  return () => {
-    query.removeEventListener("change", onChange);
-  };
-}
-
-function isWide(): boolean {
-  return (
-    typeof window.matchMedia === "function" &&
-    window.matchMedia(WIDE_SHEET).matches
-  );
-}
-
 export function Sheet({
   open,
   title,
@@ -131,7 +115,7 @@ export function Sheet({
 }) {
   const ref = useRef<HTMLElement>(null);
   const titleId = useId();
-  const wide = useSyncExternalStore(subscribeWide, isWide, () => false);
+  const wide = useMediaQuery(WIDE_SHEET);
   useEffect(() => {
     if (!open) return;
     ref.current?.querySelector<HTMLElement>("button, [href]")?.focus();

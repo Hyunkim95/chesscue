@@ -84,8 +84,10 @@
 }
 
 @media (min-width: 960px) {
-  .app-shell__top:has(+ .app-shell__body .board-split),
-  .app-shell__body:has(.board-split) {
+  .app-shell__top:has(
+    + .app-shell__body :is(.board-split, .sky-screen, .profile-screen)
+  ),
+  .app-shell__body:has(.board-split, .sky-screen, .profile-screen) {
     max-width: 1120px;
   }
 

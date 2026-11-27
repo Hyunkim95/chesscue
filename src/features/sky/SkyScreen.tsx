@@ -7,6 +7,7 @@ import type {
   unitHistory,
 } from "../../domain/progress";
 import { Button } from "../../shared/ui/primitives";
+import { useMediaQuery } from "../../shared/ui/use-media-query";
 import { RookCharacter } from "../../shared/rook/RookCharacter";
 import { constellationFor } from "./constellations";
 import { StarMark } from "./StarMark";
@@ -42,7 +43,7 @@ function backgroundStars() {
   }
 
   return Array.from({ length: 220 }, () => ({
-    x: next() * chartWidth,
+    widthFraction: next(),
     heightFraction: next(),
     radius: 0.35 + next() * 0.9,
     opacity: 0.15 + next() * 0.35,
@@ -51,15 +52,26 @@ function backgroundStars() {
 
 const dust = backgroundStars();
 
-function layOutSky(stages: SkyScreenProps["stages"]) {
+// Phones stack the constellations; wide screens set them out in a grid.
+function layOutSky(stages: SkyScreenProps["stages"], columns: number) {
   let chartHeight = 0;
+  let rowHeight = 0;
   const constellations = stages.map((stage, index) => {
     const layout = constellationFor(stage.stageId, index, stage.units.length);
-    const top = chartHeight;
-    chartHeight += layout.height;
-    return { ...stage, layout, top };
+    const column = index % columns;
+    if (column === 0) {
+      chartHeight += rowHeight;
+      rowHeight = 0;
+    }
+    rowHeight = Math.max(rowHeight, layout.height);
+    return { ...stage, layout, top: chartHeight, left: column * chartWidth };
   });
-  return { constellations, chartHeight: Math.max(chartHeight, 440) };
+  chartHeight += rowHeight;
+  return {
+    constellations,
+    chartHeight: Math.max(chartHeight, 440),
+    width: chartWidth * columns,
+  };
 }
 
 export function SkyScreen({
@@ -73,7 +85,11 @@ export function SkyScreen({
   const chartRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLButtonElement | null>(null);
 
-  const { constellations, chartHeight } = layOutSky(stages);
+  const wide = useMediaQuery("(min-width: 960px)");
+  const { constellations, chartHeight, width } = layOutSky(
+    stages,
+    wide ? 2 : 1,
+  );
 
   const units = stages.flatMap(({ units }) => units);
   const selected = units.find(({ unitId }) => unitId === selectedId);
@@ -138,93 +154,102 @@ export function SkyScreen({
           )}
           <svg
             className="sky-svg"
-            viewBox={`0 0 ${String(chartWidth)} ${String(chartHeight)}`}
+            viewBox={`0 0 ${String(width)} ${String(chartHeight)}`}
             role="group"
             aria-label="Curriculum star chart"
           >
-            {dust.map(({ x, heightFraction, radius, opacity }, index) => (
-              <circle
-                key={index}
-                className="sky-dust"
-                cx={x}
-                cy={heightFraction * chartHeight}
-                r={radius}
-                opacity={opacity}
-                aria-hidden="true"
-              />
-            ))}
-            {constellations.map(({ stageId, title, units, layout, top }) => {
-              const count = units.filter(({ unitId }) =>
-                isLit(stars.get(unitId)),
-              ).length;
+            {dust.map(
+              ({ widthFraction, heightFraction, radius, opacity }, index) => (
+                <circle
+                  key={index}
+                  className="sky-dust"
+                  cx={widthFraction * width}
+                  cy={heightFraction * chartHeight}
+                  r={radius}
+                  opacity={opacity}
+                  aria-hidden="true"
+                />
+              ),
+            )}
+            {constellations.map(
+              ({ stageId, title, units, layout, top, left }) => {
+                const count = units.filter(({ unitId }) =>
+                  isLit(stars.get(unitId)),
+                ).length;
 
-              return (
-                <g key={stageId} transform={`translate(0 ${String(top)})`}>
-                  <text
-                    className="sky-stage-title"
-                    x={layout.label === "start" ? 12 : 276}
-                    y={21}
-                    textAnchor={layout.label}
+                return (
+                  <g
+                    key={stageId}
+                    transform={`translate(${String(left)} ${String(top)})`}
                   >
-                    {title} · {count}/{units.length}
-                  </text>
-                  {layout.edges.map(([start, end]) => {
-                    const a = layout.points[start];
-                    const b = layout.points[end];
-                    const unitA = units[start];
-                    const unitB = units[end];
-                    if (!a || !b || !unitA || !unitB) return null;
-                    const lit =
-                      isLit(stars.get(unitA.unitId)) &&
-                      isLit(stars.get(unitB.unitId));
-                    return (
-                      <line
-                        key={`${String(start)}-${String(end)}`}
-                        className={lit ? "sky-edge sky-edge--lit" : "sky-edge"}
-                        x1={a[0]}
-                        y1={a[1]}
-                        x2={b[0]}
-                        y2={b[1]}
-                        aria-hidden="true"
-                      />
-                    );
-                  })}
-                  {units.map(({ unitId, title: unitTitle }, index) => {
-                    const point = layout.points[index];
-                    if (!point) return null;
-                    const [x, y] = point;
-                    const state = stars.get(unitId) ?? "not-seen";
-                    const newest = newestStar === unitId;
+                    <text
+                      className="sky-stage-title"
+                      x={layout.label === "start" ? 12 : 276}
+                      y={21}
+                      textAnchor={layout.label}
+                    >
+                      {title} · {count}/{units.length}
+                    </text>
+                    {layout.edges.map(([start, end]) => {
+                      const a = layout.points[start];
+                      const b = layout.points[end];
+                      const unitA = units[start];
+                      const unitB = units[end];
+                      if (!a || !b || !unitA || !unitB) return null;
+                      const lit =
+                        isLit(stars.get(unitA.unitId)) &&
+                        isLit(stars.get(unitB.unitId));
+                      return (
+                        <line
+                          key={`${String(start)}-${String(end)}`}
+                          className={
+                            lit ? "sky-edge sky-edge--lit" : "sky-edge"
+                          }
+                          x1={a[0]}
+                          y1={a[1]}
+                          x2={b[0]}
+                          y2={b[1]}
+                          aria-hidden="true"
+                        />
+                      );
+                    })}
+                    {units.map(({ unitId, title: unitTitle }, index) => {
+                      const point = layout.points[index];
+                      if (!point) return null;
+                      const [x, y] = point;
+                      const state = stars.get(unitId) ?? "not-seen";
+                      const newest = newestStar === unitId;
 
-                    return (
-                      <g
-                        className={
-                          newest ? "sky-star sky-star--newest" : "sky-star"
-                        }
-                        key={unitId}
-                        transform={`translate(${String(x)} ${String(y)})`}
-                      >
-                        <StarMark state={state} />
-                        <foreignObject x={-42} y={-22} width={84} height={66}>
-                          <Button
-                            className={`sky-star__button sky-star__button--${state}`}
-                            variant="ghost"
-                            aria-label={`${unitTitle}, ${starLabels[state].toLowerCase()}`}
-                            aria-haspopup="dialog"
-                            onClick={(event) => {
-                              openerRef.current = event.currentTarget;
-                              setSelectedId(unitId);
-                            }}
-                          >
-                            <span>{unitTitle}</span>
-                          </Button>
-                        </foreignObject>
-                      </g>
-                    );
-                  })}
-                </g>
-              );
-            })}
+                      return (
+                        <g
+                          className={
+                            newest ? "sky-star sky-star--newest" : "sky-star"
+                          }
+                          key={unitId}
+                          transform={`translate(${String(x)} ${String(y)})`}
+                        >
+                          <StarMark state={state} />
+                          <foreignObject x={-42} y={-22} width={84} height={66}>
+                            <Button
+                              className={`sky-star__button sky-star__button--${state}`}
+                              variant="ghost"
+                              aria-label={`${unitTitle}, ${starLabels[state].toLowerCase()}`}
+                              aria-haspopup="dialog"
+                              onClick={(event) => {
+                                openerRef.current = event.currentTarget;
+                                setSelectedId(unitId);
+                              }}
+                            >
+                              <span>{unitTitle}</span>
+                            </Button>
+                          </foreignObject>
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              },
+            )}
           </svg>
         </div>
 
