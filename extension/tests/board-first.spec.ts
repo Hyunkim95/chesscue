@@ -47,6 +47,13 @@ for (const width of [320, 420]) {
       await noSideScroll(page);
 
       await page.getByRole("button", { name: "Show me" }).click();
+      const ask = page.getByRole("textbox", { name: "Ask Rook" });
+      await ask.fill("why would the queen take");
+      await ask.press("Enter");
+      await expect(page.locator(".rook-bubble__text")).toContainText(
+        "Qxg5+ takes my pawn",
+      );
+      await expect(page.getByText(/Did you mean/)).toHaveCount(0);
       await expect(
         page.getByRole("textbox", { name: "Ask Rook" }),
       ).toBeVisible();

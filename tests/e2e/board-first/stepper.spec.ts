@@ -102,3 +102,55 @@ test("a question in words is answered on the step without moving the board", asy
     page.getByRole("button", { name: "Show it on the board" }),
   ).toBeVisible();
 });
+
+// The player's own words, as typed in the side panel: each gets the reason
+// for Rook's capture, never "Did you mean", and the board stays put.
+for (const offline of [false, true])
+  test(`questions in words about Rook's capture get its reason in place (offline: ${String(offline)})`, async ({
+    page,
+    context,
+  }) => {
+    await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
+    await expect(
+      page.getByRole("heading", { name: /White to move/ }),
+    ).toBeVisible({ timeout: 30_000 });
+    const bubble = page.locator(".rook-bubble__text");
+    const stepper = page.getByRole("group", { name: "Step through the line" });
+    const next = page.getByRole("button", { name: "Next step" });
+    await page.getByRole("button", { name: "Show me" }).click();
+    await next.click();
+    await square(page, "White queen on g5").click();
+    await square(page, "Empty h6").click();
+    await expect(
+      page.getByRole("button", { name: "◀ Back to the answer" }),
+    ).toBeVisible({ timeout: 30_000 });
+    while (!(await bubble.textContent())?.includes("Qxe5")) await next.click();
+    if (offline) await context.setOffline(true);
+    const at = await stepper.textContent();
+    const cells = async () =>
+      page
+        .locator("[role=gridcell]")
+        .evaluateAll((els) =>
+          els.map((e) => e.getAttribute("aria-label")).join("|"),
+        );
+    const board = await cells();
+    const ask = page.getByRole("textbox", { name: "Ask Rook" });
+    for (const q of [
+      "why did you take my pawn",
+      "why would the queen take",
+      "how come you took that",
+      "why Qxe5?",
+    ]) {
+      await ask.fill(q);
+      await ask.press("Enter");
+      await page.waitForTimeout(1500);
+      const said = await bubble.textContent();
+      expect(said).toBe(
+        "Nothing defends your pawn on e5, so I take it for free.",
+      );
+      await expect(page.getByText(/Did you mean/)).toHaveCount(0);
+      expect(said).not.toBe("Qxe5 takes your pawn on e5.");
+      expect(await stepper.textContent()).toBe(at);
+      expect(await cells()).toBe(board);
+    }
+  });

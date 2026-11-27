@@ -68,3 +68,13 @@ test("reads a move described in words from the given moves", () => {
     describedMoves("why would the queen take", board).map(({ san }) => san),
   ).toEqual(expect.arrayContaining(["Qxg5+"]));
 });
+
+test("reads a capture from the piece that was taken", () => {
+  const line = [
+    { uci: "g5d2", san: "Qxd2", captured: "n" },
+    { uci: "c7e5", san: "Qxe5", captured: "p" },
+  ];
+  expect(describedMoves("why did you take my pawn", line)).toEqual([line[1]]);
+  expect(describedMoves("why take the knight", line)).toEqual([line[0]]);
+  expect(describedMoves("why would the queen take", line)).toEqual(line);
+});

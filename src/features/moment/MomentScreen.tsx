@@ -209,24 +209,50 @@ function previousMove(story: Story, index: number) {
     : undefined;
 }
 
-function storyMoves(story: Story): (SanMove & { readonly index: number })[] {
+// The type of the piece a move takes, if any.
+function capturedBy(fen: string, uci: string): string | undefined {
+  try {
+    return new Chess(fen).move(uciMove(uci)).captured;
+  } catch {
+    return undefined;
+  }
+}
+
+function storyMoves(story: Story): (SanMove & {
+  readonly index: number;
+  readonly captured: string | undefined;
+})[] {
   return story.frames.flatMap((frame, index) => {
-    const san = frame.moveUci
-      ? sanFor(beforeFrame(story, index), frame.moveUci)
-      : undefined;
-    return san ? [{ uci: frame.moveUci, san, index }] : [];
+    const before = beforeFrame(story, index);
+    const san = frame.moveUci ? sanFor(before, frame.moveUci) : undefined;
+    return san
+      ? [
+          {
+            uci: frame.moveUci,
+            san,
+            index,
+            captured: capturedBy(before, frame.moveUci),
+          },
+        ]
+      : [];
   });
 }
+
+// Questions asking for a reason, answered by code once the move is known.
+const WHY_QUESTION =
+  /^\s*(?:why|how come|explain|what(?:'s| is| was) the point)\b/i;
 
 // What Rook can answer, said when a question does not reach a move.
 const ANSWERABLE =
   "I can explain a move. Name it, like “why Qxg5?”, or describe it, like “why would the queen take?”";
 
-function legalMoves(fen: string): SanMove[] {
+function legalMoves(
+  fen: string,
+): (SanMove & { readonly captured: string | undefined })[] {
   try {
     return new Chess(fen)
       .moves({ verbose: true })
-      .map(({ lan, san }) => ({ uci: lan, san }));
+      .map(({ lan, san, captured }) => ({ uci: lan, san, captured }));
   } catch {
     return [];
   }
@@ -964,7 +990,13 @@ export function MomentScreen({
       case "why":
       case "what-if": {
         const reason = reasonInPlace(action.uci);
-        if (solving && action.uci === moment.bestUci) {
+        const onScreen =
+          action.kind === "why" &&
+          story?.frames[story.step]?.moveUci === action.uci;
+        if (
+          (solving && action.uci === moment.bestUci) ||
+          (onScreen && reason)
+        ) {
           setSay({ text: reason ?? "", mood: "idle", understood });
           return;
         }
@@ -998,7 +1030,7 @@ export function MomentScreen({
     const resolved =
       candidates.find((move) => move.uci === frame?.moveUci) ??
       (candidates.length === 1 ? candidates[0] : undefined);
-    if (/^\s*why\b/i.test(text)) {
+    if (WHY_QUESTION.test(text)) {
       if (resolved) {
         answerInPlace(
           { kind: "why", uci: resolved.uci },
@@ -1047,6 +1079,14 @@ export function MomentScreen({
       case "confirm":
         if (outcome.action.kind === "something-else") {
           setSay({ text: ANSWERABLE, mood: "hmm" });
+          return;
+        }
+        // Answering never moves the board, so only ending the moment is
+        // confirmed; anything that would move the board becomes a button.
+        if (outcome.action.kind !== "done") {
+          if (movesBoard(outcome.action))
+            answerInPlace(outcome.action, outcome.understood);
+          else act(outcome.action, outcome.understood);
           return;
         }
         setConfirm(outcome);
@@ -1279,7 +1319,11 @@ export function MomentScreen({
           </ul>
         )}
         {confirm || choices ? (
-          <div className="ui-chip-row" role="group" aria-label="Did you mean">
+          <div
+            className="ui-chip-row"
+            role="group"
+            aria-label={choices ? "Which move" : "Rook offers"}
+          >
             {(confirm
               ? [{ label: confirm.label, action: confirm.action }]
               : (choices ?? [])

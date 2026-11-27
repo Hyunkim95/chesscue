@@ -344,9 +344,8 @@ it("answers a typed question in place and only moves the board when asked", asyn
     .map((cell) => cell.getAttribute("aria-label"));
 
   const input = screen.getByRole("textbox", { name: "Ask Rook" });
-  fireEvent.change(input, {
-    target: { value: "explain the knight capture" },
-  });
+  // Asked about a move from another step: answered here, with a button.
+  fireEvent.change(input, { target: { value: "explain Kf6" } });
   const form = input.closest("form");
   if (!form) throw new Error("The ask bar has no form");
   fireEvent.submit(form);
@@ -390,6 +389,39 @@ it("never plays the answer from a loosely worded question while solving", async 
       .map((cell) => cell.getAttribute("aria-label")),
   ).toEqual(before);
   expect(screen.queryByRole("button", { name: "Done ✓" })).toBeNull();
+});
+
+it("answers a routed why at once, without asking Did you mean", async () => {
+  // Offline, the device router asks for confirmation; a why is answered
+  // straight away because answering never moves the board.
+  renderFork((question) =>
+    Promise.resolve(
+      question.boardMoveUci
+        ? {
+            kind: "confirm",
+            action: { kind: "why", uci: question.boardMoveUci },
+            label: `Why ${question.boardMoveSan ?? ""}?`,
+            understood: "Gemini Nano understood · why",
+          }
+        : { kind: "unrouted" },
+    ),
+  );
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  next();
+  const steps = screen.getByRole("group", { name: "Step through the line" });
+  const at = steps.textContent;
+  const input = screen.getByRole("textbox", { name: "Ask Rook" });
+  fireEvent.change(input, { target: { value: "that move, what was it for" } });
+  const form = input.closest("form");
+  if (!form) throw new Error("The ask bar has no form");
+  fireEvent.submit(form);
+  await screen.findByText("Kf6 gets my king out of check.");
+  expect(screen.queryByText(/Did you mean/)).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Show it on the board" }),
+  ).toBeNull();
+  expect(steps.textContent).toBe(at);
 });
 
 it("offers the game's opening only after the position is solved", async () => {
