@@ -207,6 +207,17 @@ function storyMoves(story: Story): (SanMove & { readonly index: number })[] {
   });
 }
 
+// Questions whose answer would change the position on screen. Typed, they
+// are answered in place and offered as a button.
+function movesBoard(action: RoutedAction): boolean {
+  return (
+    action.kind === "show-me" ||
+    action.kind === "scan" ||
+    action.kind === "why" ||
+    action.kind === "what-if"
+  );
+}
+
 // Before the answer is known, a refutation stops before any move of the
 // player's that matches the answer, so it never shows it.
 function withoutAnswer(
@@ -866,6 +877,68 @@ export function MomentScreen({
     }
   }
 
+  // Why a move is played, said about the position on screen without moving
+  // anything. Before the answer is found, the answer is never explained.
+  function reasonInPlace(uci: string): string | undefined {
+    if (solving && uci === moment.bestUci)
+      return "Play it on the board and I'll tell you how it does.";
+    const inLine = story
+      ? storyMoves(story).find((move) => move.uci === uci)
+      : undefined;
+    const frame = inLine && story ? story.frames[inLine.index] : undefined;
+    if (inLine && story && frame)
+      return frame.by === "rook"
+        ? (rookMoveReason(beforeFrame(story, inLine.index), uci) ??
+            frame.caption)
+        : frame.caption;
+    const tried = attempts.find((attempt) => attempt.uci === uci);
+    if (tried)
+      return `${sanFor(moment.fen, uci) ?? uci} was one of your tries. I can play out what goes wrong.`;
+    if (legalAt(view.fen, uci))
+      return lineStoryboard(view.fen, [uci], learnerColor)[0]?.caption;
+    return undefined;
+  }
+
+  // A typed question is answered where the player is looking. Anything that
+  // would move the board is offered as a button instead of done.
+  function answerInPlace(action: RoutedAction, understood: string) {
+    const offer = (label: string, text: string) => {
+      setConfirm({ kind: "confirm", action, label, understood });
+      setSay({ text, mood: "idle", understood });
+    };
+    switch (action.kind) {
+      case "show-me":
+        offer(
+          "Show me the answer",
+          "I can play the answer for you. That ends this try.",
+        );
+        return;
+      case "scan":
+        offer(
+          "Mark it for me",
+          "I can mark every check, capture and threat for you.",
+        );
+        return;
+      case "why":
+      case "what-if": {
+        const reason = reasonInPlace(action.uci);
+        if (solving && action.uci === moment.bestUci) {
+          setSay({ text: reason ?? "", mood: "idle", understood });
+          return;
+        }
+        offer(
+          action.kind === "why"
+            ? "Show it on the board"
+            : "Play it on the board",
+          reason ?? "I can show that on the board.",
+        );
+        return;
+      }
+      default:
+        act(action, understood);
+    }
+  }
+
   async function ask(text: string) {
     setBusy(true);
     setSay({ text: "Let me think…", mood: "think" });
@@ -888,6 +961,10 @@ export function MomentScreen({
     setBusy(false);
     switch (outcome.kind) {
       case "act":
+        if (movesBoard(outcome.action)) {
+          answerInPlace(outcome.action, outcome.understood);
+          return;
+        }
         act(outcome.action, outcome.understood);
         return;
       case "confirm":

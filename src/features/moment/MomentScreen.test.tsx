@@ -319,6 +319,76 @@ it("answers a typed question about a move in the line on the frame it was played
   ).toHaveTextContent("2 / 4");
 });
 
+it("answers a typed question in place and only moves the board when asked", async () => {
+  // Online, the router acts at once; a question still never moves the board.
+  renderFork((question) =>
+    Promise.resolve(
+      question.boardMoveUci
+        ? {
+            kind: "act",
+            action: { kind: "why", uci: question.boardMoveUci },
+            understood: "Gemini Flash understood · why",
+          }
+        : { kind: "unrouted" },
+    ),
+  );
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  next();
+  next();
+  const steps = screen.getByRole("group", { name: "Step through the line" });
+  expect(steps).toHaveTextContent("3 / 4");
+  const before = screen
+    .getAllByRole("gridcell")
+    .map((cell) => cell.getAttribute("aria-label"));
+
+  const input = screen.getByRole("textbox", { name: "Ask Rook" });
+  fireEvent.change(input, { target: { value: "why would the knight take" } });
+  const form = input.closest("form");
+  if (!form) throw new Error("The ask bar has no form");
+  fireEvent.submit(form);
+
+  const offer = await screen.findByRole("button", {
+    name: "Show it on the board",
+  });
+  expect(steps).toHaveTextContent("3 / 4");
+  expect(
+    screen
+      .getAllByRole("gridcell")
+      .map((cell) => cell.getAttribute("aria-label")),
+  ).toEqual(before);
+  expect(bubble()).not.toHaveTextContent("Let me think");
+  fireEvent.click(offer);
+  expect(
+    screen.queryByRole("button", { name: "Show it on the board" }),
+  ).toBeNull();
+});
+
+it("never plays the answer from a loosely worded question while solving", async () => {
+  renderFork(() =>
+    Promise.resolve({
+      kind: "act",
+      action: { kind: "show-me" },
+      understood: "Gemini Flash understood · show",
+    }),
+  );
+  const before = screen
+    .getAllByRole("gridcell")
+    .map((cell) => cell.getAttribute("aria-label"));
+  const input = screen.getByRole("textbox", { name: "Ask Rook" });
+  fireEvent.change(input, { target: { value: "why would queen take" } });
+  const form = input.closest("form");
+  if (!form) throw new Error("The ask bar has no form");
+  fireEvent.submit(form);
+  await screen.findByRole("button", { name: "Show me the answer" });
+  expect(
+    screen
+      .getAllByRole("gridcell")
+      .map((cell) => cell.getAttribute("aria-label")),
+  ).toEqual(before);
+  expect(screen.queryByRole("button", { name: "Done ✓" })).toBeNull();
+});
+
 it("offers the game's opening only after the position is solved", async () => {
   const good: AnalysisEngine = {
     ...engine,
