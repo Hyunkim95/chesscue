@@ -28,6 +28,36 @@ test("does not claim a pinned queen cannot take the piece that pins it", () => {
   expect(explanation?.text).not.toMatch(/cannot capture/);
 });
 
+// Lichess xgVc8lEx, ply 29: the leading sentence named the pinned pawn in
+// lower case and never said which move it could not take.
+test("names the move a pinned piece cannot take back, in a full sentence", () => {
+  const explanation = explainMissedLine({
+    fen: "r3k3/1pp2p2/2np2rp/p1b1p3/2P4B/P2P1PPq/1P2BP1P/R2Q1RK1 b q - 2 15",
+    line: ["h3h4", "f3f4", "e5f4", "g1h1", "h4f6", "e2f3", "e8f8", "f3e4"],
+    playedSan: "Kd7",
+    scores: { bestCp: 581, playedCp: -8 },
+  });
+  expect(explanation?.text).toBe(
+    "Qxh4 takes the white bishop on h4, and the white pawn on g3 cannot take back because it is pinned to its king. " +
+      "After White replies f4, exf4 takes the white pawn on f4. " +
+      "Black ends up 4 points of material ahead. " +
+      "You played Kd7 instead, which Stockfish rates 5.9 pawns worse.",
+  );
+});
+
+test("says a quiet move is safe from a pinned attacker", () => {
+  // The rook on g6 pins the g3 pawn, the only piece attacking h4.
+  const explanation = explainMissedLine({
+    fen: "7k/4q3/6r1/8/3N4/6P1/P4P1P/6K1 b - - 0 1",
+    line: ["e7h4", "a2a3", "h4d4"],
+  });
+  expect(explanation?.text).toBe(
+    "Qh4 is safe from the white pawn on g3, which is pinned to its king. " +
+      "After White replies a3, Qxd4 takes the white knight on d4, which had no defender. " +
+      "Black ends up 3 points of material ahead.",
+  );
+});
+
 test("names a missed mate and the played move's verdict", () => {
   const explanation = explainMissedLine({
     fen: "r3n2k/6pp/1np1r3/p2p4/P2b2P1/2N3BP/1PP3K1/3R1R2 w - - 0 28",

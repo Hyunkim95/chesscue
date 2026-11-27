@@ -19,7 +19,7 @@ import { isMateScore } from "./classify-experiment";
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/2";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/3";
 
 type FactKind =
   | "mate"
@@ -182,7 +182,7 @@ function moveFacts(
         PIECE_VALUE[type],
       );
   // Checked against the legal moves, since a pinned piece can still take
-  // along its line.
+  // along its line. The sentence starts with the move, like every other fact.
   for (const square of after.attackers(move.to, them))
     if (
       pinned(square) &&
@@ -190,7 +190,9 @@ function moveFacts(
     )
       add(
         "pin",
-        `${named(after, square)} cannot capture on ${move.to} because it is pinned to its king.`,
+        move.captured
+          ? `${move.san} takes the ${SIDE[them].toLowerCase()} ${NAME[move.captured]} on ${move.to}, and ${named(after, square)} cannot take back because it is pinned to its king.`
+          : `${move.san} is safe from ${named(after, square)}, which is pinned to its king.`,
       );
 
   for (const direction of mate ? [] : linesFor(move.piece)) {
