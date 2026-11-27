@@ -1,6 +1,11 @@
 import { expect, test } from "vitest";
 
-import { explainAllowedLine, explainMissedLine } from "./explain-miss";
+import {
+  explainAllowedLine,
+  explainMissedLine,
+  isTacticLine,
+  tacticKind,
+} from "./explain-miss";
 
 test("explains a missed knight fork and what it wins", () => {
   const explanation = explainMissedLine({
@@ -177,4 +182,30 @@ test("stays silent when the reply wins material without a tactic to name", () =>
       line: ["e7d6", "b1d2", "f7f5", "d2c4", "b6a6", "c4d6", "a6d6", "e3c1"],
     }),
   ).toBeUndefined();
+});
+
+// Lichess hG16B4qa: Qxe8 wins the queen inside the usual reach, but Bxe8
+// takes it straight back, so the line wins one point, not a tactic.
+test("does not call a line a tactic when its gain is taken straight back", () => {
+  const fen =
+    "r2qk2r/np1bb1p1/p1p1p1pp/3pP3/3P3P/P1N2NB1/1PP1QPP1/2KR3R w kq - 0 14";
+  const line = ["e2d3", "e8g8", "d3g6", "d8e8", "g6e8", "d7e8", "c3e2", "e8h5"];
+  expect(tacticKind(fen, line)).toBeUndefined();
+  expect(isTacticLine(fen, line)).toBe(false);
+});
+
+// Lichess xG8bSTZ3: Nxe6 wins the queen and dxe6 only takes a knight back.
+test("still calls a line a tactic when it wins material after the take-back", () => {
+  expect(
+    tacticKind("r1bq1bkr/pppp2pp/2n5/4p3/4N3/5Q2/PPPP1PPP/RNB1K2R w KQ - 2 8", [
+      "e4g5",
+      "d8f6",
+      "f3d5",
+      "f6e6",
+      "g5e6",
+      "d7e6",
+      "d5e4",
+      "f8d6",
+    ]),
+  ).toBe("material");
 });
