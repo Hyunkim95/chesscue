@@ -12,7 +12,7 @@ test("explains a missed knight fork and what it wins", () => {
   expect(explanation?.text).toBe(
     "Nxg5+ attacks the black king on f7 and the black queen on e6 at the same time. " +
       "After Black replies Kf6, Nxe6 takes the black queen on e6. " +
-      "White ends up 10 points of material ahead. " +
+      "White wins 10 points of material and ends up 8 points ahead. " +
       "You played gxf4 instead, which Stockfish rates 7.8 pawns worse.",
   );
 });
@@ -26,6 +26,50 @@ test("does not claim a pinned queen cannot take the piece that pins it", () => {
     /^Bc5 attacks the white queen on d4, which is pinned to its king\. After White replies Qxc5, bxc5 takes the white queen on c5/,
   );
   expect(explanation?.text).not.toMatch(/cannot capture/);
+});
+
+// Lichess xgVc8lEx, ply 29: the leading sentence named the pinned pawn in
+// lower case and never said which move it could not take.
+test("names the move a pinned piece cannot take back, in a full sentence", () => {
+  const explanation = explainMissedLine({
+    fen: "r3k3/1pp2p2/2np2rp/p1b1p3/2P4B/P2P1PPq/1P2BP1P/R2Q1RK1 b q - 2 15",
+    line: ["h3h4", "f3f4", "e5f4", "g1h1", "h4f6", "e2f3", "e8f8", "f3e4"],
+    playedSan: "Kd7",
+    scores: { bestCp: 581, playedCp: -8 },
+  });
+  expect(explanation?.text).toBe(
+    "Qxh4 takes the white bishop on h4, and the white pawn on g3 cannot take back because it is pinned to its king. " +
+      "After White replies f4, exf4 takes the white pawn on f4. " +
+      "Black wins 4 points of material and ends up 3 points ahead. " +
+      "You played Kd7 instead, which Stockfish rates 5.9 pawns worse.",
+  );
+});
+
+// Lichess games-claims case 12: Black starts 3 points down, so winning 3
+// back levels the material rather than putting Black ahead.
+test("reports the material balance the line ends with, not only the gain", () => {
+  const explanation = explainMissedLine({
+    fen: "r3r1k1/1pq2pbp/p1pn2p1/P1Np1b2/Q2PB3/1P2P1P1/4NP1P/R1B2RK1 b - - 0 19",
+    line: ["d6e4", "c5e4", "d5e4", "g1g2", "f5g4", "e2g1", "a8d8", "h2h3"],
+  });
+  expect(explanation?.text).toBe(
+    "Nxe4 takes the white bishop on e4. After White replies Nxe4, dxe4 takes the white knight on e4, which had no defender. " +
+      "Black wins 3 points of material and levels the material.",
+  );
+  expect(explanation?.text).not.toMatch(/ahead/);
+});
+
+test("says a quiet move is safe from a pinned attacker", () => {
+  // The rook on g6 pins the g3 pawn, the only piece attacking h4.
+  const explanation = explainMissedLine({
+    fen: "7k/4q3/6r1/8/3N4/6P1/P4P1P/6K1 b - - 0 1",
+    line: ["e7h4", "a2a3", "h4d4"],
+  });
+  expect(explanation?.text).toBe(
+    "Qh4 is safe from the white pawn on g3, which is pinned to its king. " +
+      "After White replies a3, Qxd4 takes the white knight on d4, which had no defender. " +
+      "Black wins 3 points of material and ends up 10 points ahead.",
+  );
 });
 
 test("names a missed mate and the played move's verdict", () => {

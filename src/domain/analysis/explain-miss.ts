@@ -19,7 +19,7 @@ import { isMateScore } from "./classify-experiment";
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/2";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/3";
 
 type FactKind =
   | "mate"
@@ -182,7 +182,7 @@ function moveFacts(
         PIECE_VALUE[type],
       );
   // Checked against the legal moves, since a pinned piece can still take
-  // along its line.
+  // along its line. The sentence starts with the move, like every other fact.
   for (const square of after.attackers(move.to, them))
     if (
       pinned(square) &&
@@ -190,7 +190,9 @@ function moveFacts(
     )
       add(
         "pin",
-        `${named(after, square)} cannot capture on ${move.to} because it is pinned to its king.`,
+        move.captured
+          ? `${move.san} takes the ${SIDE[them].toLowerCase()} ${NAME[move.captured]} on ${move.to}, and ${named(after, square)} cannot take back because it is pinned to its king.`
+          : `${move.san} is safe from ${named(after, square)}, which is pinned to its king.`,
       );
 
   for (const direction of mate ? [] : linesFor(move.piece)) {
@@ -249,13 +251,26 @@ function verdict(bestCp: number, playedCp: number): string {
 }
 
 function lineOutcome(start: Chess, end: Chess, us: Color) {
+  const balance = material(end, us) - material(end, opponent(us));
   return {
-    gain:
-      material(end, us) -
-      material(end, opponent(us)) -
-      (material(start, us) - material(start, opponent(us))),
+    gain: balance - (material(start, us) - material(start, opponent(us))),
+    balance,
     mated: end.isCheckmate(),
   };
+}
+
+const points = (n: number) => `${String(n)} point${n === 1 ? "" : "s"}`;
+
+// The gain is only "ahead" when the position started level; otherwise the
+// sentence says what the line wins and where the material ends up.
+function materialText(side: string, gain: number, balance: number): string {
+  if (balance === gain)
+    return `${side} ends up ${points(gain)} of material ahead.`;
+  const won = `${side} wins ${points(gain)} of material`;
+  if (balance === 0) return `${won} and levels the material.`;
+  return balance > 0
+    ? `${won} and ends up ${points(balance)} ahead.`
+    : `${won} but is still ${points(-balance)} behind.`;
 }
 
 // What the better line wins within the replayed moves: a forced mate, at
@@ -348,7 +363,7 @@ function explainWithin(
   const start = boards[0];
   if (!firstMove || !start) return undefined;
   const us = firstMove.color;
-  const { gain, mated } = lineOutcome(start, board, us);
+  const { gain, balance, mated } = lineOutcome(start, board, us);
   // Only a line whose payoff is inside the replayed moves is explained here.
   // Longer combinations keep the move-consequence plan.
   if (!mated && gain < 2) return undefined;
@@ -412,8 +427,7 @@ function explainWithin(
         ? payoff.text
         : lead(payoff) + lower(payoff.text),
     );
-  if (!mated)
-    parts.push(`${SIDE[us]} ends up ${String(gain)} points of material ahead.`);
+  if (!mated) parts.push(materialText(SIDE[us], gain, balance));
   if (input.playedSan)
     parts.push(
       `You played ${input.playedSan} instead` +
