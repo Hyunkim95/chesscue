@@ -18,6 +18,21 @@ export const PIECE_VALUE: Readonly<Record<PieceSymbol, number>> = {
   k: 100,
 };
 
+export const PIECE_NAME: Readonly<Record<PieceSymbol, string>> = {
+  p: "pawn",
+  n: "knight",
+  b: "bishop",
+  r: "rook",
+  q: "queen",
+  k: "king",
+};
+
+// "a, b and c".
+export function joinedAnd(parts: readonly string[]): string {
+  if (parts.length <= 1) return parts.join("");
+  return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1) ?? ""}`;
+}
+
 const ROOK_LINES = [
   [1, 0],
   [-1, 0],
@@ -58,6 +73,32 @@ export function material(board: Chess, color: Color) {
   return piecesOf(board, color)
     .filter(({ type }) => type !== "k")
     .reduce((sum, { type }) => sum + PIECE_VALUE[type], 0);
+}
+
+// Where each side's knights and bishops start. A minor piece still on one of
+// its own squares has not been developed.
+const MINOR_HOMES: Readonly<
+  Record<Color, Readonly<Record<"n" | "b", readonly Square[]>>>
+> = {
+  w: { n: ["b1", "g1"], b: ["c1", "f1"] },
+  b: { n: ["b8", "g8"], b: ["c8", "f8"] },
+};
+
+export function onMinorHome(
+  type: PieceSymbol,
+  color: Color,
+  square: Square,
+): boolean {
+  return (
+    (type === "n" || type === "b") && MINOR_HOMES[color][type].includes(square)
+  );
+}
+
+// The knights and bishops of `color` that have not moved yet.
+export function undevelopedMinors(board: Chess, color: Color) {
+  return piecesOf(board, color).filter(({ type, square }) =>
+    onMinorHome(type, color, square),
+  );
 }
 
 // Whether removing the piece on `square` would expose its own king.

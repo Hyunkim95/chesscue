@@ -60,7 +60,13 @@ export function momentFromGame(
   const candidates = exercise.verification.candidates;
   const best = candidates.find(({ uci }) => uci === bestUci);
   if (!best) return undefined;
-  const tolerance = exercise.verification.toleranceCp;
+  const unitId = unitForDrill(observed.drill);
+  const goal = momentGoal(exercise.fen, line, units.get(unitId)?.goal);
+  // "What if …?" must name a move that would not count as a find.
+  const tolerance =
+    goal.kind === "plan"
+      ? PLAN_TOLERANCE_CP
+      : exercise.verification.toleranceCp;
   const nonSolution = candidates
     .filter(
       ({ uci, evaluationCp }) =>
@@ -68,7 +74,6 @@ export function momentFromGame(
     )
     .toSorted((a, b) => b.evaluationCp - a.evaluationCp)[0];
   const played = observed.game.moves.find(({ ply }) => ply === observed.ply);
-  const unitId = unitForDrill(observed.drill);
   const completed = observed.game.completedAt;
   return {
     id: gameMomentId(observed),
@@ -82,7 +87,7 @@ export function momentFromGame(
       ? sanFor(exercise.fen, nonSolution.uci)
       : undefined,
     ideaName: units.get(unitId)?.title,
-    ...goalFields(momentGoal(exercise.fen, line, units.get(unitId)?.goal)),
+    ...goalFields(goal),
     unitId,
     source: { kind: "game", gameId: observed.game.id, ply: observed.ply },
   };
