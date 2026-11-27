@@ -30,7 +30,9 @@ export function tierLine({
     : "But something much stronger was here.";
   const answer = replySan ? `I answer ${replySan}. ` : "";
   const lead = preview
-    ? `If you play ${trySan}, ${answer.toLowerCase()}`
+    ? replySan
+      ? `If you play ${trySan}, I answer ${replySan}. `
+      : `If you play ${trySan}, `
     : answer;
   switch (tier) {
     case "best":
@@ -177,10 +179,58 @@ function captureReason(
   return undefined;
 }
 
+const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 } as const;
+const COUNT = ["", "a", "two", "three", "four"];
+
+function pieceWords(pieces: readonly (keyof typeof NAME)[]): string {
+  const counts = new Map<keyof typeof NAME, number>();
+  for (const piece of pieces) counts.set(piece, (counts.get(piece) ?? 0) + 1);
+  const parts = [...counts]
+    .toSorted(([a], [b]) => VALUE[b] - VALUE[a])
+    .map(([piece, count]) =>
+      count === 1
+        ? `a ${NAME[piece]}`
+        : `${COUNT[count] ?? String(count)} ${NAME[piece]}s`,
+    );
+  return parts.length <= 1
+    ? parts.join("")
+    : `${parts.slice(0, -1).join(", ")} and ${parts.at(-1) ?? ""}`;
+}
+
+// A capture of a defended piece: what the rest of the line comes to. "Nxc5
+// starts a line where I win a bishop and a pawn for a knight." or, for an
+// even exchange, "Nxc5 trades my knight for your bishop."
+function lineReason(fen: string, line: readonly string[]): string | undefined {
+  const board = new Chess(fen);
+  const rook = board.turn();
+  const won: (keyof typeof NAME)[] = [];
+  const lost: (keyof typeof NAME)[] = [];
+  let first: { san: string; piece: keyof typeof NAME } | undefined;
+  for (const uci of line) {
+    const move = playUci(board, uci);
+    first ??= { san: move.san, piece: move.piece };
+    if (!move.captured) continue;
+    (move.color === rook ? won : lost).push(move.captured);
+  }
+  if (!first) return undefined;
+  const worth = (pieces: readonly (keyof typeof NAME)[]) =>
+    pieces.reduce((sum, piece) => sum + VALUE[piece], 0);
+  if (line.length > 2 && worth(won) > worth(lost))
+    return lost.length === 0
+      ? `${first.san} starts a line where I win ${pieceWords(won)}.`
+      : `${first.san} starts a line where I win ${pieceWords(won)} for ${pieceWords(lost)}.`;
+  const [taken] = won;
+  if (taken && worth(won) === worth(lost))
+    return `${first.san} trades my ${NAME[first.piece]} for your ${NAME[taken]}.`;
+  return undefined;
+}
+
 export function rookMoveReason(
   fen: string,
   uci: string,
   previous?: { readonly fen: string; readonly uci: string },
+  // The rest of the line after this move, when it is part of one.
+  rest: readonly string[] = [],
 ): string | undefined {
   try {
     const board = new Chess(fen);
@@ -191,6 +241,7 @@ export function rookMoveReason(
     if (move.captured)
       return (
         captureReason(fen, uci, previous) ??
+        lineReason(fen, [uci, ...rest]) ??
         `${move.san} takes your ${NAME[move.captured]} on ${move.to}.`
       );
     if (forced) return `${move.san} is my only legal move.`;

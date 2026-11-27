@@ -218,6 +218,14 @@ function capturedBy(fen: string, uci: string): string | undefined {
   }
 }
 
+// The moves after a frame, for reasons that depend on where the line goes.
+function restOf(story: Story, index: number): string[] {
+  return story.frames
+    .slice(index + 1)
+    .map(({ moveUci }) => moveUci)
+    .filter((uci) => uci !== "");
+}
+
 function storyMoves(story: Story): (SanMove & {
   readonly index: number;
   readonly captured: string | undefined;
@@ -711,6 +719,7 @@ export function MomentScreen({
             beforeFrame(story, found.index),
             uci,
             previousMove(story, found.index),
+            restOf(story, found.index),
           ) ?? frame.caption)
         : frame.caption;
     setStory({ ...story, step: found.index });
@@ -956,6 +965,7 @@ export function MomentScreen({
             beforeFrame(story, inLine.index),
             uci,
             previousMove(story, inLine.index),
+            restOf(story, inLine.index),
           ) ?? frame.caption)
         : frame.caption;
     const tried = attempts.find((attempt) => attempt.uci === uci);
@@ -1027,9 +1037,14 @@ export function MomentScreen({
       : inLine.length > 0
         ? inLine
         : describedMoves(text, legalMoves(view.fen));
+    const onFrame = played.find((move) => move.uci === frame?.moveUci);
+    // A bare "why?" on a step asks about the move on screen.
     const resolved =
       candidates.find((move) => move.uci === frame?.moveUci) ??
-      (candidates.length === 1 ? candidates[0] : undefined);
+      (candidates.length === 1 ? candidates[0] : undefined) ??
+      (candidates.length === 0 && WHY_QUESTION.test(text)
+        ? onFrame
+        : undefined);
     if (WHY_QUESTION.test(text)) {
       if (resolved) {
         answerInPlace(
