@@ -21,7 +21,9 @@ test("keeps Practice usable when a puzzle library file cannot load", async () =>
     await network.send("Network.setBlockedURLs", {
       urls: ["*puzzle-catalog-*.js"],
     });
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic",
+    );
     await page.getByRole("button", { name: "Practice", exact: true }).click();
     const attack = page.getByRole("button", {
       name: "Attack two targets",

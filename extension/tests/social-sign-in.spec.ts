@@ -69,7 +69,10 @@ for (const [name, routeHash, signedInAction, width] of [
         });
       });
       const url =
-        "chrome-extension://" + id + "/index.html?panel=1" + routeHash;
+        "chrome-extension://" +
+        id +
+        "/index.html?panel=1&ui=classic" +
+        routeHash;
       await page.goto(url);
       const signIn = page.getByRole("button", { name: "Continue with Google" });
       await signIn.click();

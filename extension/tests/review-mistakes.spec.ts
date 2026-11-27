@@ -16,7 +16,9 @@ test("queues the move tried during a PGN review once and opens its retry offline
       path: resolve("extension/dist"),
     });
     const page = await context.newPage();
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic",
+    );
     const practice = page.getByRole("button", {
       name: "Practice",
       exact: true,
@@ -339,7 +341,9 @@ test("starts White review on White's turn when the score only records a Black mo
     });
     const page = await context.newPage();
     await context.setOffline(true);
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1#import");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#import",
+    );
     await page
       .getByLabel("Paste completed PGN games")
       .fill(
@@ -360,7 +364,9 @@ test("starts White review on White's turn when the score only records a Black mo
       rook.getByRole("gridcell", { name: /Black pawn on e5/ }),
     ).toBeVisible();
 
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1#import");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#import",
+    );
     await page
       .getByLabel("Paste completed PGN games")
       .fill(
@@ -404,7 +410,9 @@ test("explains a missed knight fork from the checked line, offline", async () =>
     });
     const page = context.pages()[0] ?? (await context.newPage());
     await context.setOffline(true);
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1#import");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#import",
+    );
     // Lichess puzzle 0Uxzm: Nxg5+ forks the king and queen, White plays gxf4.
     await page
       .getByLabel("Paste completed PGN games")
@@ -477,7 +485,9 @@ test("never says a piece gained the square it just left", async () => {
     });
     const page = context.pages()[0] ?? (await context.newPage());
     await context.setOffline(true);
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1#import");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#import",
+    );
     // Rb8 holds the draw; the game move Kg1 loses about 4.4 pawns.
     await page
       .getByLabel("Paste completed PGN games")
@@ -532,7 +542,9 @@ test("asks about a hung piece, then keeps the warning and compares moves", async
     });
     const page = context.pages()[0] ?? (await context.newPage());
     await context.setOffline(true);
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1#import");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#import",
+    );
     await page
       .getByLabel("Paste completed PGN games")
       .fill(

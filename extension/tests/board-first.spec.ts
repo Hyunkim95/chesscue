@@ -1,0 +1,74 @@
+import { chromium, expect, test, type Page } from "@playwright/test";
+import { resolve } from "node:path";
+
+// The side panel opens on the board-first loop by default and plays it
+// offline at the narrowest and a wider panel width.
+async function noSideScroll(page: Page) {
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    ),
+  ).toBeLessThanOrEqual(0);
+}
+
+for (const width of [320, 420]) {
+  test(`plays the warm-up offline in a ${String(width)} px side panel`, async () => {
+    const context = await chromium.launchPersistentContext("", {
+      channel: "chromium",
+      viewport: { width, height: 760 },
+      args: ["--enable-unsafe-extension-debugging"],
+      ignoreDefaultArgs: ["--disable-extensions"],
+    });
+    try {
+      const browser = context.browser();
+      if (!browser) throw new Error("No extension-capable Chrome connection.");
+      const cdp = await browser.newBrowserCDPSession();
+      const { id } = await cdp.send("Extensions.loadUnpacked", {
+        path: resolve("extension/dist"),
+      });
+      const page = await context.newPage();
+      await page.goto("chrome-extension://" + id + "/index.html?panel=1");
+      await context.setOffline(true);
+
+      await expect(
+        page.getByRole("heading", { name: "Warm-up position" }),
+      ).toBeVisible({ timeout: 20_000 });
+      const nav = page.getByRole("navigation", { name: "Primary navigation" });
+      await expect(nav).toBeVisible();
+      await noSideScroll(page);
+
+      await page.getByRole("button", { name: "Try the warm-up" }).click();
+      await expect(
+        page.getByRole("heading", { name: /White to move/ }),
+      ).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByRole("grid").first()).toBeInViewport({
+        ratio: 1,
+      });
+      await noSideScroll(page);
+
+      await page.getByRole("button", { name: "Show me" }).click();
+      const sheet = page.getByRole("dialog", { name: "Not this time" });
+      await expect(sheet).toBeVisible({ timeout: 20_000 });
+      await expect(sheet).toBeInViewport({ ratio: 1 });
+      await sheet.getByRole("button", { name: "Continue" }).click();
+
+      await expect(
+        page.getByRole("heading", { name: "From your games today" }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: /See your sky/ }).click();
+      await expect(
+        page.getByRole("heading", { name: "Your sky" }),
+      ).toBeVisible();
+      await noSideScroll(page);
+
+      await nav.getByRole("button", { name: "Play" }).click();
+      await expect(page).toHaveURL(/#play/);
+      await noSideScroll(page);
+      await nav.getByRole("button", { name: /^Today/ }).click();
+      await expect(page).toHaveURL(/#today/);
+      await expect(page.locator(".today")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+}

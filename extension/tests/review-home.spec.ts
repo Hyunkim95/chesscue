@@ -17,7 +17,7 @@ test("keeps the board, controls and composer aligned across board screens", asyn
     });
     const page = await context.newPage();
     await context.setOffline(true);
-    const url = "chrome-extension://" + id + "/index.html?panel=1";
+    const url = "chrome-extension://" + id + "/index.html?panel=1&ui=classic";
     const controls = page.locator(".board-action-row--anchored");
     const askRook = page.getByRole("textbox", {
       name: /^(Ask|Message) Rook$/,
@@ -175,7 +175,9 @@ test("opens Review first and keeps Practice, Play and import within reach", asyn
       path: resolve("extension/dist"),
     });
     const page = await context.newPage();
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic",
+    );
 
     const nav = page.getByRole("navigation", { name: "Primary navigation" });
     const header = page.getByRole("banner");
@@ -519,7 +521,9 @@ test("finds and reopens an older completed game offline from Review", async () =
       path: resolve("extension/dist"),
     });
     const page = await context.newPage();
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic",
+    );
     await page.getByRole("button", { name: "Import PGN" }).click();
     await page
       .getByLabel("Paste completed PGN games")

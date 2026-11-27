@@ -20,7 +20,10 @@ async function openPanel() {
     const { id } = await cdp.send("Extensions.loadUnpacked", {
       path: resolve("extension/dist"),
     });
-    return { context, url: "chrome-extension://" + id + "/index.html?panel=1" };
+    return {
+      context,
+      url: "chrome-extension://" + id + "/index.html?panel=1&ui=classic",
+    };
   } catch (error) {
     await context.close();
     throw error;

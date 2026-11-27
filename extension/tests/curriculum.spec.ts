@@ -34,7 +34,9 @@ test("opens the full installed curriculum and solves a position offline in the s
         .catch(() => undefined);
     });
     await context.setOffline(true);
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic",
+    );
     try {
       await page.getByRole("button", { name: "Practice", exact: true }).click();
       const loading = page
@@ -348,7 +350,9 @@ test("highlights a curriculum unit from a verified miss in an imported game", as
     });
     const page = context.pages()[0] ?? (await context.newPage());
     await context.setOffline(true);
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1#import");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#import",
+    );
     await page
       .getByLabel("Paste completed PGN games")
       .fill(
@@ -528,7 +532,9 @@ test("recommends the fork unit for a missed knight fork in an imported game", as
     });
     const page = context.pages()[0] ?? (await context.newPage());
     await context.setOffline(true);
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1#import");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#import",
+    );
     // Lichess puzzle 0Uxzm: Ng5+ forks the king and queen, White plays gxf4.
     await page
       .getByLabel("Paste completed PGN games")

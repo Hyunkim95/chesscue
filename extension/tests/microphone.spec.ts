@@ -43,7 +43,7 @@ test("pins Ask Rook while scrolling and opens microphone setup from the panel", 
       });
     });
     await page.goto(
-      "chrome-extension://" + id + "/index.html?panel=1#play-mode",
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#play-mode",
     );
     await page.getByRole("button", { name: "Coached", exact: true }).click();
     const composer = page.getByRole("textbox", { name: "Message Rook" });
@@ -159,7 +159,7 @@ test("passes a live microphone track to Rook and releases it after dictation", a
       });
     });
     await page.goto(
-      "chrome-extension://" + id + "/index.html?panel=1#play-mode",
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic#play-mode",
     );
     await page.getByRole("button", { name: "Coached", exact: true }).click();
     await page

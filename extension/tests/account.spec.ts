@@ -16,7 +16,9 @@ test("shows player rank before sync in the side panel", async () => {
       path: resolve("extension/dist"),
     });
     const page = await context.newPage();
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1");
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic",
+    );
     const profile = page.getByRole("button", { name: "Account", exact: true });
     await expect(profile).toHaveText("");
     await expect(profile.locator("svg")).toBeVisible();

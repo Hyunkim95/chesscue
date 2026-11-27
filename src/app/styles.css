@@ -1745,6 +1745,18 @@ button.graphic-control {
   padding-bottom: 84px;
 }
 
+/* A focus screen with a back button gets the whole panel, as in the classic
+   layout. */
+@media (max-width: 719.98px) {
+  .app-frame:has(.app-bar .board-back) .board-first-tabs {
+    display: none;
+  }
+
+  .app-frame:has(.board-first-tabs):has(.app-bar .board-back) {
+    padding-bottom: 0;
+  }
+}
+
 /* On wide screens the wrapper becomes the left rail, so it never covers the
    board. */
 @media (min-width: 720px) {
