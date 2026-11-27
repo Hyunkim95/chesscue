@@ -8,6 +8,8 @@ import type { RepositoryFailure } from "./game-repository";
 
 export interface AnalysisSearchSettings {
   readonly timeBudgetPerPositionMs: number;
+  // Absent on records searched by time alone, before stockfish-19-lite@4.
+  readonly depth?: number;
   readonly multiPv: number;
 }
 

@@ -18,7 +18,7 @@ import {
 } from "../domain/curriculum";
 import type { GameRecord } from "../domain/game/types";
 import { err, ok, type Result } from "../shared/result/result";
-import { ANALYSIS_VERSION } from "./analysis-version";
+import { ANALYSIS_VERSION, GAME_ANALYSIS_SEARCH } from "./analysis-version";
 
 export { ANALYSIS_VERSION };
 
@@ -91,7 +91,7 @@ export const createAnalysisRecord = (input: {
   gameId: input.game.id,
   analysisVersion: ANALYSIS_VERSION,
   engineBuild: "stockfish-19-lite-single",
-  searchSettings: { timeBudgetPerPositionMs: 120, multiPv: 3 },
+  searchSettings: GAME_ANALYSIS_SEARCH,
   facts: input.analysis.facts,
   moments: input.analysis.moments,
   analyzedPlayerMoves: input.analysis.analyzedPlayerMoves,

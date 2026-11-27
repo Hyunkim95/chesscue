@@ -42,6 +42,7 @@ export const analysisRecordSchema = z
     searchSettings: z
       .object({
         timeBudgetPerPositionMs: z.number().int().min(1).max(60_000),
+        depth: z.number().int().min(1).max(60).optional(),
         multiPv: z.number().int().min(1).max(10),
       })
       .strict(),

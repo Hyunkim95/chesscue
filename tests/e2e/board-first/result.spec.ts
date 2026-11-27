@@ -320,3 +320,35 @@ test("trying the game's move, Why not names and draws the fork it allowed", asyn
     });
   }
 });
+
+// Each fresh browser analyses the game again. The search is to a fixed depth,
+// so every analysis opens the same first moment with the same goal.
+test("analysing the same game again gives the same moments and goals", async ({
+  browser,
+}) => {
+  test.setTimeout(3 * ANALYSIS_TEST_TIMEOUT);
+  const seen: string[] = [];
+  for (let run = 0; run < 3; run += 1) {
+    const context = await browser.newContext({
+      viewport: { width: 360, height: 800 },
+    });
+    const page = await context.newPage();
+    await injectGame(
+      page,
+      finishedGame("11111111-2222-4333-8444-0000000000a4", "rated", "black"),
+    );
+    const found = page.getByRole("heading", {
+      name: /^Rook found \d+ moments? in this game$/,
+    });
+    await expect(found).toBeVisible({ timeout: 60_000 });
+    const count = await found.textContent();
+    await page.getByRole("button", { name: /^Look at (them|it)$/ }).click();
+    await expect(
+      page.getByRole("heading", { name: /Black to move/ }),
+    ).toBeVisible({ timeout: 30_000 });
+    const goal = await page.locator(".moment__goal").textContent();
+    seen.push([count, page.url().split("#")[1], goal].join(" | "));
+    await context.close();
+  }
+  expect(new Set(seen).size, seen.join("\n")).toBe(1);
+});
