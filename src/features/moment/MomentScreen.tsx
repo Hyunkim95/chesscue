@@ -226,6 +226,7 @@ export function MomentScreen({
   onComplete,
   onContinue,
   dailyGoal,
+  openingFrames = [],
 }: {
   readonly moment: MomentSpec;
   readonly online: boolean;
@@ -262,6 +263,8 @@ export function MomentScreen({
   readonly dailyGoal?:
     | { readonly done: number; readonly target: number }
     | undefined;
+  // The game's opening as board frames, when this position comes from it.
+  readonly openingFrames?: readonly StoryFrame[] | undefined;
 }) {
   const start: BoardView = { fen: moment.fen, arrows: [], outlines: [] };
   const [session, setSession] = useState<MomentSession>(startSession);
@@ -828,6 +831,17 @@ export function MomentScreen({
         if (solving) showMe();
         else openStory(answerStory, understood);
         return;
+      case "opening": {
+        // The frames are separate positions, not one line, so there is
+        // nothing to branch from.
+        const [first] = openingFrames;
+        if (first)
+          openStory(
+            { start: first.fen, frames: openingFrames, step: 0, mood: "warm" },
+            understood,
+          );
+        return;
+      }
       case "plan":
         setSay({
           text: online ? "Plans are coming soon." : "Plans need internet.",
@@ -941,6 +955,7 @@ export function MomentScreen({
             : undefined,
         quiet: false,
         online,
+        opening: openingFrames.length > 0,
       });
   const turn = moment.fen.split(" ")[1] === "w" ? "White" : "Black";
   // Try again is the reset after a not-best move; Reset covers everything

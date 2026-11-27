@@ -44,6 +44,7 @@ import {
   XpChip,
 } from "../../shared/ui/primitives";
 import puzzlePack from "../../../scripts/material/follow-up-puzzles.generated.json" with { type: "json" };
+import { useOpeningReview } from "../use-opening-review";
 import type { SnapshotState } from "../use-playing-snapshot";
 import {
   gameMomentId,
@@ -175,6 +176,9 @@ async function puzzleMoment(
       )
     : undefined;
 }
+
+// Plies that count as the opening, as in the game analysis's phases.
+const OPENING_PLIES = 20;
 
 export function BoardFirstScreens({
   view,
@@ -339,6 +343,16 @@ export function BoardFirstScreens({
     };
   }, [linked, moment, navigate]);
   const active = moment ?? restored;
+  // A moment from a game's opening offers that game's opening storyboard.
+  const source =
+    active !== undefined && active !== "opening" ? active.source : undefined;
+  const openingGame =
+    source?.kind === "game" &&
+    source.ply <= OPENING_PLIES &&
+    snapshot.status === "ready"
+      ? snapshot.games.find(({ id }) => id === source.gameId)
+      : undefined;
+  const opening = useOpeningReview(openingGame);
 
   function playToday() {
     if (pick.kind === "new" || pick.kind === "returning")
@@ -440,6 +454,9 @@ export function BoardFirstScreens({
             key={active.id}
             moment={active}
             online={online}
+            openingFrames={
+              opening.kind === "ready" ? opening.review.frames : undefined
+            }
             checkMove={(uci, signal) =>
               checkTry({ position: active, uci, engine, signal })
             }

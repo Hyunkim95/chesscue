@@ -21,6 +21,8 @@ export interface ChipContext {
   readonly tried?: SanMove | undefined;
   readonly quiet: boolean;
   readonly online: boolean;
+  // The position comes from the opening of a game with an opening review.
+  readonly opening?: boolean;
 }
 
 export interface SanMove {
@@ -146,24 +148,41 @@ function questions(kind: SessionKind, context: ChipContext): Chip[] {
       ];
     // After Show me the player can still ask why and what if.
     case "solved":
-    case "shown":
+    case "shown": {
+      // Offered only once the answer is known, so it cannot hint at the idea.
+      const opening: Chip[] = context.opening
+        ? [
+            {
+              id: "opening",
+              label: "About this opening",
+              action: { kind: "opening" },
+            },
+          ]
+        : [];
+      const asked = [...whyNot(tried), ...opening];
+      const whatIf: Chip[] = bestDefence
+        ? [
+            {
+              id: `what-if:${bestDefence.uci}`,
+              label: `What if you'd played ${bestDefence.san}?`,
+              action: { kind: "what-if", uci: bestDefence.uci },
+            },
+          ]
+        : [];
       return [
         {
           id: "why-it-works",
           label: "Why does it work?",
           action: { kind: "why", uci: context.bestUci },
         },
-        ...(bestDefence
-          ? [
-              {
-                id: `what-if:${bestDefence.uci}`,
-                label: `What if you'd played ${bestDefence.san}?`,
-                action: { kind: "what-if", uci: bestDefence.uci },
-              } as const,
-            ]
-          : []),
-        ...whyNot(tried),
+        // With a wrong try and the opening both to ask about, "What if" is
+        // the chip that gives way to stay within three.
+        ...(1 + whatIf.length + asked.length > MAX_QUESTION_CHIPS
+          ? []
+          : whatIf),
+        ...asked,
       ];
+    }
     case "done":
       return [];
   }

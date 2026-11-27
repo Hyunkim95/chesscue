@@ -65,6 +65,32 @@ describe("chipsFor", () => {
     });
   });
 
+  it("offers the opening only once the position is solved or shown", () => {
+    const opening = { ...FORK, opening: true };
+    for (const kind of ["before", "tried", "second-miss", "done"] as const)
+      expect(labels(kind, opening)).not.toContain("About this opening");
+    expect(labels("solved", opening)).toEqual([
+      "Why does it work?",
+      "What if you'd played Kg6?",
+      "About this opening",
+      "Done ✓",
+    ]);
+    expect(labels("shown", opening)).toContain("About this opening");
+    expect(labels("solved")).not.toContain("About this opening");
+    // A wrong try keeps "Why not", and "What if" gives way to the opening.
+    expect(
+      labels("shown", {
+        ...opening,
+        tried: { uci: "c3c5", san: "Rxc5" },
+      }),
+    ).toEqual([
+      "Why does it work?",
+      "Why not Rxc5?",
+      "About this opening",
+      "Done ✓",
+    ]);
+  });
+
   it("never names the best move before the position is solved", () => {
     const leaky: ChipContext = {
       ...FORK,

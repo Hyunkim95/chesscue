@@ -318,3 +318,60 @@ it("answers a typed question about a move in the line on the frame it was played
     screen.getByRole("group", { name: "Step through the line" }),
   ).toHaveTextContent("2 / 4");
 });
+
+it("offers the game's opening only after the position is solved", async () => {
+  const good: AnalysisEngine = {
+    ...engine,
+    analyze: () =>
+      Promise.resolve(
+        ok({
+          candidates: [
+            {
+              uci: "e7e5",
+              evaluationCpFromSideToMove: -20,
+              principalVariation: ["e7e5"],
+              depth: 14,
+            },
+          ],
+        }),
+      ),
+  };
+  render(
+    <MomentScreen
+      moment={PLAN}
+      online={false}
+      checkMove={(uci, signal) =>
+        checkTry({ position: PLAN, uci, engine: good, signal })
+      }
+      checkFrom={(position, uci, signal) =>
+        checkTry({ position, uci, engine: good, signal })
+      }
+      analyzePosition={() => Promise.resolve(ok({ candidates: [] }))}
+      askRook={() => Promise.resolve({ kind: "unrouted" })}
+      onComplete={() => undefined}
+      onContinue={() => undefined}
+      openingFrames={[
+        {
+          fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          moveUci: "e7e5",
+          by: "learner",
+          arrows: [{ from: "g1", to: "f3", kind: "move" }],
+          outlines: [],
+          control: [],
+          caption: "You left the book with h3. The usual move is Nf3.",
+        },
+      ]}
+    />,
+  );
+  expect(
+    screen.queryByRole("button", { name: "About this opening" }),
+  ).toBeNull();
+  fireEvent.click(square("White pawn on e2"));
+  fireEvent.click(square("Empty e4"));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "About this opening" }),
+  );
+  expect(
+    screen.getByText("You left the book with h3. The usual move is Nf3."),
+  ).toBeVisible();
+});

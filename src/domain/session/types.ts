@@ -48,6 +48,9 @@ export type ChipAction =
   | { readonly kind: "what-if"; readonly uci: string }
   | { readonly kind: "show-line" }
   | { readonly kind: "plan" }
+  // The game's opening as a storyboard, offered once the position is solved
+  // or shown, for a moment from the opening.
+  | { readonly kind: "opening" }
   | { readonly kind: "something-else" }
   | { readonly kind: "done" };
 

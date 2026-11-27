@@ -33,6 +33,7 @@ const describe: Record<RoutedAction["kind"], (san?: string) => string> = {
   "what-if": (san) => `What if ${san ?? "this move"}?`,
   "show-line": () => "Show the whole line",
   plan: () => "What's the plan?",
+  opening: () => "About this opening",
   "something-else": () => "Something else",
   done: () => "Done",
   "show-me": () => "Show me the idea",
