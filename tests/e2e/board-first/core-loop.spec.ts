@@ -112,3 +112,34 @@ test("a refreshed moment reopens the same position and a bare #moment goes to To
     timeout: 20_000,
   });
 });
+
+test("the new tab bar never covers the play board on a wide screen", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/?ui=board-first#play");
+  for (const name of [
+    "White pawn on e2",
+    "White knight on g1",
+    "White rook on h1",
+  ]) {
+    const cell = square(page, name);
+    await expect(cell).toBeVisible({ timeout: 20_000 });
+    const box = await cell.boundingBox();
+    if (!box) throw new Error(`${name} has no box`);
+    const hit = await page.evaluate(
+      ([x, y]) =>
+        document
+          .elementFromPoint(x, y)
+          ?.closest("[role=gridcell]")
+          ?.getAttribute("aria-label") ?? "",
+      [box.x + box.width / 2, box.y + box.height / 2] as const,
+    );
+    expect(hit).toContain(name);
+  }
+  await expect(
+    page
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Today" }),
+  ).toBeVisible();
+});
