@@ -320,3 +320,44 @@ it("draws the piece Rook takes and the check that forces his move", () => {
     { from: "f7", to: "h8", kind: "attack" },
   ]);
 });
+
+// Show, don't tell: a frame that claims something about the board draws it,
+// beyond the arrow of the move itself. Only captions that name nothing but
+// the move ("I answer Kd1.", "I have to play Kh8.") are exempt.
+it("draws every claim a frame makes", () => {
+  const lines: readonly (readonly [string, readonly string[]])[] = [
+    [
+      "r4rk1/ppq2p1p/4pP2/3pP1p1/6Q1/2P5/PP1n2PP/R4R1K w - - 0 19",
+      ["g4g5", "g8h8", "g5g7"],
+    ],
+    [
+      "r4rk1/pp1b3p/1q2p1p1/4bpP1/3Pp3/2P5/PPQN3P/R1B2RK1 w - - 0 17",
+      ["d2c4", "e5d4", "c3d4", "b6d4", "c1e3"],
+    ],
+    [
+      "1R6/6p1/1p2k2p/3n1N2/6P1/pr3PK1/8/8 w - - 0 47",
+      ["f5d4", "e6e5", "d4b3"],
+    ],
+    [
+      "r3r1k1/ppp2ppp/3p1q2/2n2bN1/N1PP4/8/PPQ1P1PP/R1B1KB1R w KQ - 1 14",
+      ["c2c3", "c5d3", "e1d1", "d3f2", "d1d2", "h7h6"],
+    ],
+    [
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      ["g1f3", "d7d5", "d2d4", "c8f5"],
+    ],
+  ];
+  const nameOnly =
+    /^(?:I answer \S+\.|I have to play \S+\.|\S+ moves your \w+ to [a-h][1-8]\.)$/;
+  for (const [fen, line] of lines)
+    for (const frame of lineStoryboard(fen, line)) {
+      if (nameOnly.test(frame.caption)) continue;
+      const marks =
+        frame.arrows.filter(
+          ({ from, to }) => `${from}${to}` !== frame.moveUci.slice(0, 4),
+        ).length +
+        frame.outlines.length +
+        frame.control.length;
+      expect(marks, `"${frame.caption}" draws nothing`).toBeGreaterThan(0);
+    }
+});

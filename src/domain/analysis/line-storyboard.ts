@@ -170,10 +170,16 @@ function quietLearnerFrame(after: Chess, move: Move): StoryFrame {
         kind: "control" as const,
       })),
     ],
-    outlines: defends.map(({ square }) => ({
-      square,
-      tone: "jade" as const,
-    })),
+    outlines: [
+      ...defends.map(({ square }) => ({
+        square,
+        tone: "jade" as const,
+      })),
+      // "brings your knight into play": the piece, where it now stands.
+      ...(parts.length === 0 && deeds.develops
+        ? [{ square: move.to, tone: "jade" as const }]
+        : []),
+    ],
     control: control.map((square) => ({ square, change: "gained" as const })),
     caption:
       parts.length > 0
@@ -244,7 +250,11 @@ function learnerFrame(after: Chess, move: Move): StoryFrame {
       { from: move.from, to: move.to, kind: "preview" },
       ...targets.map(({ square }) => attack(move.to, square)),
     ],
-    outlines: targets.map(({ square }) => ({ square, tone: "coral" as const })),
+    // What the move took is outlined where it stood, beside what it hits.
+    outlines: [
+      ...(move.captured ? [{ square: move.to, tone: "jade" as const }] : []),
+      ...targets.map(({ square }) => ({ square, tone: "coral" as const })),
+    ],
     control: [],
     caption: `${move.san} ${joinedAnd(parts)}.`,
   };
