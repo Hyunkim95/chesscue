@@ -158,6 +158,10 @@ test("on a wide screen the Not this time sheet is a centred modal over the board
   const sheet = page.getByRole("dialog", { name: "Not this time" });
   await expect(sheet).toBeVisible({ timeout: 20_000 });
   await expect(sheet).toHaveAttribute("aria-modal", "true");
+  // The sheet rises and scales in; measure it once it has settled.
+  await sheet.evaluate((element) =>
+    Promise.all(element.getAnimations().map(({ finished }) => finished)),
+  );
   const box = await sheet.boundingBox();
   if (!box) throw new Error("The sheet has no box");
   expect(Math.abs(box.x + box.width / 2 - 640)).toBeLessThan(4);
