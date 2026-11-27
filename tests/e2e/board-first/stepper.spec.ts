@@ -205,3 +205,33 @@ test("a what-if in words shows the options on the board, then plays the one pick
     page.getByRole("group", { name: "Step through the line" }),
   ).toContainText("1 /");
 });
+
+test("once solved, any position on the board can be explored", async ({
+  page,
+}) => {
+  await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await square(page, "White queen on g4").click();
+  await square(page, "Black pawn on g5").click();
+  await expect(page.getByRole("button", { name: "Done ✓" })).toBeVisible({
+    timeout: 30_000,
+  });
+  // The solved position, Black to move: the player moves Rook's king.
+  await square(page, "Black king on g8").click();
+  await square(page, "Empty h8").click();
+  await expect(page.locator(".rook-bubble__text")).toContainText("Best move.", {
+    timeout: 30_000,
+  });
+  await expect(
+    page.getByRole("group", { name: "Step through the line" }),
+  ).toBeVisible();
+  // White to move after Kh8: a move the line never made.
+  await square(page, "White queen on g5").click();
+  await square(page, "Empty h6").click();
+  await expect(page.getByRole("button", { name: /◀ Back to the/ })).toBeVisible(
+    { timeout: 30_000 },
+  );
+  await expect(page.locator(".rook-bubble__text")).toContainText("Qh6");
+});

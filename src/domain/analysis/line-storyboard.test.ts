@@ -361,3 +361,11 @@ it("draws every claim a frame makes", () => {
       expect(marks, `"${frame.caption}" draws nothing`).toBeGreaterThan(0);
     }
 });
+
+it("counts a piece the other side can take back at once before claiming a win", () => {
+  // Nxg5+ Kf6 Nxe6 wins the queen, but Black's king then takes the knight.
+  const fork = "2r5/5k2/4q3/1rBp2p1/p2P1p2/PpR1PNPp/1P2KP1P/2R5 w - - 0 35";
+  expect(
+    payoffFrame(fork, lineStoryboard(fork, ["f3g5", "f7f6", "g5e6"]))?.caption,
+  ).toBe("You've won a queen and a pawn for a knight.");
+});

@@ -17,6 +17,7 @@ import {
   onMinorHome,
   opponent,
   piecesOf,
+  staticExchange,
 } from "./board-relations";
 import { CENTRE, byCentrality } from "./centre-control";
 
@@ -485,8 +486,12 @@ export function lineStoryboard(
   const learnerColor = learner ?? board.turn();
   const plies =
     STORY_LEARNER_MOVES * 2 - (board.turn() === learnerColor ? 1 : 0);
-  for (const uci of line.slice(0, plies)) {
+  // Never stop while the side to move can win material at once: a line cut
+  // off mid-exchange would claim a result the next move undoes.
+  for (const [index, uci] of line.entries()) {
     if (board.isGameOver()) break;
+    if (index >= plies && (index >= plies + MAX_SETTLE || !pendingWin(board)))
+      break;
     const forced = board.moves().length === 1;
     const before = new Chess(board.fen());
     const move = play(board, uci);
@@ -498,6 +503,25 @@ export function lineStoryboard(
     );
   }
   return frames;
+}
+
+// How many half-moves past its length a line may run to settle an exchange.
+const MAX_SETTLE = 4;
+
+// Whether the side to move can win material straight away by a capture.
+export function pendingWin(board: Chess): boolean {
+  return pendingCapture(board) !== undefined;
+}
+
+// The most valuable piece the side to move can win straight away, if any.
+function pendingCapture(board: Chess): PieceSymbol | undefined {
+  const side = board.turn();
+  return piecesOf(board, opponent(side))
+    .filter(
+      ({ type, square }) =>
+        type !== "k" && staticExchange(board, square, side) > 0,
+    )
+    .toSorted((a, b) => PIECE_VALUE[b.type] - PIECE_VALUE[a.type])[0]?.type;
 }
 
 // After the learner solves a position with a good move of their own, Rook's
@@ -619,6 +643,14 @@ export function payoffFrame(
     } else lost.push(move.captured);
   }
   if (board.isCheckmate() || won.length === 0) return undefined;
+  // A result only counts once the exchange is over: a piece the side to move
+  // can still win at once is counted as taken.
+  const pending = pendingCapture(board);
+  if (pending) {
+    const learnerToMove = frames.at(-1)?.by === "rook";
+    if (learnerToMove) return undefined;
+    lost.push(pending);
+  }
   const value = (pieces: readonly PieceSymbol[]) =>
     pieces.reduce((sum, piece) => sum + PIECE_VALUE[piece], 0);
   if (value(won) <= value(lost)) return undefined;
@@ -785,7 +817,8 @@ export function costFrame(
   }
   const mine = wonBy(tried, rook);
   const yours = wonBy(tried, learner);
-  if (worth(mine) > worth(yours))
+  // Material only counts once the exchange is over.
+  if (worth(mine) > worth(yours) && !pendingWin(board))
     return {
       ...base,
       arrows: [],

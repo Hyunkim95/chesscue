@@ -826,6 +826,50 @@ export function MomentScreen({
     );
   }
 
+  // Free exploration once the answer is known: a move for either side on
+  // any position shown. Stockfish's best move there is the yardstick: the
+  // player's move gets "works too" or what it costs, Rook's gets how it
+  // compares, and the best move itself plays out its line.
+  async function exploreFrom(fen: string, uci: string) {
+    setSelected(undefined);
+    const back: Story | "start" = story ?? "start";
+    send({ kind: "explore", key: `explore:${fen}:${uci}` });
+    setBusy(true);
+    setSay({ text: "Let me see…", mood: "think" });
+    const top = await analyzePosition(
+      fen,
+      1,
+      AbortSignal.any([controller.current.signal, AbortSignal.timeout(8_000)]),
+    );
+    setBusy(false);
+    const best = top.ok ? top.value.candidates[0] : undefined;
+    if (!best) {
+      setSay({
+        text: "I couldn't check that just now. Try it again.",
+        mood: "hmm",
+      });
+      return;
+    }
+    const line = [best.uci, ...best.principalVariation.slice(1)];
+    if (uci === best.uci) {
+      const frames = lineStoryboard(fen, line, learnerColor);
+      const [first, ...rest] = frames;
+      if (!first) return;
+      openStory({
+        start: fen,
+        frames: [{ ...first, caption: `Best move. ${first.caption}` }, ...rest],
+        step: 0,
+        mood: "happy",
+        back,
+        moves: line,
+      });
+      return;
+    }
+    if (fen.split(" ")[1] === learnerColor)
+      void tryFrom({ fen, line, back }, uci);
+    else void rookAlternative({ fen, chosen: best.uci, back }, uci);
+  }
+
   // "Why not {your move}?": the try, Rook's best answer and what it costs.
   // Before the position is solved it never shows the answer.
   function whyNot(tried: Attempt, understood?: string) {
@@ -1592,7 +1636,8 @@ export function MomentScreen({
       ? atStart && !view.previewTag
         ? moment.fen
         : undefined
-      : (branch?.fen ?? rookTurn?.fen);
+      : // Once solved or shown, any position on the board can be explored.
+        (branch?.fen ?? rookTurn?.fen ?? view.fen);
 
   function selectSquare(target: Square) {
     if (boardFen === undefined) return;
@@ -1604,6 +1649,7 @@ export function MomentScreen({
       if (solving) void tryMove(uci);
       else if (branch) void tryFrom(branch, uci);
       else if (rookTurn) void rookAlternative(rookTurn, uci);
+      else void exploreFrom(boardFen, uci);
       return;
     }
     const piece = new Chess(boardFen).get(target);

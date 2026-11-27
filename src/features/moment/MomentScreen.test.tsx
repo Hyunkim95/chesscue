@@ -242,7 +242,10 @@ it("steps through the line only when the player steps, by button or arrow key", 
   fireEvent.keyDown(stepper, { key: "ArrowRight" });
   expect(bubble()).toHaveTextContent(/^Nxe6 takes my queen/);
   fireEvent.keyDown(stepper, { key: "ArrowRight" });
-  expect(bubble()).toHaveTextContent("You've won a queen and a pawn.");
+  // The king takes the knight back on e6, so it counts.
+  expect(bubble()).toHaveTextContent(
+    "You've won a queen and a pawn for a knight.",
+  );
   expect(screen.getByRole("button", { name: "Next step" })).toHaveAttribute(
     "aria-disabled",
     "true",
@@ -274,8 +277,9 @@ it("lets the player try another move at their turn and shows why it is not as go
   next();
   expect(bubble()).toHaveTextContent("I take your bishop with Rbxc5.");
   next();
-  expect(bubble()).toHaveTextContent("I win your bishop.");
-  expect(square("Black rook on c5").className).toContain("outline-coral");
+  // dxc5 would win the rook back, so Rook claims no material: only that the
+  // try lets his queen escape.
+  expect(bubble()).toHaveTextContent("I keep my queen.");
   next();
   expect(bubble()).toHaveTextContent("Nxe6 instead wins the queen.");
 
