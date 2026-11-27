@@ -1,0 +1,142 @@
+/* Games empty and import-progress states. Every value comes from tokens.ts. */
+
+.games-state {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.games-state__title {
+  margin: 2px 0 0;
+  font: 600 26px/1.1 var(--ui-font-display);
+}
+
+.games-state__label {
+  margin: 0;
+  font: 800 12px var(--ui-font-body);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ui-color-muted);
+}
+
+.games-empty__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 14px 16px;
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-card);
+}
+
+.games-empty__sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.games-empty__row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.games-empty__row .ui-pill {
+  padding: 0 6px;
+  font-size: 13.5px;
+}
+
+.games-reading {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.games-reading__title {
+  margin: 0;
+  font: 600 24px/1.2 var(--ui-font-display);
+}
+
+.games-reading__board.chess-board {
+  width: min(100%, 200px);
+}
+
+.games-reading__board .chess-board__coordinate,
+.games-reading__board .chess-board__edge-coordinate {
+  display: none;
+}
+
+.games-reading__bar {
+  display: flex;
+  width: min(100%, 220px);
+  height: 12px;
+  overflow: hidden;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-color-deep);
+}
+
+.games-reading__done,
+.games-reading__current {
+  position: relative;
+  height: 100%;
+  transition: width var(--ui-motion-slow);
+}
+
+.games-reading__done {
+  background: var(--ui-color-jade);
+}
+
+.games-reading__current {
+  background: color-mix(in srgb, var(--ui-color-jade) 45%, transparent);
+  animation: games-reading-pulse 1.6s ease-in-out infinite;
+}
+
+.games-reading__line {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ui-color-muted);
+}
+
+.games-reading__found {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: var(--ui-radius-pill);
+  font: 800 14px var(--ui-font-body);
+  color: var(--ui-color-brass);
+  background: color-mix(in srgb, var(--ui-color-brass) 10%, transparent);
+  animation: games-reading-pop 0.6s;
+}
+
+.games-reading__note {
+  max-width: 260px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ui-color-muted);
+}
+
+@keyframes games-reading-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes games-reading-pop {
+  40% {
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .games-reading__done,
+  .games-reading__current {
+    transition: none;
+  }
+
+  .games-reading__current,
+  .games-reading__found {
+    animation: none;
+  }
+}
