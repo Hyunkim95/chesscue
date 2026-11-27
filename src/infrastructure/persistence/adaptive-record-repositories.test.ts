@@ -317,6 +317,7 @@ describe("adaptive IndexedDB records", () => {
       "analyses",
       "games",
       "guestClaims",
+      "momentAttempts",
       "reviewEvidence",
       "reviewMistakes",
       "syncReceipts",
