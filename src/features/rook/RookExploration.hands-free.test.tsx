@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -103,7 +104,10 @@ test("hands-free asks aloud, listens after speaking and sends the answer", async
   fireEvent.click(screen.getByRole("gridcell", { name: /White king on e2/ }));
   fireEvent.click(screen.getByRole("gridcell", { name: /Empty d2/ }));
   await screen.findByText("What were you trying to do with Kd2?");
-  expect(spoken.at(-1)?.text).toBe("What were you trying to do with Kd2?");
+  // Rook speaks after the question renders, so wait for the utterance.
+  await waitFor(() => {
+    expect(spoken.at(-1)?.text).toBe("What were you trying to do with Kd2?");
+  });
   expect(start).not.toHaveBeenCalled();
   act(() => spoken.at(-1)?.onend?.());
   expect(start).toHaveBeenCalledTimes(1);
@@ -116,5 +120,7 @@ test("hands-free asks aloud, listens after speaking and sends the answer", async
   expect(
     await log.findByText((text) => text.startsWith("You played Kd2. ")),
   ).toBeVisible();
-  expect(spoken.at(-1)?.text).toMatch(/^You played Kd2\. /);
+  await waitFor(() => {
+    expect(spoken.at(-1)?.text).toMatch(/^You played Kd2\. /);
+  });
 });
