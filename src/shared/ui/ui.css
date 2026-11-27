@@ -108,19 +108,56 @@
     visibility 0s linear var(--ui-motion-slow);
 }
 
-/* On wide screens a sheet slides over Rook's column, never the board. */
-@media (min-width: 720px) {
-  .ui-sheet {
-    inset: auto 24px 24px auto;
-    width: 340px;
-    max-width: none;
-    border-radius: var(--ui-radius-sheet);
-  }
+.ui-sheet__backdrop {
+  display: none;
 }
 
-@media (min-width: 1100px) {
+/* From 720 px a sheet is a centred modal over a dimmed backdrop. */
+@media (min-width: 720px) {
+  .ui-sheet__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    display: block;
+    visibility: hidden;
+    background: color-mix(in srgb, var(--ui-color-canvas) 72%, transparent);
+    opacity: 0;
+    transition:
+      opacity var(--ui-motion-base) ease-out,
+      visibility 0s linear var(--ui-motion-base);
+  }
+
+  .ui-sheet__backdrop--open {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity var(--ui-motion-base) ease-out;
+  }
+
   .ui-sheet {
-    width: 380px;
+    inset: 0;
+    z-index: 30;
+    width: min(calc(100% - 2 * var(--ui-space-gutter)), 400px);
+    max-width: none;
+    height: fit-content;
+    max-height: calc(100% - 48px);
+    margin: auto;
+    overflow-y: auto;
+    padding: 24px 20px 20px;
+    border-radius: var(--ui-radius-sheet);
+    box-shadow: var(--ui-shadow-float);
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+    transition:
+      opacity var(--ui-motion-base) ease-out,
+      transform var(--ui-motion-slow) var(--ui-motion-spring),
+      visibility 0s linear var(--ui-motion-slow);
+  }
+
+  .ui-sheet.ui-sheet--open {
+    opacity: 1;
+    transition:
+      opacity var(--ui-motion-base) ease-out,
+      transform var(--ui-motion-slow) var(--ui-motion-spring);
   }
 }
 
@@ -437,6 +474,7 @@ span.ui-avatar {
 @media (prefers-reduced-motion: reduce) {
   .ui-button,
   .ui-sheet,
+  .ui-sheet__backdrop,
   .ui-toggle__track,
   .ui-toggle__thumb {
     transition: none;

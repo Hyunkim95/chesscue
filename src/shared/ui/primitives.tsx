@@ -3,6 +3,7 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
   type ButtonHTMLAttributes,
   type CSSProperties,
   type ReactNode,
@@ -95,7 +96,26 @@ export function ChipRow({
   );
 }
 
-// A bottom sheet inside the current screen, such as the celebration.
+// Phones get a bottom sheet over the screen. From 720 px the same sheet is a
+// centred modal over a dimmed backdrop, so it never sits in a corner.
+const WIDE_SHEET = "(min-width: 720px)";
+
+function subscribeWide(onChange: () => void): () => void {
+  if (typeof window.matchMedia !== "function") return () => undefined;
+  const query = window.matchMedia(WIDE_SHEET);
+  query.addEventListener("change", onChange);
+  return () => {
+    query.removeEventListener("change", onChange);
+  };
+}
+
+function isWide(): boolean {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia(WIDE_SHEET).matches
+  );
+}
+
 export function Sheet({
   open,
   title,
@@ -110,28 +130,37 @@ export function Sheet({
   readonly onClose?: () => void;
 }) {
   const ref = useRef<HTMLElement>(null);
+  const titleId = useId();
+  const wide = useSyncExternalStore(subscribeWide, isWide, () => false);
   useEffect(() => {
     if (!open) return;
     ref.current?.querySelector<HTMLElement>("button, [href]")?.focus();
   }, [open]);
   return (
-    <section
-      ref={ref}
-      role="dialog"
-      aria-modal="false"
-      aria-hidden={!open}
-      aria-labelledby="ui-sheet-title"
-      inert={!open}
-      className={`ui-sheet ui-sheet--${tone}${open ? " ui-sheet--open" : ""}`}
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && onClose) onClose();
-      }}
-    >
-      <h2 id="ui-sheet-title" className="ui-sheet__title">
-        {title}
-      </h2>
-      {children}
-    </section>
+    <>
+      <div
+        className={`ui-sheet__backdrop${open ? " ui-sheet__backdrop--open" : ""}`}
+        aria-hidden="true"
+        onClick={onClose}
+      />
+      <section
+        ref={ref}
+        role="dialog"
+        aria-modal={wide}
+        aria-hidden={!open}
+        aria-labelledby={titleId}
+        inert={!open}
+        className={`ui-sheet ui-sheet--${tone}${open ? " ui-sheet--open" : ""}`}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && onClose) onClose();
+        }}
+      >
+        <h2 id={titleId} className="ui-sheet__title">
+          {title}
+        </h2>
+        {children}
+      </section>
+    </>
   );
 }
 

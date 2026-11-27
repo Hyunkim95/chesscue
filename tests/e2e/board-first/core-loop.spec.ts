@@ -143,3 +143,35 @@ test("the new tab bar never covers the play board on a wide screen", async ({
       .getByRole("button", { name: "Today" }),
   ).toBeVisible();
 });
+
+test("on a wide screen the Not this time sheet is a centred modal over the board", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/?ui=board-first");
+  await page.getByRole("button", { name: "Try the warm-up" }).click();
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Show me" }).click();
+
+  const sheet = page.getByRole("dialog", { name: "Not this time" });
+  await expect(sheet).toBeVisible({ timeout: 20_000 });
+  await expect(sheet).toHaveAttribute("aria-modal", "true");
+  const box = await sheet.boundingBox();
+  if (!box) throw new Error("The sheet has no box");
+  expect(Math.abs(box.x + box.width / 2 - 640)).toBeLessThan(4);
+  expect(Math.abs(box.y + box.height / 2 - 400)).toBeLessThan(4);
+
+  // The dimmed backdrop takes clicks meant for the board behind it.
+  const queen = await square(page, "White queen").boundingBox();
+  if (!queen) throw new Error("The queen has no box");
+  const hit = await page.evaluate(
+    ([x, y]) => document.elementFromPoint(x, y)?.className ?? "",
+    [queen.x + queen.width / 2, queen.y + queen.height / 2] as const,
+  );
+  expect(hit).toContain("ui-sheet__backdrop");
+
+  await sheet.getByRole("button", { name: "Continue" }).click();
+  await expect(sheet).toBeHidden();
+});
