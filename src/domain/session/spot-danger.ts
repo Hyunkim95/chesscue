@@ -40,7 +40,9 @@ export interface DangerMoment {
 const MIN_GAIN = 2;
 const SIDE = { w: "White", b: "Black" } as const;
 
-const serious = (fact: DangerFact) =>
+// A danger worth a lesson: a mate threat, or a piece the opponent wins at
+// least two points from.
+export const isSeriousDanger = (fact: DangerFact) =>
   fact.kind === "mate-threat" ||
   (fact.kind === "wins-material" && fact.gain >= MIN_GAIN);
 
@@ -71,7 +73,11 @@ function play(fen: string, uci: string): Chess | undefined {
 const sanAt = (fen: string, uci: string) => play(fen, uci)?.history().at(-1);
 
 // Whether the danger is still there after the player's move.
-function stillThere(after: Chess, fact: DangerFact, player: Color): boolean {
+export function stillThere(
+  after: Chess,
+  fact: DangerFact,
+  player: Color,
+): boolean {
   if (fact.kind === "mate-threat")
     return after.moves().some((san) => san.endsWith("#"));
   const piece = after.get(fact.target);
@@ -124,7 +130,11 @@ export function dangerMoment(input: {
   // In check, the lesson is getting out of it.
   if (board.inCheck()) return undefined;
   const player = board.turn();
-  if (!facts.some((fact) => serious(fact) && stillThere(after, fact, player)))
+  if (
+    !facts.some(
+      (fact) => isSeriousDanger(fact) && stillThere(after, fact, player),
+    )
+  )
     return undefined;
   return {
     question: `${SIDE[opponent(player)]} just played ${lastMove.san}. Is something of yours in trouble?`,

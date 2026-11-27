@@ -2,6 +2,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Chess } from "chess.js";
 import { afterEach, expect, test, vi } from "vitest";
 
+import type { StoryFrame } from "../../domain/analysis/line-storyboard";
+import type { GoodMove } from "../../domain/curriculum/good-moves";
 import { createGameId, type GameRecord } from "../../domain/game/types";
 import { finalPosition, type FinalPosition } from "./final-position";
 import {
@@ -26,12 +28,14 @@ function renderResult({
   moments = { kind: "found", count: 2 },
   share,
   opening,
+  goodMoves,
 }: {
   position?: FinalPosition;
   rating?: ResultRating;
   moments?: ResultMoments;
   share?: string;
   opening?: ResultOpening;
+  goodMoves?: readonly GoodMove[];
 } = {}) {
   const callbacks = {
     onLookAtMoments: vi.fn(),
@@ -45,6 +49,7 @@ function renderResult({
       moments={moments}
       share={share}
       opening={opening}
+      goodMoves={goodMoves}
       {...callbacks}
     />,
   );
@@ -266,4 +271,127 @@ test("the opening row steps through its frames on the board and resets", () => {
 test("there is no opening row without frames", () => {
   renderResult({ opening: { ...italian, frames: [] } });
   expect(screen.queryByText("Italian Game: Giuoco Piano")).toBeNull();
+});
+
+// The Opera Game: 14. Rd1 was the only move, and 17. Rd8# mated.
+const before = "4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2K4R w k - 0 14";
+const after = "4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 1 14";
+const start: StoryFrame = {
+  fen: before,
+  moveUci: "d8d7",
+  by: "rook",
+  arrows: [],
+  outlines: [],
+  control: [],
+  caption: "Move 14, White to move. Watch what you played.",
+};
+const rd1: GoodMove = {
+  gameId: "opera",
+  ply: 27,
+  kind: "only-move",
+  san: "Rd1",
+  moveLabel: "Move 14",
+  frames: [
+    start,
+    {
+      fen: after,
+      moveUci: "h1d1",
+      by: "learner",
+      arrows: [{ from: "h1", to: "d1", kind: "preview" }],
+      outlines: [],
+      control: [],
+      caption: "Rd1 aims at d7 and adds control of d4, d5 and d3.",
+    },
+    {
+      fen: after,
+      moveUci: "",
+      by: "learner",
+      arrows: [{ from: "h1", to: "d1", kind: "move" }],
+      outlines: [{ square: "d1", tone: "jade" }],
+      control: [],
+      caption: "Rd1 was the only move that keeps your advantage.",
+    },
+  ],
+};
+const rd8: GoodMove = {
+  ...rd1,
+  ply: 33,
+  kind: "tactic",
+  san: "Rd8#",
+  moveLabel: "Move 17",
+  frames: [
+    {
+      ...start,
+      fen: "1n2kb1r/p4ppp/4q3/4p1B1/4P3/8/PPP2PPP/2KR4 w k - 0 17",
+      caption: "Move 17, White to move. Watch what you played.",
+    },
+  ],
+};
+
+test("good moves: a quiet line under the moments that replays each one", () => {
+  const { container, onLookAtMoments } = renderResult({
+    goodMoves: [rd1, rd8],
+  });
+  expect(primaries(container)).toHaveLength(1);
+  fireEvent.click(
+    screen.getByRole("button", { name: "· and 2 things you did well" }),
+  );
+  expect(onLookAtMoments).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("grid", { name: "Good move 1 of 2, step 1 of 3" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Good move 1 of 2 · Move 14, Rd1")).toBeVisible();
+  expect(
+    screen.getByText("Move 14, White to move. Watch what you played."),
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  expect(
+    screen.getByText("Rd1 was the only move that keeps your advantage."),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+  // Reset goes back to the position before the move.
+  fireEvent.click(screen.getByRole("button", { name: "↺ Reset" }));
+  expect(
+    screen.getByRole("grid", { name: "Good move 1 of 2, step 1 of 3" }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Next good move ›" }));
+  expect(
+    screen.getByRole("grid", { name: "Good move 2 of 2, step 1 of 1" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Next good move ›" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  expect(screen.getByRole("grid", { name: "Final position" })).toBeVisible();
+});
+
+test("one good move is singular", () => {
+  renderResult({ goodMoves: [rd1] });
+  expect(
+    screen.getByRole("button", { name: "· and 1 thing you did well" }),
+  ).toBeVisible();
+});
+
+test("without moments, the good moves lead and Look at them replays them", () => {
+  const { container, onLookAtMoments } = renderResult({
+    moments: { kind: "found", count: 0 },
+    goodMoves: [rd1, rd8],
+  });
+  expect(
+    screen.getByRole("heading", {
+      name: "Rook found 2 things you did well in this game",
+    }),
+  ).toBeInTheDocument();
+  expect(primaries(container)).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Look at them" }));
+  expect(onLookAtMoments).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("grid", { name: "Good move 1 of 2, step 1 of 3" }),
+  ).toBeInTheDocument();
+});
+
+test("good moves wait until Rook has read the game", () => {
+  renderResult({ moments: { kind: "reading" }, goodMoves: [rd1] });
+  expect(screen.queryByText(/you did well/)).not.toBeInTheDocument();
 });

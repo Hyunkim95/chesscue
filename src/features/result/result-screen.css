@@ -119,6 +119,56 @@
   color: var(--ui-color-ink);
 }
 
+.result__found-group {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  justify-items: start;
+  margin-bottom: 12px;
+}
+
+.result__found-group .result__found {
+  margin: 0;
+}
+
+/* What the player did well: a quiet jade line under Rook's moments. */
+.result__good {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ui-space-target);
+  margin: 0 -8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  background: none;
+  font: 700 15px var(--ui-font-body);
+  color: var(--ui-color-jade);
+  text-align: left;
+  cursor: pointer;
+}
+
+.result__good:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  outline-offset: 2px;
+}
+
+.result__good-chevron {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.result__good-label {
+  margin: 8px 4px 0;
+  font: 700 13px var(--ui-font-body);
+  color: var(--ui-color-jade);
+}
+
+.result__steps--good {
+  justify-content: flex-end;
+}
+
 .result__actions {
   display: grid;
   gap: 12px;

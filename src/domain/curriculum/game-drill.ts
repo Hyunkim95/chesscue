@@ -37,6 +37,9 @@ export interface ObservedMove {
   readonly impactCp: number;
   readonly outcome: "retry" | "matched";
   readonly drill: VerifiedGameDrill;
+  // Stockfish's checked line starting with the move the player made, or just
+  // that move when it was not among the checked candidates.
+  readonly playedLine: readonly string[];
 }
 
 export function observedGameMoves(
@@ -160,6 +163,8 @@ export function observedGameMoves(
       impactCp: fact.impactCp,
       outcome: matched ? "matched" : "retry",
       drill,
+      playedLine: candidates.find(({ uci }) => uci === fact.playedMoveUci)
+        ?.principalVariation ?? [fact.playedMoveUci],
     });
   }
   return observations;
