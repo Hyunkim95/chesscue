@@ -21,6 +21,10 @@ import { isMateScore } from "./classify-experiment";
 
 export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/4";
 export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/2";
+// What counts as a tactic line (tacticKind, isTacticLine). Progress and the
+// curriculum derive units from it, so a change to the rule bumps this.
+// 2: material is counted once the line's exchanges settle.
+export const TACTIC_LINE_VERSION = "tactic-line/2";
 
 type FactKind =
   | "mate"
@@ -288,28 +292,84 @@ function materialText(side: string, gain: number, balance: number): string {
     : `${won} but is still ${points(-balance)} behind.`;
 }
 
+// Replays `learnerMoves` moves of the side that starts the line, then goes on
+// until the material settles: the line makes no capture or promotion for
+// STABLE_PLIES plies, so a take-back after an in-between check counts too.
+// `boards[i]` is the position after `i` moves; `plies` is the usual reach.
+function settledLine(
+  fen: string,
+  line: readonly string[],
+  learnerMoves: number,
+):
+  | { readonly moves: Move[]; readonly boards: Chess[]; readonly plies: number }
+  | undefined {
+  const plies = learnerMoves * 2 - 1;
+  const played: Move[] = [];
+  try {
+    const replay = new Chess(fen);
+    for (const uci of line) {
+      if (replay.isGameOver()) break;
+      played.push(replay.move(uci));
+    }
+  } catch {
+    // The line ends at its first illegal move.
+    if (played.length < Math.min(plies, line.length)) return undefined;
+  }
+  let end = Math.min(plies, played.length);
+  for (
+    let index = end;
+    index < played.length && index < end + STABLE_PLIES;
+    index += 1
+  ) {
+    const move = played[index];
+    if (move?.captured !== undefined || move?.promotion !== undefined)
+      end = index + 1;
+  }
+  const moves = played.slice(0, end);
+  const board = new Chess(fen);
+  const boards: Chess[] = [new Chess(fen)];
+  for (const move of moves) {
+    board.move(move.lan);
+    boards.push(new Chess(board.fen()));
+  }
+  return { moves, boards, plies };
+}
+
+// A line wins material when it gains at least two points within the usual
+// reach and still does once the material settles.
+function winsWithin(
+  start: Chess,
+  boards: readonly Chess[],
+  plies: number,
+  us: Color,
+): { readonly wins: boolean; readonly mated: boolean } {
+  const end = boards.at(-1) ?? start;
+  const reached = boards[Math.min(plies, boards.length - 1)] ?? start;
+  const settled = lineOutcome(start, end, us);
+  const within = lineOutcome(start, reached, us);
+  return {
+    wins: settled.gain >= 2 && (within.mated || within.gain >= 2),
+    mated: settled.mated,
+  };
+}
+
 // What the better line wins within the replayed moves: a forced mate, at
-// least two points of material, or nothing (a quiet line).
+// least two points of material, or nothing (a quiet line). The material is
+// counted once it settles, like the explanations' (TACTIC_LINE_VERSION).
 export function tacticKind(
   fen: string,
   line: readonly string[],
 ): "mate" | "material" | undefined {
   const outcomes = [SHORT_LINE, LONG_LINE].flatMap((learnerMoves) => {
-    try {
-      const board = new Chess(fen);
-      const start = new Chess(fen);
-      const us = board.turn();
-      for (const uci of line.slice(0, learnerMoves * 2 - 1)) {
-        if (board.isGameOver()) break;
-        board.move(uci);
-      }
-      return [lineOutcome(start, board, us)];
-    } catch {
-      return [];
-    }
+    const settled = settledLine(fen, line, learnerMoves);
+    const [first] = settled?.moves ?? [];
+    if (!settled || !first) return [];
+    return [
+      winsWithin(new Chess(fen), settled.boards, settled.plies, first.color),
+    ];
   });
   if (outcomes.some(({ mated }) => mated)) return "mate";
-  if (outcomes.some(({ gain }) => gain >= 2)) return "material";
+  if (outcomes.some(({ wins }) => wins)) return "material";
   return undefined;
 }
 
@@ -377,38 +437,11 @@ function readLine(
   viewer?: Color,
   countFrom?: Chess,
 ): LineReading | undefined {
-  const plies = learnerMoves * 2 - 1;
-  const played: Move[] = [];
-  try {
-    const replay = new Chess(fen);
-    for (const uci of line) {
-      if (replay.isGameOver()) break;
-      played.push(replay.move(uci));
-    }
-  } catch {
-    // The line ends at its first illegal move.
-    if (played.length < Math.min(plies, line.length)) return undefined;
-  }
-  // The count is stated only where the material settles: the reading goes on
-  // until the line makes no capture or promotion for STABLE_PLIES plies, so
-  // a take-back after an in-between check is counted too.
-  let end = Math.min(plies, played.length);
-  for (
-    let index = end;
-    index < played.length && index < end + STABLE_PLIES;
-    index += 1
-  ) {
-    const move = played[index];
-    if (move?.captured !== undefined || move?.promotion !== undefined)
-      end = index + 1;
-  }
-  const moves = played.slice(0, end);
-  const board = new Chess(fen);
-  const boards: Chess[] = [new Chess(fen)];
-  for (const move of moves) {
-    board.move(move.lan);
-    boards.push(new Chess(board.fen()));
-  }
+  const settled = settledLine(fen, line, learnerMoves);
+  if (!settled) return undefined;
+  const { moves, boards, plies } = settled;
+  const board = boards.at(-1);
+  if (!board) return undefined;
   const [firstMove] = moves;
   const start = boards[0];
   if (!firstMove || !start) return undefined;
@@ -417,10 +450,7 @@ function readLine(
   // Only a line whose payoff is inside the usual reach is explained here, and
   // only if it still holds once the material settles. Longer combinations
   // keep the move-consequence plan.
-  const withinReach = boards[Math.min(plies, moves.length)];
-  const reached =
-    withinReach && lineOutcome(countFrom ?? start, withinReach, us);
-  if (!mated && (gain < 2 || !reached || (!reached.mated && reached.gain < 2)))
+  if (!mated && !winsWithin(countFrom ?? start, boards, plies, us).wins)
     return undefined;
 
   const facts: Fact[] = [];
@@ -486,8 +516,8 @@ function readLine(
     );
   // Moves read past the usual end, until the material settles, are named
   // before the count they set.
-  const settled = moves.length > plies ? lead({ ply: moves.length }) : "";
-  if (!mated) rest.push(settled + materialText(SIDE[us], gain, balance));
+  const settling = moves.length > plies ? lead({ ply: moves.length }) : "";
+  if (!mated) rest.push(settling + materialText(SIDE[us], gain, balance));
   return { firstMove, setup, bridge, rest };
 }
 
