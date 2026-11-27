@@ -28,6 +28,7 @@ import {
   refutationStoryboard,
   type StoryFrame,
 } from "../../domain/analysis/line-storyboard";
+import { PIECE_NAME } from "../../domain/analysis/board-relations";
 import { scanHint } from "../../domain/analysis/forcing-moves";
 import {
   describedMoves,
@@ -67,8 +68,10 @@ import { ChessBoard, type BoardOutline } from "../board/ChessBoard";
 import { departureBadges } from "../board/departure-badges";
 import {
   checksAnswer,
+  captureReasonFromBoard,
   replyReason,
   rookMoveReason,
+  sacrificeSentence,
   STANDING_AFTER,
   threatsAnswer,
   tierLine,
@@ -245,6 +248,9 @@ function storyMoves(story: Story): (SanMove & {
       : [];
   });
 }
+
+// A reason only a Stockfish search can give.
+const SEARCH = Symbol("search");
 
 // Questions asking for a reason, answered by code once the move is known.
 const WHY_QUESTION =
@@ -952,28 +958,138 @@ export function MomentScreen({
 
   // Why a move is played, said about the position on screen without moving
   // anything. Before the answer is found, the answer is never explained.
-  function reasonInPlace(uci: string): string | undefined {
+  // Where Rook played a move, for reasons that need the position before it,
+  // the player's move just before and the rest of the line.
+  function rookMoveContext(uci: string):
+    | {
+        readonly before: string;
+        readonly previous:
+          | { readonly fen: string; readonly uci: string }
+          | undefined;
+        readonly rest: readonly string[];
+      }
+    | undefined {
+    const lines = [story, solving ? undefined : answerStory].filter(
+      (line): line is Story => line !== undefined,
+    );
+    for (const line of lines) {
+      const inLine = storyMoves(line).find((move) => move.uci === uci);
+      const frame = inLine ? line.frames[inLine.index] : undefined;
+      if (!inLine || frame?.by !== "rook") continue;
+      return {
+        before: beforeFrame(line, inLine.index),
+        previous: previousMove(line, inLine.index),
+        rest: restOf(line, inLine.index),
+      };
+    }
+    const last = attempts.at(-1);
+    if (uci === reply?.uci && last) {
+      try {
+        const before = new Chess(moment.fen);
+        before.move(uciMove(last.uci));
+        return {
+          before: before.fen(),
+          previous: { fen: moment.fen, uci: last.uci },
+          rest: [],
+        };
+      } catch {
+        return undefined;
+      }
+    }
+    if (legalAt(view.fen, uci) && view.fen.split(" ")[1] !== learnerColor)
+      return { before: view.fen, previous: undefined, rest: [] };
+    return undefined;
+  }
+
+  // Why a move is played, said about the position on screen without moving
+  // anything. Before the answer is found, the answer is never explained. A
+  // capture of Rook's that gives up material returns SEARCH: only Stockfish
+  // can say why.
+  function reasonInPlace(uci: string): string | typeof SEARCH | undefined {
     if (solving && uci === moment.bestUci)
       return "Play it on the board and I'll tell you how it does.";
-    const inLine = story
-      ? storyMoves(story).find((move) => move.uci === uci)
-      : undefined;
-    const frame = inLine && story ? story.frames[inLine.index] : undefined;
-    if (inLine && story && frame)
-      return frame.by === "rook"
-        ? (rookMoveReason(
-            beforeFrame(story, inLine.index),
-            uci,
-            previousMove(story, inLine.index),
-            restOf(story, inLine.index),
-          ) ?? frame.caption)
-        : frame.caption;
+    const rook = rookMoveContext(uci);
+    if (rook) {
+      const captures = capturedBy(rook.before, uci) !== undefined;
+      if (captures)
+        return (
+          captureReasonFromBoard(rook.before, uci, rook.previous, rook.rest) ??
+          SEARCH
+        );
+      return (
+        rookMoveReason(rook.before, uci, rook.previous, rook.rest) ??
+        lineStoryboard(rook.before, [uci], learnerColor)[0]?.caption
+      );
+    }
+    for (const line of [story, solving ? undefined : answerStory]) {
+      if (!line) continue;
+      const inLine = storyMoves(line).find((move) => move.uci === uci);
+      const frame = inLine ? line.frames[inLine.index] : undefined;
+      if (frame) return frame.caption;
+    }
     const tried = attempts.find((attempt) => attempt.uci === uci);
     if (tried)
       return `${sanFor(moment.fen, uci) ?? uci} was one of your tries. I can play out what goes wrong.`;
     if (legalAt(view.fen, uci))
       return lineStoryboard(view.fen, [uci], learnerColor)[0]?.caption;
     return undefined;
+  }
+
+  // When no search is possible: what the capture takes, honestly.
+  function captureFallback(uci: string): string {
+    const rook = rookMoveContext(uci);
+    return (
+      (rook && sacrificeSentence(rook.before, [uci, ...rook.rest])) ??
+      "I can't check that right now. Step through the line to see what follows."
+    );
+  }
+
+  // Why Rook gave up material, from a search: what goes wrong with his best
+  // other move, then what the capture costs and wins. "If my queen runs with
+  // Qd2, you answer Nd3+ and I'm much worse off. Taking your bishop costs me
+  // a queen, but I get a bishop and a knight for her."
+  async function searchedReason(uci: string): Promise<string | undefined> {
+    const rook = rookMoveContext(uci);
+    if (!rook) return undefined;
+    const analysis = await analyzePosition(
+      rook.before,
+      4,
+      controller.current.signal,
+    );
+    if (!analysis.ok) return undefined;
+    const { candidates } = analysis.value;
+    const chosen = candidates.find((candidate) => candidate.uci === uci);
+    const from = uci.slice(0, 2);
+    const others = candidates.filter((candidate) => candidate.uci !== uci);
+    const alternative =
+      others.find((candidate) => candidate.uci.slice(0, 2) === from) ??
+      others[0];
+    const reply = alternative?.principalVariation[1];
+    const score =
+      chosen?.evaluationCpFromSideToMove ??
+      candidates[0]?.evaluationCpFromSideToMove;
+    if (!alternative || !reply || score === undefined) return undefined;
+    if (score - alternative.evaluationCpFromSideToMove < 100) return undefined;
+    const altSan = sanFor(rook.before, alternative.uci);
+    let replySan: string | undefined;
+    try {
+      const after = new Chess(rook.before);
+      after.move(uciMove(alternative.uci));
+      replySan = sanFor(after.fen(), reply);
+    } catch {
+      return undefined;
+    }
+    if (!altSan || !replySan) return undefined;
+    const fromSquare = SQUARES.find((square) => square === from);
+    const piece = fromSquare
+      ? new Chess(rook.before).get(fromSquare)
+      : undefined;
+    const runs =
+      alternative.uci.slice(0, 2) === from && piece
+        ? `If my ${PIECE_NAME[piece.type]} runs with ${altSan}`
+        : `If I play ${altSan} instead`;
+    const cost = sacrificeSentence(rook.before, [uci, ...rook.rest]);
+    return `${runs}, you answer ${replySan} and I'm much worse off.${cost ? ` ${cost}` : ""}`;
   }
 
   // A typed question is answered where the player is looking. Anything that
@@ -999,7 +1115,30 @@ export function MomentScreen({
         return;
       case "why":
       case "what-if": {
-        const reason = reasonInPlace(action.uci);
+        const found = reasonInPlace(action.uci);
+        if (found === SEARCH) {
+          setChoices(undefined);
+          setConfirm(undefined);
+          setBusy(true);
+          setSay({
+            text: "Let me check what else I could do…",
+            mood: "think",
+            understood,
+          });
+          const uci = action.uci;
+          void searchedReason(uci)
+            .catch(() => undefined)
+            .then((text) => {
+              setBusy(false);
+              setSay({
+                text: text ?? captureFallback(uci),
+                mood: "idle",
+                understood,
+              });
+            });
+          return;
+        }
+        const reason = found;
         const onScreen =
           action.kind === "why" &&
           story?.frames[story.step]?.moveUci === action.uci;

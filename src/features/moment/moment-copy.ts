@@ -225,6 +225,51 @@ function lineReason(fen: string, line: readonly string[]): string | undefined {
   return undefined;
 }
 
+// A capture's reason from the board alone, or none when only a search can
+// say why (the capture gives up material).
+export function captureReasonFromBoard(
+  fen: string,
+  uci: string,
+  previous?: { readonly fen: string; readonly uci: string },
+  rest: readonly string[] = [],
+): string | undefined {
+  try {
+    return captureReason(fen, uci, previous) ?? lineReason(fen, [uci, ...rest]);
+  } catch {
+    return undefined;
+  }
+}
+
+// What a line costs and wins Rook, who moves first: "Taking your bishop
+// costs me a queen, but I get a bishop and a knight for her."
+export function sacrificeSentence(
+  fen: string,
+  line: readonly string[],
+): string | undefined {
+  try {
+    const board = new Chess(fen);
+    const rook = board.turn();
+    const won: (keyof typeof NAME)[] = [];
+    const lost: (keyof typeof NAME)[] = [];
+    let first:
+      | { piece: keyof typeof NAME; captured?: keyof typeof NAME }
+      | undefined;
+    for (const uci of line) {
+      const move = playUci(board, uci);
+      first ??= {
+        piece: move.piece,
+        ...(move.captured ? { captured: move.captured } : {}),
+      };
+      if (move.captured) (move.color === rook ? won : lost).push(move.captured);
+    }
+    if (!first?.captured || lost.length === 0) return undefined;
+    const own = first.piece === "q" ? "her" : "it";
+    return `Taking your ${NAME[first.captured]} costs me ${pieceWords(lost)}, but I get ${pieceWords(won)} for ${own}.`;
+  } catch {
+    return undefined;
+  }
+}
+
 export function rookMoveReason(
   fen: string,
   uci: string,

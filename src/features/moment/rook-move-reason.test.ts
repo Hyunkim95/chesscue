@@ -1,6 +1,12 @@
 import { expect, it } from "vitest";
 
-import { replyReason, rookMoveReason, tierLine } from "./moment-copy";
+import {
+  captureReasonFromBoard,
+  replyReason,
+  rookMoveReason,
+  sacrificeSentence,
+  tierLine,
+} from "./moment-copy";
 
 // Why Rook could take, not just what he took.
 it("says the player's move left the piece with no defender", () => {
@@ -58,4 +64,17 @@ it("keeps Rook's I and the move's capitals in a preview", () => {
       plan: true,
     }),
   ).toMatch(/^If you play Na6, I answer Nf3\./);
+});
+
+it("says what Rook's sacrifice costs and wins", () => {
+  // The player's game: ...Bf5 hits the queen; Qxf5 Qxf5 dxc5.
+  const afterBf5 =
+    "r3r1k1/ppp2ppp/3p1q2/2n2bN1/N1PP4/8/PPQ1P1PP/R1B1KB1R w KQ - 1 14";
+  expect(sacrificeSentence(afterBf5, ["c2f5", "f6f5", "d4c5"])).toBe(
+    "Taking your bishop costs me a queen, but I get a bishop and a knight for her.",
+  );
+  // From the board alone there is no reason to give up the queen.
+  expect(
+    captureReasonFromBoard(afterBf5, "c2f5", undefined, ["f6f5", "d4c5"]),
+  ).toBeUndefined();
 });
