@@ -84,3 +84,31 @@ test("a new player finds the warm-up idea on a retry and sees it recapped", asyn
   await page.getByRole("button", { name: /See your sky/ }).click();
   await expect(page.getByRole("heading", { name: "Your sky" })).toBeVisible();
 });
+
+test("a refreshed moment reopens the same position and a bare #moment goes to Today", async ({
+  page,
+}) => {
+  await page.goto("/?ui=board-first");
+  await page.getByRole("button", { name: "Try the warm-up" }).click();
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page).toHaveURL(/#moment\/puzzle%3A/);
+
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(square(page, "White queen on g4")).toBeVisible();
+
+  await page.goto("/?ui=board-first#moment");
+  await expect(
+    page.getByRole("heading", { name: "Warm-up position" }),
+  ).toBeVisible({
+    timeout: 20_000,
+  });
+});

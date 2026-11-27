@@ -114,6 +114,20 @@ function analyzePosition(fen: string, multiPv: number, signal: AbortSignal) {
   });
 }
 
+function momentPath(id: string): string {
+  return `#moment/${encodeURIComponent(id)}`;
+}
+
+function linkedMoment(): string | undefined {
+  const [, id] = /^#moment\/(.+)$/.exec(location.hash) ?? [];
+  if (id === undefined) return undefined;
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return undefined;
+  }
+}
+
 async function puzzleMoment(
   puzzle: FollowUpPuzzle,
   sourceLabel: string,
@@ -149,7 +163,7 @@ export function BoardFirstScreens({
   onImport,
 }: {
   readonly view: BoardFirstView;
-  readonly navigate: (view: BoardFirstView) => void;
+  readonly navigate: (view: BoardFirstView, path?: string) => void;
   readonly history: PlayerHistory;
   readonly snapshot: SnapshotState;
   readonly ratings: readonly RatingEntry[];
@@ -234,7 +248,12 @@ export function BoardFirstScreens({
 
   async function open(target: ObservedMove | FollowUpPuzzle, label?: string) {
     setMoment("opening");
-    navigate("moment");
+    navigate(
+      "moment",
+      momentPath(
+        "drill" in target ? gameMomentId(target) : `puzzle:${target.id}`,
+      ),
+    );
     const spec =
       "drill" in target
         ? momentFromGame(target, unitTitles)
@@ -245,6 +264,47 @@ export function BoardFirstScreens({
     setMoment(spec);
     if (!spec) navigate("today");
   }
+
+  // A refresh or a pasted #moment/<id> link reopens the same position once
+  // the player's games are read; an unknown id goes back to Today.
+  const linked =
+    view === "moment" && moment === undefined ? linkedMoment() : undefined;
+  const restored = useMemo(() => {
+    if (linked === undefined || linked.startsWith("puzzle:")) return undefined;
+    const observed = games.find((entry) => gameMomentId(entry) === linked);
+    return observed ? momentFromGame(observed, unitTitles) : undefined;
+  }, [linked, games]);
+  const unresolved =
+    view === "moment" &&
+    moment === undefined &&
+    restored === undefined &&
+    (linked === undefined ||
+      (!linked.startsWith("puzzle:") && snapshot.status !== "checking"));
+  useEffect(() => {
+    if (unresolved) navigate("today");
+  }, [unresolved, navigate]);
+  useEffect(() => {
+    if (moment !== undefined || !linked?.startsWith("puzzle:")) return;
+    const id = linked.slice("puzzle:".length);
+    const puzzle = pack.puzzles.find((entry) => entry.id === id);
+    if (!puzzle) {
+      navigate("today");
+      return;
+    }
+    let live = true;
+    void puzzleMoment(
+      puzzle,
+      puzzle.id === warmUp?.id
+        ? "Warm-up position"
+        : "A position like ones from your games",
+    ).then((spec) => {
+      if (live) setMoment(spec);
+    });
+    return () => {
+      live = false;
+    };
+  }, [linked, moment, navigate]);
+  const active = moment ?? restored;
 
   function playToday() {
     if (pick.kind === "new" || pick.kind === "returning")
@@ -329,7 +389,7 @@ export function BoardFirstScreens({
           ),
         }}
       >
-        {moment === undefined || moment === "opening" ? (
+        {active === undefined || active === "opening" ? (
           <TodayScreen
             state={{ kind: "loading" }}
             goal={progress.dailyGoal}
@@ -343,18 +403,18 @@ export function BoardFirstScreens({
           />
         ) : (
           <MomentScreen
-            key={moment.id}
-            moment={moment}
+            key={active.id}
+            moment={active}
             online={online}
             checkMove={(uci, signal) =>
-              checkTry({ position: moment, uci, engine, signal })
+              checkTry({ position: active, uci, engine, signal })
             }
             analyzePosition={analyzePosition}
             askRook={async (question, signal) => {
               const available = await questionRouters();
               return routeQuestion({
                 ...question,
-                learnerPlayed: moment.playedInGame?.san,
+                learnerPlayed: active.playedInGame?.san,
                 online,
                 cloud: canUse("open-chat") ? available.cloud : undefined,
                 device: available.device,
@@ -363,10 +423,10 @@ export function BoardFirstScreens({
             }}
             onComplete={(result) => {
               const record = momentRecord({
-                id: `${moment.id}@${new Date().toISOString()}`,
+                id: `${active.id}@${new Date().toISOString()}`,
                 result,
-                source: moment.source,
-                unitId: moment.unitId,
+                source: active.source,
+                unitId: active.unitId,
                 completedAt: new Date(),
               });
               if (record)

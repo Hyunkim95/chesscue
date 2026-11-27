@@ -469,6 +469,7 @@ function routeView(hash: string): AppView {
   if (boardFirst) {
     const named = boardFirstViews.find((name) => hash === "#" + name);
     if (named) return named;
+    if (hash.startsWith("#moment/")) return "moment";
     if (hash === "") return "today";
   }
   if (hash === "#review-home" || (extensionPanel && hash === ""))
@@ -716,6 +717,12 @@ function PlayerApp({
   setBoardBackSlot: (node: HTMLDivElement | null) => void;
   openAccount: () => void;
 }) {
+  const navigateBoardFirst = useCallback(
+    (next: BoardFirstView, path?: string) => {
+      setView(next, path);
+    },
+    [setView],
+  );
   const repository = history.games,
     reviewEvidenceRepository = history.reviews,
     analysisRepository = history.analyses;
@@ -1463,9 +1470,7 @@ function PlayerApp({
     return (
       <BoardFirstScreens
         view={view}
-        navigate={(next) => {
-          setView(next);
-        }}
+        navigate={navigateBoardFirst}
         history={history}
         snapshot={snapshot}
         ratings={ratings}
