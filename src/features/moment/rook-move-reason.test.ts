@@ -15,6 +15,15 @@ it("says the player's move left the piece with no defender", () => {
       fen: "4k3/3q4/8/8/8/8/2B5/4K3 w - - 0 1",
       uci: "c2f5",
     }),
+  ).toBe("Bf5 puts your bishop on f5, where nothing defends it.");
+  // With Stockfish's line showing Rook keeps the bishop, the "so" is earned.
+  expect(
+    rookMoveReason(
+      "4k3/3q4/8/5B2/8/8/8/4K3 b - - 1 1",
+      "d7f5",
+      { fen: "4k3/3q4/8/8/8/8/2B5/4K3 w - - 0 1", uci: "c2f5" },
+      ["e1d1"],
+    ),
   ).toBe("Bf5 puts your bishop on f5, where nothing defends it, so I take it.");
 });
 
@@ -24,7 +33,7 @@ it("says the player's move took away the last defender", () => {
       fen: "4k3/3q4/8/5B2/3N4/8/8/4K3 w - - 0 1",
       uci: "d4b5",
     }),
-  ).toBe("Nb5 took away the last defender of your bishop on f5, so I take it.");
+  ).toBe("Nb5 took away the last defender of your bishop on f5.");
 });
 
 it("calls a capture on the square just taken a recapture", () => {
@@ -36,9 +45,21 @@ it("calls a capture on the square just taken a recapture", () => {
   ).toBe("I take back on f5.");
 });
 
-it("says a piece with no defender is taken for free", () => {
-  expect(rookMoveReason("4k3/3q4/8/5B2/8/8/8/4K3 b - - 1 1", "d7f5")).toBe(
+it("says a piece is free only when Stockfish's line backs it", () => {
+  const fen = "4k3/3q4/8/5B2/8/8/8/4K3 b - - 1 1";
+  expect(rookMoveReason(fen, "d7f5")).toBe(
+    "Nothing defends your bishop on f5.",
+  );
+  expect(rookMoveReason(fen, "d7f5", undefined, ["e1d1"])).toBe(
     "Nothing defends your bishop on f5, so I take it for free.",
+  );
+});
+
+it("claims no free capture when the line shows it costs more", () => {
+  // Qxf5 takes an undefended bishop, but the line has White win the queen.
+  const fen = "4k3/3q4/8/5B2/8/8/5Q2/4K3 b - - 1 1";
+  expect(rookMoveReason(fen, "d7f5", undefined, ["f2f5"])).not.toMatch(
+    /for free|so I take/,
   );
 });
 

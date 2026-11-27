@@ -145,10 +145,34 @@ function playUci(board: Chess, uci: string) {
 // player's move that left it so), or an exchange that still comes out ahead.
 // `previous` is the player's move just before, from the position it was
 // played in.
+// What a line comes to for the side that moves first, in points: material
+// won minus material lost over the line. Undefined when it cannot be played.
+function lineNet(fen: string, line: readonly string[]): number | undefined {
+  try {
+    const board = new Chess(fen);
+    const side = board.turn();
+    let net = 0;
+    for (const uci of line) {
+      const move = playUci(board, uci);
+      if (move.captured)
+        net += (move.color === side ? 1 : -1) * VALUE[move.captured];
+    }
+    return net;
+  } catch {
+    return undefined;
+  }
+}
+
+// Why Rook could take: a recapture, a piece left with no defender (and the
+// player's move that left it so), or an exchange that still comes out ahead.
+// "…so I take it" is said only when Stockfish's line from the capture backs
+// it: Rook comes out ahead. Without the line, only the board fact is said;
+// with a line that does not back it, nothing, so a search can explain it.
 function captureReason(
   fen: string,
   uci: string,
   previous: { readonly fen: string; readonly uci: string } | undefined,
+  rest: readonly string[],
 ): string | undefined {
   const board = new Chess(fen);
   const to = SQUARES.find((square) => square === uci.slice(2, 4));
@@ -156,6 +180,9 @@ function captureReason(
   if (!to || !target) return undefined;
   const name = `your ${NAME[target.type]} on ${to}`;
   const rookSide = opponent(target.color);
+  const net = rest.length > 0 ? lineNet(fen, [uci, ...rest]) : undefined;
+  const backed = net !== undefined && net > 0;
+  const known = rest.length > 0;
   if (previous) {
     const before = new Chess(previous.fen);
     const theirs = playUci(new Chess(previous.fen), previous.uci);
@@ -163,18 +190,30 @@ function captureReason(
     const defended = board.attackers(to, target.color).length > 0;
     if (!defended) {
       if (theirs.to === to)
-        return `${theirs.san} puts your ${NAME[target.type]} on ${to}, where nothing defends it, so I take it.`;
+        return backed
+          ? `${theirs.san} puts your ${NAME[target.type]} on ${to}, where nothing defends it, so I take it.`
+          : known
+            ? undefined
+            : `${theirs.san} puts your ${NAME[target.type]} on ${to}, where nothing defends it.`;
       const was = before.get(to);
       if (
         was?.type === target.type &&
         before.attackers(to, target.color).length > 0
       )
-        return `${theirs.san} took away the last defender of ${name}, so I take it.`;
+        return backed
+          ? `${theirs.san} took away the last defender of ${name}, so I take it.`
+          : known
+            ? undefined
+            : `${theirs.san} took away the last defender of ${name}.`;
     }
   }
   if (board.attackers(to, target.color).length === 0)
-    return `Nothing defends ${name}, so I take it for free.`;
-  if (staticExchange(board, to, rookSide) > 0)
+    return backed
+      ? `Nothing defends ${name}, so I take it for free.`
+      : known
+        ? undefined
+        : `Nothing defends ${name}.`;
+  if (backed && staticExchange(board, to, rookSide) > 0)
     return `Even after you take back on ${to}, I come out ahead.`;
   return undefined;
 }
@@ -234,7 +273,9 @@ export function captureReasonFromBoard(
   rest: readonly string[] = [],
 ): string | undefined {
   try {
-    return captureReason(fen, uci, previous) ?? lineReason(fen, [uci, ...rest]);
+    return (
+      captureReason(fen, uci, previous, rest) ?? lineReason(fen, [uci, ...rest])
+    );
   } catch {
     return undefined;
   }
@@ -285,7 +326,7 @@ export function rookMoveReason(
     if (move.san.includes("#")) return `${move.san} is checkmate.`;
     if (move.captured)
       return (
-        captureReason(fen, uci, previous) ??
+        captureReason(fen, uci, previous, rest) ??
         lineReason(fen, [uci, ...rest]) ??
         `${move.san} takes your ${NAME[move.captured]} on ${move.to}.`
       );
