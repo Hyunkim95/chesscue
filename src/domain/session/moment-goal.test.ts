@@ -1,6 +1,11 @@
 import { expect, it } from "vitest";
 
-import { hasClearBestMove, isServableMoment, momentGoal } from "./moment-goal";
+import {
+  hasClearBestMove,
+  isServableMoment,
+  momentGoal,
+  puzzleGoal,
+} from "./moment-goal";
 
 it("states the goal without naming a tactic, and names a plan's goal", () => {
   expect(
@@ -119,4 +124,26 @@ it("serves a plan position only when one move is clearly best", () => {
       [{ evaluationCp: 100_000 }, { evaluationCp: 100_000 }],
     ),
   ).toBe(true);
+});
+
+it("gives a library puzzle a goal that never names its idea", () => {
+  // Lichess 0N7LQ nets a bishop for two pawns: one point, still a win.
+  expect(
+    puzzleGoal(
+      "r4rk1/pp1b3p/1q2p1p1/4bpP1/3Pp3/2P5/PPQN3P/R1B2RK1 w - - 0 17",
+      ["d2c4", "e5d4", "c3d4", "b6d4", "c1e3"],
+    ),
+  ).toEqual({ kind: "material", prompt: "One move here wins material." });
+  expect(
+    puzzleGoal("r4rk1/ppq2p1p/4pP2/3pP1p1/6Q1/2P5/PP1n2PP/R4R1K w - - 0 19", [
+      "g4g5",
+      "g8h8",
+      "g5g7",
+    ]).prompt,
+  ).toBe("There's a forced mate here.");
+  expect(
+    puzzleGoal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", [
+      "g1f3",
+    ]),
+  ).toEqual({ kind: "best", prompt: "Find the strongest move here." });
 });

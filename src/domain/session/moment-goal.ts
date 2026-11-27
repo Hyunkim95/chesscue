@@ -1,5 +1,5 @@
 import type { BoardArrow } from "../analysis/board-move-cues";
-import { tacticKind } from "../analysis/explain-miss";
+import { lineMaterialGain, tacticKind } from "../analysis/explain-miss";
 import { planFocus, type PlanOutline } from "../analysis/plan-focus";
 
 // What the player is working towards in a position, stated before they move
@@ -9,6 +9,7 @@ import { planFocus, type PlanOutline } from "../analysis/plan-focus";
 export type MomentGoal =
   | { readonly kind: "mate"; readonly prompt: string }
   | { readonly kind: "material"; readonly prompt: string }
+  | { readonly kind: "best"; readonly prompt: string }
   | {
       readonly kind: "plan";
       readonly prompt: string;
@@ -52,6 +53,16 @@ export function momentGoal(
     arrows: [],
     outlines: [],
   };
+}
+
+// A library puzzle has one checked answer. Its goal says what the answer
+// wins, never which idea it uses, so the idea is only named once it is found.
+export function puzzleGoal(fen: string, line: readonly string[]): MomentGoal {
+  const kind = tacticKind(fen, line);
+  if (kind === "mate") return { kind, prompt: "There's a forced mate here." };
+  if (kind === "material" || lineMaterialGain(fen, line) >= 1)
+    return { kind: "material", prompt: "One move here wins material." };
+  return { kind: "best", prompt: "Find the strongest move here." };
 }
 
 // Whether Stockfish's best move clearly beats the second best. With fewer

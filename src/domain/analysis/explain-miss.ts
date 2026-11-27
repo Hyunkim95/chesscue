@@ -260,6 +260,20 @@ export function tacticKind(
   return undefined;
 }
 
+// The material the side to move comes out with over the whole line, in
+// pawns. Zero when the line cannot be played.
+export function lineMaterialGain(fen: string, line: readonly string[]): number {
+  try {
+    const board = new Chess(fen);
+    const start = new Chess(fen);
+    const us = board.turn();
+    for (const uci of line) board.move(uci);
+    return lineOutcome(start, board, us).gain;
+  } catch {
+    return 0;
+  }
+}
+
 // Whether the better line is a tactic: within the replayed moves it mates or
 // wins at least two points of material. A quiet defensive line is not.
 export function isTacticLine(fen: string, line: readonly string[]): boolean {

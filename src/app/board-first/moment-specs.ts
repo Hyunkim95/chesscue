@@ -5,6 +5,7 @@ import type { FollowUpPuzzle } from "../../domain/curriculum/follow-up-puzzles";
 import { unitForDrill } from "../../domain/curriculum/recommend-unit";
 import {
   momentGoal,
+  puzzleGoal,
   PLAN_TOLERANCE_CP,
   type MomentGoal,
 } from "../../domain/session/moment-goal";
@@ -111,9 +112,7 @@ export function momentFromPuzzle(
     solutionLine: puzzle.solution,
     sourceLabel,
     ideaName: units.get(puzzle.unitId)?.title,
-    ...goalFields(
-      momentGoal(puzzle.fen, puzzle.solution, units.get(puzzle.unitId)?.goal),
-    ),
+    ...goalFields(puzzleGoal(puzzle.fen, puzzle.solution)),
     unitId: puzzle.unitId,
     source: { kind: "puzzle", puzzleId: puzzle.id },
   };

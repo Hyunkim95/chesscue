@@ -21,7 +21,7 @@ import type {
   ProgressInput,
 } from "../../domain/progress/types";
 import { unitHistory } from "../../domain/progress/unit-history";
-import { momentGoal } from "../../domain/session/moment-goal";
+import { puzzleGoal } from "../../domain/session/moment-goal";
 import { pickToday } from "../../domain/session/today";
 import {
   MomentScreen,
@@ -84,6 +84,8 @@ const warmUp = pack.puzzles
   .toSorted((a, b) => a.rating - b.rating)[0];
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const VOICE_KEY = "chesscue-rook-voice";
+// A library puzzle never claims to come from the player's games.
+const PUZZLE_LABEL = "Practice puzzle";
 // The last attempts read for each player, so a return from a legacy tab shows
 // Today at once while the list refreshes behind it.
 const attemptCache = new WeakMap<
@@ -134,8 +136,7 @@ function analyzePosition(fen: string, multiPv: number, signal: AbortSignal) {
 function puzzlePrompt(id: string): string {
   const puzzle = pack.puzzles.find((entry) => entry.id === id);
   return puzzle
-    ? momentGoal(puzzle.fen, puzzle.solution, units.get(puzzle.unitId)?.goal)
-        .prompt
+    ? puzzleGoal(puzzle.fen, puzzle.solution).prompt
     : "Is there something here?";
 }
 
@@ -265,14 +266,16 @@ export function BoardFirstScreens({
             momentFromGame(pick.moment, units)?.goal.prompt ??
             "Is there something here?",
           returning: pick.kind === "returning",
+          origin: "game",
         }
       : pick.kind === "similar"
         ? {
             kind: "position",
             fen: pack.puzzles.find(({ id }) => id === pick.puzzleId)?.fen ?? "",
-            sourceLabel: "A position like ones from your games",
+            sourceLabel: PUZZLE_LABEL,
             prompt: puzzlePrompt(pick.puzzleId),
             returning: false,
+            origin: "puzzle",
           }
         : pick.kind === "warm-up" && warmUp
           ? {
@@ -293,10 +296,7 @@ export function BoardFirstScreens({
     const spec =
       "drill" in target
         ? momentFromGame(target, units)
-        : await puzzleMoment(
-            target,
-            label ?? "A position like ones from your games",
-          );
+        : await puzzleMoment(target, label ?? PUZZLE_LABEL);
     setMoment(spec);
     if (!spec) navigate("today");
   }
@@ -330,9 +330,7 @@ export function BoardFirstScreens({
     let live = true;
     void puzzleMoment(
       puzzle,
-      puzzle.id === warmUp?.id
-        ? "Warm-up position"
-        : "A position like ones from your games",
+      puzzle.id === warmUp?.id ? "Warm-up position" : PUZZLE_LABEL,
     ).then((spec) => {
       if (live) setMoment(spec);
     });

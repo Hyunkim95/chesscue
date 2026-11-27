@@ -18,6 +18,7 @@ import type { BoardArrow } from "../../domain/analysis/board-move-cues";
 import {
   alternativeFrame,
   lineStoryboard,
+  payoffFrame,
   type StoryFrame,
 } from "../../domain/analysis/line-storyboard";
 import { scanHint } from "../../domain/analysis/forcing-moves";
@@ -227,8 +228,11 @@ export function MomentScreen({
   );
   const solvedUci = solvedLine[0] ?? moment.bestUci;
   const alternative = alternativeFrame(moment.fen, solvedUci, moment.bestUci);
+  const lineFrames = lineStoryboard(moment.fen, solvedLine);
+  const payoff = payoffFrame(moment.fen, lineFrames);
   const storyboard = [
-    ...lineStoryboard(moment.fen, solvedLine),
+    ...lineFrames,
+    ...(payoff ? [payoff] : []),
     ...(alternative ? [alternative] : []),
   ];
   const afterSolution = (() => {

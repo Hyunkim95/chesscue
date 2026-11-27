@@ -1,6 +1,10 @@
 import { expect, it } from "vitest";
 
-import { alternativeFrame, lineStoryboard } from "./line-storyboard";
+import {
+  alternativeFrame,
+  lineStoryboard,
+  payoffFrame,
+} from "./line-storyboard";
 
 it("draws the fork, the forced reply and the mate", () => {
   const frames = lineStoryboard(
@@ -129,4 +133,34 @@ it("adds Rook's move and what it adds when the player found another good move", 
     )?.caption,
   ).toBe("Bc4 works too. It also aims at f7.");
   expect(alternativeFrame(start, "g1f3", "g1f3")).toBeUndefined();
+});
+
+it("ends a winning line with what the learner comes out with", () => {
+  // Lichess 0N7LQ: Nc4 hits queen and bishop; Black saves both with checks
+  // but gives up the bishop for two pawns.
+  const fork = "r4rk1/pp1b3p/1q2p1p1/4bpP1/3Pp3/2P5/PPQN3P/R1B2RK1 w - - 0 17";
+  const frames = lineStoryboard(fork, ["d2c4", "e5d4", "c3d4", "b6d4", "c1e3"]);
+  const payoff = payoffFrame(fork, frames);
+  expect(payoff?.caption).toBe("You've won a bishop for two pawns.");
+  expect(payoff?.outlines).toEqual([{ square: "d4", tone: "jade" }]);
+  expect(payoff?.fen).toBe(frames.at(-1)?.fen);
+  expect(payoff?.moveUci).toBe("");
+
+  // Lichess 0jcIg: the knight check forks king and rook.
+  const knight = "1R6/6p1/1p2k2p/3n1N2/6P1/pr3PK1/8/8 w - - 0 47";
+  expect(
+    payoffFrame(knight, lineStoryboard(knight, ["f5d4", "e6e5", "d4b3"]))
+      ?.caption,
+  ).toBe("You've won a rook.");
+});
+
+it("adds no payoff to a mate or a line that wins nothing", () => {
+  const mate = "r4rk1/ppq2p1p/4pP2/3pP1p1/6Q1/2P5/PP1n2PP/R4R1K w - - 0 19";
+  expect(
+    payoffFrame(mate, lineStoryboard(mate, ["g4g5", "g8h8", "g5g7"])),
+  ).toBeUndefined();
+  const start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  expect(
+    payoffFrame(start, lineStoryboard(start, ["g1f3", "d7d5"])),
+  ).toBeUndefined();
 });

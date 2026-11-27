@@ -417,3 +417,80 @@ export function alternativeFrame(
     caption: `${best.san} works too.${extra ? ` ${extra}` : ""}`,
   };
 }
+
+const COUNT_WORDS = [
+  "",
+  "a",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+];
+
+// "a bishop", "two pawns", "a rook and a pawn": most valuable first.
+function pieceList(pieces: readonly PieceSymbol[]): string {
+  const counts = new Map<PieceSymbol, number>();
+  for (const piece of pieces) counts.set(piece, (counts.get(piece) ?? 0) + 1);
+  return joinedAnd(
+    [...counts]
+      .toSorted(([a], [b]) => PIECE_VALUE[b] - PIECE_VALUE[a])
+      .map(([piece, count]) => {
+        const word = COUNT_WORDS[count] ?? String(count);
+        return count === 1
+          ? `${word} ${PIECE_NAME[piece]}`
+          : `${word} ${PIECE_NAME[piece]}s`;
+      }),
+  );
+}
+
+// The last frame of a winning line: what the learner comes out with, with the
+// squares where they took material outlined. None when the line mates (its
+// last caption already says so) or wins nothing.
+export function payoffFrame(
+  fen: string,
+  frames: readonly StoryFrame[],
+): StoryFrame | undefined {
+  const last = frames.at(-1);
+  if (!last) return undefined;
+  let board: Chess;
+  try {
+    board = new Chess(fen);
+  } catch {
+    return undefined;
+  }
+  const won: PieceSymbol[] = [];
+  const lost: PieceSymbol[] = [];
+  const squares: Square[] = [];
+  for (const frame of frames) {
+    const move = play(board, frame.moveUci);
+    if (!move) return undefined;
+    if (!move.captured) continue;
+    if (frame.by === "learner") {
+      won.push(move.captured);
+      squares.push(move.to);
+    } else lost.push(move.captured);
+  }
+  if (board.isCheckmate() || won.length === 0) return undefined;
+  const value = (pieces: readonly PieceSymbol[]) =>
+    pieces.reduce((sum, piece) => sum + PIECE_VALUE[piece], 0);
+  if (value(won) <= value(lost)) return undefined;
+  // Not a move: no last-move highlight, so the outlines read clearly.
+  return {
+    fen: last.fen,
+    moveUci: "",
+    by: last.by,
+    arrows: [],
+    outlines: [...new Set(squares)].map((square) => ({
+      square,
+      tone: "jade",
+    })),
+    control: [],
+    caption:
+      lost.length === 0
+        ? `You've won ${pieceList(won)}.`
+        : `You've won ${pieceList(won)} for ${pieceList(lost)}.`,
+  };
+}

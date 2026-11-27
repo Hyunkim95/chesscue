@@ -13,6 +13,9 @@ export type TodayState =
       // "Your game vs Ahmed · Tuesday"
       readonly sourceLabel: string;
       readonly returning: boolean;
+      // A position from the player's own games, or a library puzzle with an
+      // idea they missed.
+      readonly origin: "game" | "puzzle";
       // What the player is working towards, such as "One move here wins material."
       readonly prompt: string;
     }
@@ -133,9 +136,11 @@ export function TodayScreen({
           <RookBubble tone="muted">
             {warmUp
               ? "Bring me one of your games and I'll find the moments worth a second look."
-              : state.returning
-                ? "This one came back. Have another look."
-                : "This one's from your game. I think you'll like it."}
+              : state.origin === "puzzle"
+                ? "Same idea as one you missed. Have a go."
+                : state.returning
+                  ? "This one came back. Have another look."
+                  : "This one's from your game. I think you'll like it."}
           </RookBubble>
         </RookSays>
         {warmUp ? (

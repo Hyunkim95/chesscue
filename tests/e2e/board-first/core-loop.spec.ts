@@ -219,3 +219,40 @@ test("returning to Today from another tab shows it at once, without reloading", 
     ),
   ).toBe(false);
 });
+
+test("after a missed warm-up, Today offers an honest practice puzzle whose line ends with the payoff", async ({
+  page,
+}) => {
+  await page.goto("/?ui=board-first");
+  await page.getByRole("button", { name: "Try the warm-up" }).click();
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Show me" }).click();
+  await page.getByRole("button", { name: "Done ✓" }).click({ timeout: 20_000 });
+  await page
+    .getByRole("dialog", { name: "Not this time" })
+    .getByRole("button", { name: "Continue" })
+    .click();
+  await page.goto("/?ui=board-first#today");
+
+  const today = page.locator(".today");
+  await expect(today).toContainText("Practice puzzle", { timeout: 20_000 });
+  await expect(today).toContainText("Same idea as one you missed.");
+  await expect(today).not.toContainText("from your game");
+  await expect(today).toContainText("One move here wins material.");
+
+  await page.getByRole("button", { name: "Play it" }).click();
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Show me" }).click();
+  await expect(page.locator(".rook-bubble").first()).toContainText(
+    "You've won",
+    { timeout: 20_000 },
+  );
+  // The squares where material was won are outlined.
+  await expect(
+    page.locator(".chess-board__square--outline-jade").first(),
+  ).toBeVisible();
+});
