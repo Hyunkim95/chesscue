@@ -20,6 +20,7 @@ import { isMateScore } from "./classify-experiment";
 // ranking is by fact kind, not by motif.
 
 export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/3";
+export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/1";
 
 type FactKind =
   | "mate"
@@ -77,10 +78,21 @@ const NAME = {
 } as const;
 const SIDE = { w: "White", b: "Black" } as const;
 
-function named(board: Chess, square: Square): string {
+// The viewer's own pieces are "your"; the other side's are named by colour.
+function pieceOf(
+  color: Color,
+  type: keyof typeof NAME,
+  viewer: Color | undefined,
+): string {
+  return color === viewer
+    ? `your ${NAME[type]}`
+    : `the ${SIDE[color].toLowerCase()} ${NAME[type]}`;
+}
+
+function named(board: Chess, square: Square, viewer?: Color): string {
   const piece = board.get(square);
   return piece
-    ? `the ${SIDE[piece.color].toLowerCase()} ${NAME[piece.type]} on ${square}`
+    ? `${pieceOf(piece.color, piece.type, viewer)} on ${square}`
     : square;
 }
 
@@ -119,6 +131,7 @@ function moveFacts(
   after: Chess,
   move: Move,
   wonLater: ReadonlySet<Square>,
+  viewer: Color | undefined,
 ): Omit<Fact, "move" | "ply">[] {
   const them = opponent(move.color);
   const facts: Omit<Fact, "move" | "ply">[] = [];
@@ -146,7 +159,7 @@ function moveFacts(
     const free = before.attackers(move.to, them).length === 0;
     add(
       free ? "capture-free" : "capture",
-      `${move.san} takes the ${SIDE[them].toLowerCase()} ${NAME[move.captured]} on ${move.to}` +
+      `${move.san} takes ${pieceOf(them, move.captured, viewer)} on ${move.to}` +
         (free ? ", which had no defender." : "."),
       PIECE_VALUE[move.captured],
     );
@@ -165,7 +178,7 @@ function moveFacts(
       `${move.san} attacks ${targets
         .map(
           ({ square, type }) =>
-            named(after, square) +
+            named(after, square, viewer) +
             (type !== "k" && undefended(square) ? " (undefended)" : ""),
         )
         .join(" and ")} at the same time.`,
@@ -178,7 +191,7 @@ function moveFacts(
     if (type !== "p" && pinned(square))
       add(
         "pin",
-        `${move.san} attacks ${named(after, square)}, which is pinned to its king.`,
+        `${move.san} attacks ${named(after, square, viewer)}, which is pinned to its king.`,
         PIECE_VALUE[type],
       );
   // Checked against the legal moves, since a pinned piece can still take
@@ -191,8 +204,8 @@ function moveFacts(
       add(
         "pin",
         move.captured
-          ? `${move.san} takes the ${SIDE[them].toLowerCase()} ${NAME[move.captured]} on ${move.to}, and ${named(after, square)} cannot take back because it is pinned to its king.`
-          : `${move.san} is safe from ${named(after, square)}, which is pinned to its king.`,
+          ? `${move.san} takes ${pieceOf(them, move.captured, viewer)} on ${move.to}, and ${named(after, square, viewer)} cannot take back because it is pinned to its king.`
+          : `${move.san} is safe from ${named(after, square, viewer)}, which is pinned to its king.`,
       );
 
   for (const direction of mate ? [] : linesFor(move.piece)) {
@@ -215,7 +228,7 @@ function moveFacts(
       !wonLater.has(back)
     )
       continue;
-    const text = `${move.san} lines up ${named(after, front)} with ${named(after, back)} behind it.`;
+    const text = `${move.san} lines up ${named(after, front, viewer)} with ${named(after, back, viewer)} behind it.`;
     if (PIECE_VALUE[a.type] > PIECE_VALUE[b.type])
       add("skewer", text, PIECE_VALUE[b.type]);
     else if (PIECE_VALUE[a.type] < PIECE_VALUE[b.type] && b.type !== "k")
@@ -232,7 +245,7 @@ function moveFacts(
       if (target.type !== "p" && !earlier.has(target.square))
         add(
           "discovered",
-          `Moving the ${NAME[move.piece]} off ${move.from} opens the line for ${named(after, square)}, which now attacks ${named(after, target.square)}.`,
+          `Moving the ${NAME[move.piece]} off ${move.from} opens the line for ${named(after, square, viewer)}, which now attacks ${named(after, target.square, viewer)}.`,
           target.type === "k" ? 0 : PIECE_VALUE[target.type],
         );
   }
@@ -341,17 +354,32 @@ interface MissedLineInput {
   readonly scores?: { readonly bestCp: number; readonly playedCp: number };
 }
 
-function explainWithin(
-  input: MissedLineInput,
+interface LineReading {
+  readonly firstMove: Move;
+  // The strongest fact about the first move, if any.
+  readonly setup: Fact | undefined;
+  // A tactic on a later move, when the first move only checks or captures.
+  readonly bridge: Fact | undefined;
+  // The sentences after the first one: the tactic, the payoff and the
+  // material.
+  readonly rest: readonly string[];
+}
+
+// Replays `learnerMoves` moves of the side that starts the line and states
+// what it wins. The viewer's pieces are named "your".
+function readLine(
+  fen: string,
+  line: readonly string[],
   learnerMoves: number,
-): MissedLineExplanation | undefined {
+  viewer?: Color,
+): LineReading | undefined {
   let board: Chess;
   const moves: Move[] = [];
   const boards: Chess[] = [];
   try {
-    board = new Chess(input.fen);
+    board = new Chess(fen);
     boards.push(new Chess(board.fen()));
-    for (const uci of input.line.slice(0, learnerMoves * 2 - 1)) {
+    for (const uci of line.slice(0, learnerMoves * 2 - 1)) {
       if (board.isGameOver()) break;
       moves.push(board.move(uci));
       boards.push(new Chess(board.fen()));
@@ -378,7 +406,7 @@ function explainWithin(
         .filter((m, i) => i > index && i % 2 === 0 && m.captured)
         .map((m) => m.to),
     );
-    for (const fact of moveFacts(before, after, move, wonLater))
+    for (const fact of moveFacts(before, after, move, wonLater, viewer))
       facts.push({ ...fact, move: index / 2 + 1, ply: index });
   });
 
@@ -406,7 +434,7 @@ function explainWithin(
           )
           .toSorted((a, b) => a.move - b.move || rank(a) - rank(b))[0];
 
-  const parts = [setup?.text ?? `${firstMove.san} was the stronger move.`];
+  const rest: string[] = [];
   // Name every move between the last fact shown and the next, so no move in
   // the line is skipped silently.
   let shownPly = setup ? 0 : -1;
@@ -415,19 +443,35 @@ function explainWithin(
     shownPly = fact.ply;
     const [only] = between;
     if (between.length === 1 && only)
-      return `After ${SIDE[only.color]} replies ${only.san}, `;
+      return only.color === viewer
+        ? `After you reply ${only.san}, `
+        : `After ${SIDE[only.color]} replies ${only.san}, `;
     return between.length
       ? `After ${between.map(({ san }) => san).join(" ")}, `
       : "";
   };
-  if (bridge) parts.push(lead(bridge) + lower(bridge.text));
+  if (bridge) rest.push(lead(bridge) + lower(bridge.text));
   if (payoff)
-    parts.push(
+    rest.push(
       bridge?.ply === payoff.ply
         ? payoff.text
         : lead(payoff) + lower(payoff.text),
     );
-  if (!mated) parts.push(materialText(SIDE[us], gain, balance));
+  if (!mated) rest.push(materialText(SIDE[us], gain, balance));
+  return { firstMove, setup, bridge, rest };
+}
+
+function explainWithin(
+  input: MissedLineInput,
+  learnerMoves: number,
+): MissedLineExplanation | undefined {
+  const reading = readLine(input.fen, input.line, learnerMoves);
+  if (!reading) return undefined;
+  const { firstMove, setup, rest } = reading;
+  const parts = [
+    setup?.text ?? `${firstMove.san} was the stronger move.`,
+    ...rest,
+  ];
   if (input.playedSan)
     parts.push(
       `You played ${input.playedSan} instead` +
@@ -437,4 +481,75 @@ function explainWithin(
         ".",
     );
   return { text: parts.join(" ") };
+}
+
+// What the player's move allowed: the opponent's best reply and what it wins,
+// read from the opponent's side with the player's pieces named "your".
+// `line` starts with the player's move, followed by Stockfish's line for the
+// opponent. Says nothing unless the reply is a tactic, mates, or takes a piece
+// that had no defender: a plain recapture is not the lesson.
+export function explainAllowedLine(input: {
+  readonly fen: string;
+  readonly line: readonly string[];
+}): MissedLineExplanation | undefined {
+  const [playedUci, ...reply] = input.line;
+  if (!playedUci) return undefined;
+  let played: Move;
+  let after: Chess;
+  try {
+    after = new Chess(input.fen);
+    played = after.move(playedUci);
+  } catch {
+    return undefined;
+  }
+  const viewer = played.color;
+  const reading =
+    allowedReading(after.fen(), reply, SHORT_LINE, viewer) ??
+    allowedReading(after.fen(), reply, LONG_LINE, viewer);
+  if (!reading?.setup) return undefined;
+  const { firstMove, setup, rest } = reading;
+  return { text: [replySentence(played, firstMove, setup), ...rest].join(" ") };
+}
+
+// Facts about a move start with its SAN and a verb, so they join the reply
+// as a participle: "White plays Qxb7, attacking your rook ...".
+const PARTICIPLE: Readonly<Record<string, string>> = {
+  takes: "taking",
+  attacks: "attacking",
+  lines: "lining",
+  gives: "giving",
+};
+
+function replySentence(played: Move, reply: Move, setup: Fact): string {
+  const opening = `After ${played.san}, ${SIDE[reply.color]} plays ${reply.san}`;
+  if (setup.text.startsWith(`${reply.san} `)) {
+    const rest = setup.text.slice(reply.san.length + 1);
+    const [verb = "", ...words] = rest.split(" ");
+    const participle = PARTICIPLE[verb];
+    return participle
+      ? `${opening}, ${[participle, ...words].join(" ")}`
+      : `${opening}, which ${rest}`;
+  }
+  // A discovered attack is about another piece, so the reply's own capture
+  // is named first.
+  const taking = reply.captured
+    ? `, taking ${pieceOf(opponent(reply.color), reply.captured, played.color)} on ${reply.to}`
+    : "";
+  return `${opening}${taking}. ${setup.text}`;
+}
+
+const TELLING = new Set<FactKind>([...TACTIC, "mate", "capture-free"]);
+
+function allowedReading(
+  fen: string,
+  line: readonly string[],
+  learnerMoves: number,
+  viewer: Color,
+): LineReading | undefined {
+  const reading = readLine(fen, line, learnerMoves, viewer);
+  if (!reading) return undefined;
+  const telling =
+    (reading.setup !== undefined && TELLING.has(reading.setup.kind)) ||
+    reading.bridge !== undefined;
+  return telling ? reading : undefined;
 }
