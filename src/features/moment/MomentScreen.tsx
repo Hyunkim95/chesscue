@@ -13,6 +13,7 @@ import type {
 import type { BoardArrow } from "../../domain/analysis/board-move-cues";
 import { explainMissedLine } from "../../domain/analysis/explain-miss";
 import { scanHint } from "../../domain/analysis/forcing-moves";
+import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
 import { chipsFor, type SanMove } from "../../domain/session/chips";
 import {
@@ -51,6 +52,8 @@ export interface MomentSpec extends MomentPosition {
   readonly bestNonSolution?: SanMove | undefined;
   // The idea, named only after it is found.
   readonly ideaName: string | undefined;
+  readonly unitId: string | undefined;
+  readonly source: MomentAttemptRecord["source"];
 }
 
 interface BoardView {
@@ -78,7 +81,7 @@ const GHOST: Record<Exclude<FeedbackTier, "best">, BoardArrow["kind"]> = {
 const TRIES_CHIP: Record<Exclude<FeedbackTier, "best">, string> = {
   missed: "level, chance missed",
   worse: "now worse",
-  costly: "costs material",
+  costly: "now losing",
 };
 
 const SLIDE_BACK_MS = 2_600;
@@ -163,15 +166,18 @@ export function MomentScreen({
     Extract<QuestionOutcome, { kind: "confirm" }> | undefined
   >();
   const [sheet, setSheet] = useState<"celebrate" | "missed" | undefined>();
+  // Created in the effect so StrictMode's mount, unmount and remount leaves a
+  // live controller.
   const controller = useRef(new AbortController());
   const timer = useRef<number | undefined>(undefined);
-  useEffect(
-    () => () => {
-      controller.current.abort();
+  useEffect(() => {
+    const current = new AbortController();
+    controller.current = current;
+    return () => {
+      current.abort();
       window.clearTimeout(timer.current);
-    },
-    [],
-  );
+    };
+  }, []);
 
   const kind = session.state.kind;
   const solving =
@@ -638,7 +644,11 @@ export function MomentScreen({
         {moment.ideaName && (
           <div className="moment__idea-card">
             <b>{moment.ideaName}</b>
-            <small>Added to your collection · {moment.sourceLabel}</small>
+            <small>
+              {result?.outcome === "spotted"
+                ? `Added to your collection · ${moment.sourceLabel}`
+                : "Spot it on the first try to light its star"}
+            </small>
           </div>
         )}
         <p className="moment__xp">+{xp} XP</p>
@@ -648,9 +658,7 @@ export function MomentScreen({
       </Sheet>
       <Sheet open={sheet === "missed"} title="Not this time" tone="calm">
         <p className="moment__sheet-line">
-          {moment.ideaName
-            ? `The idea was a ${moment.ideaName.toLowerCase()}. `
-            : ""}
+          {moment.ideaName ? `The idea: ${moment.ideaName}. ` : ""}
           It will come back, and you'll know what to look for.
         </p>
         <Button

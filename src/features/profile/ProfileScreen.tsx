@@ -1,4 +1,5 @@
 import amethystArt from "../../assets/brand/rank-amethyst.webp";
+import copperArt from "../../assets/brand/rating-rook.webp";
 import crownArt from "../../assets/brand/rank-crown.webp";
 import jadeArt from "../../assets/brand/rank-jade.webp";
 import sapphireArt from "../../assets/brand/rank-sapphire.webp";
@@ -7,7 +8,8 @@ import { Avatar, Pill, Toggle } from "../../shared/ui/primitives";
 import { achievementCopy, lockedAchievements } from "./achievement-copy";
 import "./profile-screen.css";
 
-export type RankName = "Jade" | "Sapphire" | "Amethyst" | "Crown";
+// The rated ranks from src/domain/game/rank-path.ts.
+export type RankName = "Copper" | "Jade" | "Sapphire" | "Amethyst" | "Crown";
 export type LinkedSite = "Lichess" | "Chess.com";
 export type SyncState = "signed-out" | "synced" | "syncing" | "error";
 
@@ -37,6 +39,7 @@ export interface ProfileScreenProps {
 }
 
 const RANKS: readonly { readonly name: RankName; readonly art: string }[] = [
+  { name: "Copper", art: copperArt },
   { name: "Jade", art: jadeArt },
   { name: "Sapphire", art: sapphireArt },
   { name: "Amethyst", art: amethystArt },

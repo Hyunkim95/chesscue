@@ -47,6 +47,13 @@ import {
   unitForPosition,
 } from "../domain/curriculum/recommend-unit";
 import { usePlayingSnapshot } from "./use-playing-snapshot";
+import { BoardFirstScreens } from "./board-first/BoardFirstScreens";
+import {
+  boardFirst,
+  boardFirstViews,
+  isBoardFirstView,
+  type BoardFirstView,
+} from "./board-first/flag";
 import {
   useCallback,
   useEffect,
@@ -176,6 +183,7 @@ function socialView(hash: string) {
   return null;
 }
 type AppView =
+  | BoardFirstView
   | "race"
   | "win"
   | "ranks"
@@ -457,6 +465,11 @@ function readRecentReview(history: PlayerHistory) {
 }
 
 function routeView(hash: string): AppView {
+  if (boardFirst) {
+    const named = boardFirstViews.find((name) => hash === "#" + name);
+    if (named) return named;
+    if (hash === "") return "today";
+  }
   if (hash === "#review-home" || (extensionPanel && hash === ""))
     return "review-home";
   if (hash.startsWith("#review/")) return "review";
@@ -623,7 +636,12 @@ export function App() {
         training: "#skill-tree",
         "review-home": "#review-home",
         import: "#import",
-        play: extensionPanel ? "#play" : "",
+        play: extensionPanel || boardFirst ? "#play" : "",
+        today: "#today",
+        moment: "#moment",
+        recap: "#recap",
+        sky: "#sky",
+        profile: "#profile",
         account: "#account",
         ranks: "#rank-path",
         "play-mode": "#play-mode",
@@ -787,7 +805,9 @@ function PlayerApp({
   const [snapshotRevision, setSnapshotRevision] = useState(0);
   const snapshot = usePlayingSnapshot(
     history,
-    view === "training" || (view === "practice" && !curated && !mistakeDrill),
+    view === "training" ||
+      (view === "practice" && !curated && !mistakeDrill) ||
+      isBoardFirstView(view),
     snapshotRevision,
     loadGameAnalysis,
   );
@@ -1437,6 +1457,30 @@ function PlayerApp({
               },
             }
           : null;
+
+  if (boardFirst && isBoardFirstView(view))
+    return (
+      <BoardFirstScreens
+        view={view}
+        navigate={(next) => {
+          setView(next);
+        }}
+        history={history}
+        snapshot={snapshot}
+        ratings={ratings}
+        playerName={user?.name ?? "You"}
+        signedIn={user !== null}
+        onPlay={() => {
+          setView("play-mode");
+        }}
+        onGames={() => {
+          setView("review-home");
+        }}
+        onImport={() => {
+          setView("import", "#import");
+        }}
+      />
+    );
 
   function navigateSection(destination: PanelDestination) {
     setView(

@@ -2,6 +2,7 @@ import type { Result } from "../../shared/result/result";
 import { IndexedDbGameRepository } from "./indexeddb-game-repository";
 import { IndexedDbAnalysisRepository } from "./indexeddb-analysis-repository";
 import { IndexedDbReviewEvidenceRepository } from "./indexeddb-review-evidence-repository";
+import { IndexedDbMomentAttemptRepository } from "./indexeddb-moment-attempt-repository";
 import { openChessTutorDatabase } from "./chess-tutor-database";
 import { isGameRecord } from "./game-record-validation";
 import { tutorGameMode, type GameRecord } from "../../domain/game/types";
@@ -16,6 +17,7 @@ export class PlayerHistory {
   readonly games: IndexedDbGameRepository;
   readonly analyses: IndexedDbAnalysisRepository;
   readonly reviews: IndexedDbReviewEvidenceRepository;
+  readonly moments: IndexedDbMomentAttemptRepository;
   constructor(readonly uid: string | null) {
     this.name =
       uid === null
@@ -24,6 +26,7 @@ export class PlayerHistory {
     this.games = new IndexedDbGameRepository(this.name);
     this.analyses = new IndexedDbAnalysisRepository(this.name);
     this.reviews = new IndexedDbReviewEvidenceRepository(this.name);
+    this.moments = new IndexedDbMomentAttemptRepository(this.name);
   }
   key(name: string) {
     return this.uid === null ? name : this.name + "/" + name;

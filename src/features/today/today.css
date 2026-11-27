@@ -1,0 +1,139 @@
+.today {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.today--caught-up {
+  align-items: center;
+  padding-top: 24px;
+  text-align: center;
+}
+
+.today__card {
+  padding: 10px;
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-color-surface);
+  box-shadow:
+    0 5px 0 var(--ui-color-shade),
+    inset 0 0 0 2px color-mix(in srgb, var(--ui-color-brass) 25%, transparent);
+}
+
+.today__card--skeleton {
+  aspect-ratio: 1 / 1.12;
+  animation: today-pulse 1.4s ease-in-out infinite;
+}
+
+.today__head,
+.today__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 2px 4px 8px;
+}
+
+.today__foot {
+  padding: 8px 4px 2px;
+  font-size: 14px;
+}
+
+.today__eyebrow {
+  margin: 0;
+  font: 800 12px var(--ui-font-body);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ui-color-brass);
+}
+
+.today__source {
+  font: 700 12px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.today__turn {
+  font-weight: 800;
+}
+
+.today__question {
+  font-weight: 700;
+  color: var(--ui-color-brass);
+}
+
+.today__title {
+  margin: 0;
+  font: 600 26px/1.15 var(--ui-font-display);
+}
+
+.today__note {
+  margin: 0;
+  color: var(--ui-color-muted);
+}
+
+.today__goal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ui-color-muted);
+}
+
+.today__goal b {
+  color: var(--ui-color-ink);
+}
+
+.today__week {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.today__week i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ui-color-deep);
+}
+
+.today__week i.today__day--done {
+  background: var(--ui-color-flame);
+}
+
+.today__week i.today__day--today {
+  box-shadow: 0 0 0 2px var(--ui-color-brass);
+}
+
+.today__links {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+}
+
+.today__link {
+  appearance: none;
+  min-height: var(--ui-space-target);
+  padding: 0 4px;
+  border: 0;
+  font: 700 14px var(--ui-font-body);
+  color: var(--ui-color-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.today__link:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+}
+
+@keyframes today-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today__card--skeleton {
+    animation: none;
+  }
+}

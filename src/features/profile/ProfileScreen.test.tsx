@@ -51,12 +51,13 @@ describe("ProfileScreen", () => {
       screen.getByRole("region", { name: "Rank path" }),
     ).getAllByRole("listitem");
     expect(steps.map((step) => step.textContent)).toEqual([
+      "Copper",
       "Jade",
       "Sapphire",
       "Amethyst",
       "Crown",
     ]);
-    expect(steps[0]).toHaveAttribute("aria-current", "step");
+    expect(steps[1]).toHaveAttribute("aria-current", "step");
     expect(
       screen.getByText(
         (_, node) =>

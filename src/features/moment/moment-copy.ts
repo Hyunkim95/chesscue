@@ -31,8 +31,10 @@ export function tierLine({
       return `${lead}The position is level, so ${trySan} is playable. But something much stronger was here.`;
     case "worse":
       return `${lead}After ${trySan} I'm a little better. Something much stronger was here.`;
+    // Stockfish's evaluation says the position is lost, not why, so the
+    // words claim no material.
     case "costly":
-      return `${lead}${trySan} costs you material.`;
+      return `${lead}After ${trySan} I'm winning. Something much stronger was here.`;
   }
 }
 
