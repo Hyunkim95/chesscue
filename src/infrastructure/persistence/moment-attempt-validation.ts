@@ -21,7 +21,8 @@ export const momentAttemptRecordSchema = z
         .strict(),
     ]),
     unitId: z.string().min(1).optional(),
-    firstMoveUci: z.string().regex(/^[a-h][1-8][a-h][1-8][qrbn]?$/),
+    // "" when Show me was used before any try.
+    firstMoveUci: z.string().regex(/^(?:[a-h][1-8][a-h][1-8][qrbn]?)?$/),
     tiers: z.array(tier),
     outcome: z.enum(["spotted", "found-on-retry", "shown"]),
     helped: z.boolean(),
