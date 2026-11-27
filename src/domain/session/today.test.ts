@@ -68,6 +68,13 @@ it("skips a plan position with several good moves for the next candidate", () =>
   });
 });
 
+it("serves a moment the app always serves, such as Spot the danger", () => {
+  const unclear = planMoment(-40);
+  expect(
+    pickToday({ ...empty, moments: [unclear], alwaysServe: () => true }),
+  ).toEqual({ kind: "new", moment: unclear });
+});
+
 it("brings a missed moment back after a day, but not a spotted one", () => {
   const moment = forkObservation("retry");
   const source = {

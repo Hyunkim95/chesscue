@@ -268,6 +268,8 @@ export function BoardFirstScreens({
         puzzles: pack.puzzles,
         stars: progress.stars,
         now: input.now,
+        alwaysServe: (moment) =>
+          momentFromGame(moment, units)?.danger !== undefined,
       }),
     [games, attempts, progress, input],
   );

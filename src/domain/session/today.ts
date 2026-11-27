@@ -20,6 +20,9 @@ export interface TodayInput {
   readonly puzzles: readonly { readonly id: string; readonly unitId: string }[];
   readonly stars: ReadonlyMap<string, StarState>;
   readonly now: Date;
+  // Moments served even without one clearly best move, such as "Spot the
+  // danger", where any safe move counts.
+  readonly alwaysServe?: (moment: ObservedMove) => boolean;
 }
 
 // A missed moment comes back after this long.
@@ -51,12 +54,14 @@ export function pickToday(input: TodayInput): TodayPick {
       latest.set(key, attempt);
   }
   const moments = input.moments
-    .filter(({ drill: { exercise } }) =>
-      isServableMoment(
-        exercise.fen,
-        exercise.verification.principalVariation,
-        exercise.verification.candidates,
-      ),
+    .filter(
+      (moment) =>
+        input.alwaysServe?.(moment) === true ||
+        isServableMoment(
+          moment.drill.exercise.fen,
+          moment.drill.exercise.verification.principalVariation,
+          moment.drill.exercise.verification.candidates,
+        ),
     )
     .sort(newestGameFirst);
   const fresh = moments.find(
