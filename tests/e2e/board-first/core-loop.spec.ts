@@ -59,8 +59,13 @@ test("a new player finds the warm-up idea on a retry and sees it recapped", asyn
   await expect(page.getByRole("button", { name: "Done ✓" })).toBeVisible({
     timeout: 30_000,
   });
+  // Show, don't tell: the reason plays on the board, frame by frame.
   await page.getByRole("button", { name: "Why does it work?" }).click();
   await expect(bubble).toContainText("Qxg5+");
+  await expect(page.locator("[data-move-cue-arrow='g5:d2']")).toHaveCount(1);
+  await expect(bubble).toHaveText("Qg7# is checkmate.", { timeout: 10_000 });
+  await page.getByRole("button", { name: "↺ Reset" }).click();
+  await expect(square(page, "White queen on g4")).toBeVisible();
 
   await page.getByRole("button", { name: "Done ✓" }).click();
   const sheet = page.getByRole("dialog", { name: "Found it on a retry" });

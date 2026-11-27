@@ -11,7 +11,10 @@ import type {
   RoutedAction,
 } from "../../application/route-question/route-question";
 import type { BoardArrow } from "../../domain/analysis/board-move-cues";
-import { explainMissedLine } from "../../domain/analysis/explain-miss";
+import {
+  lineStoryboard,
+  type StoryFrame,
+} from "../../domain/analysis/line-storyboard";
 import { scanHint } from "../../domain/analysis/forcing-moves";
 import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
@@ -84,8 +87,8 @@ const TRIES_CHIP: Record<Exclude<FeedbackTier, "best">, string> = {
   costly: "now losing",
 };
 
-const SLIDE_BACK_MS = 2_600;
-const LINE_STEP_MS = 700;
+// Long enough to read one caption and see its arrows.
+const STORY_STEP_MS = 2_400;
 
 function uciMove(uci: string) {
   return {
@@ -187,9 +190,7 @@ export function MomentScreen({
       ? []
       : session.state.attempts;
   const result = sessionResult(session);
-  const explanation =
-    explainMissedLine({ fen: moment.fen, line: moment.solutionLine })?.text ??
-    `${sanFor(moment.fen, moment.bestUci) ?? "It"} is the strongest move here.`;
+  const storyboard = lineStoryboard(moment.fen, moment.solutionLine);
   const bestSan = sanFor(moment.fen, moment.bestUci) ?? moment.bestUci;
 
   function send(...events: SessionEvent[]) {
@@ -295,7 +296,6 @@ export function MomentScreen({
       return;
     }
     const { attempt, afterFen, replyFen, replySan } = checked.value;
-    const before = view;
     setView({
       fen: replyFen ?? afterFen,
       lastMoveUci: attempt.replyUci ?? attempt.uci,
@@ -317,9 +317,6 @@ export function MomentScreen({
       mood: attempt.tier === "best" ? "happy" : "warm",
       understood,
     });
-    later(() => {
-      setView(before);
-    }, SLIDE_BACK_MS);
   }
 
   function showAnswer(answer: BoardAnswer, understood?: string) {
@@ -331,40 +328,66 @@ export function MomentScreen({
     setSay({ text: answer.text, mood: "idle", understood });
   }
 
-  function playLine(line: readonly string[], then: () => void) {
-    const board = new Chess(moment.fen);
+  // Show, don't tell: the line plays on the board, one captioned frame at a
+  // time, and stays on its last frame until Reset.
+  function playStoryboard(
+    frames: readonly StoryFrame[],
+    mood: RookMood,
+    understood?: string,
+    then?: () => void,
+  ) {
+    if (frames.length === 0) {
+      setSay({
+        text: `Stockfish rates ${bestSan} as the best move here.`,
+        mood,
+        understood,
+      });
+      then?.();
+      return;
+    }
     let step = 0;
     const next = () => {
-      const uci = line[step];
-      if (uci === undefined) {
-        then();
-        return;
-      }
-      try {
-        board.move(uciMove(uci));
-      } catch {
-        then();
+      const frame = frames[step];
+      if (!frame) {
+        then?.();
         return;
       }
       setView({
-        fen: board.fen(),
-        lastMoveUci: uci,
+        fen: frame.fen,
+        lastMoveUci: frame.moveUci,
         animate: true,
-        arrows: arrow(uci, step % 2 === 0 ? "preview" : "reply"),
-        outlines: [],
+        arrows: frame.arrows,
+        outlines: frame.outlines,
       });
+      setSay({ text: frame.caption, mood, understood });
       step += 1;
-      later(next, LINE_STEP_MS);
+      later(next, STORY_STEP_MS);
     };
     next();
   }
 
+  function reset() {
+    window.clearTimeout(timer.current);
+    setReply(undefined);
+    setView(
+      solving
+        ? { fen: moment.fen, arrows: ghostArrows(attempts), outlines: [] }
+        : start,
+    );
+    setSay({
+      text: solving
+        ? "Back to the start. Your move."
+        : "Back to the start. Tap a chip to see it again.",
+      mood: "idle",
+    });
+  }
+
   function showMe() {
     send({ kind: "show" });
-    setSay({ text: `Here's the idea: ${bestSan}.`, mood: "warm" });
-    playLine(moment.solutionLine.slice(0, 5), () => {
-      setSay({ text: explanation, mood: "warm" });
-      setSheet("missed");
+    playStoryboard(storyboard, "warm", undefined, () => {
+      later(() => {
+        setSheet("missed");
+      }, STORY_STEP_MS);
     });
   }
 
@@ -407,7 +430,7 @@ export function MomentScreen({
       }
       case "why":
         if (action.uci === moment.bestUci && !solving) {
-          setSay({ text: explanation, mood: "happy", understood });
+          playStoryboard(storyboard, "happy", understood);
           return;
         }
         if (action.uci === reply?.uci) {
@@ -431,8 +454,7 @@ export function MomentScreen({
         void preview(action.uci, understood);
         return;
       case "show-line":
-        setSay({ text: explanation, mood: "happy", understood });
-        playLine(moment.solutionLine, () => undefined);
+        playStoryboard(storyboard, "happy", understood);
         return;
       case "show-me":
         showMe();
@@ -529,6 +551,16 @@ export function MomentScreen({
       });
   const turn = moment.fen.split(" ")[1] === "w" ? "White" : "Black";
   const atStart = view.fen === moment.fen;
+  // Try again is the reset after a not-best move; Reset covers everything
+  // else that changed the board: previews, answers and storyboards.
+  const tryAgain = solving && kind !== "before" && !atStart && !view.previewTag;
+  const showReset =
+    kind !== "done" &&
+    sheet === undefined &&
+    !tryAgain &&
+    (!atStart ||
+      view.outlines.length > 0 ||
+      view.arrows.length > ghostArrows(attempts).length);
   const missed = attempts.filter((attempt) => attempt.tier !== "best");
   const xp = result ? attemptXp(result) : 0;
 
@@ -557,9 +589,9 @@ export function MomentScreen({
         <RookCharacter mood={busy ? "think" : say.mood} />
         <RookBubble understood={say.understood}>{say.text}</RookBubble>
       </RookSays>
-      {solving && (
+      {(solving || showReset) && (
         <div className="moment__tools">
-          {kind !== "before" && !atStart && (
+          {tryAgain && (
             <Button
               onClick={() => {
                 rewind(kind === "second-miss");
@@ -569,17 +601,26 @@ export function MomentScreen({
               ↺ Try again
             </Button>
           )}
-          <Pill
-            onClick={() => {
-              act({ kind: "scan" });
-            }}
-            disabled={busy}
-          >
-            Hint
-          </Pill>
-          <Pill onClick={showMe} disabled={busy}>
-            Show me
-          </Pill>
+          {showReset && (
+            <Pill onClick={reset} disabled={busy}>
+              ↺ Reset
+            </Pill>
+          )}
+          {solving && (
+            <>
+              <Pill
+                onClick={() => {
+                  act({ kind: "scan" });
+                }}
+                disabled={busy}
+              >
+                Hint
+              </Pill>
+              <Pill onClick={showMe} disabled={busy}>
+                Show me
+              </Pill>
+            </>
+          )}
         </div>
       )}
       {missed.length > 0 && (
@@ -640,7 +681,6 @@ export function MomentScreen({
             : "Found it on a retry"
         }
       >
-        <p className="moment__sheet-line">{explanation}</p>
         {moment.ideaName && (
           <div className="moment__idea-card">
             <b>{moment.ideaName}</b>

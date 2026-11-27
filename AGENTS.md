@@ -28,6 +28,7 @@ The product is being rebuilt around a board-first, game-like loop. Before workin
 
 - Not drilling: positions come from the player's own games, unlabeled. Name the idea only after the player finds it.
 - The board wins every screen. Rook answers through the board and one bubble, with no chat history.
+- Show, don't tell: every claim Rook makes about the board is drawn on it (moves, arrows, outlines), with a one-sentence caption per frame. Never put a paragraph where the board could show it, and always offer ↺ Reset back to the start.
 - Chips are chosen by code and never name the best move before it is found. AI only routes questions; offline typed text is confirmed before Rook acts.
 - Progress is derived from immutable attempt records, never stored as totals.
 - In a parallel workstream, write only inside the paths that workstream owns (§17.5) and treat the §17.2 contracts as frozen.

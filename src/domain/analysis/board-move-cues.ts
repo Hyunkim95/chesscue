@@ -16,7 +16,9 @@ export type BoardArrowKind =
   | "ghost-worse"
   | "ghost-costly"
   | "preview"
-  | "reply";
+  | "reply"
+  // What a moved piece attacks, in a storyboard frame.
+  | "attack";
 
 export interface BoardArrow {
   readonly from: Square;

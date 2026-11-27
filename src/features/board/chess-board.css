@@ -413,3 +413,8 @@ button.piece-choice {
     animation: none;
   }
 }
+
+.chess-board__cue-arrow--attack {
+  --board-arrow: var(--ui-color-gold);
+  opacity: 0.85;
+}

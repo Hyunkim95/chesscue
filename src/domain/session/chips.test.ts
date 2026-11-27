@@ -30,7 +30,6 @@ describe("chipsFor", () => {
     expect(labels("solved")).toEqual([
       "Why does it work?",
       "What if you'd played Kg6?",
-      "Show the whole line",
       "Done ✓",
     ]);
     expect(labels("done")).toEqual([]);

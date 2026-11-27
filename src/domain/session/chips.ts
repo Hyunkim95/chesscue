@@ -144,11 +144,6 @@ function questions(kind: SessionKind, context: ChipContext): Chip[] {
               } as const,
             ]
           : []),
-        {
-          id: "show-line",
-          label: "Show the whole line",
-          action: { kind: "show-line" },
-        },
       ];
     case "shown":
     case "done":
