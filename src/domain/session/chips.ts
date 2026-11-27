@@ -128,7 +128,9 @@ function questions(kind: SessionKind, context: ChipContext): Chip[] {
             ]
           : []),
       ];
+    // After Show me the player can still ask why and what if.
     case "solved":
+    case "shown":
       return [
         {
           id: "why-it-works",
@@ -145,7 +147,6 @@ function questions(kind: SessionKind, context: ChipContext): Chip[] {
             ]
           : []),
       ];
-    case "shown":
     case "done":
       return [];
   }
@@ -167,7 +168,7 @@ export function chipsFor(
         solved || !("uci" in action) || action.uci !== context.bestUci,
     )
     .slice(0, MAX_QUESTION_CHIPS);
-  return kind === "solved"
+  return kind === "solved" || kind === "shown"
     ? [...asked, { id: "done", label: "Done ✓", action: { kind: "done" } }]
     : asked;
 }

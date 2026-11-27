@@ -245,7 +245,7 @@ export function MomentScreen({
   const [defence, setDefence] = useState<
     (SanMove & { readonly line: readonly string[] }) | undefined
   >();
-  const solved = kind === "solved";
+  const solved = kind === "solved" || kind === "shown";
   useEffect(() => {
     if (!solved || afterSolution === undefined) return;
     if (new Chess(afterSolution).moves().length < 2) return;
@@ -485,13 +485,11 @@ export function MomentScreen({
     });
   }
 
+  // The answer plays on the board; the player can then ask about it and taps
+  // Done when ready.
   function showMe() {
     send({ kind: "show" });
-    playStoryboard(storyboard, "warm", undefined, () => {
-      later(() => {
-        setSheet("missed");
-      }, STORY_STEP_MS);
-    });
+    playStoryboard(storyboard, "warm");
   }
 
   function finish() {
@@ -583,6 +581,10 @@ export function MomentScreen({
         });
         return;
       case "done":
+        if (kind === "shown") {
+          setSheet("missed");
+          return;
+        }
         finish();
         setSheet("celebrate");
         return;

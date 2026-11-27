@@ -32,6 +32,12 @@ describe("chipsFor", () => {
       "What if you'd played Kg6?",
       "Done ✓",
     ]);
+    // After Show me the player can still ask about the answer.
+    expect(labels("shown")).toEqual([
+      "Why does it work?",
+      "What if you'd played Kg6?",
+      "Done ✓",
+    ]);
     expect(labels("done")).toEqual([]);
   });
 

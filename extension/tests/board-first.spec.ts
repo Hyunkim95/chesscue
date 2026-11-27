@@ -47,6 +47,12 @@ for (const width of [320, 420]) {
       await noSideScroll(page);
 
       await page.getByRole("button", { name: "Show me" }).click();
+      await expect(
+        page.getByRole("textbox", { name: "Ask Rook" }),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Done ✓" })
+        .click({ timeout: 20_000 });
       const sheet = page.getByRole("dialog", { name: "Not this time" });
       await expect(sheet).toBeVisible({ timeout: 20_000 });
       await expect(sheet).toBeInViewport({ ratio: 1 });

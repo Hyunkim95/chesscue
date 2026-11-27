@@ -155,6 +155,16 @@ test("on a wide screen the Not this time sheet is a centred modal over the board
   ).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Show me" }).click();
 
+  // The answer plays out and the player can still ask about it.
+  await expect(
+    page.getByRole("button", { name: "Why does it work?" }),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Ask Rook" })).toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "Not this time" }),
+  ).toBeHidden();
+  await page.getByRole("button", { name: "Done ✓" }).click();
+
   const sheet = page.getByRole("dialog", { name: "Not this time" });
   await expect(sheet).toBeVisible({ timeout: 20_000 });
   await expect(sheet).toHaveAttribute("aria-modal", "true");
@@ -168,11 +178,11 @@ test("on a wide screen the Not this time sheet is a centred modal over the board
   expect(Math.abs(box.y + box.height / 2 - 400)).toBeLessThan(4);
 
   // The dimmed backdrop takes clicks meant for the board behind it.
-  const queen = await square(page, "White queen").boundingBox();
-  if (!queen) throw new Error("The queen has no box");
+  const corner = await square(page, "Black rook on a8").boundingBox();
+  if (!corner) throw new Error("The rook has no box");
   const hit = await page.evaluate(
     ([x, y]) => document.elementFromPoint(x, y)?.className ?? "",
-    [queen.x + queen.width / 2, queen.y + queen.height / 2] as const,
+    [corner.x + corner.width / 2, corner.y + corner.height / 2] as const,
   );
   expect(hit).toContain("ui-sheet__backdrop");
 
