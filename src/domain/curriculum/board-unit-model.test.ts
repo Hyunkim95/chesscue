@@ -17,20 +17,29 @@ const load = () =>
     new Int8Array(readFileSync(root("board-unit-v2.bin"))),
   );
 
-test("matches the exported network on the 60 dev cases", () => {
-  const model = load();
-  if (!model) throw new Error("The installed board model did not load.");
-  const started = performance.now();
-  // Every fifth case keeps the check well inside the default test timeout.
-  for (const { fens, unit, probability } of fixture.filter(
-    (_, i) => i % 5 === 0,
-  )) {
-    const [top] = predictBoardUnits(model, fens);
-    expect(top?.unitId).toBe(unit);
-    expect(top?.probability).toBeCloseTo(probability, 3);
-  }
-  expect((performance.now() - started) / fixture.length).toBeLessThan(500);
-});
+// The inference is CPU-bound and takes about 2 s alone; with the whole suite
+// running in parallel on a loaded machine the 5 s default timed out. Speed is
+// checked by the per-case assertion, not by the test timeout.
+const MODEL_TEST_TIMEOUT_MS = 30_000;
+
+test(
+  "matches the exported network on the 60 dev cases",
+  () => {
+    const model = load();
+    if (!model) throw new Error("The installed board model did not load.");
+    const started = performance.now();
+    // Every fifth case keeps the run short.
+    for (const { fens, unit, probability } of fixture.filter(
+      (_, i) => i % 5 === 0,
+    )) {
+      const [top] = predictBoardUnits(model, fens);
+      expect(top?.unitId).toBe(unit);
+      expect(top?.probability).toBeCloseTo(probability, 3);
+    }
+    expect((performance.now() - started) / fixture.length).toBeLessThan(500);
+  },
+  MODEL_TEST_TIMEOUT_MS,
+);
 
 test("encodes boards from the mover's side and pads missing boards", () => {
   const codes = encodeBoards(["4k3/8/8/8/8/8/8/4K3 b - - 0 1"]);
