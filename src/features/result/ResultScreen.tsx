@@ -5,7 +5,8 @@ import { ranks } from "../../domain/game/rank-path";
 import { RookBubble, RookSays } from "../../shared/rook/RookBubble";
 import { RookCharacter } from "../../shared/rook/RookCharacter";
 import { Button, Pill } from "../../shared/ui/primitives";
-import { ChessBoard, type BoardBadge } from "../board/ChessBoard";
+import { ChessBoard } from "../board/ChessBoard";
+import { departureBadges } from "../board/departure-badges";
 import type { FinalPosition, ResultOutcome } from "./final-position";
 import "./result-screen.css";
 
@@ -78,32 +79,6 @@ export function ResultScreen({
   const [step, setStep] = useState<number>();
   const frames = opening?.frames ?? [];
   const frame = step === undefined ? undefined : frames[step];
-  // A short arrow such as a2-a3 is hard to see, so the move that left the
-  // book is marked ✗ where it lands and the book move ✓ where it lands.
-  const tried = frame?.arrows.find(({ kind }) => kind === "tried");
-  const bookMove = tried && frame?.arrows.find(({ kind }) => kind === "move");
-  const badges: BoardBadge[] = [
-    ...(tried
-      ? [
-          {
-            square: tried.to,
-            text: "✗",
-            tone: "coral",
-            label: "Where the move that left the book landed.",
-          } as const,
-        ]
-      : []),
-    ...(bookMove
-      ? [
-          {
-            square: bookMove.to,
-            text: "✓",
-            tone: "jade",
-            label: "Where the book move lands.",
-          } as const,
-        ]
-      : []),
-  ];
   return (
     <div className="result">
       <section className="result__card" aria-labelledby="result-title">
@@ -119,7 +94,7 @@ export function ResultScreen({
           animateMove={false}
           extraArrows={frame?.arrows ?? []}
           outlines={frame?.outlines ?? []}
-          badges={badges}
+          badges={departureBadges(frame?.arrows ?? [])}
           controlChanges={
             frame && frame.control.length > 0
               ? new Map(

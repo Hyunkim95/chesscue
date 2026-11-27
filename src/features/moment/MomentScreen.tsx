@@ -61,6 +61,7 @@ import {
   Sheet,
 } from "../../shared/ui/primitives";
 import { ChessBoard, type BoardOutline } from "../board/ChessBoard";
+import { departureBadges } from "../board/departure-badges";
 import {
   checksAnswer,
   replyReason,
@@ -1016,6 +1017,7 @@ export function MomentScreen({
           }
           outlines={goalMarks ? goalMarks.outlines : view.outlines}
           previewTag={view.previewTag}
+          badges={departureBadges(view.arrows)}
           spotSquare={view.spot}
           controlChanges={
             view.control && view.control.length > 0

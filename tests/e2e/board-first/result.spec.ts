@@ -227,3 +227,43 @@ test("the opening row plays where the game left the book, then the opening's ide
   ).toBeVisible();
   await expect(row).toBeVisible();
 });
+
+test("a moment from the opening offers the game's opening once shown, never before", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await injectGame(
+    page,
+    finishedGame("11111111-2222-4333-8444-0000000000a2", "rated", "black"),
+  );
+  await page
+    .getByRole("button", { name: /^Look at (them|it)$/ })
+    .click({ timeout: 60_000 });
+  await expect(
+    page.getByRole("heading", { name: /Black to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByRole("button", { name: "About this opening" }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Show me" }).click();
+  await page.getByRole("button", { name: "About this opening" }).click();
+  await expect(
+    page.getByText(
+      "Your opponent left the book with a3. The usual move is Qe4, which controls d4 and e5.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("gridcell", { name: /^Empty a3/ }),
+  ).toHaveAccessibleDescription("Where the move that left the book landed.");
+  for (const width of [320, 420]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    await page.screenshot({
+      path: test.info().outputPath(`moment-opening-${String(width)}.png`),
+      fullPage: true,
+    });
+  }
+});
