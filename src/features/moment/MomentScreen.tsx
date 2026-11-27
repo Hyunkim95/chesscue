@@ -25,6 +25,7 @@ import {
   alternativeFrame,
   lineStoryboard,
   payoffFrame,
+  pointStoryboard,
   refutationStoryboard,
   type StoryFrame,
 } from "../../domain/analysis/line-storyboard";
@@ -518,11 +519,21 @@ export function MomentScreen({
   );
   const solvedUci = solvedLine[0] ?? moment.bestUci;
   const alternative = alternativeFrame(moment.fen, solvedUci, moment.bestUci);
-  const lineFrames = lineStoryboard(moment.fen, solvedLine);
-  const payoff = payoffFrame(moment.fen, lineFrames);
+  // "Why does it work?" opens on the point and plays only until it lands. A
+  // quiet line has no point: one frame shows the move and what it does.
+  const point = pointStoryboard(moment.fen, solvedLine);
+  const [quietFirst] = point ? [] : lineStoryboard(moment.fen, solvedLine);
   const storyboard = [
-    ...lineFrames,
-    ...(payoff ? [payoff] : []),
+    ...(point
+      ? point.frames
+      : quietFirst
+        ? [
+            {
+              ...quietFirst,
+              caption: `${quietFirst.caption} No tactic here, just a useful move.`,
+            },
+          ]
+        : []),
     ...(alternative ? [alternative] : []),
   ];
   const answerStory: Story = {
@@ -530,7 +541,7 @@ export function MomentScreen({
     frames: storyboard,
     step: 0,
     mood: "happy",
-    moves: solvedLine,
+    moves: point ? point.moves : solvedLine,
   };
   const afterSolution = (() => {
     try {

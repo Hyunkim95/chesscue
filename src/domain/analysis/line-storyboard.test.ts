@@ -6,6 +6,7 @@ import {
   insteadFrame,
   lineStoryboard,
   payoffFrame,
+  pointStoryboard,
   refutationStoryboard,
 } from "./line-storyboard";
 
@@ -368,4 +369,43 @@ it("counts a piece the other side can take back at once before claiming a win", 
   expect(
     payoffFrame(fork, lineStoryboard(fork, ["f3g5", "f7f6", "g5e6"]))?.caption,
   ).toBe("You've won a queen and a pawn for a knight.");
+});
+
+it("opens with the point and stops once the material settles", () => {
+  const mate = pointStoryboard(
+    "r4rk1/ppq2p1p/4pP2/3pP1p1/6Q1/2P5/PP1n2PP/R4R1K w - - 0 19",
+    ["g4g5", "g8h8", "g5g7"],
+  );
+  const fork = pointStoryboard(
+    "r4rk1/pp1b3p/1q2p1p1/4bpP1/3Pp3/2P5/PPQN3P/R1B2RK1 w - - 0 17",
+    ["d2c4", "e5d4", "c3d4", "b6d4", "c1e3"],
+  );
+  const knight = pointStoryboard(
+    "1R6/6p1/1p2k2p/3n1N2/6P1/pr3PK1/8/8 w - - 0 47",
+    ["f5d4", "e6e5", "d4b3"],
+  );
+  expect(mate?.frames.map(({ caption }) => caption)).toEqual([
+    "Qxg5+ leads to mate. It comes with check.",
+    "Qxg5+ takes my pawn, checks my king and attacks my knight on d2, which nothing defends.",
+    "I have to play Kh8.",
+    "Qg7# is checkmate.",
+  ]);
+  // frames[i] plays moves[i]; the point frame plays nothing.
+  expect(mate?.moves).toEqual(["", "g4g5", "g8h8", "g5g7"]);
+  expect(fork?.frames[0]?.caption).toBe(
+    "Nc4 wins a bishop for two pawns. It hits two pieces at once.",
+  );
+  expect(fork?.frames.at(-1)?.caption).toBe(
+    "You've won a bishop for two pawns.",
+  );
+  expect(knight?.frames[0]?.caption).toBe(
+    "Nd4+ wins a rook. It hits two pieces at once.",
+  );
+  // A quiet line has no point to show.
+  expect(
+    pointStoryboard(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      ["g1f3", "d7d5"],
+    ),
+  ).toBeUndefined();
 });

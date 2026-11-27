@@ -202,8 +202,10 @@ for (const width of [360, 1280]) {
     });
     await page.getByRole("button", { name: "Why does it work?" }).click();
     const bubble = page.locator(".rook-bubble__text");
+    // A quiet line has no tactic to play out: one frame says what the move
+    // does, drawn.
     await expect(bubble).toHaveText(
-      "d5 attacks my bishop on c4, which nothing defends.",
+      "d5 attacks my bishop on c4, which nothing defends. No tactic here, just a useful move.",
     );
     await expect(page.locator("[data-move-cue-arrow='d5:c4']")).toHaveCount(1);
     // Let the pawn finish sliding before the picture. Rook's idle breathing
@@ -220,7 +222,5 @@ for (const width of [360, 1280]) {
     await page.screenshot({
       path: `test-results/plan-moment-story-${String(width)}.png`,
     });
-    await page.getByRole("button", { name: "Next step" }).click();
-    await expect(bubble).toHaveText("I take your pawn with exd5.");
   });
 }

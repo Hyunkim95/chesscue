@@ -62,13 +62,14 @@ test("hands-free reads Rook aloud and steps through the answer by voice", async 
   ).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Show me" }).click();
   const steps = page.getByRole("group", { name: "Step through the line" });
-  await expect(steps).toContainText("1 / 3");
+  await expect(steps).toContainText("1 / 4");
   await page.getByRole("button", { name: "Hands-free voice" }).click();
   await expect(
     page.getByRole("button", { name: "Hands-free voice" }),
   ).toHaveAttribute("aria-pressed", "true");
-  // Rook reads step 1, listens, hears "next", reads step 2, hears a question.
-  await expect(steps).toContainText("2 / 3", { timeout: 10_000 });
+  // Rook reads the point, listens, hears "next", reads step 2, hears a
+  // question.
+  await expect(steps).toContainText("2 / 4", { timeout: 10_000 });
   await expect(page.locator(".rook-bubble__text")).toHaveText(
     "Kh8 is my only legal move.",
     { timeout: 10_000 },
@@ -76,6 +77,6 @@ test("hands-free reads Rook aloud and steps through the answer by voice", async 
   const said = await page.evaluate(
     () => (window as unknown as { rookSaid: string[] }).rookSaid,
   );
-  expect(said[0]).toContain("Qxg5+");
-  expect(said).toContain("I have to play Kh8.");
+  expect(said[0]).toBe("Qxg5+ leads to mate. It comes with check.");
+  expect(said[1]).toContain("Qxg5+ takes my pawn");
 });

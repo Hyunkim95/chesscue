@@ -974,3 +974,120 @@ export function refutationStoryboard({
   const closing = answerKnown ? insteadFrame(fen, instead, learner) : undefined;
   return [...frames, cost, ...(closing ? [closing] : [])];
 }
+
+// "Why does it work?" (PRD §5.8): one frame that states the point with its
+// arrow, then the line only until the point lands and material settles, with
+// quiet moves named and nothing more, then the payoff. Frame 0 is the point
+// on the starting board, so `moves` starts with "" to keep frames[i] playing
+// moves[i]. Undefined when the line neither mates nor wins material once it
+// settles: a quiet line has no point to show.
+export function pointStoryboard(
+  fen: string,
+  line: readonly string[],
+  learner?: Color,
+):
+  | {
+      readonly frames: readonly StoryFrame[];
+      readonly moves: readonly string[];
+    }
+  | undefined {
+  const all = lineStoryboard(fen, line, learner);
+  const [first] = all;
+  if (!first) return undefined;
+  // Where the point has landed and the material is settled: the last move
+  // that captures, promotes or mates.
+  const board = new Chess(fen);
+  let last = 0;
+  for (const [index, frame] of all.entries()) {
+    const move = play(board, frame.moveUci);
+    if (!move) break;
+    if (move.captured || move.promotion || board.isCheckmate()) last = index;
+  }
+  const kept = all
+    .slice(0, last + 1)
+    .map((frame, index) =>
+      index === 0 ? frame : plainQuiet(all[index - 1]?.fen ?? fen, frame),
+    );
+  const payoff = payoffFrame(fen, kept);
+  const ends = kept.at(-1);
+  const mates = ends ? new Chess(ends.fen).isCheckmate() : false;
+  const san = sanOf(fen, first.moveUci);
+  if (!san) return undefined;
+  const result = mates
+    ? `${san} leads to mate.`
+    : payoff
+      ? `${san} wins ${payoff.caption.replace(/^You've won /, "").replace(/\.$/, "")}.`
+      : undefined;
+  if (!result) return undefined;
+  const point: StoryFrame = {
+    fen,
+    moveUci: "",
+    by: first.by,
+    arrows: [
+      ...first.arrows.filter(({ kind }) => kind !== "preview"),
+      ...first.arrows.filter(({ kind }) => kind === "preview"),
+    ],
+    outlines: first.outlines,
+    control: [],
+    caption: `${result}${pointReason(fen, first.moveUci, mates)}`,
+  };
+  return {
+    frames: [point, ...kept, ...(payoff && !mates ? [payoff] : [])],
+    moves: ["", ...line],
+  };
+}
+
+function sanOf(fen: string, uci: string): string | undefined {
+  try {
+    return play(new Chess(fen), uci)?.san;
+  } catch {
+    return undefined;
+  }
+}
+
+// Why the first move works, in one short sentence after the result: the
+// check that starts a mate, two pieces hit at once, or a piece with no
+// defender.
+function pointReason(fen: string, uci: string, mates: boolean): string {
+  const board = new Chess(fen);
+  const move = play(board, uci);
+  if (!move) return "";
+  const them = opponent(move.color);
+  if (mates && move.san.includes("+")) return " It comes with check.";
+  const hits = attackedBy(board, move.to).filter(
+    ({ type, square }) =>
+      type === "k" ||
+      board.attackers(square, them).length === 0 ||
+      PIECE_VALUE[type] > PIECE_VALUE[move.piece],
+  );
+  if (hits.length >= 2) return " It hits two pieces at once.";
+  if (move.captured && board.attackers(move.to, them).length === 0)
+    return " It has no defender.";
+  if (move.san.includes("+")) return " It comes with check.";
+  return "";
+}
+
+// A move in the middle of a tactic that is not a check, capture or threat
+// is named and nothing more.
+function plainQuiet(before: string, frame: StoryFrame): StoryFrame {
+  const move = play(new Chess(before), frame.moveUci);
+  if (!move) return frame;
+  const after = new Chess(frame.fen);
+  const threatens = attackedBy(after, move.to).some(
+    ({ square, type }) =>
+      type === "k" ||
+      after.attackers(square, opponent(move.color)).length === 0 ||
+      PIECE_VALUE[type] > PIECE_VALUE[move.piece],
+  );
+  const forced = frame.caption.startsWith("I have to play");
+  if (move.captured || move.san.includes("+") || threatens || forced)
+    return frame;
+  return {
+    ...frame,
+    arrows: frame.arrows.filter(({ kind }) => kind === "preview"),
+    outlines: [],
+    control: [],
+    caption:
+      frame.by === "rook" ? `I answer ${move.san}.` : `Then ${move.san}.`,
+  };
+}
