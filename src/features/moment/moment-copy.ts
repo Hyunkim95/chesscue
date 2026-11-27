@@ -1,6 +1,10 @@
-import { Chess } from "chess.js";
+import { Chess, SQUARES } from "chess.js";
 
 import type { BoardArrow } from "../../domain/analysis/board-move-cues";
+import {
+  opponent,
+  staticExchange,
+} from "../../domain/analysis/board-relations";
 import { forcingScan } from "../../domain/analysis/forcing-moves";
 import type { FeedbackTier } from "../../domain/session/types";
 import type { BoardOutline } from "../board/ChessBoard";
@@ -127,19 +131,68 @@ export function checksAnswer(fen: string): BoardAnswer {
 
 // What one of Rook's moves does that the board shows plainly: a mate, a
 // capture, a check or an escape from check. Undefined for a quiet move.
-export function rookMoveReason(fen: string, uci: string): string | undefined {
+function playUci(board: Chess, uci: string) {
+  return board.move({
+    from: uci.slice(0, 2),
+    to: uci.slice(2, 4),
+    ...(uci.length > 4 ? { promotion: uci.slice(4) } : {}),
+  });
+}
+
+// Why Rook could take: a recapture, a piece left with no defender (and the
+// player's move that left it so), or an exchange that still comes out ahead.
+// `previous` is the player's move just before, from the position it was
+// played in.
+function captureReason(
+  fen: string,
+  uci: string,
+  previous: { readonly fen: string; readonly uci: string } | undefined,
+): string | undefined {
+  const board = new Chess(fen);
+  const to = SQUARES.find((square) => square === uci.slice(2, 4));
+  const target = to ? board.get(to) : undefined;
+  if (!to || !target) return undefined;
+  const name = `your ${NAME[target.type]} on ${to}`;
+  const rookSide = opponent(target.color);
+  if (previous) {
+    const before = new Chess(previous.fen);
+    const theirs = playUci(new Chess(previous.fen), previous.uci);
+    if (theirs.to === to && theirs.captured) return `I take back on ${to}.`;
+    const defended = board.attackers(to, target.color).length > 0;
+    if (!defended) {
+      if (theirs.to === to)
+        return `${theirs.san} puts your ${NAME[target.type]} on ${to}, where nothing defends it, so I take it.`;
+      const was = before.get(to);
+      if (
+        was?.type === target.type &&
+        before.attackers(to, target.color).length > 0
+      )
+        return `${theirs.san} took away the last defender of ${name}, so I take it.`;
+    }
+  }
+  if (board.attackers(to, target.color).length === 0)
+    return `Nothing defends ${name}, so I take it for free.`;
+  if (staticExchange(board, to, rookSide) > 0)
+    return `Even after you take back on ${to}, I come out ahead.`;
+  return undefined;
+}
+
+export function rookMoveReason(
+  fen: string,
+  uci: string,
+  previous?: { readonly fen: string; readonly uci: string },
+): string | undefined {
   try {
     const board = new Chess(fen);
     const wasInCheck = board.inCheck();
     const forced = board.moves().length === 1;
-    const move = board.move({
-      from: uci.slice(0, 2),
-      to: uci.slice(2, 4),
-      ...(uci.length > 4 ? { promotion: uci.slice(4) } : {}),
-    });
+    const move = playUci(board, uci);
     if (move.san.includes("#")) return `${move.san} is checkmate.`;
     if (move.captured)
-      return `${move.san} takes your ${NAME[move.captured]} on ${move.to}.`;
+      return (
+        captureReason(fen, uci, previous) ??
+        `${move.san} takes your ${NAME[move.captured]} on ${move.to}.`
+      );
     if (forced) return `${move.san} is my only legal move.`;
     if (wasInCheck) return `${move.san} gets my king out of check.`;
     if (move.san.includes("+")) return `${move.san} gives check.`;
@@ -150,8 +203,12 @@ export function rookMoveReason(fen: string, uci: string): string | undefined {
 }
 
 // "Why {Rook's reply}?": what the reply does, from the board only.
-export function replyReason(fen: string, uci: string): string {
-  const reason = rookMoveReason(fen, uci);
+export function replyReason(
+  fen: string,
+  uci: string,
+  previous?: { readonly fen: string; readonly uci: string },
+): string {
+  const reason = rookMoveReason(fen, uci, previous);
   if (reason) return reason;
   try {
     const san = new Chess(fen).move({

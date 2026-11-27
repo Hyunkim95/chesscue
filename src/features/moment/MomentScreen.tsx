@@ -201,6 +201,14 @@ function beforeFrame(story: Story, index: number): string {
 }
 
 // The moves the frames play, named, for questions about one of them.
+// The player's move just before a frame, from the position it was played in.
+function previousMove(story: Story, index: number) {
+  const frame = index > 0 ? story.frames[index - 1] : undefined;
+  return frame?.moveUci
+    ? { fen: beforeFrame(story, index - 1), uci: frame.moveUci }
+    : undefined;
+}
+
 function storyMoves(story: Story): (SanMove & { readonly index: number })[] {
   return story.frames.flatMap((frame, index) => {
     const san = frame.moveUci
@@ -673,8 +681,11 @@ export function MomentScreen({
     if (!found || !frame) return false;
     const reason =
       frame.by === "rook"
-        ? (rookMoveReason(beforeFrame(story, found.index), uci) ??
-          frame.caption)
+        ? (rookMoveReason(
+            beforeFrame(story, found.index),
+            uci,
+            previousMove(story, found.index),
+          ) ?? frame.caption)
         : frame.caption;
     setStory({ ...story, step: found.index });
     setView(frameView(frame));
@@ -846,7 +857,11 @@ export function MomentScreen({
             // The reason falls back to a request to play the move.
           }
           setSay({
-            text: replyReason(beforeReply.fen(), action.uci),
+            text: replyReason(
+              beforeReply.fen(),
+              action.uci,
+              last ? { fen: moment.fen, uci: last.uci } : undefined,
+            ),
             mood: "idle",
             understood,
           });
@@ -911,8 +926,11 @@ export function MomentScreen({
     const frame = inLine && story ? story.frames[inLine.index] : undefined;
     if (inLine && story && frame)
       return frame.by === "rook"
-        ? (rookMoveReason(beforeFrame(story, inLine.index), uci) ??
-            frame.caption)
+        ? (rookMoveReason(
+            beforeFrame(story, inLine.index),
+            uci,
+            previousMove(story, inLine.index),
+          ) ?? frame.caption)
         : frame.caption;
     const tried = attempts.find((attempt) => attempt.uci === uci);
     if (tried)
