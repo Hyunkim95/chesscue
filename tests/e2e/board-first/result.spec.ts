@@ -6,6 +6,12 @@ import { Chess } from "chess.js";
 
 test.use({ viewport: { width: 360, height: 800 } });
 
+// Rook's moments wait for Stockfish to analyse the whole game, which can take
+// most of a minute while other workers run. The test limit covers the waits
+// these tests declare (20 s, 60 s and 30 s), so a slow analysis is not cut off
+// by the default 30 s test timeout first.
+const ANALYSIS_TEST_TIMEOUT = 120_000;
+
 const friedLiver = [
   "e4",
   "e5",
@@ -129,6 +135,7 @@ test("a coached win shows the final board and is unrated, never calculating Elo"
 test("a rated loss shows the Elo change and opens Rook's first moment", async ({
   page,
 }) => {
+  test.setTimeout(ANALYSIS_TEST_TIMEOUT);
   await injectGame(
     page,
     finishedGame("11111111-2222-4333-8444-0000000000a1", "rated", "black"),
@@ -231,6 +238,7 @@ test("the opening row plays where the game left the book, then the opening's ide
 test("a moment from the opening offers the game's opening once shown, never before", async ({
   page,
 }) => {
+  test.setTimeout(ANALYSIS_TEST_TIMEOUT);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await injectGame(
     page,
