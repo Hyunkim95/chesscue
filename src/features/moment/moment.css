@@ -1,0 +1,81 @@
+.moment {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.moment__prompt {
+  margin: 0;
+  font: 600 19px/1.25 var(--ui-font-display);
+}
+
+.moment__prompt small {
+  display: block;
+  margin-top: 2px;
+  font: 500 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.moment__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.moment__tools .ui-button {
+  flex: 1 1 auto;
+  min-height: var(--ui-space-target);
+}
+
+.moment__tries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.moment__try {
+  padding: 3px 9px;
+  border-radius: var(--ui-radius-pill);
+  font: 700 12px var(--ui-font-body);
+  color: var(--ui-color-brass-ink);
+}
+
+.moment__try--missed {
+  background: var(--ui-color-tier-missed);
+}
+
+.moment__try--worse {
+  background: var(--ui-color-tier-worse);
+}
+
+.moment__try--costly {
+  color: var(--ui-color-ink);
+  background: var(--ui-color-tier-costly);
+}
+
+.moment__sheet-line {
+  margin: 4px 0 12px;
+}
+
+.moment__idea-card {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--ui-radius-card);
+  background: color-mix(in srgb, var(--ui-color-ink) 7%, transparent);
+}
+
+.moment__idea-card small {
+  opacity: 0.75;
+}
+
+.moment__xp {
+  margin: 0 0 12px;
+  font: 900 18px var(--ui-font-body);
+  color: var(--ui-color-brass);
+}

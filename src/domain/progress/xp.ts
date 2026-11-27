@@ -6,12 +6,17 @@ const outcomeXp: Record<MomentAttemptRecord["outcome"], number> = {
   shown: 0,
 };
 
-export function totalXp(attempts: readonly MomentAttemptRecord[]): number {
-  return attempts.reduce(
-    (total, { outcome, explorations }) =>
-      total +
-      outcomeXp[outcome] +
-      Math.min(XP.exploration * explorations, XP.explorationCap),
-    0,
+// XP for one completed position.
+export function attemptXp({
+  outcome,
+  explorations,
+}: Pick<MomentAttemptRecord, "outcome" | "explorations">): number {
+  return (
+    outcomeXp[outcome] +
+    Math.min(XP.exploration * explorations, XP.explorationCap)
   );
+}
+
+export function totalXp(attempts: readonly MomentAttemptRecord[]): number {
+  return attempts.reduce((total, attempt) => total + attemptXp(attempt), 0);
 }

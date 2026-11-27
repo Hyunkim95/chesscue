@@ -1,0 +1,668 @@
+import { Chess, SQUARES, type Square } from "chess.js";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+
+import type {
+  CheckedTry,
+  CheckFailure,
+  MomentPosition,
+} from "../../application/run-moment/check-try";
+import type {
+  QuestionOutcome,
+  RoutedAction,
+} from "../../application/route-question/route-question";
+import type { BoardArrow } from "../../domain/analysis/board-move-cues";
+import { explainMissedLine } from "../../domain/analysis/explain-miss";
+import { scanHint } from "../../domain/analysis/forcing-moves";
+import { attemptXp } from "../../domain/progress/xp";
+import { chipsFor, type SanMove } from "../../domain/session/chips";
+import {
+  advanceSession,
+  sessionResult,
+  startSession,
+  type MomentSession,
+  type SessionEvent,
+} from "../../domain/session/session";
+import type {
+  Attempt,
+  Chip,
+  FeedbackTier,
+  MomentResult,
+} from "../../domain/session/types";
+import type { Result } from "../../shared/result/result";
+import { AskBar } from "../../shared/rook/AskBar";
+import { RookBubble, RookSays } from "../../shared/rook/RookBubble";
+import { RookCharacter, type RookMood } from "../../shared/rook/RookCharacter";
+import { Button, ChipRow, Pill, Sheet } from "../../shared/ui/primitives";
+import { ChessBoard, type BoardOutline } from "../board/ChessBoard";
+import {
+  checksAnswer,
+  replyReason,
+  threatsAnswer,
+  tierLine,
+  type BoardAnswer,
+} from "./moment-copy";
+import "./moment.css";
+
+export interface MomentSpec extends MomentPosition {
+  readonly id: string;
+  // "Your game vs Ahmed · Tuesday", or "A position like ones from your games".
+  readonly sourceLabel: string;
+  readonly playedInGame?: SanMove | undefined;
+  readonly bestNonSolution?: SanMove | undefined;
+  // The idea, named only after it is found.
+  readonly ideaName: string | undefined;
+}
+
+interface BoardView {
+  readonly fen: string;
+  readonly lastMoveUci?: string | undefined;
+  readonly animate?: boolean;
+  readonly arrows: readonly BoardArrow[];
+  readonly outlines: readonly BoardOutline[];
+  readonly previewTag?: string | undefined;
+  readonly spot?: Square | undefined;
+}
+
+interface Say {
+  readonly text: ReactNode;
+  readonly mood: RookMood;
+  readonly understood?: string | undefined;
+}
+
+const GHOST: Record<Exclude<FeedbackTier, "best">, BoardArrow["kind"]> = {
+  missed: "ghost-missed",
+  worse: "ghost-worse",
+  costly: "ghost-costly",
+};
+
+const TRIES_CHIP: Record<Exclude<FeedbackTier, "best">, string> = {
+  missed: "level, chance missed",
+  worse: "now worse",
+  costly: "costs material",
+};
+
+const SLIDE_BACK_MS = 2_600;
+const LINE_STEP_MS = 700;
+
+function uciMove(uci: string) {
+  return {
+    from: uci.slice(0, 2),
+    to: uci.slice(2, 4),
+    ...(uci.length > 4 ? { promotion: uci.slice(4) } : {}),
+  };
+}
+
+function sanFor(fen: string, uci: string | undefined): string | undefined {
+  if (uci === undefined) return undefined;
+  try {
+    return new Chess(fen).move(uciMove(uci)).san;
+  } catch {
+    return undefined;
+  }
+}
+
+function square(name: string): Square | undefined {
+  return SQUARES.find((candidate) => candidate === name);
+}
+
+function arrow(uci: string, kind: BoardArrow["kind"]): BoardArrow[] {
+  const from = square(uci.slice(0, 2));
+  const to = square(uci.slice(2, 4));
+  return from && to ? [{ from, to, kind }] : [];
+}
+
+function legalTargets(fen: string, from: Square): Square[] {
+  try {
+    return new Chess(fen)
+      .moves({ square: from, verbose: true })
+      .map(({ to }) => to);
+  } catch {
+    return [];
+  }
+}
+
+function ghostArrows(attempts: readonly Attempt[]): BoardArrow[] {
+  return attempts.flatMap(({ uci, tier }) =>
+    tier === "best" ? [] : arrow(uci, GHOST[tier]),
+  );
+}
+
+export function MomentScreen({
+  moment,
+  online,
+  checkMove,
+  askRook,
+  onComplete,
+  onContinue,
+}: {
+  readonly moment: MomentSpec;
+  readonly online: boolean;
+  readonly checkMove: (
+    uci: string,
+    signal: AbortSignal,
+  ) => Promise<Result<CheckedTry, CheckFailure>>;
+  readonly askRook: (
+    question: { text: string; fen: string; boardMoveUci?: string | undefined },
+    signal: AbortSignal,
+  ) => Promise<QuestionOutcome>;
+  // Called once with the finished result, to record it.
+  readonly onComplete: (result: MomentResult) => void;
+  readonly onContinue: () => void;
+}) {
+  const start: BoardView = { fen: moment.fen, arrows: [], outlines: [] };
+  const [session, setSession] = useState<MomentSession>(startSession);
+  const [view, setView] = useState<BoardView>(start);
+  const [say, setSay] = useState<Say>({
+    text: "Take your time. Look for checks, captures and threats.",
+    mood: "idle",
+  });
+  const [selected, setSelected] = useState<Square | undefined>();
+  const [busy, setBusy] = useState(false);
+  const [reply, setReply] = useState<SanMove | undefined>();
+  const [confirm, setConfirm] = useState<
+    Extract<QuestionOutcome, { kind: "confirm" }> | undefined
+  >();
+  const [sheet, setSheet] = useState<"celebrate" | "missed" | undefined>();
+  const controller = useRef(new AbortController());
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(
+    () => () => {
+      controller.current.abort();
+      window.clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  const kind = session.state.kind;
+  const solving =
+    kind === "before" || kind === "tried" || kind === "second-miss";
+  const attempts =
+    session.state.kind === "before" || session.state.kind === "done"
+      ? []
+      : session.state.attempts;
+  const result = sessionResult(session);
+  const explanation =
+    explainMissedLine({ fen: moment.fen, line: moment.solutionLine })?.text ??
+    `${sanFor(moment.fen, moment.bestUci) ?? "It"} is the strongest move here.`;
+  const bestSan = sanFor(moment.fen, moment.bestUci) ?? moment.bestUci;
+
+  function send(...events: SessionEvent[]) {
+    setSession((current) => events.reduce(advanceSession, current));
+  }
+
+  function later(action: () => void, ms: number) {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(action, ms);
+  }
+
+  function rewind(withScan: boolean) {
+    const scan = withScan ? scanHint(moment.fen) : undefined;
+    setView({
+      fen: moment.fen,
+      arrows: [...ghostArrows(attempts), ...(scan?.arrows ?? [])],
+      outlines: [],
+    });
+    setReply(undefined);
+    if (scan) {
+      send({ kind: "help" });
+      setSay({
+        text: (
+          <>
+            Let's scan.{" "}
+            {scan.rows.map((row) => `${row.label}: ${row.moves}.`).join(" ")}
+          </>
+        ),
+        mood: "hmm",
+      });
+    } else
+      setSay({
+        text: "Your move again. The faint arrows are your earlier tries.",
+        mood: "idle",
+      });
+  }
+
+  async function tryMove(uci: string) {
+    setSelected(undefined);
+    setBusy(true);
+    setSay({ text: "Let me see…", mood: "think" });
+    const checked = await checkMove(uci, controller.current.signal);
+    setBusy(false);
+    if (!checked.ok) {
+      setSay({
+        text: "I couldn't check that move just now. Try it again.",
+        mood: "hmm",
+      });
+      return;
+    }
+    const { attempt, afterFen, replyFen, replySan } = checked.value;
+    send({ kind: "try", attempt });
+    if (attempt.tier === "best") {
+      setView({
+        fen: afterFen,
+        lastMoveUci: attempt.uci,
+        arrows: [],
+        outlines: [],
+        spot: square(attempt.uci.slice(2, 4)),
+      });
+      setSay({
+        text: "Want to see why it works, or what I could have tried instead? Or tap Done.",
+        mood: "happy",
+      });
+      return;
+    }
+    setReply(
+      attempt.replyUci && replySan
+        ? { uci: attempt.replyUci, san: replySan }
+        : undefined,
+    );
+    setView({
+      fen: replyFen ?? afterFen,
+      lastMoveUci: attempt.replyUci ?? attempt.uci,
+      animate: true,
+      arrows: attempt.replyUci ? arrow(attempt.replyUci, "reply") : [],
+      outlines: [],
+    });
+    setSay({
+      text: tierLine({
+        tier: attempt.tier,
+        trySan: attempt.san,
+        replySan,
+        preview: false,
+      }),
+      mood: attempt.tier === "missed" ? "warm" : "cool",
+    });
+  }
+
+  async function preview(uci: string, understood?: string) {
+    if (solving) send({ kind: "help" });
+    send({ kind: "explore", key: `preview:${uci}` });
+    setBusy(true);
+    setSay({ text: "Let me see…", mood: "think", understood });
+    const checked = await checkMove(uci, controller.current.signal);
+    setBusy(false);
+    if (!checked.ok) {
+      setSay({
+        text: "I couldn't check that move just now.",
+        mood: "hmm",
+        understood,
+      });
+      return;
+    }
+    const { attempt, afterFen, replyFen, replySan } = checked.value;
+    const before = view;
+    setView({
+      fen: replyFen ?? afterFen,
+      lastMoveUci: attempt.replyUci ?? attempt.uci,
+      previewTag: "Preview · not played",
+      animate: true,
+      arrows: [
+        ...arrow(attempt.uci, "preview"),
+        ...(attempt.replyUci ? arrow(attempt.replyUci, "reply") : []),
+      ],
+      outlines: [],
+    });
+    setSay({
+      text: tierLine({
+        tier: attempt.tier,
+        trySan: attempt.san,
+        replySan,
+        preview: true,
+      }),
+      mood: attempt.tier === "best" ? "happy" : "warm",
+      understood,
+    });
+    later(() => {
+      setView(before);
+    }, SLIDE_BACK_MS);
+  }
+
+  function showAnswer(answer: BoardAnswer, understood?: string) {
+    setView((current) => ({
+      ...current,
+      arrows: [...ghostArrows(attempts), ...answer.arrows],
+      outlines: answer.outlines,
+    }));
+    setSay({ text: answer.text, mood: "idle", understood });
+  }
+
+  function playLine(line: readonly string[], then: () => void) {
+    const board = new Chess(moment.fen);
+    let step = 0;
+    const next = () => {
+      const uci = line[step];
+      if (uci === undefined) {
+        then();
+        return;
+      }
+      try {
+        board.move(uciMove(uci));
+      } catch {
+        then();
+        return;
+      }
+      setView({
+        fen: board.fen(),
+        lastMoveUci: uci,
+        animate: true,
+        arrows: arrow(uci, step % 2 === 0 ? "preview" : "reply"),
+        outlines: [],
+      });
+      step += 1;
+      later(next, LINE_STEP_MS);
+    };
+    next();
+  }
+
+  function showMe() {
+    send({ kind: "show" });
+    setSay({ text: `Here's the idea: ${bestSan}.`, mood: "warm" });
+    playLine(moment.solutionLine.slice(0, 5), () => {
+      setSay({ text: explanation, mood: "warm" });
+      setSheet("missed");
+    });
+  }
+
+  function finish() {
+    const finished = sessionResult(session);
+    if (!finished) return;
+    send({ kind: "finish" });
+    onComplete(finished);
+  }
+
+  function act(action: RoutedAction, understood?: string) {
+    setConfirm(undefined);
+    const fen = view.fen;
+    const key = `ask:${action.kind}${"uci" in action ? `:${action.uci}` : ""}`;
+    if (action.kind !== "done" && action.kind !== "something-else")
+      send({ kind: "explore", key });
+    switch (action.kind) {
+      case "threats":
+        showAnswer(threatsAnswer(fen), understood);
+        return;
+      case "checks":
+        showAnswer(checksAnswer(fen), understood);
+        return;
+      case "scan": {
+        send({ kind: "help" });
+        const scan = scanHint(moment.fen);
+        setView({
+          fen: moment.fen,
+          arrows: [...ghostArrows(attempts), ...(scan?.arrows ?? [])],
+          outlines: [],
+        });
+        setSay({
+          text: scan
+            ? scan.rows.map((row) => `${row.label}: ${row.moves}.`).join(" ")
+            : "Look at every check, capture and threat.",
+          mood: "idle",
+          understood,
+        });
+        return;
+      }
+      case "why":
+        if (action.uci === moment.bestUci && !solving) {
+          setSay({ text: explanation, mood: "happy", understood });
+          return;
+        }
+        if (action.uci === reply?.uci) {
+          const beforeReply = new Chess(moment.fen);
+          const tried = attempts.at(-1);
+          try {
+            if (tried) beforeReply.move(uciMove(tried.uci));
+          } catch {
+            // The reason falls back to a request to play the move.
+          }
+          setSay({
+            text: replyReason(beforeReply.fen(), action.uci),
+            mood: "idle",
+            understood,
+          });
+          return;
+        }
+        void preview(action.uci, understood);
+        return;
+      case "what-if":
+        void preview(action.uci, understood);
+        return;
+      case "show-line":
+        setSay({ text: explanation, mood: "happy", understood });
+        playLine(moment.solutionLine, () => undefined);
+        return;
+      case "show-me":
+        showMe();
+        return;
+      case "plan":
+        setSay({
+          text: online ? "Plans are coming soon." : "Plans need internet.",
+          mood: "idle",
+        });
+        return;
+      case "something-else":
+        setSay({
+          text: "Tap a chip, or play a move on the board and I'll show you what happens.",
+          mood: "idle",
+        });
+        return;
+      case "done":
+        finish();
+        setSheet("celebrate");
+        return;
+    }
+  }
+
+  async function ask(text: string) {
+    setBusy(true);
+    setSay({ text: "Let me think…", mood: "think" });
+    const outcome = await askRook(
+      { text, fen: view.fen, boardMoveUci: undefined },
+      controller.current.signal,
+    );
+    setBusy(false);
+    switch (outcome.kind) {
+      case "act":
+        act(outcome.action, outcome.understood);
+        return;
+      case "confirm":
+        setConfirm(outcome);
+        setSay({
+          text: `Did you mean: ${outcome.label}`,
+          mood: "hmm",
+          understood: outcome.understood,
+        });
+        return;
+      case "play-it-on-the-board":
+        setSay({
+          text: "Play the move on the board and I'll show you what happens.",
+          mood: "idle",
+          understood: outcome.understood,
+        });
+        return;
+      case "unrouted":
+        setSay({
+          text: "I didn't catch that. Tap a chip instead.",
+          mood: "hmm",
+        });
+    }
+  }
+
+  function selectSquare(square: Square) {
+    if (busy || !solving || view.fen !== moment.fen) return;
+    if (selected && legalTargets(moment.fen, selected).includes(square)) {
+      const piece = new Chess(moment.fen).get(selected);
+      const promotes =
+        piece?.type === "p" && (square.endsWith("8") || square.endsWith("1"));
+      void tryMove(`${selected}${square}${promotes ? "q" : ""}`);
+      return;
+    }
+    const piece = new Chess(moment.fen).get(square);
+    const turn = moment.fen.split(" ")[1];
+    setSelected(piece?.color === turn ? square : undefined);
+  }
+
+  const chips: readonly Chip[] = confirm
+    ? []
+    : chipsFor(kind, {
+        fen: view.fen,
+        bestUci: moment.bestUci,
+        playedInGame: moment.playedInGame,
+        reply,
+        bestNonSolution: moment.bestNonSolution,
+        bestDefence:
+          moment.solutionLine[1] === undefined
+            ? undefined
+            : {
+                uci: moment.solutionLine[1],
+                san:
+                  sanFor(
+                    new Chess(moment.fen).move(uciMove(moment.bestUci)).after,
+                    moment.solutionLine[1],
+                  ) ?? moment.solutionLine[1],
+              },
+        quiet: false,
+        online,
+      });
+  const turn = moment.fen.split(" ")[1] === "w" ? "White" : "Black";
+  const atStart = view.fen === moment.fen;
+  const missed = attempts.filter((attempt) => attempt.tier !== "best");
+  const xp = result ? attemptXp(result) : 0;
+
+  return (
+    <div className="moment">
+      <h1 className="moment__prompt">
+        {turn} to move
+        <small>{moment.sourceLabel} · Is there something here?</small>
+      </h1>
+      <ChessBoard
+        fen={view.fen}
+        label={`${turn} to move. ${moment.sourceLabel}`}
+        orientation={turn === "White" ? "white" : "black"}
+        lastMoveUci={view.lastMoveUci}
+        animateMove={view.animate ?? false}
+        selectedSquare={selected ?? null}
+        legalTargets={selected ? legalTargets(moment.fen, selected) : []}
+        onSquareSelect={selectSquare}
+        disabled={busy || !solving || !atStart}
+        extraArrows={view.arrows}
+        outlines={view.outlines}
+        previewTag={view.previewTag}
+        spotSquare={view.spot}
+      />
+      <RookSays>
+        <RookCharacter mood={busy ? "think" : say.mood} />
+        <RookBubble understood={say.understood}>{say.text}</RookBubble>
+      </RookSays>
+      {solving && (
+        <div className="moment__tools">
+          {kind !== "before" && !atStart && (
+            <Button
+              onClick={() => {
+                rewind(kind === "second-miss");
+              }}
+              disabled={busy}
+            >
+              ↺ Try again
+            </Button>
+          )}
+          <Pill
+            onClick={() => {
+              act({ kind: "scan" });
+            }}
+            disabled={busy}
+          >
+            Hint
+          </Pill>
+          <Pill onClick={showMe} disabled={busy}>
+            Show me
+          </Pill>
+        </div>
+      )}
+      {missed.length > 0 && (
+        <ul className="moment__tries" aria-label="Your tries">
+          {missed.map(({ uci, san, tier }, index) => (
+            <li
+              key={`${uci}-${String(index)}`}
+              className={`moment__try moment__try--${tier}`}
+            >
+              {san} · {tier === "best" ? "" : TRIES_CHIP[tier]}
+            </li>
+          ))}
+        </ul>
+      )}
+      {confirm ? (
+        <div className="ui-chip-row" role="group" aria-label="Did you mean">
+          <button
+            type="button"
+            className="ui-chip ui-chip--primary"
+            onClick={() => {
+              act(confirm.action, confirm.understood);
+            }}
+          >
+            {confirm.label}
+          </button>
+          <button
+            type="button"
+            className="ui-chip"
+            onClick={() => {
+              act({ kind: "something-else" });
+            }}
+          >
+            Something else
+          </button>
+        </div>
+      ) : (
+        <ChipRow
+          chips={chips}
+          onSelect={(chip) => {
+            act(chip.action);
+          }}
+        />
+      )}
+      {kind !== "done" && (
+        <AskBar
+          mode={online ? "online" : "offline"}
+          onAsk={(text) => {
+            void ask(text);
+          }}
+          disabled={busy}
+        />
+      )}
+      <Sheet
+        open={sheet === "celebrate"}
+        title={
+          result?.outcome === "spotted"
+            ? "You spotted it! ✨"
+            : "Found it on a retry"
+        }
+      >
+        <p className="moment__sheet-line">{explanation}</p>
+        {moment.ideaName && (
+          <div className="moment__idea-card">
+            <b>{moment.ideaName}</b>
+            <small>Added to your collection · {moment.sourceLabel}</small>
+          </div>
+        )}
+        <p className="moment__xp">+{xp} XP</p>
+        <Button wide onClick={onContinue}>
+          Continue
+        </Button>
+      </Sheet>
+      <Sheet open={sheet === "missed"} title="Not this time" tone="calm">
+        <p className="moment__sheet-line">
+          {moment.ideaName
+            ? `The idea was a ${moment.ideaName.toLowerCase()}. `
+            : ""}
+          It will come back, and you'll know what to look for.
+        </p>
+        <Button
+          wide
+          onClick={() => {
+            finish();
+            onContinue();
+          }}
+        >
+          Continue
+        </Button>
+      </Sheet>
+    </div>
+  );
+}
