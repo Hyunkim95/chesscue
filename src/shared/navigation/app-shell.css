@@ -70,3 +70,59 @@
 .app-shell .chess-board__coordinate {
   display: none;
 }
+
+/* Board screens: the board, then Rook's column. Stacked up to 960 px, where
+   a side column would shrink the board below its phone size; side by side
+   above, with the board as large as the screen height allows. */
+.board-split,
+.board-split__main,
+.board-split__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+@media (min-width: 960px) {
+  .app-shell__top:has(+ .app-shell__body .board-split),
+  .app-shell__body:has(.board-split) {
+    max-width: 1120px;
+  }
+
+  .board-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+    gap: 24px;
+  }
+
+  .board-split__main {
+    justify-self: center;
+    width: min(100%, calc(100dvh - 150px));
+  }
+
+  .board-split__aside {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .board-split {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 32px;
+  }
+}
+
+/* The tab bar becomes a left rail on wide screens. */
+@media (min-width: 720px) {
+  .app-shell--tabs {
+    padding-left: 88px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .app-shell--tabs {
+    padding-left: 220px;
+  }
+}

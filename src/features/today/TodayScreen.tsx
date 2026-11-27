@@ -104,8 +104,11 @@ export function TodayScreen({
   const warmUp = state.kind === "warm-up";
   const turn = state.fen.split(" ")[1] === "b" ? "Black" : "White";
   return (
-    <div className="today">
-      <section className="today__card" aria-labelledby="today-title">
+    <div className="today board-split">
+      <section
+        className="today__card board-split__main"
+        aria-labelledby="today-title"
+      >
         <header className="today__head">
           <h1 id="today-title" className="today__eyebrow">
             {warmUp ? "Warm-up position" : "Today's position"}
@@ -124,36 +127,42 @@ export function TodayScreen({
           <span className="today__question">{state.prompt}</span>
         </footer>
       </section>
-      <RookSays>
-        <RookCharacter mood="idle" />
-        <RookBubble tone="muted">
-          {warmUp
-            ? "Bring me one of your games and I'll find the moments worth a second look."
-            : state.returning
-              ? "This one came back. Have another look."
-              : "This one's from your game. I think you'll like it."}
-        </RookBubble>
-      </RookSays>
-      {warmUp ? (
-        <>
-          <Button wide onClick={onImport}>
-            Import my games
+      <div className="board-split__aside">
+        <RookSays>
+          <RookCharacter mood="idle" />
+          <RookBubble tone="muted">
+            {warmUp
+              ? "Bring me one of your games and I'll find the moments worth a second look."
+              : state.returning
+                ? "This one came back. Have another look."
+                : "This one's from your game. I think you'll like it."}
+          </RookBubble>
+        </RookSays>
+        {warmUp ? (
+          <>
+            <Button wide onClick={onImport}>
+              Import my games
+            </Button>
+            <div className="today__links">
+              <button type="button" className="today__link" onClick={onPlay}>
+                Try the warm-up
+              </button>
+              <button
+                type="button"
+                className="today__link"
+                onClick={onPlayGame}
+              >
+                Play a game
+              </button>
+            </div>
+          </>
+        ) : (
+          <Button wide onClick={onPlay}>
+            Play it
           </Button>
-          <div className="today__links">
-            <button type="button" className="today__link" onClick={onPlay}>
-              Try the warm-up
-            </button>
-            <button type="button" className="today__link" onClick={onPlayGame}>
-              Play a game
-            </button>
-          </div>
-        </>
-      ) : (
-        <Button wide onClick={onPlay}>
-          Play it
-        </Button>
-      )}
-      {goalRow}
+        )}
+        {goalRow}
+      </div>
     </div>
   );
 }

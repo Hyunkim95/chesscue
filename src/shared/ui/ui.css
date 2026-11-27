@@ -108,6 +108,22 @@
     visibility 0s linear var(--ui-motion-slow);
 }
 
+/* On wide screens a sheet slides over Rook's column, never the board. */
+@media (min-width: 720px) {
+  .ui-sheet {
+    inset: auto 24px 24px auto;
+    width: 340px;
+    max-width: none;
+    border-radius: var(--ui-radius-sheet);
+  }
+}
+
+@media (min-width: 1100px) {
+  .ui-sheet {
+    width: 380px;
+  }
+}
+
 .ui-sheet--calm {
   background: var(--ui-color-surface);
 }

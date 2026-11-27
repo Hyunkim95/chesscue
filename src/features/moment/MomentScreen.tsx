@@ -623,124 +623,128 @@ export function MomentScreen({
   const xp = result ? attemptXp(result) : 0;
 
   return (
-    <div className="moment">
-      <h1 className="moment__prompt">
-        {turn} to move
-        <small>{moment.sourceLabel}</small>
-      </h1>
-      <p className={`moment__goal moment__goal--${moment.goal.kind}`}>
-        {moment.goal.prompt}
-      </p>
-      <ChessBoard
-        fen={view.fen}
-        label={`${turn} to move. ${moment.sourceLabel}`}
-        orientation={turn === "White" ? "white" : "black"}
-        lastMoveUci={view.lastMoveUci}
-        animateMove={view.animate ?? false}
-        selectedSquare={selected ?? null}
-        legalTargets={selected ? legalTargets(moment.fen, selected) : []}
-        onSquareSelect={selectSquare}
-        disabled={busy || !solving || !atStart}
-        extraArrows={view.arrows}
-        outlines={view.outlines}
-        previewTag={view.previewTag}
-        spotSquare={view.spot}
-        controlChanges={
-          view.control && view.control.length > 0
-            ? new Map(
-                view.control.map(({ square, change }) => [square, change]),
-              )
-            : undefined
-        }
-      />
-      <RookSays>
-        <RookCharacter mood={busy ? "think" : say.mood} />
-        <RookBubble understood={say.understood}>{say.text}</RookBubble>
-      </RookSays>
-      {(solving || showReset) && (
-        <div className="moment__tools">
-          {tryAgain && (
-            <Button
-              onClick={() => {
-                rewind(kind === "second-miss");
-              }}
-              disabled={busy}
-            >
-              ↺ Try again
-            </Button>
-          )}
-          {showReset && (
-            <Pill onClick={reset} disabled={busy}>
-              ↺ Reset
-            </Pill>
-          )}
-          {solving && (
-            <>
-              <Pill
+    <div className="moment board-split">
+      <div className="board-split__main">
+        <h1 className="moment__prompt">
+          {turn} to move
+          <small>{moment.sourceLabel}</small>
+        </h1>
+        <p className={`moment__goal moment__goal--${moment.goal.kind}`}>
+          {moment.goal.prompt}
+        </p>
+        <ChessBoard
+          fen={view.fen}
+          label={`${turn} to move. ${moment.sourceLabel}`}
+          orientation={turn === "White" ? "white" : "black"}
+          lastMoveUci={view.lastMoveUci}
+          animateMove={view.animate ?? false}
+          selectedSquare={selected ?? null}
+          legalTargets={selected ? legalTargets(moment.fen, selected) : []}
+          onSquareSelect={selectSquare}
+          disabled={busy || !solving || !atStart}
+          extraArrows={view.arrows}
+          outlines={view.outlines}
+          previewTag={view.previewTag}
+          spotSquare={view.spot}
+          controlChanges={
+            view.control && view.control.length > 0
+              ? new Map(
+                  view.control.map(({ square, change }) => [square, change]),
+                )
+              : undefined
+          }
+        />
+      </div>
+      <div className="board-split__aside">
+        <RookSays>
+          <RookCharacter mood={busy ? "think" : say.mood} />
+          <RookBubble understood={say.understood}>{say.text}</RookBubble>
+        </RookSays>
+        {(solving || showReset) && (
+          <div className="moment__tools">
+            {tryAgain && (
+              <Button
                 onClick={() => {
-                  act({ kind: "scan" });
+                  rewind(kind === "second-miss");
                 }}
                 disabled={busy}
               >
-                Hint
+                ↺ Try again
+              </Button>
+            )}
+            {showReset && (
+              <Pill onClick={reset} disabled={busy}>
+                ↺ Reset
               </Pill>
-              <Pill onClick={showMe} disabled={busy}>
-                Show me
-              </Pill>
-            </>
-          )}
-        </div>
-      )}
-      {missed.length > 0 && (
-        <ul className="moment__tries" aria-label="Your tries">
-          {missed.map(({ uci, san, tier }, index) => (
-            <li
-              key={`${uci}-${String(index)}`}
-              className={`moment__try moment__try--${tier}`}
+            )}
+            {solving && (
+              <>
+                <Pill
+                  onClick={() => {
+                    act({ kind: "scan" });
+                  }}
+                  disabled={busy}
+                >
+                  Hint
+                </Pill>
+                <Pill onClick={showMe} disabled={busy}>
+                  Show me
+                </Pill>
+              </>
+            )}
+          </div>
+        )}
+        {missed.length > 0 && (
+          <ul className="moment__tries" aria-label="Your tries">
+            {missed.map(({ uci, san, tier }, index) => (
+              <li
+                key={`${uci}-${String(index)}`}
+                className={`moment__try moment__try--${tier}`}
+              >
+                {san} · {tier === "best" ? "" : TRIES_CHIP[tier]}
+              </li>
+            ))}
+          </ul>
+        )}
+        {confirm ? (
+          <div className="ui-chip-row" role="group" aria-label="Did you mean">
+            <button
+              type="button"
+              className="ui-chip ui-chip--primary"
+              onClick={() => {
+                act(confirm.action, confirm.understood);
+              }}
             >
-              {san} · {tier === "best" ? "" : TRIES_CHIP[tier]}
-            </li>
-          ))}
-        </ul>
-      )}
-      {confirm ? (
-        <div className="ui-chip-row" role="group" aria-label="Did you mean">
-          <button
-            type="button"
-            className="ui-chip ui-chip--primary"
-            onClick={() => {
-              act(confirm.action, confirm.understood);
+              {confirm.label}
+            </button>
+            <button
+              type="button"
+              className="ui-chip"
+              onClick={() => {
+                act({ kind: "something-else" });
+              }}
+            >
+              Something else
+            </button>
+          </div>
+        ) : (
+          <ChipRow
+            chips={chips}
+            onSelect={(chip) => {
+              act(chip.action);
             }}
-          >
-            {confirm.label}
-          </button>
-          <button
-            type="button"
-            className="ui-chip"
-            onClick={() => {
-              act({ kind: "something-else" });
+          />
+        )}
+        {kind !== "done" && (
+          <AskBar
+            mode={online ? "online" : "offline"}
+            onAsk={(text) => {
+              void ask(text);
             }}
-          >
-            Something else
-          </button>
-        </div>
-      ) : (
-        <ChipRow
-          chips={chips}
-          onSelect={(chip) => {
-            act(chip.action);
-          }}
-        />
-      )}
-      {kind !== "done" && (
-        <AskBar
-          mode={online ? "online" : "offline"}
-          onAsk={(text) => {
-            void ask(text);
-          }}
-          disabled={busy}
-        />
-      )}
+            disabled={busy}
+          />
+        )}
+      </div>
       <Modal
         celebrate
         open={sheet === "celebrate"}
