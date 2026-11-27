@@ -1728,3 +1728,19 @@ button.graphic-control {
     grid-column: 1 / -1;
   }
 }
+
+/* Board-first redesign: the new tab bar on the screens it has not replaced
+   yet, so Today stays one tap away. */
+.board-first-tabs {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 20;
+}
+
+.board-first-tabs .tab-bar {
+  position: static;
+}
+
+.app-frame:has(.board-first-tabs) {
+  padding-bottom: 84px;
+}

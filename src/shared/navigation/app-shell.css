@@ -57,3 +57,16 @@
   min-width: 0;
   padding: 12px var(--ui-space-gutter) 18px;
 }
+
+/* On wide screens the column stays phone-shaped and centred. */
+.app-shell__top,
+.app-shell__body {
+  width: 100%;
+  max-width: 460px;
+  margin-inline: auto;
+}
+
+/* Edge coordinates are enough; a label on every square crowds the board. */
+.app-shell .chess-board__coordinate {
+  display: none;
+}

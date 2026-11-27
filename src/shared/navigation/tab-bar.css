@@ -4,7 +4,8 @@
   z-index: 4;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 8px 8px calc(10px + env(safe-area-inset-bottom));
+  padding: 8px max(8px, calc((100% - 460px) / 2))
+    calc(10px + env(safe-area-inset-bottom));
   border-top: 1px solid
     color-mix(in srgb, var(--ui-color-brass) 14%, transparent);
   background: color-mix(in srgb, var(--ui-color-canvas) 92%, transparent);

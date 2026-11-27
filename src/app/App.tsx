@@ -48,6 +48,7 @@ import {
 } from "../domain/curriculum/recommend-unit";
 import { usePlayingSnapshot } from "./use-playing-snapshot";
 import { BoardFirstScreens } from "./board-first/BoardFirstScreens";
+import { TabBar } from "../shared/navigation/TabBar";
 import {
   boardFirst,
   boardFirstViews,
@@ -1513,7 +1514,7 @@ function PlayerApp({
             )}
           </div>
         </div>
-        {!extensionPanel && (
+        {!extensionPanel && !boardFirst && (
           <PanelTabs
             placement="header"
             current={activeNavigationView}
@@ -1545,11 +1546,31 @@ function PlayerApp({
           </svg>
         </button>
       </header>
-      {extensionPanel && (
+      {extensionPanel && !boardFirst && (
         <PanelTabs
           current={activeNavigationView}
           onNavigate={navigateSection}
         />
+      )}
+      {boardFirst && (
+        <div className="board-first-tabs">
+          <TabBar
+            current={
+              view === "play" || view === "play-mode" || view === "result"
+                ? "play"
+                : view === "review-home" ||
+                    view === "review" ||
+                    view === "import"
+                  ? "games"
+                  : undefined
+            }
+            onNavigate={(tab) => {
+              if (tab === "play") setView("play-mode");
+              else if (tab === "games") setView("review-home");
+              else setView(tab);
+            }}
+          />
+        </div>
       )}
       {view === "review-home" && (
         <SidePanelReview
