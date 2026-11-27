@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { Chess } from "chess.js";
 
+import { ANALYSIS_VERSION } from "../../../src/app/analysis-version";
+
 // A quiet position from the player's own games (owner decision, 27 November
 // 2026): Today skips a plan position with several good moves, states the
 // goal in terms of the pieces on the board, and explains the answer piece by
 // piece. The stored analyses are Stockfish 19 lite at depth 16, multiPv 3.
-
-const ANALYSIS_VERSION = "stockfish-19-lite@2";
 
 type Candidate = readonly [uci: string, evaluationCp: number, line: string];
 

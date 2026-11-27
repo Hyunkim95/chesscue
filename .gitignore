@@ -19,3 +19,5 @@ src/generated/
 !/docs/AI_ROUTING.md
 /reports/
 /research_notes/
+
+.claude/worktrees/

@@ -138,3 +138,40 @@ export function lineHits(
   }
   return hits;
 }
+
+// Static exchange evaluation: what `side` gains, in pawns, by starting the
+// captures on `square`. Each side recaptures with its least valuable piece,
+// including pieces revealed behind an earlier capturer, and may stop when
+// continuing would lose material. A king captures only onto an undefended
+// square. Returns 0 when `side` has no capture there.
+export function staticExchange(board: Chess, square: Square, side: Color) {
+  const target = board.get(square);
+  if (!target || target.color === side) return 0;
+  const scratch = new Chess(board.fen());
+  const gains: number[] = [];
+  let victim = PIECE_VALUE[target.type];
+  for (let mover = side; ; mover = opponent(mover)) {
+    const capturer = scratch
+      .attackers(square, mover)
+      .flatMap((from) => {
+        const piece = scratch.get(from);
+        return piece ? [{ from, piece }] : [];
+      })
+      .sort((a, b) => PIECE_VALUE[a.piece.type] - PIECE_VALUE[b.piece.type])
+      .at(0);
+    if (!capturer) break;
+    if (
+      capturer.piece.type === "k" &&
+      scratch.attackers(square, opponent(mover)).length > 0
+    )
+      break;
+    gains.push(victim - (gains.at(-1) ?? 0));
+    victim = PIECE_VALUE[capturer.piece.type];
+    scratch.remove(capturer.from);
+    scratch.put(capturer.piece, square);
+  }
+  for (let depth = gains.length - 1; depth > 0; depth -= 1) {
+    gains[depth - 1] = -Math.max(-(gains[depth - 1] ?? 0), gains[depth] ?? 0);
+  }
+  return gains[0] ?? 0;
+}

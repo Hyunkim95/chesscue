@@ -18,8 +18,9 @@ import {
 } from "../domain/curriculum";
 import type { GameRecord } from "../domain/game/types";
 import { err, ok, type Result } from "../shared/result/result";
+import { ANALYSIS_VERSION } from "./analysis-version";
 
-export const ANALYSIS_VERSION = "stockfish-19-lite@2";
+export { ANALYSIS_VERSION };
 
 export const completedAnalysisFromRecord = (
   record: AnalysisRecord,
