@@ -77,6 +77,7 @@ import {
 
 import type { MoveEvaluation } from "../domain/openings/opening-review";
 import { moveEvaluations, useOpeningReview } from "./use-opening-review";
+import { GAME_ANALYSIS_SEARCH } from "./analysis-version";
 import {
   ANALYSIS_VERSION,
   completedAnalysisFromRecord,
@@ -336,7 +337,8 @@ function loadGameAnalysis(
         game,
         engine: analysisEngine,
         analysisVersion: ANALYSIS_VERSION,
-        timeBudgetPerPositionMs: 120,
+        timeBudgetPerPositionMs: GAME_ANALYSIS_SEARCH.timeBudgetPerPositionMs,
+        depth: GAME_ANALYSIS_SEARCH.depth,
         signal: new AbortController().signal,
       });
       if (!result.ok) return err(result.error.message);
@@ -369,7 +371,8 @@ async function loadPerspectiveAnalysis(
       game,
       engine: localEngine,
       analysisVersion: ANALYSIS_VERSION,
-      timeBudgetPerPositionMs: 120,
+      timeBudgetPerPositionMs: GAME_ANALYSIS_SEARCH.timeBudgetPerPositionMs,
+      depth: GAME_ANALYSIS_SEARCH.depth,
       signal,
     });
     return result.ok ? ok(result.value) : err(result.error.message);

@@ -96,6 +96,26 @@ describe("analyzeCompletedGame fixed PGN bridge", () => {
     ).toBe(true);
   });
 
+  it("searches every position to the given depth, so a game always gets the same analysis", async () => {
+    const engine = new DeterministicAnalysisEngine();
+    await analyzeCompletedGame({
+      game: importedFixture(),
+      playerColor: "white",
+      engine,
+      analysisVersion: "analysis-1",
+      timeBudgetPerPositionMs: 1_500,
+      depth: 12,
+      signal: new AbortController().signal,
+    });
+
+    expect(engine.requests).toHaveLength(6);
+    expect(
+      engine.requests.every(
+        ({ depth, timeBudgetMs }) => depth === 12 && timeBudgetMs === 1_500,
+      ),
+    ).toBe(true);
+  });
+
   it("uses the learner color preserved by PGN import", async () => {
     const result = await analyzeCompletedGame({
       game: importedFixture(),
