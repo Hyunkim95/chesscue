@@ -145,6 +145,21 @@ interface Story {
 }
 
 // A position in a line where the player may try their own move.
+// "X is better than Y" from a position, for the side to move there.
+interface Claim {
+  readonly fen: string;
+  readonly better: string;
+  readonly worse: string;
+}
+
+// How much better, in words, from a difference in centipawns.
+function marginWords(cp: number): string | undefined {
+  if (cp < 35) return undefined;
+  if (cp < 100) return "a little better";
+  if (cp < 300) return "clearly better";
+  return "much better";
+}
+
 // A point in a line where Rook is to move: the move he played there.
 interface RookTurn {
   readonly fen: string;
@@ -466,6 +481,8 @@ export function MomentScreen({
     | undefined
   >();
   const [sheet, setSheet] = useState<"celebrate" | "missed" | undefined>();
+  // The last "X is better than Y" Rook said, for "How sure?".
+  const [claim, setClaim] = useState<Claim | undefined>();
   // Created in the effect so StrictMode's mount, unmount and remount leaves a
   // live controller.
   const controller = useRef(new AbortController());
@@ -716,6 +733,7 @@ export function MomentScreen({
       }),
       mood: attempt.tier === "missed" ? "warm" : "cool",
     });
+    setClaim({ fen: moment.fen, better: moment.bestUci, worse: attempt.uci });
   }
 
   // A move of the player's own at a point of the line, once the answer is
@@ -769,6 +787,11 @@ export function MomentScreen({
       return;
     }
     const { attempt, line } = checked.value;
+    setClaim(
+      attempt.tier === "best"
+        ? undefined
+        : { fen: from.fen, better: lineUci, worse: uci },
+    );
     if (attempt.tier === "best") {
       const works = alternativeFrame(from.fen, lineUci, uci);
       openStory(
@@ -856,6 +879,11 @@ export function MomentScreen({
     }
     const loss =
       best.evaluationCpFromSideToMove + answer.evaluationCpFromSideToMove;
+    setClaim(
+      loss >= 100
+        ? { fen: from.fen, better: from.chosen, worse: uci }
+        : undefined,
+    );
     const line = [uci, ...answer.principalVariation];
     const frames = lineStoryboard(from.fen, line, learnerColor);
     const [first, ...rest] = frames;
@@ -891,6 +919,53 @@ export function MomentScreen({
       },
       understood,
     );
+  }
+
+  // "How sure?": Stockfish scores both moves of the last comparison and Rook
+  // says, in words, how much better the better one is. Before the answer is
+  // found it never names the best move. If the two are about the same, he
+  // says he overstated it.
+  async function howSure() {
+    if (!claim) return;
+    const { fen, better, worse } = claim;
+    const scored = async (uci: string) => {
+      const board = new Chess(fen);
+      board.move(uciMove(uci));
+      const analysis = await analyzePosition(
+        board.fen(),
+        1,
+        AbortSignal.any([
+          controller.current.signal,
+          AbortSignal.timeout(8_000),
+        ]),
+      );
+      const top = analysis.ok ? analysis.value.candidates[0] : undefined;
+      return top ? -top.evaluationCpFromSideToMove : undefined;
+    };
+    setBusy(true);
+    setSay({ text: "Let me check both with Stockfish…", mood: "think" });
+    const [a, b] = await Promise.all([
+      scored(better).catch(() => undefined),
+      scored(worse).catch(() => undefined),
+    ]);
+    setBusy(false);
+    const betterSan =
+      solving && better === moment.bestUci
+        ? "the best move"
+        : (sanFor(fen, better) ?? better);
+    const worseSan = sanFor(fen, worse) ?? worse;
+    if (a === undefined || b === undefined) {
+      setSay({ text: "I couldn't check that just now.", mood: "hmm" });
+      return;
+    }
+    const whose = fen.split(" ")[1] === learnerColor ? "you" : "me";
+    const margin = marginWords(a - b);
+    setSay({
+      text: margin
+        ? `Stockfish checked both: ${betterSan} is ${margin} than ${worseSan} for ${whose}.`
+        : `Stockfish checked both: ${betterSan} and ${worseSan} are about the same for ${whose}. I overstated it.`,
+      mood: margin ? "idle" : "hmm",
+    });
   }
 
   // Free exploration once the answer is known: a move for either side on
@@ -1129,6 +1204,7 @@ export function MomentScreen({
   }
 
   function reset() {
+    setClaim(undefined);
     if (spotActive) {
       showSpot(spot);
       return;
@@ -1414,6 +1490,7 @@ export function MomentScreen({
       candidates[0]?.evaluationCpFromSideToMove;
     if (!alternative || !reply || score === undefined) return undefined;
     if (score - alternative.evaluationCpFromSideToMove < 100) return undefined;
+    setClaim({ fen: rook.before, better: uci, worse: alternative.uci });
     const altSan = sanFor(rook.before, alternative.uci);
     let replySan: string | undefined;
     try {
@@ -2023,6 +2100,15 @@ export function MomentScreen({
               >
                 ↺ Try again
               </Button>
+            )}
+            {claim && !busy && (
+              <Pill
+                onClick={() => {
+                  void howSure();
+                }}
+              >
+                How sure?
+              </Pill>
             )}
             {showReset && (
               <Pill onClick={reset} disabled={busy}>

@@ -259,3 +259,25 @@ test("a reply to Which move? picks the option it names", async ({ page }) => {
     await expect(choices).toHaveCount(0);
   }
 });
+
+test("How sure? checks a claim with Stockfish, without naming the answer", async ({
+  page,
+}) => {
+  await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await square(page, "White rook on f1").click();
+  await square(page, "Empty f2").click();
+  const bubble = page.locator(".rook-bubble__text");
+  await expect(bubble).toContainText("Something much stronger was here", {
+    timeout: 30_000,
+  });
+  await page.getByRole("button", { name: "How sure?" }).click();
+  await expect(bubble).toContainText("Stockfish checked both:", {
+    timeout: 30_000,
+  });
+  await expect(bubble).toContainText("the best move is");
+  await expect(bubble).toContainText("than Rf2 for you.");
+  await expect(bubble).not.toContainText("Qxg5");
+});
