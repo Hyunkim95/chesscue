@@ -1,10 +1,13 @@
 import { isTacticLine } from "../analysis/explain-miss";
 import type { ObservedMove } from "../curriculum/game-drill";
+import { readGoodMove } from "../curriculum/good-moves";
 import { unitForDrill } from "../curriculum/recommend-unit";
 
 // What a real game says about one idea: the player missed it, or played it
-// unaided on a tactic line (ENGINEERING.md §17.4). Shared by star states and
-// the idea collection so both read games the same way.
+// unaided on a tactic line (ENGINEERING.md §17.4) or as one of the things they
+// did well (a tactic, a threat dealt with, the only move; GOOD_MOVES_VERSION).
+// Shared by star states and the idea collection so both read games the same
+// way.
 export interface GameIdeaEvidence {
   readonly unitId: string;
   readonly gameId: string;
@@ -14,21 +17,35 @@ export interface GameIdeaEvidence {
   readonly completedAt: string;
 }
 
+// A threat dealt with trains seeing the threat, whatever the best line's
+// own idea is.
+const THREAT_UNIT = "see-the-threat";
+
+function playedUnit(observed: ObservedMove): string | undefined {
+  const { drill } = observed;
+  if (
+    isTacticLine(
+      drill.exercise.fen,
+      drill.exercise.verification.principalVariation,
+    )
+  )
+    return unitForDrill(drill);
+  const good = readGoodMove(observed);
+  if (!good) return undefined;
+  return good.kind === "threat" ? THREAT_UNIT : unitForDrill(drill);
+}
+
 export function gameIdeaEvidence(
   games: readonly ObservedMove[],
 ): readonly GameIdeaEvidence[] {
-  return games.flatMap(({ game, ply, outcome, drill }) => {
-    if (
-      outcome === "matched" &&
-      !isTacticLine(
-        drill.exercise.fen,
-        drill.exercise.verification.principalVariation,
-      )
-    )
-      return [];
+  return games.flatMap((observed) => {
+    const { game, ply, outcome, drill } = observed;
+    const unitId =
+      outcome === "matched" ? playedUnit(observed) : unitForDrill(drill);
+    if (unitId === undefined) return [];
     return [
       {
-        unitId: unitForDrill(drill),
+        unitId,
         gameId: game.id,
         ply,
         outcome: outcome === "matched" ? "played" : "missed",

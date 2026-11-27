@@ -93,3 +93,76 @@ export function forkObservation(
   if (!observed) throw Error("Expected a verified fork observation");
   return observed;
 }
+
+// After 3. Qh5 in a real game, the player stopped the Scholar's mate threat
+// with 3...g6, Stockfish 19 lite's best at depth 16. No tactic line: a threat
+// dealt with.
+export function mateDefenceObservation(
+  completedAt = "2026-11-26T10:01:00Z",
+): ObservedMove {
+  const fen =
+    "r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3";
+  const chess = new Chess(fen);
+  const move = chess.move("g6");
+  const id = "mate-defence-game";
+  const game: GameRecord = {
+    schemaVersion: 1,
+    id: createGameId(id),
+    origin: { type: "pgn-paste" },
+    playerColor: "black",
+    result: "white-win",
+    initialFen: fen,
+    moves: [
+      {
+        ply: 1,
+        uci: move.lan,
+        san: move.san,
+        fenAfter: move.after,
+        playedAt: completedAt,
+      },
+    ],
+    pgn: chess.pgn(),
+    createdAt: completedAt,
+    completedAt,
+    fingerprint: null,
+    curriculumVersion: "1.0.0",
+    configurationVersion: "1.0.0",
+  };
+  const line = (moves: string) => moves.split(" ");
+  const fact: MoveAnalysisFact = {
+    schemaVersion: 1,
+    gameId: id,
+    ply: 1,
+    fenBefore: fen,
+    playedMoveUci: move.lan,
+    playedMoveSan: move.san,
+    evaluationBeforeCp: 28,
+    evaluationAfterCp: 28,
+    impactCp: 0,
+    phase: "opening",
+    theme: "one-move-threat",
+    recurrence: 0,
+    curricularRelevance: 0,
+    analysisVersion: "stockfish-19-lite@1",
+    candidates: [
+      {
+        uci: "g7g6",
+        evaluationCp: 28,
+        principalVariation: line("g7g6 h5f3 g8f6 g1e2 f8g7 b1c3 e8g8"),
+      },
+      {
+        uci: "d8e7",
+        evaluationCp: 11,
+        principalVariation: line("d8e7 h5d1 g8f6 d2d3 c6a5 b1c3 b7b6"),
+      },
+      {
+        uci: "d8f6",
+        evaluationCp: -11,
+        principalVariation: line("d8f6 b1c3 f8c5 g1f3 g7g6 h5g5 c6d4"),
+      },
+    ],
+  };
+  const [observed] = observedGameMoves(game, { facts: [fact], moments: [] });
+  if (!observed) throw Error("Expected a verified mate defence");
+  return observed;
+}

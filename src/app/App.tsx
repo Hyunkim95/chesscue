@@ -125,6 +125,7 @@ import {
   type ObservedMove,
   type VerifiedGameDrill,
 } from "../domain/curriculum/game-drill";
+import { goodMovesInGame } from "../domain/curriculum/good-moves";
 import { mateOpportunities } from "../domain/game/coach-moments";
 import type { PracticeExercise } from "../domain/transfer/types";
 import {
@@ -1556,6 +1557,9 @@ function PlayerApp({
     const retries = ownMoves
       .filter(({ outcome }) => outcome === "retry")
       .toSorted((a, b) => a.ply - b.ply);
+    // What the player did well, from this game's own analysis.
+    const goodMoves =
+      read === undefined || read === "failed" ? [] : goodMovesInGame(read);
     // Rook keeps reading until the snapshot holds this game's moments, so
     // "Look at them" always opens a position the moment screen can find.
     const moments: ResultMoments =
@@ -1629,6 +1633,7 @@ function PlayerApp({
                     : { kind: "loading" }
             }
             moments={moments}
+            goodMoves={goodMoves}
             opening={
               resultOpening.kind === "ready"
                 ? {
