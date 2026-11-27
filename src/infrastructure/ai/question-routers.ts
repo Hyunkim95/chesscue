@@ -12,6 +12,7 @@ import {
   NO_DANGER,
   questionIntents,
   type DangerContext,
+  type HintContext,
   type QuestionContext,
   type QuestionIntent,
   type QuestionRouter,
@@ -41,6 +42,12 @@ const DANGER_SYSTEM = [
   "Return the id of the one fact their words describe, or none when they describe none of them.",
   "Naming a piece, its square or what attacks it is enough to match that piece's fact.",
   "Never choose a fact the learner did not describe.",
+].join(" ");
+
+const HINT_SYSTEM = [
+  "A chess learner said what they see in a position.",
+  "You get their words and a list of hints, each with an id and when to choose it.",
+  "Return the id of the one hint whose condition best fits their words.",
 ].join(" ");
 
 const responseSchema = z.object({ intent: z.enum(questionIntents) }).strict();
@@ -82,6 +89,32 @@ export function parseDangerReading(
   } catch {
     return undefined;
   }
+}
+
+export function parseHintPick(
+  text: string,
+  ids: readonly string[],
+): string | undefined {
+  const [first, ...rest] = ids;
+  if (first === undefined) return undefined;
+  try {
+    const checked = z
+      .object({ hint: z.enum([first, ...rest]) })
+      .strict()
+      .safeParse(JSON.parse(text));
+    return checked.success ? checked.data.hint : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function hintConstraint(ids: readonly string[]) {
+  return {
+    type: "object",
+    properties: { hint: { type: "string", enum: [...ids] } },
+    required: ["hint"],
+    additionalProperties: false,
+  } as const;
 }
 
 function dangerConstraint(ids: readonly string[]) {
@@ -174,6 +207,23 @@ function router(route: "device" | "cloud"): QuestionRouter | undefined {
         });
         return result.response.inferenceSource === expected
           ? parseDangerReading(result.response.text(), ids)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    async pickHint({ text, options }: HintContext, signal) {
+      const ids = options.map(({ id }) => id);
+      if (ids.length === 0) return undefined;
+      try {
+        const result = await generative(
+          HINT_SYSTEM,
+          hintConstraint(ids),
+        ).generateContent(JSON.stringify({ message: text, hints: options }), {
+          signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
+        });
+        return result.response.inferenceSource === expected
+          ? parseHintPick(result.response.text(), ids)
           : undefined;
       } catch {
         return undefined;

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { checkTry } from "../../application/run-moment/check-try";
 import { momentRecord } from "../../application/run-moment/moment-record";
+import { pickHint } from "../../application/route-question/pick-hint";
 import { readDanger } from "../../application/route-question/read-danger";
 import { routeQuestion } from "../../application/route-question/route-question";
 import type { QuestionRouter } from "../../application/route-question/question-router";
@@ -495,6 +496,17 @@ export function BoardFirstScreens({
                     readDanger({
                       text,
                       facts: dangers,
+                      router: (await questionRouters()).device,
+                      signal,
+                    })
+                : undefined
+            }
+            pickHint={
+              dangers && nanoReady
+                ? async (text, signal) =>
+                    pickHint({
+                      text,
+                      fen: active.fen,
                       router: (await questionRouters()).device,
                       signal,
                     })

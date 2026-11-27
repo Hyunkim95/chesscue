@@ -27,6 +27,16 @@ export interface DangerContext {
   readonly facts: readonly { readonly id: string; readonly text: string }[];
 }
 
+// A hint that fits the player's answer: the hints code built, each with the
+// sentence the model reads to decide. The model never sees anything else.
+export interface HintContext {
+  readonly text: string;
+  readonly options: readonly {
+    readonly id: string;
+    readonly whenToChoose: string;
+  }[];
+}
+
 // What a danger reading names: one of the supplied fact ids, or none.
 export const NO_DANGER = "none";
 
@@ -42,6 +52,12 @@ export interface QuestionRouter {
   // model is unavailable, fails or returns anything else.
   readDanger(
     context: DangerContext,
+    signal: AbortSignal,
+  ): Promise<string | undefined>;
+  // One supplied hint id, never free text. undefined when the model is
+  // unavailable, fails or returns anything else.
+  pickHint(
+    context: HintContext,
     signal: AbortSignal,
   ): Promise<string | undefined>;
 }

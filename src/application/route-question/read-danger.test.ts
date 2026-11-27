@@ -24,6 +24,7 @@ function nano(answer: string | undefined) {
       });
       return Promise.resolve(answer);
     },
+    pickHint: () => Promise.resolve(undefined),
   };
   return { router, asked };
 }

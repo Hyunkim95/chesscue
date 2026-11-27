@@ -64,6 +64,7 @@ import type {
   MomentResult,
 } from "../../domain/session/types";
 import type { Result } from "../../shared/result/result";
+import type { HintPick } from "../../application/route-question/pick-hint";
 import { AskBar } from "../../shared/rook/AskBar";
 import { useRookNarration } from "../../shared/rook/use-rook-narration";
 import { useRookSpeech } from "../../shared/rook/use-rook-speech";
@@ -395,6 +396,7 @@ export function MomentScreen({
   openingFrames = [],
   readsAloud = false,
   readDanger,
+  pickHint,
 }: {
   readonly moment: MomentSpec;
   readonly online: boolean;
@@ -439,6 +441,11 @@ export function MomentScreen({
   // danger facts. Absent when no on-device model is ready.
   readonly readDanger?:
     | ((text: string, signal: AbortSignal) => Promise<DangerReading>)
+    | undefined;
+  // Hints that fit the player's answer: the on-device model picks one of the
+  // hints code built for the position. Absent without an on-device model.
+  readonly pickHint?:
+    | ((text: string, signal: AbortSignal) => Promise<HintPick | undefined>)
     | undefined;
 }) {
   const danger = moment.danger;
@@ -1161,13 +1168,38 @@ export function MomentScreen({
       setSay({ text: fallback, mood: "hmm" });
       return;
     }
-    showSpot(
-      advanceSpot(danger, moment.fen, spot, {
-        kind: "read",
-        factId: reading.factId,
-      }),
-      reading.understood,
-    );
+    const next = advanceSpot(danger, moment.fen, spot, {
+      kind: "read",
+      factId: reading.factId,
+    });
+    // An answer that misses the danger gets the hint that fits it best.
+    const hint =
+      next.kind === "nudged" && pickHint
+        ? await pickHint(text, signal).catch(() => undefined)
+        : undefined;
+    if (!hint) {
+      showSpot(next, reading.understood);
+      return;
+    }
+    setSpot(next);
+    setStory(undefined);
+    setView({
+      ...start,
+      arrows: hint.option.arrows.map(([from, to]) => ({
+        from,
+        to,
+        kind: "reply",
+      })),
+      outlines: hint.option.outlined.map((square) => ({
+        square,
+        tone: "coral",
+      })),
+    });
+    setSay({
+      text: hint.option.text,
+      mood: "hmm",
+      understood: hint.understood,
+    });
   }
 
   function spotHintOnBoard() {

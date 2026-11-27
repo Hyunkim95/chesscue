@@ -14,6 +14,7 @@ function router(
     model,
     route: () => Promise.resolve(intent),
     readDanger: () => Promise.resolve(undefined),
+    pickHint: () => Promise.resolve(undefined),
   };
 }
 

@@ -8,6 +8,7 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 
 import type { AnalysisEngine } from "../../application/analyze-game/analysis-engine";
+import { pickHint } from "../../application/route-question/pick-hint";
 import { readDanger } from "../../application/route-question/read-danger";
 import type { QuestionRouter } from "../../application/route-question/question-router";
 import { checkTry } from "../../application/run-moment/check-try";
@@ -88,6 +89,12 @@ function renderDanger(router?: QuestionRouter) {
               readDanger({ text, facts: danger?.facts ?? [], router, signal })
           : undefined
       }
+      pickHint={
+        router
+          ? (text, signal) =>
+              pickHint({ text, fen: MOMENT.fen, router, signal })
+          : undefined
+      }
       onComplete={(result) => results.push(result)}
       onContinue={() => undefined}
     />,
@@ -138,6 +145,7 @@ it("lets Gemini Nano read a partial answer and nudge, then the tap spots it", as
     model: "Gemini Nano",
     route: () => Promise.resolve(undefined),
     readDanger: read,
+    pickHint: () => Promise.resolve(undefined),
   });
   const input = screen.getByRole("textbox", { name: "Ask Rook" });
   expect(input).toHaveAttribute("placeholder", "Tell Rook what you see…");
@@ -212,6 +220,7 @@ it("keeps the tap path when the device cannot read words", async () => {
     model: "Gemini Nano",
     route: () => Promise.resolve(undefined),
     readDanger: () => Promise.resolve(undefined),
+    pickHint: () => Promise.resolve(undefined),
   });
   const input = screen.getByRole("textbox", { name: "Ask Rook" });
   fireEvent.change(input, { target: { value: "my queen?" } });
@@ -232,4 +241,26 @@ it("keeps the tap path when the device cannot read words", async () => {
   expect(square("White knight on d4").className).toContain("outline-coral");
   fireEvent.click(square("Black queen on e6"));
   expect(screen.getByRole("heading", { name: /Spotted it\./ })).toBeVisible();
+});
+
+it("gives the hint Gemini Nano picks when the answer misses the danger", async () => {
+  renderDanger({
+    model: "Gemini Nano",
+    route: () => Promise.resolve(undefined),
+    readDanger: () => Promise.resolve("none"),
+    pickHint: () => Promise.resolve("check-their-threats"),
+  });
+  const input = screen.getByRole("textbox", { name: "Ask Rook" });
+  fireEvent.change(input, { target: { value: "I want to push my h pawn" } });
+  fireEvent.submit(input);
+  await waitFor(() => {
+    expect(bubble()).toHaveTextContent(
+      /^Before you attack, check what White threatens\./,
+    );
+  });
+  expect(
+    screen.getByText(/Gemini Nano understood · your own plan/),
+  ).toBeVisible();
+  // Not spotted: the danger still has to be tapped.
+  expect(screen.queryByRole("button", { name: "Find a safe move" })).toBeNull();
 });
