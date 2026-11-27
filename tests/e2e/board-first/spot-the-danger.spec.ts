@@ -310,11 +310,17 @@ test("the on-device model reads a partial answer and Rook nudges, at 320 px", as
     page.getByRole("heading", { name: /Is something of yours in trouble/ }),
   ).toBeVisible();
   // The model could only choose among the position's checked facts.
-  const allowed = await page.evaluate(() => {
-    const prompts = (window as unknown as { spotDangerPrompts: unknown[] })
-      .spotDangerPrompts;
-    return JSON.stringify(prompts.at(-1));
-  });
-  expect(allowed).toContain('"enum":["none","wins-material:e6"');
+  const prompts = await page.evaluate(() =>
+    (
+      window as unknown as { spotDangerPrompts: unknown[] }
+    ).spotDangerPrompts.map((prompt) => JSON.stringify(prompt)),
+  );
+  const reading = prompts.find((prompt) => prompt.includes('\\"facts\\"'));
+  expect(reading).toContain('"enum":["none","wins-material:e6"');
+  // The hint that fits the answer: one of the hints code built, nothing else.
+  const hint = prompts.find((prompt) => prompt.includes('\\"hints\\"'));
+  expect(hint).toContain(
+    '"enum":["check-their-threats","bigger-target","scan"]',
+  );
   await shoot(page, "2-nano-nudge", 320);
 });
