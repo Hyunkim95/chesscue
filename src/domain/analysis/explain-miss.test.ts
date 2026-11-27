@@ -36,7 +36,17 @@ test("names a missed mate and the played move's verdict", () => {
     scores: { bestCp: 99_999, playedCp: 27 },
   });
   expect(explanation?.text).toBe(
-    "Rf8# is checkmate. The king on h8 is boxed in by its own pieces on g7, h7. You played Rxd4 instead, which misses a forced checkmate.",
+    "Rf8# is checkmate on the back rank. The king on h8 is stuck behind its own pieces on g7, h7. You played Rxd4 instead, which misses a forced checkmate.",
+  );
+});
+
+test("keeps a smothered mate apart from a back-rank mate", () => {
+  const explanation = explainMissedLine({
+    fen: "6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1",
+    line: ["g5f7"],
+  });
+  expect(explanation?.text).toBe(
+    "Nf7# is checkmate. The king on h8 is boxed in by its own pieces on g7, g8, h7.",
   );
 });
 
@@ -58,8 +68,8 @@ test("reads further and names every skipped move when the payoff comes late", ()
     scores: { bestCp: 99_996, playedCp: -488 },
   });
   expect(explanation?.text).toBe(
-    "Qb8+ gives check. After Rxb8 Rxb8+ Bd8 Rxd8+ Re8, Rxe8# is checkmate. " +
-      "The king on g8 is boxed in by its own pieces on f7, g7, h7. " +
+    "Qb8+ gives check. After Rxb8 Rxb8+ Bd8 Rxd8+ Re8, Rxe8# is checkmate on the back rank. " +
+      "The king on g8 is stuck behind its own pieces on f7, g7, h7. " +
       "You played Rxb2 instead, which misses a forced checkmate.",
   );
 });

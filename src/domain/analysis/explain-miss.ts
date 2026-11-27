@@ -19,7 +19,7 @@ import { isMateScore } from "./classify-experiment";
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/1";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/2";
 
 type FactKind =
   | "mate"
@@ -84,6 +84,36 @@ function named(board: Chess, square: Square): string {
     : square;
 }
 
+// A back-rank mate: a rook or queen checks along the king's home rank and
+// every square in front of the king holds one of its own pieces.
+function mateText(
+  board: Chess,
+  move: Move,
+  king: Square | undefined,
+  blockers: readonly Square[],
+): string {
+  const mated = `${move.san} is checkmate.`;
+  if (!king || blockers.length < 2) return mated;
+  const them = opponent(move.color);
+  const home = them === "w" ? 0 : 7;
+  const forward = home === 0 ? 1 : -1;
+  const front = [-1, 0, 1].flatMap((df) => {
+    const square = squareAt(fileOf(king) + df, home + forward);
+    return square ? [square] : [];
+  });
+  const alongRank = board.attackers(king, move.color).some((square) => {
+    const type = board.get(square)?.type;
+    return (type === "r" || type === "q") && rankOf(square) === home;
+  });
+  if (
+    rankOf(king) === home &&
+    alongRank &&
+    front.every((square) => board.get(square)?.color === them)
+  )
+    return `${move.san} is checkmate on the back rank. The king on ${king} is stuck behind its own pieces on ${front.join(", ")}.`;
+  return `${mated} The king on ${king} is boxed in by its own pieces on ${blockers.join(", ")}.`;
+}
+
 function moveFacts(
   before: Chess,
   after: Chess,
@@ -110,14 +140,7 @@ function moveFacts(
           if ((df || dr) && square && after.get(square)?.color === them)
             blockers.push(square);
         }
-    add(
-      "mate",
-      `${move.san} is checkmate.` +
-        (king && blockers.length >= 2
-          ? ` The king on ${king} is boxed in by its own pieces on ${blockers.join(", ")}.`
-          : ""),
-      1000,
-    );
+    add("mate", mateText(after, move, king, blockers), 1000);
   }
   if (move.captured) {
     const free = before.attackers(move.to, them).length === 0;
