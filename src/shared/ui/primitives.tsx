@@ -11,6 +11,7 @@ import {
 import type { Chip as SuggestionChip } from "../../domain/session/types";
 import { useCountUp } from "./motion";
 import { useMediaQuery } from "./use-media-query";
+import { createPortal } from "react-dom";
 import "./ui.css";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -112,12 +113,15 @@ export function Sheet({
   tone = "celebrate",
   children,
   onClose,
+  className,
 }: {
   readonly open: boolean;
   readonly title: ReactNode;
   readonly tone?: "celebrate" | "calm";
   readonly children: ReactNode;
   readonly onClose?: () => void;
+  // A screen's own class for the sheet, since it renders outside the screen.
+  readonly className?: string;
 }) {
   const ref = useRef<HTMLElement>(null);
   const titleId = useId();
@@ -126,7 +130,9 @@ export function Sheet({
     if (!open) return;
     ref.current?.querySelector<HTMLElement>("button, [href]")?.focus();
   }, [open]);
-  return (
+  // Rendered at the top of the page, so no screen's stacking order (an
+  // isolated sky, a sticky column) can put the tab bar over it.
+  return createPortal(
     <>
       <div
         className={`ui-sheet__backdrop${open ? " ui-sheet__backdrop--open" : ""}`}
@@ -140,7 +146,7 @@ export function Sheet({
         aria-hidden={!open}
         aria-labelledby={titleId}
         inert={!open}
-        className={`ui-sheet ui-sheet--${tone}${open ? " ui-sheet--open" : ""}`}
+        className={`ui-sheet ui-sheet--${tone}${open ? " ui-sheet--open" : ""}${className ? ` ${className}` : ""}`}
         onKeyDown={(event) => {
           if (event.key === "Escape" && onClose) onClose();
         }}
@@ -150,7 +156,8 @@ export function Sheet({
         </h2>
         {children}
       </section>
-    </>
+    </>,
+    document.body,
   );
 }
 

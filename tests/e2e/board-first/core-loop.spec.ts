@@ -260,3 +260,15 @@ test("after a missed warm-up, Today offers an honest practice puzzle whose line 
     page.locator(".chess-board__square--outline-jade").first(),
   ).toBeVisible();
 });
+
+test("a star's sheet closes in a narrow panel, above the tab bar", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 380, height: 800 });
+  await page.goto("/?ui=board-first#sky");
+  await page.getByRole("button", { name: /Read the board/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Read the board" });
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole("button", { name: "Close" }).click();
+  await expect(sheet).toBeHidden();
+});

@@ -240,7 +240,7 @@
   background: var(--ui-color-shade);
 }
 
-.sky-sheet .ui-sheet {
+.ui-sheet.sky-star-sheet {
   display: flex;
   flex-direction: column;
   max-block-size: 100%;
@@ -248,7 +248,7 @@
   overscroll-behavior-y: contain;
 }
 
-.sky-sheet .ui-sheet__title {
+.sky-star-sheet .ui-sheet__title {
   font-size: 26px;
 }
 
@@ -316,7 +316,7 @@
   color: var(--ui-color-muted);
 }
 
-.sky-sheet .sky-sheet__look {
+.sky-star-sheet .sky-sheet__look {
   min-inline-size: var(--ui-space-target);
   min-block-size: var(--ui-space-target);
   padding: 0 9px;

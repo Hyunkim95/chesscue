@@ -37,7 +37,7 @@ export function StarSheet({
 }) {
   return (
     <div className="sky-sheet">
-      <Sheet open title={title} onClose={onClose}>
+      <Sheet open title={title} onClose={onClose} className="sky-star-sheet">
         <p className={`sky-sheet__status sky-sheet__status--${state}`}>
           <svg viewBox="-10 -10 20 20" aria-hidden="true">
             <StarMark state={state} />
