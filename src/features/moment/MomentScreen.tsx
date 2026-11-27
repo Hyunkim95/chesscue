@@ -40,7 +40,13 @@ import type { Result } from "../../shared/result/result";
 import { AskBar } from "../../shared/rook/AskBar";
 import { RookBubble, RookSays } from "../../shared/rook/RookBubble";
 import { RookCharacter, type RookMood } from "../../shared/rook/RookCharacter";
-import { Button, ChipRow, Pill, Sheet } from "../../shared/ui/primitives";
+import {
+  Button,
+  ChipRow,
+  Modal,
+  Pill,
+  Sheet,
+} from "../../shared/ui/primitives";
 import { ChessBoard, type BoardOutline } from "../board/ChessBoard";
 import {
   checksAnswer,
@@ -718,7 +724,8 @@ export function MomentScreen({
           disabled={busy}
         />
       )}
-      <Sheet
+      <Modal
+        celebrate
         open={sheet === "celebrate"}
         title={
           result?.outcome === "spotted"
@@ -740,7 +747,7 @@ export function MomentScreen({
         <Button wide onClick={onContinue}>
           Continue
         </Button>
-      </Sheet>
+      </Modal>
       <Sheet open={sheet === "missed"} title="Not this time" tone="calm">
         <p className="moment__sheet-line">
           {moment.ideaName ? `The idea: ${moment.ideaName}. ` : ""}

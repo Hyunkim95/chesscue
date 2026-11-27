@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -131,6 +132,54 @@ export function Sheet({
       </h2>
       {children}
     </section>
+  );
+}
+
+// A centred celebration over the dimmed screen. The board stays visible
+// behind it. Focus moves into the modal; Continue is the way out.
+export function Modal({
+  open,
+  title,
+  children,
+  celebrate = false,
+}: {
+  readonly open: boolean;
+  readonly title: ReactNode;
+  readonly children: ReactNode;
+  readonly celebrate?: boolean;
+}) {
+  const titleId = useId();
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (open)
+      ref.current?.querySelector<HTMLElement>("button, [href]")?.focus();
+  }, [open]);
+  if (!open) return null;
+  return (
+    <div className="ui-modal">
+      <section
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className={`ui-modal__card${celebrate ? " ui-modal__card--celebrate" : ""}`}
+      >
+        {celebrate && (
+          <span className="ui-modal__sparks" aria-hidden="true">
+            {Array.from({ length: 10 }, (_, index) => (
+              <i
+                key={index}
+                style={{ "--ui-spark": String(index) } as CSSProperties}
+              />
+            ))}
+          </span>
+        )}
+        <h2 id={titleId} className="ui-modal__title">
+          {title}
+        </h2>
+        {children}
+      </section>
+    </div>
   );
 }
 
