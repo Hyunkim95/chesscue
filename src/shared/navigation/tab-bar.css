@@ -1,0 +1,65 @@
+.tab-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 8px 8px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid
+    color-mix(in srgb, var(--ui-color-brass) 14%, transparent);
+  background: color-mix(in srgb, var(--ui-color-canvas) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.tab-bar__tab {
+  appearance: none;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-height: var(--ui-space-target);
+  padding: 6px 0;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  font: 800 11.5px var(--ui-font-body);
+  color: var(--ui-color-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.tab-bar__tab svg {
+  width: 24px;
+  height: 24px;
+}
+
+.tab-bar__rook {
+  width: 22px;
+  height: 24px;
+  object-fit: contain;
+  filter: grayscale(0.7) brightness(0.85);
+}
+
+.tab-bar__tab[aria-current="page"] {
+  color: var(--ui-color-brass);
+  background: color-mix(in srgb, var(--ui-color-brass) 8%, transparent);
+}
+
+.tab-bar__tab[aria-current="page"] .tab-bar__rook {
+  filter: none;
+}
+
+.tab-bar__tab:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  outline-offset: -3px;
+}
+
+.tab-bar__dot {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 16px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ui-color-coral);
+  box-shadow: 0 0 0 2px var(--ui-color-canvas);
+}

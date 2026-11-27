@@ -9,7 +9,14 @@ export type BoardArrowKind =
   // The checks, captures and threats scan colours each kind of forcing move.
   | "scan-check"
   | "scan-capture"
-  | "scan-threat";
+  | "scan-threat"
+  // Board-first moment overlays: earlier tries drawn faintly in their
+  // feedback tier, a previewed move that is not played, and Rook's reply.
+  | "ghost-missed"
+  | "ghost-worse"
+  | "ghost-costly"
+  | "preview"
+  | "reply";
 
 export interface BoardArrow {
   readonly from: Square;

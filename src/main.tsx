@@ -13,6 +13,9 @@ import { SharedGameReplay } from "./features/import-games/SharedGameReplay";
 import { App } from "./app/App";
 import { MicrophoneSetup } from "./extension/MicrophoneSetup";
 import "./app/styles.css";
+import { applyTokens } from "./shared/ui/apply-tokens";
+
+applyTokens(document.documentElement.style);
 
 if (
   location.protocol === "chrome-extension:" &&

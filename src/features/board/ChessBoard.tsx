@@ -13,6 +13,20 @@ const indices = [0, 1, 2, 3, 4, 5, 6, 7];
 
 export type SquareControlChange = "gained" | "lost";
 
+// A short label pinned to a square, such as "+3" or "✓".
+export interface BoardBadge {
+  readonly square: Square;
+  readonly text: string;
+  readonly tone: "coral" | "jade" | "brass";
+  readonly label: string;
+}
+
+// An outlined piece, such as one of the player's pieces Rook could capture.
+export interface BoardOutline {
+  readonly square: Square;
+  readonly tone: "coral" | "jade";
+}
+
 export interface ChessBoardProps {
   // Content laid over the board, such as a transient notice.
   readonly overlay?: ReactNode;
@@ -35,6 +49,14 @@ export interface ChessBoardProps {
   readonly legalTargets?: readonly string[];
   readonly onSquareSelect?: ((square: Square) => void) | null;
   readonly disabled?: boolean;
+  // Board-first overlays (design §3.2). Extra arrows draw under the move cue.
+  readonly extraArrows?: readonly BoardArrow[];
+  readonly badges?: readonly BoardBadge[];
+  readonly outlines?: readonly BoardOutline[];
+  // "Preview · not played" while a what-if move is on the board.
+  readonly previewTag?: string | undefined;
+  // The square that glows when a position is solved.
+  readonly spotSquare?: Square | undefined;
 }
 
 function squareCenter(square: Square, orientation: PlayerColor) {
@@ -115,6 +137,11 @@ export function ChessBoard({
   onSquareSelect,
   disabled = false,
   overlay,
+  extraArrows = [],
+  badges = [],
+  outlines = [],
+  previewTag,
+  spotSquare,
 }: ChessBoardProps) {
   let board: ReturnType<Chess["board"]>;
   try {
@@ -128,9 +155,14 @@ export function ChessBoard({
   const animatedOrigin = animateMove
     ? SQUARES.find((square) => square === lastFrom)
     : undefined;
-  const arrows: readonly BoardArrow[] = controlTarget
-    ? focusSquares.map((from) => ({ from, to: controlTarget, kind: "control" }))
-    : (moveCue?.arrows ?? []);
+  const arrows: readonly BoardArrow[] = [
+    ...extraArrows,
+    ...(controlTarget
+      ? focusSquares.map(
+          (from): BoardArrow => ({ from, to: controlTarget, kind: "control" }),
+        )
+      : (moveCue?.arrows ?? [])),
+  ];
   return (
     <div
       className={
@@ -166,12 +198,15 @@ export function ChessBoard({
               const cue = moveCue?.squares?.find(
                 (item) => item.square === square,
               );
+              const badge = badges.find((item) => item.square === square);
+              const outline = outlines.find((item) => item.square === square);
               const ghost =
                 moveCue?.ghost?.from === square ? moveCue.ghost : undefined;
               const cueDescription =
+                badge?.label ??
                 cue?.label ??
                 (ghost ? `Former defender on ${square}.` : undefined);
-              const squareClass = `chess-board__square${dark ? " chess-board__square--dark" : ""}${emphasis ? " chess-board__square--highlighted" : ""}${target ? " chess-board__square--target" : ""}${focus ? " chess-board__square--focus" : ""}${controlChange ? ` chess-board__square--control-${controlChange}` : ""}${inspecting ? " chess-board__square--control-inspected" : ""}`;
+              const squareClass = `chess-board__square${dark ? " chess-board__square--dark" : ""}${emphasis ? " chess-board__square--highlighted" : ""}${target ? " chess-board__square--target" : ""}${focus ? " chess-board__square--focus" : ""}${controlChange ? ` chess-board__square--control-${controlChange}` : ""}${inspecting ? " chess-board__square--control-inspected" : ""}${outline ? ` chess-board__square--outline-${outline.tone}` : ""}${spotSquare === square ? " chess-board__square--spot" : ""}`;
               const pieceLabel =
                 piece == null
                   ? `Empty ${square}`
@@ -235,6 +270,14 @@ export function ChessBoard({
                   {cue && (
                     <span className="chess-board__cue-mark" aria-hidden="true">
                       {cue.glyph}
+                    </span>
+                  )}
+                  {badge && (
+                    <span
+                      className={`chess-board__badge chess-board__badge--${badge.tone}`}
+                      aria-hidden="true"
+                    >
+                      {badge.text}
                     </span>
                   )}
                   <span className="chess-board__coordinate" aria-hidden="true">
@@ -308,6 +351,11 @@ export function ChessBoard({
             orientation={orientation}
             inspectingControl={controlTarget !== undefined}
           />
+        )}
+        {previewTag && (
+          <span className="chess-board__preview-tag" role="status">
+            {previewTag}
+          </span>
         )}
       </div>
       {overlay}

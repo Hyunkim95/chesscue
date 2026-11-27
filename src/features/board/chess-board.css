@@ -302,3 +302,114 @@ button.piece-choice {
   display: inline-block;
   font: 1.6rem/1 var(--cue-chess-font);
 }
+
+/* Board-first moment overlays (design §3.2). Earlier tries are faint dashed
+   arrows in their tier colour; the tries list repeats the tier in words. */
+.chess-board__cue-arrow--ghost-missed {
+  --board-arrow: var(--ui-color-tier-missed);
+  opacity: 0.55;
+}
+
+.chess-board__cue-arrow--ghost-worse {
+  --board-arrow: var(--ui-color-tier-worse);
+  opacity: 0.55;
+}
+
+.chess-board__cue-arrow--ghost-costly {
+  --board-arrow: var(--ui-color-tier-costly);
+  opacity: 0.6;
+}
+
+.chess-board__cue-arrow--ghost-missed .chess-board__cue-shaft,
+.chess-board__cue-arrow--ghost-worse .chess-board__cue-shaft,
+.chess-board__cue-arrow--ghost-costly .chess-board__cue-shaft {
+  stroke-dasharray: 0.14 0.12;
+}
+
+.chess-board__cue-arrow--preview {
+  --board-arrow: var(--ui-color-jade);
+  opacity: 0.9;
+}
+
+.chess-board__cue-arrow--reply {
+  --board-arrow: var(--ui-color-coral);
+  opacity: 0.9;
+}
+
+.chess-board__square--outline-coral {
+  box-shadow: inset 0 0 0 3px var(--ui-color-coral);
+}
+
+.chess-board__square--outline-jade {
+  box-shadow: inset 0 0 0 3px var(--ui-color-jade);
+}
+
+.chess-board__square--spot {
+  animation: chess-board-spot 1.4s ease-out;
+}
+
+.chess-board__badge {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+  padding: 1px 4px;
+  border-radius: 5px;
+  font: 800 clamp(9px, 3cqw, 12px) / 1.1 var(--ui-font-body);
+  color: var(--ui-color-brass-ink);
+  pointer-events: none;
+  animation: chess-board-pop 0.5s;
+}
+
+.chess-board__badge--coral {
+  background: var(--ui-color-coral);
+}
+
+.chess-board__badge--jade {
+  background: var(--ui-color-jade);
+}
+
+.chess-board__badge--brass {
+  background: var(--ui-color-brass);
+}
+
+.chess-board__preview-tag {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: 6px;
+  inset-inline-start: 6px;
+  padding: 3px 8px;
+  border-radius: var(--ui-radius-pill);
+  font: 800 11px var(--ui-font-body);
+  letter-spacing: 0.3px;
+  color: var(--ui-color-ink);
+  background: color-mix(in srgb, var(--ui-color-canvas) 82%, transparent);
+  pointer-events: none;
+}
+
+@keyframes chess-board-spot {
+  30% {
+    box-shadow: inset 0 0 0 30px
+      color-mix(in srgb, var(--ui-color-gold) 80%, transparent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+
+@keyframes chess-board-pop {
+  40% {
+    transform: scale(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chess-board__square--spot {
+    animation: none;
+    box-shadow: inset 0 0 0 3px var(--ui-color-gold);
+  }
+
+  .chess-board__badge {
+    animation: none;
+  }
+}
