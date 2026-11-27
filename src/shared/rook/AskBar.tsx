@@ -13,12 +13,15 @@ const placeholder: Record<AskMode, string> = {
 // caller's speech hook, shown here only as the mic button and its state.
 export function AskBar({
   mode,
+  placeholder: hint,
   onAsk,
   onMic,
   listening = false,
   disabled = false,
 }: {
   readonly mode: AskMode;
+  // Replaces the mode's prompt where the screen asks for something specific.
+  readonly placeholder?: string | undefined;
   readonly onAsk: (text: string) => void;
   readonly onMic?: (() => void) | undefined;
   readonly listening?: boolean;
@@ -39,7 +42,7 @@ export function AskBar({
       <input
         className="ask-bar__input"
         aria-label="Ask Rook"
-        placeholder={placeholder[mode]}
+        placeholder={hint ?? placeholder[mode]}
         value={text}
         disabled={disabled}
         enterKeyHint="send"

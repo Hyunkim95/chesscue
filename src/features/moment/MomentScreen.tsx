@@ -39,6 +39,17 @@ import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
 import { chipsFor, type SanMove } from "../../domain/session/chips";
 import type { MomentGoal } from "../../domain/session/moment-goal";
+import type { DangerReading } from "../../application/route-question/read-danger";
+import {
+  advanceSpot,
+  dangerMarks,
+  spotHint,
+  spotLine,
+  spotting,
+  startSpot,
+  type DangerMoment,
+  type SpotState,
+} from "../../domain/session/spot-danger";
 import {
   advanceSession,
   sessionResult,
@@ -92,6 +103,9 @@ export interface MomentSpec extends MomentPosition {
   readonly ideaName: string | undefined;
   readonly unitId: string | undefined;
   readonly source: MomentAttemptRecord["source"];
+  // Spot the danger: the player first finds what their game move left in
+  // trouble, then the moment loop asks for a safe move.
+  readonly danger?: DangerMoment | undefined;
 }
 
 interface BoardView {
@@ -318,6 +332,7 @@ export function MomentScreen({
   onContinue,
   dailyGoal,
   openingFrames = [],
+  readDanger,
 }: {
   readonly moment: MomentSpec;
   readonly online: boolean;
@@ -356,12 +371,30 @@ export function MomentScreen({
     | undefined;
   // The game's opening as board frames, when this position comes from it.
   readonly openingFrames?: readonly StoryFrame[] | undefined;
+  // Spot the danger: the on-device model matches typed words to the checked
+  // danger facts. Absent when no on-device model is ready.
+  readonly readDanger?:
+    | ((text: string, signal: AbortSignal) => Promise<DangerReading>)
+    | undefined;
 }) {
-  const start: BoardView = { fen: moment.fen, arrows: [], outlines: [] };
+  const danger = moment.danger;
+  const start: BoardView = {
+    fen: moment.fen,
+    lastMoveUci: danger?.lastMoveUci,
+    arrows: [],
+    outlines: [],
+  };
   const [session, setSession] = useState<MomentSession>(startSession);
   const [view, setView] = useState<BoardView>(start);
+  const [spot, setSpot] = useState<SpotState>(startSpot);
+  // Until the player hands over to finding a safe move, taps and typed words
+  // answer "Is something of yours in trouble?".
+  const spotActive = danger !== undefined && spot.kind !== "finding";
+  const looking = danger !== undefined && spotting(spot);
   const [say, setSay] = useState<Say>({
-    text: "Take your time. Look for checks, captures and threats.",
+    text: danger
+      ? spotLine(danger, moment.fen, startSpot)
+      : "Take your time. Look for checks, captures and threats.",
     mood: "idle",
   });
   const [story, setStory] = useState<Story | undefined>();
@@ -552,9 +585,8 @@ export function MomentScreen({
     const scan = withScan ? scanHint(moment.fen) : undefined;
     setStory(undefined);
     setView({
-      fen: moment.fen,
+      ...start,
       arrows: [...ghostArrows(attempts), ...(scan?.arrows ?? [])],
-      outlines: [],
     });
     setReply(undefined);
     if (scan) {
@@ -910,13 +942,106 @@ export function MomentScreen({
     setSay({ text: answer.text, mood: "idle", understood });
   }
 
+  // Spot the danger. Spotting is feedback only: nothing here is sent to the
+  // session, so only the safe move that follows counts.
+  function spotView(state: SpotState): BoardView {
+    if (!danger || state.kind !== "spotted") return start;
+    const marks = dangerMarks(danger, state.factId);
+    return {
+      ...start,
+      arrows: marks.arrows.map(({ from, to }) => ({ from, to, kind: "reply" })),
+      outlines: marks.targets.map((square) => ({ square, tone: "coral" })),
+    };
+  }
+
+  function showSpot(next: SpotState, understood?: string) {
+    if (!danger) return;
+    setSpot(next);
+    setStory(undefined);
+    setView(spotView(next));
+    setSay({
+      text: spotLine(danger, moment.fen, next),
+      mood:
+        next.kind === "spotted"
+          ? "happy"
+          : next.kind === "nudged"
+            ? "hmm"
+            : "idle",
+      understood,
+    });
+  }
+
+  async function readSpot(text: string) {
+    if (!danger) return;
+    const fallback = "Tap the piece you'd worry about and I'll check it.";
+    if (!readDanger) {
+      setSay({ text: fallback, mood: "hmm" });
+      return;
+    }
+    setBusy(true);
+    setSay({ text: "Let me think…", mood: "think" });
+    const signal = controller.current.signal;
+    const reading = await readDanger(text, signal);
+    setBusy(false);
+    if (signal.aborted) return;
+    if (reading.kind === "unrouted") {
+      setSay({ text: fallback, mood: "hmm" });
+      return;
+    }
+    showSpot(
+      advanceSpot(danger, moment.fen, spot, {
+        kind: "read",
+        factId: reading.factId,
+      }),
+      reading.understood,
+    );
+  }
+
+  function spotHintOnBoard() {
+    if (!danger) return;
+    const hint = spotHint(danger, moment.fen);
+    setStory(undefined);
+    setView({
+      ...start,
+      outlines: hint ? [{ square: hint.square, tone: "coral" }] : [],
+    });
+    setSay({
+      text: hint?.text ?? spotLine(danger, moment.fen, spot),
+      mood: "idle",
+    });
+  }
+
+  // Hands over to the moment loop on the bare position.
+  function findSafeMove() {
+    if (!danger) return;
+    const next = advanceSpot(danger, moment.fen, spot, { kind: "find" });
+    setSpot(next);
+    setStory(undefined);
+    setView(start);
+    setSay({ text: spotLine(danger, moment.fen, next), mood: "idle" });
+  }
+
+  function showWhatHappened() {
+    if (!danger) return;
+    openStory({
+      start: moment.fen,
+      frames: lineStoryboard(moment.fen, danger.gameLine, learnerColor),
+      step: 0,
+      mood: "cool",
+    });
+  }
+
   function reset() {
+    if (spotActive) {
+      showSpot(spot);
+      return;
+    }
     setReply(undefined);
     setStory(undefined);
     setSelected(undefined);
     setView(
       solving
-        ? { fen: moment.fen, arrows: ghostArrows(attempts), outlines: [] }
+        ? { ...start, arrows: ghostArrows(attempts), outlines: [] }
         : start,
     );
     setSay({
@@ -969,9 +1094,8 @@ export function MomentScreen({
         const scan = scanHint(moment.fen);
         setStory(undefined);
         setView({
-          fen: moment.fen,
+          ...start,
           arrows: [...ghostArrows(attempts), ...(scan?.arrows ?? [])],
-          outlines: [],
         });
         setSay({
           text: scan
@@ -1388,6 +1512,12 @@ export function MomentScreen({
     // A new question replaces any offer or choice left from the last one.
     setConfirm(undefined);
     setChoices(undefined);
+    // While the danger is unspotted, words are an answer, never a question
+    // that could draw the threat.
+    if (looking) {
+      await readSpot(text);
+      return;
+    }
     // On a frame, a question is about the position shown. The move it is
     // about comes from code, never the model: one it names from the line,
     // one it describes in words ("why would the queen take") from the line
@@ -1531,16 +1661,24 @@ export function MomentScreen({
   const atStart = view.fen === moment.fen;
   // Where the board takes a move: the start while solving, or a point of the
   // line once the answer is known.
-  const boardFen = busy
-    ? undefined
-    : solving
-      ? atStart && !view.previewTag
-        ? moment.fen
-        : undefined
-      : (branch?.fen ?? rookTurn?.fen);
+  // Once the danger is spotted, the board waits for "Find a safe move".
+  const boardFen =
+    busy || (spotActive && !looking)
+      ? undefined
+      : solving
+        ? atStart && !view.previewTag
+          ? moment.fen
+          : undefined
+        : (branch?.fen ?? rookTurn?.fen);
 
   function selectSquare(target: Square) {
     if (boardFen === undefined) return;
+    if (danger && looking) {
+      showSpot(
+        advanceSpot(danger, moment.fen, spot, { kind: "tap", square: target }),
+      );
+      return;
+    }
     if (selected && legalTargets(boardFen, selected).includes(target)) {
       const piece = new Chess(boardFen).get(selected);
       const promotes =
@@ -1573,6 +1711,7 @@ export function MomentScreen({
         quiet: false,
         online,
         opening: openingFrames.length > 0,
+        spotTheDanger: danger !== undefined,
       });
   const turn = moment.fen.split(" ")[1] === "w" ? "White" : "Black";
   // Try again is the reset after a not-best move; Reset covers everything
@@ -1585,6 +1724,8 @@ export function MomentScreen({
     kind !== "done" &&
     sheet === undefined &&
     !tryAgain &&
+    // The spotted danger is itself the frame Reset would return to.
+    (spot.kind !== "spotted" || story !== undefined) &&
     (!atStart ||
       story !== undefined ||
       view.outlines.length > 0 ||
@@ -1595,8 +1736,10 @@ export function MomentScreen({
   const xp = result ? attemptXp(result) : 0;
   // A plan's goal marks its pieces on the bare starting board while the
   // player is solving; any answer drawn on the board replaces them.
+  // Spot the danger draws only what the player found.
   const goalMarks =
     moment.goal.kind === "plan" &&
+    !danger &&
     solving &&
     atStart &&
     !view.previewTag &&
@@ -1608,13 +1751,28 @@ export function MomentScreen({
   return (
     <div className="moment board-split">
       <div className="board-split__main">
-        <h1 className="moment__prompt">
-          {turn} to move
-          <small>{moment.sourceLabel}</small>
-        </h1>
-        <p className={`moment__goal moment__goal--${moment.goal.kind}`}>
-          {moment.goal.prompt}
-        </p>
+        {danger ? (
+          <h1 className="moment__prompt moment__prompt--danger">
+            <small>
+              {turn} to move · {moment.sourceLabel}
+            </small>
+            {spot.kind === "spotted"
+              ? "Spotted it."
+              : looking
+                ? danger.question
+                : "Your move. Keep everything safe."}
+          </h1>
+        ) : (
+          <>
+            <h1 className="moment__prompt">
+              {turn} to move
+              <small>{moment.sourceLabel}</small>
+            </h1>
+            <p className={`moment__goal moment__goal--${moment.goal.kind}`}>
+              {moment.goal.prompt}
+            </p>
+          </>
+        )}
         <ChessBoard
           fen={view.fen}
           label={`${turn} to move. ${moment.sourceLabel}`}
@@ -1681,7 +1839,7 @@ export function MomentScreen({
             </Pill>
           </div>
         )}
-        {(solving || showReset || back) && (
+        {((solving && (!spotActive || looking)) || showReset || back) && (
           <div className="moment__tools">
             {back && (
               <Pill
@@ -1710,7 +1868,12 @@ export function MomentScreen({
                 ↺ Reset
               </Pill>
             )}
-            {solving && (
+            {looking && (
+              <Pill onClick={spotHintOnBoard} disabled={busy}>
+                Hint
+              </Pill>
+            )}
+            {solving && !spotActive && (
               <>
                 <Pill
                   onClick={() => {
@@ -1739,7 +1902,28 @@ export function MomentScreen({
             ))}
           </ul>
         )}
-        {confirm || choices ? (
+        {spotActive ? (
+          spot.kind === "spotted" && (
+            <div className="ui-chip-row" role="group" aria-label="Rook offers">
+              <button
+                type="button"
+                className="ui-chip ui-chip--primary"
+                disabled={busy}
+                onClick={findSafeMove}
+              >
+                Find a safe move
+              </button>
+              <button
+                type="button"
+                className="ui-chip"
+                disabled={busy}
+                onClick={showWhatHappened}
+              >
+                Show what happened
+              </button>
+            </div>
+          )
+        ) : confirm || choices ? (
           <div
             className="ui-chip-row"
             role="group"
@@ -1790,9 +1974,12 @@ export function MomentScreen({
             }}
           />
         )}
-        {kind !== "done" && (
+        {kind !== "done" && spot.kind !== "spotted" && (
           <AskBar
             mode={online ? "online" : "offline"}
+            placeholder={
+              looking && readDanger ? "Tell Rook what you see…" : undefined
+            }
             onAsk={(text) => {
               void ask(text);
             }}

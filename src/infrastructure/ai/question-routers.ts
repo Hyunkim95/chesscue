@@ -9,7 +9,9 @@ import {
 import { z } from "zod";
 
 import {
+  NO_DANGER,
   questionIntents,
+  type DangerContext,
   type QuestionContext,
   type QuestionIntent,
   type QuestionRouter,
@@ -29,6 +31,16 @@ const SYSTEM = [
   "threats = asks what the opponent threatens, could capture or is attacking, or whether their own pieces or king are in danger;",
   "reflect = explains what they were thinking or planning;",
   "other = anything else.",
+].join(" ");
+
+// Spot the danger: the model picks the checked fact the learner's words
+// describe, from a closed list, so a partial answer can get a nudge.
+const DANGER_SYSTEM = [
+  "A chess learner says what they think is in danger on their own side of the board.",
+  "You get their words and a list of checked facts about the position, each with an id.",
+  "Return the id of the one fact their words describe, or none when they describe none of them.",
+  "Naming a piece, its square or what attacks it is enough to match that piece's fact.",
+  "Never choose a fact the learner did not describe.",
 ].join(" ");
 
 const responseSchema = z.object({ intent: z.enum(questionIntents) }).strict();
@@ -55,6 +67,32 @@ function parse(text: string): QuestionIntent | undefined {
   }
 }
 
+// Only an id from the supplied list, or none, is a reading.
+export function parseDangerReading(
+  text: string,
+  ids: readonly string[],
+): string | undefined {
+  const allowed: [string, ...string[]] = [NO_DANGER, ...ids];
+  try {
+    const checked = z
+      .object({ fact: z.enum(allowed) })
+      .strict()
+      .safeParse(JSON.parse(text));
+    return checked.success ? checked.data.fact : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function dangerConstraint(ids: readonly string[]) {
+  return {
+    type: "object",
+    properties: { fact: { type: "string", enum: [NO_DANGER, ...ids] } },
+    required: ["fact"],
+    additionalProperties: false,
+  } as const;
+}
+
 function router(route: "device" | "cloud"): QuestionRouter | undefined {
   if (
     route === "device" &&
@@ -68,36 +106,45 @@ function router(route: "device" | "cloud"): QuestionRouter | undefined {
       import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG === "true",
   });
   if (firebase.status !== "ready") return undefined;
-  const model = getGenerativeModel(
-    getAI(firebase.services.app, { backend: new GoogleAIBackend() }),
-    route === "device"
-      ? {
-          mode: InferenceMode.ONLY_ON_DEVICE,
-          onDeviceParams: {
-            createOptions: {
-              expectedInputs: [{ type: "text", languages: ["en"] }],
-              expectedOutputs: [{ type: "text", languages: ["en"] }],
-              initialPrompts: [
-                { role: "system", content: [{ type: "text", value: SYSTEM }] },
-              ],
+  const ai = getAI(firebase.services.app, { backend: new GoogleAIBackend() });
+  const generative = (
+    system: string,
+    constraint: Readonly<Record<string, unknown>>,
+  ) =>
+    getGenerativeModel(
+      ai,
+      route === "device"
+        ? {
+            mode: InferenceMode.ONLY_ON_DEVICE,
+            onDeviceParams: {
+              createOptions: {
+                expectedInputs: [{ type: "text", languages: ["en"] }],
+                expectedOutputs: [{ type: "text", languages: ["en"] }],
+                initialPrompts: [
+                  {
+                    role: "system",
+                    content: [{ type: "text", value: system }],
+                  },
+                ],
+              },
+              promptOptions: { responseConstraint: constraint },
             },
-            promptOptions: { responseConstraint },
-          },
-        }
-      : {
-          mode: InferenceMode.ONLY_IN_CLOUD,
-          inCloudParams: {
-            model: FLASH_ROUTER_MODEL,
-            systemInstruction: SYSTEM,
-            generationConfig: {
-              responseMimeType: "application/json",
-              responseJsonSchema: responseConstraint,
-              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+          }
+        : {
+            mode: InferenceMode.ONLY_IN_CLOUD,
+            inCloudParams: {
+              model: FLASH_ROUTER_MODEL,
+              systemInstruction: system,
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseJsonSchema: constraint,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+              },
             },
           },
-        },
-    { timeout: TIMEOUT_MS },
-  );
+      { timeout: TIMEOUT_MS },
+    );
+  const model = generative(SYSTEM, responseConstraint);
   const expected =
     route === "device" ? InferenceSource.ON_DEVICE : InferenceSource.IN_CLOUD;
   return {
@@ -109,6 +156,24 @@ function router(route: "device" | "cloud"): QuestionRouter | undefined {
         });
         return result.response.inferenceSource === expected
           ? parse(result.response.text())
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    // The fact ids change with the position, so each reading gets a model
+    // constrained to that position's ids.
+    async readDanger({ text, facts }: DangerContext, signal) {
+      const ids = facts.map(({ id }) => id);
+      try {
+        const result = await generative(
+          DANGER_SYSTEM,
+          dangerConstraint(ids),
+        ).generateContent(JSON.stringify({ message: text, facts }), {
+          signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
+        });
+        return result.response.inferenceSource === expected
+          ? parseDangerReading(result.response.text(), ids)
           : undefined;
       } catch {
         return undefined;

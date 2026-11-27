@@ -23,6 +23,8 @@ export interface ChipContext {
   readonly online: boolean;
   // The position comes from the opening of a game with an opening review.
   readonly opening?: boolean;
+  // Spot the danger: asking about the opponent's threats gives it away.
+  readonly spotTheDanger?: boolean;
 }
 
 export interface SanMove {
@@ -203,6 +205,7 @@ export function chipsFor(
       ({ action }) =>
         solved || !("uci" in action) || action.uci !== context.bestUci,
     )
+    .filter(({ action }) => !context.spotTheDanger || action.kind !== "threats")
     .slice(0, MAX_QUESTION_CHIPS);
   return kind === "solved" || kind === "shown"
     ? [...asked, { id: "done", label: "Done ✓", action: { kind: "done" } }]
