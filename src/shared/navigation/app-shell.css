@@ -91,9 +91,23 @@
   margin-inline: auto;
 }
 
-/* Edge coordinates are enough; a label on every square crowds the board. */
+/* Edge coordinates are enough; a label on every square crowds the board.
+   They are always shown, large enough to read, in the colour of the other
+   square so they stand out on both. */
 .app-shell .chess-board__coordinate {
   display: none;
+}
+
+.app-shell .chess-board__edge-coordinate {
+  display: block;
+  font-size: clamp(0.85rem, 4.2cqw, 1.1rem);
+  font-weight: 800;
+  line-height: 1;
+  color: #4f7a62;
+}
+
+.app-shell .chess-board__square--dark .chess-board__edge-coordinate {
+  color: #f1e6cf;
 }
 
 /* Board screens: the board, then Rook's column. Stacked up to 960 px, where

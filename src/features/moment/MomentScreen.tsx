@@ -33,6 +33,7 @@ import { scanHint } from "../../domain/analysis/forcing-moves";
 import {
   describedMoves,
   mentionedMove,
+  writtenMove,
 } from "../../domain/game/exploration-intent";
 import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
@@ -122,9 +123,18 @@ interface Story {
   readonly moves?: readonly string[] | undefined;
   // A refutation goes back to the step the player branched from.
   readonly back?: Story | "start" | undefined;
+  // For a branch about another move: the move really played from its start.
+  readonly played?: string | undefined;
 }
 
 // A position in a line where the player may try their own move.
+// A point in a line where Rook is to move: the move he played there.
+interface RookTurn {
+  readonly fen: string;
+  readonly chosen: string;
+  readonly back: Story | "start";
+}
+
 interface Branch {
   readonly fen: string;
   // The line's move here and the rest of the line from it.
@@ -252,6 +262,10 @@ function storyMoves(story: Story): (SanMove & {
 // A reason only a Stockfish search can give.
 const SEARCH = Symbol("search");
 
+// "What if…" about another move, played out once the move is known.
+const WHAT_IF_QUESTION =
+  /^\s*(?:what if|what about|why not|could (?:you|i) (?:have )?)/i;
+
 // Questions asking for a reason, answered by code once the move is known.
 const WHY_QUESTION =
   /^\s*(?:why|how come|explain|what(?:'s| is| was) the point)\b/i;
@@ -363,8 +377,7 @@ export function MomentScreen({
   >();
   // Moves to choose from when a question describes more than one.
   const [choices, setChoices] = useState<
-    | readonly { readonly label: string; readonly action: RoutedAction }[]
-    | undefined
+    readonly { readonly label: string; readonly run: () => void }[] | undefined
   >();
   const [sheet, setSheet] = useState<"celebrate" | "missed" | undefined>();
   // Created in the effect so StrictMode's mount, unmount and remount leaves a
@@ -462,6 +475,21 @@ export function MomentScreen({
       return undefined;
     const line = story.moves.slice(story.step + 1);
     return line.length > 0 ? { fen: frame.fen, line, back: story } : undefined;
+  })();
+
+  // On a step where Rook moves next, the player can play a different move
+  // for him and see why he did not.
+  const rookTurn: RookTurn | undefined = (() => {
+    if (!solved || view.previewTag || !story?.moves) return undefined;
+    const frame = story.frames[story.step];
+    if (
+      !frame ||
+      frame.moveUci !== story.moves[story.step] ||
+      frame.fen.split(" ")[1] === learnerColor
+    )
+      return undefined;
+    const chosen = story.moves[story.step + 1];
+    return chosen ? { fen: frame.fen, chosen, back: story } : undefined;
   })();
 
   function send(...events: SessionEvent[]) {
@@ -685,6 +713,96 @@ export function MomentScreen({
         step: 0,
         mood: "cool",
         back: from.back,
+      },
+      understood,
+    );
+  }
+
+  // "What if you had played X?" for one of Rook's moves: X, the player's
+  // best answer and the rest of Stockfish's line on the board, then how it
+  // compares with the move Rook played.
+  async function rookAlternative(
+    from: RookTurn,
+    uci: string,
+    understood?: string,
+  ) {
+    setSelected(undefined);
+    if (uci === from.chosen) {
+      if (from.back !== "start")
+        openStory({ ...from.back, step: from.back.step + 1 }, understood);
+      return;
+    }
+    const altSan = sanFor(from.fen, uci);
+    const chosenSan = sanFor(from.fen, from.chosen);
+    let afterFen: string;
+    try {
+      const board = new Chess(from.fen);
+      board.move(uciMove(uci));
+      afterFen = board.fen();
+    } catch {
+      return;
+    }
+    if (!altSan || !chosenSan) return;
+    send({ kind: "explore", key: `rook-alt:${from.fen}:${uci}` });
+    setBusy(true);
+    showPlayed(uci, undefined, from.fen);
+    setSay({ text: "Let me see…", mood: "think", understood });
+    const signal = AbortSignal.any([
+      controller.current.signal,
+      AbortSignal.timeout(8_000),
+    ]);
+    const [before, after] = await Promise.all([
+      analyzePosition(from.fen, 1, signal),
+      analyzePosition(afterFen, 1, signal),
+    ]);
+    setBusy(false);
+    const best = before.ok ? before.value.candidates[0] : undefined;
+    const answer = after.ok ? after.value.candidates[0] : undefined;
+    const replySan = answer?.principalVariation[0]
+      ? sanFor(afterFen, answer.principalVariation[0])
+      : undefined;
+    if (!best || !answer || !replySan) {
+      setSay({
+        text: "I couldn't check that just now. Try it again.",
+        mood: "hmm",
+        understood,
+      });
+      return;
+    }
+    const loss =
+      best.evaluationCpFromSideToMove + answer.evaluationCpFromSideToMove;
+    const line = [uci, ...answer.principalVariation];
+    const frames = lineStoryboard(from.fen, line, learnerColor);
+    const [first, ...rest] = frames;
+    const last = frames.at(-1);
+    if (!first || !last) return;
+    const payoff = payoffFrame(from.fen, frames);
+    const closing: StoryFrame = {
+      fen: (payoff ?? last).fen,
+      moveUci: "",
+      by: "rook",
+      arrows: [],
+      outlines: [],
+      control: [],
+      caption:
+        loss >= 100
+          ? `I'd be worse off than with ${chosenSan}, so I played that.`
+          : `${altSan} is about as good for me as ${chosenSan}.`,
+    };
+    openStory(
+      {
+        start: from.fen,
+        frames: [
+          { ...first, caption: `If I play ${altSan}, you answer ${replySan}.` },
+          ...rest,
+          ...(payoff ? [payoff] : []),
+          closing,
+        ],
+        step: 0,
+        mood: "cool",
+        back: from.back,
+        moves: line,
+        played: from.chosen,
       },
       understood,
     );
@@ -1132,6 +1250,8 @@ export function MomentScreen({
         step: 0,
         mood: "cool",
         back: story ?? "start",
+        moves: escape,
+        played: uci,
       },
     };
   }
@@ -1222,6 +1342,48 @@ export function MomentScreen({
     }
   }
 
+  // "What if the queen moves next to the king?": the moves the words
+  // describe, from the position on screen back through the line, at the
+  // first position where any fit. Rook's turns become his alternatives; the
+  // player's become branches.
+  function whatIf(text: string):
+    | {
+        readonly fen: string;
+        readonly moves: readonly SanMove[];
+        readonly play: (uci: string) => void;
+      }
+    | undefined {
+    if (!story?.moves) return undefined;
+    const line = story.moves;
+    for (let index = story.step; index >= -1; index -= 1) {
+      const frame = index >= 0 ? story.frames[index] : undefined;
+      if (index >= 0 && frame?.moveUci !== line[index]) continue;
+      const fen = frame ? frame.fen : story.start;
+      const legal = legalMoves(fen);
+      const written = writtenMove(text, fen);
+      const moves = written
+        ? legal.filter((move) => move.uci === written.lan)
+        : describedMoves(text, legal, fen);
+      if (moves.length === 0) continue;
+      const chosen =
+        index === -1 && story.played ? story.played : line[index + 1];
+      // Back returns to the step the player asked from.
+      const back: Story = story;
+      const rookToMove = fen.split(" ")[1] !== learnerColor;
+      return {
+        fen,
+        moves,
+        play: (uci) => {
+          if (rookToMove && chosen)
+            void rookAlternative({ fen, chosen, back }, uci);
+          else if (!rookToMove && chosen)
+            void tryFrom({ fen, line: line.slice(index + 1), back }, uci);
+        },
+      };
+    }
+    return undefined;
+  }
+
   async function ask(text: string) {
     // A new question replaces any offer or choice left from the last one.
     setConfirm(undefined);
@@ -1247,6 +1409,45 @@ export function MomentScreen({
       (candidates.length === 0 && WHY_QUESTION.test(text)
         ? onFrame
         : undefined);
+    if (!solving && WHAT_IF_QUESTION.test(text)) {
+      const found = whatIf(text);
+      const [only] = found?.moves ?? [];
+      if (found && only && found.moves.length === 1) {
+        found.play(only.uci);
+        return;
+      }
+      if (found && found.moves.length > 1) {
+        const options = found.moves.slice(0, 3);
+        // Show the options where they would be played, as arrows.
+        setStory(undefined);
+        setView({
+          fen: found.fen,
+          arrows: options.flatMap((move) => {
+            const from = SQUARES.find((sq) => sq === move.uci.slice(0, 2));
+            const to = SQUARES.find((sq) => sq === move.uci.slice(2, 4));
+            return from && to ? [{ from, to, kind: "preview" as const }] : [];
+          }),
+          // A one-square arrow is hard to see: outline where each lands.
+          outlines: options.flatMap((move) => {
+            const to = SQUARES.find((sq) => sq === move.uci.slice(2, 4));
+            return to ? [{ square: to, tone: "jade" as const }] : [];
+          }),
+        });
+        setChoices(
+          options.map((move) => ({
+            label: `What if ${move.san}?`,
+            run: () => {
+              found.play(move.uci);
+            },
+          })),
+        );
+        setSay({
+          text: `Which one: ${options.map(({ san }) => san).join(" or ")}? They're drawn on the board.`,
+          mood: "hmm",
+        });
+        return;
+      }
+    }
     if (WHY_QUESTION.test(text)) {
       if (resolved) {
         answerInPlace(
@@ -1261,7 +1462,9 @@ export function MomentScreen({
         setChoices(
           options.map((move) => ({
             label: `Why ${move.san}?`,
-            action: { kind: "why", uci: move.uci } as const,
+            run: () => {
+              act({ kind: "why", uci: move.uci });
+            },
           })),
         );
         setSay({
@@ -1334,7 +1537,7 @@ export function MomentScreen({
       ? atStart && !view.previewTag
         ? moment.fen
         : undefined
-      : branch?.fen;
+      : (branch?.fen ?? rookTurn?.fen);
 
   function selectSquare(target: Square) {
     if (boardFen === undefined) return;
@@ -1345,6 +1548,7 @@ export function MomentScreen({
       const uci = `${selected}${target}${promotes ? "q" : ""}`;
       if (solving) void tryMove(uci);
       else if (branch) void tryFrom(branch, uci);
+      else if (rookTurn) void rookAlternative(rookTurn, uci);
       return;
     }
     const piece = new Chess(boardFen).get(target);
@@ -1541,22 +1745,31 @@ export function MomentScreen({
             role="group"
             aria-label={choices ? "Which move" : "Rook offers"}
           >
-            {(confirm
-              ? [{ label: confirm.label, action: confirm.action }]
-              : (choices ?? [])
-            ).map((option) => (
+            {confirm ? (
               <button
-                key={option.label}
                 type="button"
                 className="ui-chip ui-chip--primary"
                 onClick={() => {
-                  setChoices(undefined);
-                  act(option.action, confirm?.understood);
+                  act(confirm.action, confirm.understood);
                 }}
               >
-                {option.label}
+                {confirm.label}
               </button>
-            ))}
+            ) : (
+              (choices ?? []).map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  className="ui-chip ui-chip--primary"
+                  onClick={() => {
+                    setChoices(undefined);
+                    option.run();
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))
+            )}
             <button
               type="button"
               className="ui-chip"

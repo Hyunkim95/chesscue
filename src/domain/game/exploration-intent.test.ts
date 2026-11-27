@@ -78,3 +78,23 @@ test("reads a capture from the piece that was taken", () => {
   expect(describedMoves("why take the knight", line)).toEqual([line[0]]);
   expect(describedMoves("why would the queen take", line)).toEqual(line);
 });
+
+test("reads where a move lands from the piece it ends up beside", () => {
+  // The player's game: White's queen on c2 is attacked by ...Bf5.
+  const fen =
+    "r3r1k1/ppp2ppp/3p1q2/2n2bN1/N1PP4/8/PPQ1P1PP/R1B1KB1R w KQ - 1 14";
+  const legal = new Chess(fen)
+    .moves({ verbose: true })
+    .map(({ lan, san, captured }) => ({ uci: lan, san, captured }));
+  expect(
+    describedMoves("what if queen moves next to king", legal, fen)
+      .map(({ san }) => san)
+      .toSorted(),
+  ).toEqual(["Qd1", "Qd2"]);
+  // The piece that moves is the first one named, not the first in a list.
+  expect(
+    describedMoves("what if the queen goes beside the king", legal, fen).every(
+      ({ san }) => san.startsWith("Q"),
+    ),
+  ).toBe(true);
+});

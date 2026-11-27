@@ -177,3 +177,31 @@ test("a new question clears the choices left by the last one", async ({
   await expect(choices).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Next step" })).toBeEnabled();
 });
+
+test("a what-if in words shows the options on the board, then plays the one picked", async ({
+  page,
+}) => {
+  await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Show me" }).click();
+  await page.getByRole("button", { name: "Next step" }).click();
+  const ask = page.getByRole("textbox", { name: "Ask Rook" });
+  await ask.fill("what if queen moves next to king");
+  await ask.press("Enter");
+  const bubble = page.locator(".rook-bubble__text");
+  await expect(bubble).toContainText("They're drawn on the board.");
+  await expect(
+    page.locator(".chess-board__square--outline-jade"),
+  ).not.toHaveCount(0);
+  const options = page.getByRole("group", { name: "Which move" });
+  // Qg7# is the line's own move; Qg8+ is the other move beside the king.
+  await options.getByRole("button", { name: "What if Qg8+?" }).click();
+  await expect(
+    page.getByRole("button", { name: "◀ Back to the answer" }),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByRole("group", { name: "Step through the line" }),
+  ).toContainText("1 /");
+});
