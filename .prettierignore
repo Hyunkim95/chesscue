@@ -13,3 +13,5 @@ scripts/material/unit-classifier.generated.json
 src/domain/curriculum/board-unit-v2.fixture.json
 public/models/board-unit-v2.json
 scripts/material/follow-up-puzzles.generated.json
+.claude/worktrees
+src/domain/openings/openings.generated.json
