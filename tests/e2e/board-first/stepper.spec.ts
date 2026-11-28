@@ -256,7 +256,7 @@ test("a reply to Which move? picks the option it names", async ({ page }) => {
     await ask.fill("why not take the pawn");
     await ask.press("Enter");
     await expect(
-      choices.getByRole("button", { name: "Why not Qxg5+?" }),
+      choices.getByRole("button", { name: "What if Qxg5+?" }),
     ).toBeVisible();
     await ask.fill(reply);
     await ask.press("Enter");
@@ -265,6 +265,11 @@ test("a reply to Which move? picks the option it names", async ({ page }) => {
       "Play it on the board and I'll tell you how it does.",
     );
     await expect(choices).toHaveCount(0);
+    // Nothing on the board gives the answer away either.
+    await expect(
+      page.getByRole("group", { name: "Step through the line" }),
+    ).toHaveCount(0);
+    await expect(page.getByText("Preview · not played")).toHaveCount(0);
   }
 });
 

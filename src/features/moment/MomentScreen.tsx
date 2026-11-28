@@ -1337,6 +1337,18 @@ export function MomentScreen({
   }
 
   async function preview(uci: string, understood?: string) {
+    // A what-if that names the answer while solving would solve it for the
+    // player: they commit every move (owner decision, 28 November 2026).
+    if (solving && uci === moment.bestUci) {
+      setStory(undefined);
+      setView({ ...start, arrows: ghostArrows(attempts), outlines: [] });
+      setSay({
+        text: "Play it on the board and I'll tell you how it does.",
+        mood: "idle",
+        understood,
+      });
+      return;
+    }
     if (solving) send({ kind: "help" });
     send({ kind: "explore", key: `preview:${uci}` });
     setStory(undefined);
