@@ -108,8 +108,9 @@
   cursor: progress;
 }
 
+/* Preserve the button's accessible name while the spinner is visible. */
 .ui-busy__label {
-  visibility: hidden;
+  opacity: 0;
 }
 
 .ui-busy__spinner {
