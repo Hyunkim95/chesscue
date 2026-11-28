@@ -1,5 +1,6 @@
 export {
   Avatar,
+  BusyButton,
   BusyLabel,
   Button,
   Chip,

@@ -1,4 +1,5 @@
 import { LoadingState, LoadingText } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
 import { EmptyState } from "../../shared/empty-state/EmptyState";
 import { ScreenHeader } from "../../shared/navigation/ScreenHeader";
 import { useEffect, useState } from "react";
@@ -222,19 +223,16 @@ export function RaceView({
               : "Invite friends and see who reaches the highest Elo in rated CPU games."
           }
         >
-          <button
+          <BusyButton
             className="primary-link"
-            disabled={!session || busy || !online}
+            busy={busy}
+            disabled={!session || !online}
             onClick={() => {
               if (session) void act(() => session.signIn());
             }}
           >
-            {busy ? (
-              <LoadingText>Continue with Google</LoadingText>
-            ) : (
-              "Continue with Google"
-            )}
-          </button>
+            Continue with Google
+          </BusyButton>
         </EmptyState>
       ) : !id ? (
         <>
@@ -272,9 +270,14 @@ export function RaceView({
               });
             }}
           >
-            <button className="primary-link" disabled={busy || !online}>
-              {busy ? <LoadingText>Create race</LoadingText> : "Create race"}
-            </button>
+            <BusyButton
+              type="submit"
+              className="primary-link"
+              busy={busy}
+              disabled={!online}
+            >
+              Create race
+            </BusyButton>
           </form>
         </>
       ) : !own ? (
@@ -291,9 +294,10 @@ export function RaceView({
               <LoadingText>Loading invitation…</LoadingText>
             </p>
           )}
-          <button
+          <BusyButton
             className="primary-link"
-            disabled={!goal || busy || !online}
+            busy={busy}
+            disabled={!goal || !online}
             onClick={() => {
               if (session)
                 void act(async () => {
@@ -301,8 +305,8 @@ export function RaceView({
                 });
             }}
           >
-            {busy ? <LoadingText>Join race</LoadingText> : "Join race"}
-          </button>
+            Join race
+          </BusyButton>
         </>
       ) : (
         <>

@@ -81,6 +81,33 @@ export function Button({
   );
 }
 
+// A feature's own styled button that may start slow work. While its work
+// runs it shows the spinner at the same size; pass `disabled` only for
+// other work that would clash.
+export function BusyButton({
+  busy = false,
+  className,
+  type = "button",
+  children,
+  onClick,
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & { readonly busy?: boolean }) {
+  const classes = [className, busy ? "ui-busy" : undefined]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <button
+      type={type}
+      {...(classes ? { className: classes } : {})}
+      {...rest}
+      {...(busy ? { "aria-busy": true, "aria-disabled": true } : {})}
+      onClick={guarded(busy, onClick)}
+    >
+      {busyContent(busy, children)}
+    </button>
+  );
+}
+
 // A secondary action, such as Hint or Show me.
 export function Pill({
   busy = false,
