@@ -15,6 +15,13 @@ import { guestHistory } from "../infrastructure/persistence/player-history";
 import { err, ok } from "../shared/result/result";
 import { App } from "./App";
 
+// These journeys cover the classic screens, which ?ui=classic keeps
+// reachable now that board-first is the web default.
+vi.mock(import("./board-first/flag"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  boardFirst: false,
+}));
+
 afterEach(() => {
   cleanup();
   window.history.replaceState(null, "", "/");
