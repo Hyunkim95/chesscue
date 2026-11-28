@@ -50,6 +50,7 @@ import { BoardBalance } from "../board/BoardBalance";
 import { pieceNames } from "../board/board-pieces";
 import { PromotionPiece } from "../board/PromotionPiece";
 import { RookChat } from "./RookChat";
+import { BusyLabel } from "../../shared/ui/primitives";
 import { RookLauncher } from "./RookLauncher";
 import {
   RookConversationButton,
@@ -60,7 +61,13 @@ import "./play-game.css";
 type EngineStatus = "starting" | "ready" | "failed";
 type PreviewLevel = 1 | 2 | "move";
 type CoachPreview =
-  | { readonly key: string; readonly status: "checking" | "unavailable" }
+  | { readonly key: string; readonly status: "unavailable" }
+  // The hint button that asked shows the spinner.
+  | {
+      readonly key: string;
+      readonly status: "checking";
+      readonly level: PreviewLevel;
+    }
   | {
       readonly key: string;
       readonly status: "ready";
@@ -132,7 +139,27 @@ export function PlayGameScreen({
     if (promotionTo) promotionGroup.current?.querySelector("button")?.focus();
   }, [promotionTo]);
   const [notice, setNotice] = useState("Preparing your opponent…");
-  const [saving, setSaving] = useState(false);
+  // Which save is running: its button shows the spinner, and the others
+  // that would clash are disabled.
+  const [pending, setPending] = useState<
+    "new-game" | "move" | "resign" | "coach" | undefined
+  >();
+  const saving = pending !== undefined;
+  // Busy is always cleared, even when the save fails.
+  const savingWhile = useCallback(
+    async <T,>(
+      action: "new-game" | "move" | "resign" | "coach",
+      work: () => Promise<T>,
+    ): Promise<T> => {
+      setPending(action);
+      try {
+        return await work();
+      } finally {
+        setPending(undefined);
+      }
+    },
+    [],
+  );
   const [coachNotesEnabled, setCoachNotesEnabled] = useState(() => {
     try {
       return localStorage.getItem("chesscue-coach-notes") !== "off";
@@ -282,12 +309,10 @@ export function PlayGameScreen({
 
   const createNewGame = useCallback(
     async (startNotice: string) => {
-      setSaving(true);
       setSelected(null);
       setPromotionTo(null);
       setCoachNotesOpen(false);
-      const started = await start();
-      setSaving(false);
+      const started = await savingWhile("new-game", start);
       if (started.ok) {
         setSession(started.value);
         setNotice(startNotice);
@@ -297,7 +322,7 @@ export function PlayGameScreen({
         );
       }
     },
-    [start],
+    [start, savingWhile],
   );
 
   const requestCpu = useCallback(
@@ -458,19 +483,19 @@ export function PlayGameScreen({
       return;
     }
     setPromotionTo(null);
-    setSaving(true);
-    const moved = await acceptPlayerMove({
-      session,
-      move: {
-        from: selected,
-        to: square,
-        ...(promotion ? { promotion } : {}),
-      },
-      now: now(),
-      repository,
-      completionObserver,
-    });
-    setSaving(false);
+    const moved = await savingWhile("move", () =>
+      acceptPlayerMove({
+        session,
+        move: {
+          from: selected,
+          to: square,
+          ...(promotion ? { promotion } : {}),
+        },
+        now: now(),
+        repository,
+        completionObserver,
+      }),
+    );
     setSelected(null);
     if (!moved.ok) {
       setNotice(
@@ -497,14 +522,14 @@ export function PlayGameScreen({
     )
       return;
     searchAbort.current?.abort();
-    setSaving(true);
-    const resigned = await resignTutorGame({
-      session,
-      now: now(),
-      repository,
-      completionObserver,
-    });
-    setSaving(false);
+    const resigned = await savingWhile("resign", () =>
+      resignTutorGame({
+        session,
+        now: now(),
+        repository,
+        completionObserver,
+      }),
+    );
     if (resigned.ok) {
       setSession(resigned.value);
       setSelected(null);
@@ -554,7 +579,7 @@ export function PlayGameScreen({
     const request = new AbortController();
     coachPreviewAbort.current?.abort();
     coachPreviewAbort.current = request;
-    setCoachPreview({ key: previewKey, status: "checking" });
+    setCoachPreview({ key: previewKey, status: "checking", level });
     try {
       const result = await analyzeCoachMove(previewFen, request.signal);
       const [move] = legalBoardLine(previewFen, result?.line.slice(0, 1) ?? []);
@@ -577,9 +602,9 @@ export function PlayGameScreen({
       : undefined;
   const enableCoach = async () => {
     if (!active || currentMode !== "rated") return;
-    setSaving(true);
-    const joined = await bringInCoach(session, repository);
-    setSaving(false);
+    const joined = await savingWhile("coach", () =>
+      bringInCoach(session, repository),
+    );
     if (!joined.ok) {
       setNotice("Coach could not join. Try again.");
       return;
@@ -676,13 +701,17 @@ export function PlayGameScreen({
     session.state.phase !== "resigned" ? (
       <button
         type="button"
-        className="quiet-action coach-invitation"
-        disabled={!active}
+        className={`quiet-action coach-invitation${pending === "coach" ? " ui-busy" : ""}`}
+        disabled={!active && pending !== "coach"}
+        aria-busy={pending === "coach" || undefined}
         onClick={() => {
+          if (pending === "coach") return;
           void enableCoach();
         }}
       >
-        Continue unrated with Rook
+        <BusyLabel busy={pending === "coach"}>
+          Continue unrated with Rook
+        </BusyLabel>
       </button>
     ) : null;
   const moveHistory = (
@@ -705,13 +734,15 @@ export function PlayGameScreen({
   const resignAction = (
     <button
       type="button"
-      className="quiet-action"
-      disabled={session === null || saving}
+      className={`quiet-action${pending === "resign" ? " ui-busy" : ""}`}
+      disabled={session === null || (saving && pending !== "resign")}
+      aria-busy={pending === "resign" || undefined}
       onClick={() => {
+        if (pending === "resign") return;
         void resign();
       }}
     >
-      Resign game
+      <BusyLabel busy={pending === "resign"}>Resign game</BusyLabel>
     </button>
   );
   const playHeading = (
@@ -921,6 +952,10 @@ export function PlayGameScreen({
                           ? 2
                           : (checkedPreview?.level ?? 0)
                       }
+                      busy={
+                        visiblePreview?.status === "checking" &&
+                        visiblePreview.level !== "move"
+                      }
                       disabled={visiblePreview?.status === "checking"}
                       onClick={() => {
                         void showCoachPreview(
@@ -929,6 +964,10 @@ export function PlayGameScreen({
                       }}
                     />
                     <NextMovePill
+                      busy={
+                        visiblePreview?.status === "checking" &&
+                        visiblePreview.level === "move"
+                      }
                       disabled={
                         visiblePreview?.status === "checking" ||
                         checkedPreview?.level === "move"
@@ -1034,12 +1073,16 @@ export function PlayGameScreen({
           session?.state.phase === "resigned" ? (
             <button
               type="button"
-              className="primary-action"
+              className={`primary-action${pending === "new-game" ? " ui-busy" : ""}`}
+              aria-busy={pending === "new-game" || undefined}
               onClick={() => {
+                if (saving) return;
                 void createNewGame("Your move");
               }}
             >
-              Start another game
+              <BusyLabel busy={pending === "new-game"}>
+                Start another game
+              </BusyLabel>
             </button>
           ) : !compact ? (
             resignAction

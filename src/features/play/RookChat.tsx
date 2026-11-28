@@ -220,6 +220,7 @@ export function RookChat({
       onFocus={inline ? onConversationOpen : undefined}
       onChange={setMessage}
       disabled={saving || recording || finishingVoice}
+      busy={saving}
       onSend={() => {
         void sendText(message.trim(), game.moves.length);
       }}

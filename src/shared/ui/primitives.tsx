@@ -17,37 +17,116 @@ import "./ui.css";
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   readonly variant?: "primary" | "ghost";
   readonly wide?: boolean;
+  // While the action it started runs: a spinner over the label at the same
+  // size, aria-busy, and taps ignored.
+  readonly busy?: boolean;
 };
+
+// For a feature's own button: its label while idle; while busy, the label
+// kept for its width but hidden, with a spinner over it. The button adds
+// the ui-busy class and aria-busy, and ignores taps.
+export function BusyLabel({
+  busy,
+  children,
+}: {
+  readonly busy: boolean;
+  readonly children: ReactNode;
+}) {
+  return busyContent(busy, children);
+}
+
+function busyContent(busy: boolean, children: ReactNode): ReactNode {
+  if (!busy) return children;
+  return (
+    <>
+      <span className="ui-busy__label">{children}</span>
+      <span className="ui-busy__spinner" aria-hidden="true" />
+    </>
+  );
+}
+
+// Busy and disabled controls keep focus but ignore taps.
+function guarded(
+  inert: boolean,
+  onClick: ButtonHTMLAttributes<HTMLButtonElement>["onClick"],
+): ButtonHTMLAttributes<HTMLButtonElement>["onClick"] {
+  return inert
+    ? (event) => {
+        event.preventDefault();
+      }
+    : onClick;
+}
 
 // The chunky, pressable action. One primary per view (§17.3 rule 5).
 export function Button({
   variant = "primary",
   wide = false,
+  busy = false,
   className,
   type = "button",
+  children,
+  onClick,
   ...rest
 }: ButtonProps) {
   return (
     <button
       type={type}
-      className={`ui-button ui-button--${variant}${wide ? " ui-button--wide" : ""}${className ? ` ${className}` : ""}`}
+      className={`ui-button ui-button--${variant}${wide ? " ui-button--wide" : ""}${busy ? " ui-busy" : ""}${className ? ` ${className}` : ""}`}
       {...rest}
-    />
+      {...(busy ? { "aria-busy": true, "aria-disabled": true } : {})}
+      onClick={guarded(busy, onClick)}
+    >
+      {busyContent(busy, children)}
+    </button>
+  );
+}
+
+// A feature's own styled button that may start slow work. While its work
+// runs it shows the spinner at the same size; pass `disabled` only for
+// other work that would clash.
+export function BusyButton({
+  busy = false,
+  className,
+  type = "button",
+  children,
+  onClick,
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & { readonly busy?: boolean }) {
+  const classes = [className, busy ? "ui-busy" : undefined]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <button
+      type={type}
+      {...(classes ? { className: classes } : {})}
+      {...rest}
+      {...(busy ? { "aria-busy": true, "aria-disabled": true } : {})}
+      onClick={guarded(busy, onClick)}
+    >
+      {busyContent(busy, children)}
+    </button>
   );
 }
 
 // A secondary action, such as Hint or Show me.
 export function Pill({
+  busy = false,
   className,
   type = "button",
+  children,
+  onClick,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { readonly busy?: boolean }) {
   return (
     <button
       type={type}
-      className={`ui-pill${className ? ` ${className}` : ""}`}
+      className={`ui-pill${busy ? " ui-busy" : ""}${className ? ` ${className}` : ""}`}
       {...rest}
-    />
+      {...(busy ? { "aria-busy": true, "aria-disabled": true } : {})}
+      onClick={guarded(busy, onClick)}
+    >
+      {busyContent(busy, children)}
+    </button>
   );
 }
 
@@ -56,23 +135,31 @@ export function Chip({
   onSelect,
   primary = false,
   index = 0,
+  disabled = false,
+  busy = false,
 }: {
   readonly chip: SuggestionChip;
   readonly onSelect: (chip: SuggestionChip) => void;
   readonly primary?: boolean;
   // Its place in the row, which staggers the pop-in.
   readonly index?: number;
+  // Dimmed while other work runs; busy while its own action runs.
+  readonly disabled?: boolean;
+  readonly busy?: boolean;
 }) {
+  const inert = disabled || busy;
   return (
     <button
       type="button"
-      className={`ui-chip${primary ? " ui-chip--primary" : ""}`}
+      className={`ui-chip${primary ? " ui-chip--primary" : ""}${busy ? " ui-busy" : ""}`}
       style={{ "--ui-chip-index": String(index) } as CSSProperties}
+      {...(inert ? { "aria-disabled": true } : {})}
+      {...(busy ? { "aria-busy": true } : {})}
       onClick={() => {
-        onSelect(chip);
+        if (!inert) onSelect(chip);
       }}
     >
-      {chip.label}
+      {busyContent(busy, chip.label)}
     </button>
   );
 }
@@ -82,10 +169,16 @@ export function ChipRow({
   chips,
   onSelect,
   label = "Ask Rook",
+  disabled = false,
+  busyId,
 }: {
   readonly chips: readonly SuggestionChip[];
   readonly onSelect: (chip: SuggestionChip) => void;
   readonly label?: string;
+  // While Rook works: every chip is dimmed, and the one that started the
+  // work, if any, shows the spinner.
+  readonly disabled?: boolean;
+  readonly busyId?: string | undefined;
 }) {
   if (chips.length === 0) return null;
   return (
@@ -97,6 +190,8 @@ export function ChipRow({
           onSelect={onSelect}
           primary={chip.action.kind === "done"}
           index={index}
+          disabled={disabled}
+          busy={busyId === chip.id}
         />
       ))}
     </div>

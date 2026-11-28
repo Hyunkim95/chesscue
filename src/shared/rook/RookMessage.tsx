@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from "react";
 import portrait from "../../assets/brand/rook.webp";
+import { BusyButton } from "../ui/primitives";
 import "./rook.css";
 
 const messageTime = new Intl.DateTimeFormat(undefined, {
@@ -186,6 +187,7 @@ export function RookComposer({
   onChange,
   onSend,
   disabled,
+  busy = false,
   children,
 }: {
   value: string;
@@ -194,6 +196,8 @@ export function RookComposer({
   onChange: (value: string) => void;
   onSend: () => void;
   disabled: boolean;
+  // While Rook answers: the send button spins.
+  busy?: boolean;
   children?: ReactNode;
 }) {
   return (
@@ -217,15 +221,16 @@ export function RookComposer({
         }}
       />
       {children}
-      <button
+      <BusyButton
         className="rook-chat__send rook-send-icon"
         aria-label="Send"
         title="Send message"
         type="submit"
-        disabled={disabled || !value.trim()}
+        busy={busy}
+        disabled={!busy && (disabled || !value.trim())}
       >
         <SendIcon />
-      </button>
+      </BusyButton>
     </form>
   );
 }

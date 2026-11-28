@@ -1,4 +1,5 @@
-import { LoadingState, LoadingText } from "../../shared/loading/LoadingState";
+import { LoadingState } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
 import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import type { AnalyzeReply } from "../review/GuidedMoveFeedback";
 import { starterPack } from "../../domain/material/pack";
@@ -364,17 +365,17 @@ export function StudyScreen({
             </p>
           )}
           <div className="study-actions">
-            <button
+            <BusyButton
               className="primary-link"
-              disabled={!ai || !searchGoal || state.status === "researching"}
+              busy={state.status === "researching"}
+              disabled={!ai || !searchGoal}
               onClick={() => void research()}
             >
-              {state.status === "researching" ? (
-                <LoadingText>Finding and verifying a game…</LoadingText>
-              ) : (
-                "Find game with Gemini"
-              )}
-            </button>
+              Find game with Gemini
+            </BusyButton>
+            {state.status === "researching" && (
+              <p role="status">Finding and verifying a game…</p>
+            )}
             <button
               className="review-action"
               onClick={() => {

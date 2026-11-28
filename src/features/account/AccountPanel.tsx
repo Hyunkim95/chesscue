@@ -1,4 +1,5 @@
 import { LoadingText } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
 import { ScreenHeader } from "../../shared/navigation/ScreenHeader";
 import { useEffect, useState, type ReactNode } from "react";
 import type {
@@ -32,7 +33,11 @@ export function AccountPanel({
   children,
 }: Props) {
   const [games, setGames] = useState<readonly GameRecord[]>([]);
-  const [busy, setBusy] = useState(false);
+  // The action whose work is running; its button shows the spinner.
+  const [pending, setPending] = useState<
+    "sign-in" | "add" | "keep" | "sign-out" | undefined
+  >();
+  const busy = pending !== undefined;
   const [message, setMessage] = useState("");
   useEffect(() => {
     let active = true;
@@ -55,15 +60,19 @@ export function AccountPanel({
       active = false;
     };
   }, [user, history]);
-  async function act(action: () => Promise<void> | void, failure: string) {
-    setBusy(true);
+  async function act(
+    id: NonNullable<typeof pending>,
+    action: () => Promise<void> | void,
+    failure: string,
+  ) {
+    setPending(id);
     setMessage("");
     try {
       await action();
     } catch {
       setMessage(failure);
     } finally {
-      setBusy(false);
+      setPending(undefined);
     }
   }
   const displayName = user?.name?.trim() ?? "";
@@ -76,24 +85,21 @@ export function AccountPanel({
             Your games are saved in this browser. Sign in to bring your games
             and training progress to another device.
           </p>
-          <button
-            type="button"
+          <BusyButton
             className="review-action"
-            disabled={!session || busy}
+            busy={pending === "sign-in"}
+            disabled={!session || (busy && pending !== "sign-in")}
             onClick={() => {
               if (session)
                 void act(
+                  "sign-in",
                   () => session.signIn(),
                   "Sign-in did not finish. Your guest games are here when you return to Play.",
                 );
             }}
           >
-            {busy ? (
-              <LoadingText>Continue with Google</LoadingText>
-            ) : (
-              "Continue with Google"
-            )}
-          </button>
+            Continue with Google
+          </BusyButton>
         </>
       ) : (
         <>
@@ -108,41 +114,51 @@ export function AccountPanel({
                 stays in guest play.
               </p>
               <div className="account-actions">
-                <button
+                <BusyButton
                   className="primary-link"
-                  disabled={busy}
+                  busy={pending === "add"}
+                  disabled={busy && pending !== "add"}
                   onClick={() =>
-                    void act(async () => {
-                      const failed = await copyGuestGames(history, games);
-                      setGames(
-                        games.filter((game) => failed.includes(game.id)),
-                      );
-                      if (failed.length)
-                        setMessage(
-                          "Some games could not be added. Their guest copies are safe. Retry to add the remaining games.",
+                    void act(
+                      "add",
+                      async () => {
+                        const failed = await copyGuestGames(history, games);
+                        setGames(
+                          games.filter((game) => failed.includes(game.id)),
                         );
-                      merged();
-                    }, "Could not finish adding games. Your originals are safe. Try again.")
+                        if (failed.length)
+                          setMessage(
+                            "Some games could not be added. Their guest copies are safe. Retry to add the remaining games.",
+                          );
+                        merged();
+                      },
+                      "Could not finish adding games. Your originals are safe. Try again.",
+                    )
                   }
                 >
                   Add guest games
-                </button>
-                <button
+                </BusyButton>
+                <BusyButton
                   className="review-action"
-                  disabled={busy}
+                  busy={pending === "keep"}
+                  disabled={busy && pending !== "keep"}
                   onClick={() =>
-                    void act(() => {
-                      for (const game of games)
-                        localStorage.setItem(
-                          history.key("keep-guest:" + game.id),
-                          "1",
-                        );
-                      setGames([]);
-                    }, "Could not save your choice.")
+                    void act(
+                      "keep",
+                      () => {
+                        for (const game of games)
+                          localStorage.setItem(
+                            history.key("keep-guest:" + game.id),
+                            "1",
+                          );
+                        setGames([]);
+                      },
+                      "Could not save your choice.",
+                    )
                   }
                 >
                   Keep guest-only
-                </button>
+                </BusyButton>
               </div>
             </section>
           )}
@@ -172,16 +188,21 @@ export function AccountPanel({
               </details>
             )}
           </section>
-          <button
+          <BusyButton
             className="review-action"
-            disabled={busy}
+            busy={pending === "sign-out"}
+            disabled={busy && pending !== "sign-out"}
             onClick={() => {
               if (session)
-                void act(session.signOut, "Could not sign out. Try again.");
+                void act(
+                  "sign-out",
+                  session.signOut,
+                  "Could not sign out. Try again.",
+                );
             }}
           >
             Sign out
-          </button>
+          </BusyButton>
         </>
       )}
       {user && busy && (

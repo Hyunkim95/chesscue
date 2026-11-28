@@ -1,4 +1,5 @@
-import { LoadingMark, LoadingState } from "../../shared/loading/LoadingState";
+import { LoadingState } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
 import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { Chess, type Square } from "chess.js";
@@ -80,10 +81,9 @@ export function ShareWin({
           </select>
         </label>
       )}
-      <button
+      <BusyButton
         className="review-action"
-        disabled={busy}
-        aria-busy={busy}
+        busy={busy}
         onClick={() => {
           setBusy(true);
           setMessage("");
@@ -123,8 +123,8 @@ export function ShareWin({
             });
         }}
       >
-        {busy && <LoadingMark />} Create win link
-      </button>
+        Create win link
+      </BusyButton>
       {url && <CopyLink label="Shared win link" url={url} />}{" "}
       {message && <p role="alert">{message}</p>}
     </details>

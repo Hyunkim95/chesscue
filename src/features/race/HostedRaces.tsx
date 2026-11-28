@@ -3,6 +3,7 @@ import type { AccountSession } from "../../infrastructure/firebase/account-sessi
 import { EmptyState } from "../../shared/empty-state/EmptyState";
 import { ScreenHeader } from "../../shared/navigation/ScreenHeader";
 import "./race.css";
+import { BusyButton } from "../../shared/ui/primitives";
 
 export function HostedRaces({
   id,
@@ -40,10 +41,10 @@ export function HostedRaces({
       >
         {nativeGoogle ? (
           <>
-            <button
+            <BusyButton
               className="primary-link"
-              type="button"
-              disabled={!session || signIn.status === "signing-in"}
+              busy={signIn.status === "signing-in"}
+              disabled={!session}
               onClick={() => {
                 if (!session) return;
                 setSignIn({ status: "signing-in" });
@@ -58,10 +59,8 @@ export function HostedRaces({
                 });
               }}
             >
-              {signIn.status === "signing-in"
-                ? "Signing in…"
-                : "Continue with Google"}
-            </button>
+              Continue with Google
+            </BusyButton>
             {message && <p role="status">{message}</p>}
           </>
         ) : (
