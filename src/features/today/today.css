@@ -120,3 +120,91 @@
 .today__link:focus-visible {
   outline: 3px solid var(--ui-color-gold);
 }
+
+/* Puzzles for you: three thumbnails in a row under the main action. */
+.today-puzzles {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.today-puzzles .today__eyebrow {
+  text-align: start;
+}
+
+.today-puzzles__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-puzzle {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: var(--ui-space-target);
+  padding: 6px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--ui-color-ink);
+  background: var(--ui-color-surface);
+  box-shadow: 0 3px 0 var(--ui-color-shade);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform var(--ui-motion-fast);
+}
+
+.today-puzzle:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--ui-color-shade);
+  transition-duration: 0s;
+}
+
+.today-puzzle:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  outline-offset: 2px;
+}
+
+.today-puzzle__board {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 3px;
+  container-type: inline-size;
+}
+
+.today-puzzle__square {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  background: #ded7bb;
+  color: #192925;
+  line-height: 1;
+}
+
+.today-puzzle__square--dark {
+  background: #789988;
+}
+
+.today-puzzle__piece {
+  font-family: var(--cue-chess-font);
+  font-size: 11cqw;
+  line-height: 1;
+}
+
+.today-puzzle__piece--white {
+  color: #fff2d4;
+  -webkit-text-stroke: 0.9px #192925;
+  paint-order: stroke fill;
+}
+
+.today-puzzle__rating {
+  font: 800 13px var(--ui-font-body);
+  color: var(--ui-color-brass);
+  text-align: center;
+}

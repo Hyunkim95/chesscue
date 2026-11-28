@@ -106,6 +106,29 @@ for (const width of [320, 420]) {
       await nav.getByRole("button", { name: /^Today/ }).click();
       await expect(page).toHaveURL(/#today/);
       await expect(page.locator(".today")).toBeVisible();
+
+      const puzzles = page
+        .getByRole("region", { name: "Puzzles for you" })
+        .getByRole("button", { name: /^Puzzle rated \d+/ });
+      await expect(puzzles).toHaveCount(3);
+      await puzzles.last().scrollIntoViewIfNeeded();
+      await noSideScroll(page);
+      await page.screenshot({
+        path: test
+          .info()
+          .outputPath(`extension-today-puzzles-${String(width)}.png`),
+      });
+      await puzzles.first().click();
+      await expect(page).toHaveURL(/#moment\/puzzle%3A/);
+      await expect(page.getByRole("heading", { name: /to move/ })).toBeVisible({
+        timeout: 30_000,
+      });
+      const puzzleUrl = page.url();
+      await page.reload();
+      await expect(page).toHaveURL(puzzleUrl);
+      await expect(page.getByRole("heading", { name: /to move/ })).toBeVisible({
+        timeout: 30_000,
+      });
     } finally {
       await context.close();
     }

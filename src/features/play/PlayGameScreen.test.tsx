@@ -3,6 +3,7 @@ import {
   FOCUS_OPENING_POLICY_VERSION,
 } from "../../domain/curriculum/focus-opening-policy";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -127,9 +128,17 @@ describe("PlayGameScreen", () => {
   it("offers progressive hints and previews without making the coached move", async () => {
     const repository = new MemoryRepository();
     const engine = new ReadyEngine();
-    const analyzeCoachMove = vi
-      .fn()
-      .mockResolvedValue({ line: ["e2e4"], evaluationCpFromSideToMove: 45 });
+    interface Preview {
+      line: string[];
+      evaluationCpFromSideToMove: number;
+    }
+    let resolvePreview: (result: Preview) => void = () => {
+      throw new Error("Preview promise was not initialized");
+    };
+    const preview = new Promise<Preview>((resolve) => {
+      resolvePreview = resolve;
+    });
+    const analyzeCoachMove = vi.fn(() => preview);
     render(
       <PlayGameScreen
         mode="coached"
@@ -140,19 +149,31 @@ describe("PlayGameScreen", () => {
         createPositionId={() => positionId("position-hints")}
       />,
     );
-    await screen.findByText("Your move");
+    const hint = await screen.findByRole("button", { name: "Hint" });
     expect(analyzeCoachMove).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Hint" }));
-    await screen.findAllByRole("gridcell", { name: /Rook hint/ });
+    fireEvent.click(hint);
+    expect(hint).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Next move" })).toBeDisabled();
+    await act(async () => {
+      resolvePreview({ line: ["e2e4"], evaluationCpFromSideToMove: 45 });
+      await preview;
+    });
+    expect(
+      screen.getAllByRole("gridcell", { name: /Rook hint/ }).length,
+    ).toBeGreaterThan(0);
+    const more = screen.getByRole("button", { name: "More hint" });
+    expect(more).toBeEnabled();
     expect(document.querySelector("[data-move-cue-arrow]")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "More hint" }));
+    fireEvent.click(more);
     expect(
       screen.getByRole("gridcell", {
         name: /White pawn on e2.*Rook highlight/,
       }),
     ).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Next move" }));
-    expect(await screen.findByText(/Rook suggests e4/)).toBeVisible();
+    const next = screen.getByRole("button", { name: "Next move" });
+    expect(next).toBeEnabled();
+    fireEvent.click(next);
+    expect(screen.getByText(/Rook suggests e4/)).toBeVisible();
     expect(
       document.querySelector('[data-move-cue-arrow="e2:e4"]'),
     ).toBeInTheDocument();
