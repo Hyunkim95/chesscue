@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChessCue",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Explore finished chess games with Rook, an on-device chess coach.",
   "action": {
     "default_title": "Open ChessCue",

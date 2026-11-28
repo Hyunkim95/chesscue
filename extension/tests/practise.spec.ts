@@ -167,7 +167,10 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     const queenMate = rook.getByRole("gridcell", {
       name: /Black queen on h4.*Rook highlight/,
     });
-    const rewind = rook.getByRole("button", { name: "Rewind", exact: true });
+    const rewind = rook.getByRole("button", {
+      name: "Retry move",
+      exact: true,
+    });
     await gPawn.click();
     await g4.click();
     await rook
@@ -668,6 +671,35 @@ test("opens the finished game from Lichess, reuses its review and plays offline"
     ).toBeVisible();
     await returnToPosition.click();
     await expect(playback.getByText(/^1 of /)).toBeVisible();
+    for (const [width, height] of [
+      [320, 640],
+      [420, 760],
+      [320, 760],
+    ] as const) {
+      await review.setViewportSize({ width, height });
+      const currentBoard = rook.getByRole("grid");
+      const currentQuestion = conversation.getByText("What if I play h6?", {
+        exact: true,
+      });
+      const currentReply = conversation.getByText(/After h6, Stockfish found/);
+      await expect(currentBoard).toBeInViewport({ ratio: 1 });
+      await expect(currentQuestion).toBeInViewport({ ratio: 1 });
+      await expect(currentReply).toBeInViewport({ ratio: 1 });
+      await expect
+        .poll(async () => {
+          const grid = await currentBoard.boundingBox();
+          const dock = await wideDock.boundingBox();
+          return Boolean(
+            grid && dock && grid.y >= 0 && grid.y + grid.height <= dock.y,
+          );
+        })
+        .toBe(true);
+      await review.screenshot({
+        path: test
+          .info()
+          .outputPath(`rook-chat-${String(width)}x${String(height)}.png`),
+      });
+    }
     const blackPawn = rook.getByRole("gridcell", { name: /Black pawn on h7/ });
     await blackPawn.click({ timeout: 3_000 });
     await rook
