@@ -655,6 +655,11 @@ export function MomentScreen({
   const solvedUci = solvedLine[0] ?? moment.bestUci;
   // Solved with the move the player found in the real game.
   const gameMove = moment.playedInGame;
+  // A chance the player took in the real game.
+  const tookInGame =
+    moment.game && gameMove?.uci === moment.bestUci
+      ? { ...moment.game, san: gameMove.san }
+      : undefined;
   const foundInGame =
     moment.game && gameMove?.uci === solvedUci
       ? { ...moment.game, san: gameMove.san }
@@ -2390,7 +2395,10 @@ export function MomentScreen({
         opening: openingFrames.length > 0,
         spotTheDanger: danger !== undefined,
       });
+  // The side to move on the board shown, for its label; the heading names
+  // the player's side, which is the task, whatever frame is on the board.
   const turn = view.fen.split(" ")[1] === "w" ? "White" : "Black";
+  const side = learnerColor === "w" ? "White" : "Black";
   // Try again is the reset after a not-best move; Reset covers everything
   // else that changed the board: previews, answers and storyboards.
   // Neither shows while a played move waits on the engine.
@@ -2724,7 +2732,7 @@ export function MomentScreen({
         {danger ? (
           <h1 className="moment__prompt moment__prompt--danger">
             <small>
-              {turn} to move · {moment.sourceLabel}
+              {side} to move · {moment.sourceLabel}
             </small>
             {spot.kind === "spotted"
               ? "Spotted it."
@@ -2737,7 +2745,7 @@ export function MomentScreen({
         ) : (
           <>
             <h1 className="moment__prompt">
-              {turn} to move
+              {side} to move
               <small>{moment.sourceLabel}</small>
             </h1>
             <p className={`moment__goal moment__goal--${moment.goal.kind}`}>
@@ -3111,9 +3119,11 @@ export function MomentScreen({
       <Sheet open={sheet === "missed"} title="Not this time" tone="calm">
         <p className="moment__sheet-line">
           {moment.ideaName ? `The idea: ${moment.ideaName}. ` : ""}
-          {trackProgress
-            ? "It will come back, and you’ll know what to look for."
-            : "You can review this position again any time."}
+          {tookInGame
+            ? `You found ${tookInGame.san} against ${tookInGame.opponent}${tookInGame.day ? ` on ${tookInGame.day}` : ""}. Today it slipped by.`
+            : trackProgress
+              ? "It will come back, and you’ll know what to look for."
+              : "You can review this position again any time."}
         </p>
         {saveError && (
           <p role="alert">Couldn’t save this position. Try Continue again.</p>

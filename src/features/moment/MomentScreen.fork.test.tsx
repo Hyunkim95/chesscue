@@ -107,10 +107,46 @@ it("says so when the player found the same move in the real game", async () => {
   expect(bubble()).toHaveTextContent(
     /^You found Qxd8\+ in the game too\. Want to see why it works/,
   );
+  // The heading names the player's side even with Black to move on the board.
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+    /^White to move/,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Done ✓" }));
   const sheet = await screen.findByRole("dialog");
   expect(sheet).toHaveTextContent("Fork · played it in a real game");
   expect(sheet).toHaveTextContent(
     "You found Qxd8+ against Ahmed on Tuesday, and again today.",
   );
+});
+
+it("says when a chance taken in the real game slipped by today", async () => {
+  render(
+    <MomentScreen
+      moment={{
+        ...MOMENT,
+        playedInGame: { uci: "d1d8", san: "Qxd8+" },
+        game: { opponent: "Ahmed", day: "Tuesday" },
+      }}
+      online={false}
+      checkMove={(uci, signal) =>
+        checkTry({ position: MOMENT, uci, engine, signal })
+      }
+      checkFrom={(position, uci, signal) =>
+        checkTry({ position, uci, engine, signal })
+      }
+      analyzePosition={() =>
+        Promise.resolve(ok({ candidates: [candidate(LINE.slice(1))] }))
+      }
+      askRook={() => Promise.resolve({ kind: "unrouted" })}
+      onComplete={() => undefined}
+      onContinue={() => undefined}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Show me" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Done ✓" }));
+  const sheet = await screen.findByRole("dialog", { name: "Not this time" });
+  expect(sheet).toHaveTextContent(
+    "You found Qxd8+ against Ahmed on Tuesday. Today it slipped by.",
+  );
+  expect(sheet).not.toHaveTextContent("It will come back");
 });
