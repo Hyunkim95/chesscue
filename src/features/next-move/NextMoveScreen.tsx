@@ -121,17 +121,22 @@ const MOOD: Readonly<Record<NonNullable<MoveVerdict["tier"]>, RookMood>> = {
 export function NextMoveScreen({
   createEngine,
   onClose,
+  closeLabel = "Back to Play",
   initialFen = DEFAULT_POSITION,
+  initialOrientation = "white",
 }: {
   // A dedicated engine for this screen, disposed when it closes.
   readonly createEngine: () => AnalysisEngine;
   readonly onClose: () => void;
+  readonly closeLabel?: string;
   readonly initialFen?: string;
+  readonly initialOrientation?: PlayerColor;
 }) {
   const [root, setRoot] = useState(initialFen);
   const [path, setPath] = useState<readonly Step[]>([]);
   const [cursor, setCursor] = useState(0);
-  const [orientation, setOrientation] = useState<PlayerColor>("white");
+  const [orientation, setOrientation] =
+    useState<PlayerColor>(initialOrientation);
   const [selected, setSelected] = useState<Square>();
   const [promotion, setPromotion] = useState<{
     readonly from: Square;
@@ -356,7 +361,7 @@ export function NextMoveScreen({
         <button
           type="button"
           className="next-move__close"
-          aria-label="Back to Play"
+          aria-label={closeLabel}
           onClick={onClose}
         >
           <span aria-hidden="true">✕</span>
