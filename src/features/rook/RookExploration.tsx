@@ -1,6 +1,7 @@
 import { isSidePanel } from "../../shared/navigation/side-panel";
 import { BoardBack } from "../../shared/navigation/BoardBack";
 import { LoadingMark, LoadingText } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
 import { Chess, SQUARES, type Move, type Square } from "chess.js";
 import {
   useEffect,
@@ -2481,23 +2482,17 @@ export function RookExploration({
       )}
       {(experiment?.stage === "revealed" ||
         experiment?.stage === "unchecked") && (
-        <button
-          type="button"
+        <BusyButton
           className="rook-exploration__transport-button board-action--quiet"
-          disabled={strongerSearch === "checking"}
-          aria-busy={strongerSearch === "checking"}
+          busy={strongerSearch === "checking"}
           onClick={() => {
             void showStrongerLine(experiment);
           }}
         >
-          {strongerSearch === "checking" ? (
-            <LoadingText>Checking line</LoadingText>
-          ) : experiment.stage === "unchecked" ? (
-            "Check for a stronger move"
-          ) : (
-            "Show stronger line"
-          )}
-        </button>
+          {experiment.stage === "unchecked"
+            ? "Check for a stronger move"
+            : "Show stronger line"}
+        </BusyButton>
       )}
     </>
   );
@@ -2626,6 +2621,11 @@ export function RookExploration({
               className="review-action piece-choice"
               aria-label={move.san}
               title={move.san}
+              disabled={
+                whatIf?.stage === "checking" ||
+                coaching.status === "checking" ||
+                strongerSearch === "checking"
+              }
               onClick={() => {
                 play(move);
               }}
@@ -2781,6 +2781,7 @@ export function RookExploration({
     if (
       !question ||
       (voiceActive && !spoken) ||
+      (chatBusy && !spoken) ||
       whatIf?.stage === "checking" ||
       coaching.status === "checking"
     )
@@ -2897,11 +2898,12 @@ export function RookExploration({
             aria-hidden="true"
           />
         </button>
-        <button
+        <BusyButton
           type="submit"
           className="rook-chat__send rook-send-icon"
           aria-label="Ask"
           title="Send question to Rook"
+          busy={chatBusy}
           disabled={
             !message.trim() ||
             whatIf?.stage === "checking" ||
@@ -2910,7 +2912,7 @@ export function RookExploration({
           }
         >
           <SendIcon />
-        </button>
+        </BusyButton>
       </div>
     </form>
   );
