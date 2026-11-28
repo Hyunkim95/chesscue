@@ -533,15 +533,22 @@ export function explainMissedLine(
   input: MissedLineInput,
   reach: "short" | "long" | "short-then-long" = "short-then-long",
 ): MissedLineExplanation | undefined {
-  // A sacrifice whose take-back runs into a mate threat: the threat is the
-  // point, even when the opponent's best reply declines it.
-  const threat = sacrificeThreat(input.fen, input.takeBackLine ?? input.line);
-  if (threat) return { text: [threat.text, ...playedClause(input)].join(" ") };
-  if (reach === "short") return explainWithin(input, SHORT_LINE);
+  // A sacrifice the opponent's best reply declines: the mate threat after
+  // the take-back is why. When the line takes back itself, what it wins is
+  // the point, and the threat explains only a line nothing else explains.
+  const declined =
+    input.takeBackLine && sacrificeThreat(input.fen, input.takeBackLine);
+  const threat = () => {
+    const found = sacrificeThreat(input.fen, input.line);
+    return found && { text: [found.text, ...playedClause(input)].join(" ") };
+  };
+  if (declined)
+    return { text: [declined.text, ...playedClause(input)].join(" ") };
+  if (reach === "short") return explainWithin(input, SHORT_LINE) ?? threat();
   const long = () =>
     explainWithin(input, LONG_LINE) ?? explainWithin(input, LONGEST_LINE);
-  if (reach === "long") return long();
-  return explainWithin(input, SHORT_LINE) ?? long();
+  if (reach === "long") return long() ?? threat();
+  return explainWithin(input, SHORT_LINE) ?? long() ?? threat();
 }
 
 interface MissedLineInput {
