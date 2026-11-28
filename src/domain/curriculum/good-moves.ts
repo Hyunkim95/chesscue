@@ -334,11 +334,28 @@ export function readGoodMove(observed: ObservedMove): GoodMove | undefined {
   return found;
 }
 
-// The player's good moves in one game, in the order they were played.
+// At most three good moves are shown per game (owner decision, 28 November
+// 2026), so the praise stays worth reading. Every good move still counts as
+// evidence; only the replay list is capped.
+export const GOOD_MOVES_SHOWN = 3;
+
+// Strongest first: a mate, then a tactic that wins material, then the only
+// move, then a threat dealt with. Earlier moves break ties.
+function strength(good: GoodMove): number {
+  if (good.kind === "tactic") {
+    const last = good.frames.at(-1);
+    return last && new Chess(last.fen).isCheckmate() ? 0 : 1;
+  }
+  return good.kind === "only-move" ? 2 : 3;
+}
+
+// The player's best good moves in one game, in the order they were played.
 export function goodMovesInGame(
   moves: readonly ObservedMove[],
 ): readonly GoodMove[] {
   return moves
     .flatMap((observed) => readGoodMove(observed) ?? [])
+    .toSorted((a, b) => strength(a) - strength(b) || a.ply - b.ply)
+    .slice(0, GOOD_MOVES_SHOWN)
     .toSorted((a, b) => a.ply - b.ply);
 }

@@ -481,7 +481,7 @@ for (const width of [320, 1280]) {
       page.getByRole("heading", { name: "Rook found 1 moment in this game" }),
     ).toBeVisible({ timeout: 30_000 });
     const row = page.getByRole("button", {
-      name: "· and 6 things you did well",
+      name: "· and 3 things you did well",
     });
     await expect(row).toBeVisible();
     // Look at it stays the one brass action.
@@ -495,44 +495,43 @@ for (const width of [320, 1280]) {
     await page.screenshot({ path: shot("good-moves-result"), fullPage: true });
 
     await row.click();
-    // 10. Nxb5: the position before it, the move, then why it was good.
+    // Three at most, strongest first (owner decision, 28 November 2026):
+    // 13. Rxd7 wins material, then the two mating moves. 10. Nxb5, the only
+    // move, and the others are left out.
     await expect(
-      page.getByRole("grid", { name: "Good move 1 of 6, step 1 of 3" }),
+      page.getByRole("grid", { name: "Good move 1 of 3, step 1 of 10" }),
     ).toBeVisible();
     await expect(
-      page.getByText("Good move 1 of 6 · Move 10, Nxb5"),
+      page.getByText("Good move 1 of 3 · Move 13, Rxd7"),
     ).toBeVisible();
     await expect(
-      page.getByText("Move 10, White to move. Watch what you played."),
+      page.getByText("Move 13, White to move. Watch what you played."),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Next", exact: true }).click();
-    await expect(page.getByText("Nxb5 takes my pawn.")).toBeVisible();
-    await page.getByRole("button", { name: "Next", exact: true }).click();
+    for (let index = 0; index < 9; index++)
+      await page.getByRole("button", { name: "Next", exact: true }).click();
     await expect(
-      page.getByText("Nxb5 was the only move that keeps your advantage."),
+      page.getByRole("grid", { name: "Good move 1 of 3, step 10 of 10" }),
     ).toBeVisible();
-    await expect(
-      page.locator("[role=gridcell][aria-label^='White knight on b5']"),
-    ).toHaveClass(/outline-jade/);
+    await expect(page.getByText(/^Rxd7 wins /)).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(width);
     await page.screenshot({
-      path: shot("good-moves-only-move"),
+      path: shot("good-moves-tactic"),
       fullPage: true,
     });
 
     // ↺ Reset goes back to the position before the move.
     await page.getByRole("button", { name: "↺ Reset" }).click();
     await expect(
-      page.getByRole("grid", { name: "Good move 1 of 6, step 1 of 3" }),
+      page.getByRole("grid", { name: "Good move 1 of 3, step 1 of 10" }),
     ).toBeVisible();
 
     // The last good move: 17. Rd8# is mate in one.
-    for (let index = 0; index < 5; index++)
+    for (let index = 0; index < 2; index++)
       await page.getByRole("button", { name: "Next good move ›" }).click();
     await expect(
-      page.getByText("Good move 6 of 6 · Move 17, Rd8#"),
+      page.getByText("Good move 3 of 3 · Move 17, Rd8#"),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Next good move ›" }),

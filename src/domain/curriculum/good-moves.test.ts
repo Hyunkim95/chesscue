@@ -424,3 +424,62 @@ it("finds nothing in a move Stockfish does not agree with", () => {
   expect(observed.outcome).toBe("retry");
   expect(goodMovesInGame([observed])).toEqual([]);
 });
+
+it("shows at most three good moves, the strongest first", () => {
+  const shown = goodMovesInGame([
+    // A threat dealt with: g6 against Qxf7#.
+    observe(
+      "r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3",
+      ["g6"],
+      [
+        ["g7g6", 28, "g7g6 h5f3 g8f6 g1e2 f8g7 b1c3 e8g8"],
+        ["d8e7", 11, "d8e7 h5d1 g8f6 d2d3 c6a5 b1c3 b7b6 g1f3 c8b7"],
+        ["d8f6", -11, "d8f6 b1c3 f8c5 g1f3 g7g6 h5g5 c6d4 g5f6 g8f6"],
+      ],
+    ),
+    // The only move: Rd1.
+    observe(
+      "4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2K4R w k - 0 14",
+      ["Rd1"],
+      [
+        ["h1d1", 686, "h1d1 e7b4 g5f6 g7f6 b5d7 e8d8 b3f7 f8c5"],
+        ["g5f6", 190, "g5f6 e7f6 h1d1 f8d6 b3h3 f6g5 c1b1 g5e7 c2c4 h7h5"],
+        ["b5d7", 143, "b5d7 e7d7 b3b8 d7d8 b8b5 d8d7 b5e5 f8e7 e5b8 e7d8"],
+      ],
+    ),
+    // A tactic that wins material: Nxd5.
+    observe(
+      "r1bq1b1r/ppp3pp/4k3/3np3/2B5/P1N2Q2/1P1P1PPP/n1BK3R w - - 0 11",
+      ["Nxd5"],
+      [
+        ["c3d5", -68, "c3d5 c7c6 d5b6 e6d6 b6a8 d8h4 f3d3 h4d4 d3d4 e5d4"],
+        ["c4d5", -132, "c4d5 e6d7 f3g4 d7d6 g4b4 c7c5 b4c4 d6c7 b2b4 c7b8"],
+        ["d2d4", -184, "d2d4 c7c6 c3d5 c6d5 h1e1 d5c4 e1e5 e6d7 c1g5 d8b6"],
+      ],
+    ),
+    // Two mates: Qb8+ and Rd8#.
+    observe(
+      "4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16",
+      ["Qb8+"],
+      [
+        ["b3b8", 99998, "b3b8 d7b8 d1d8"],
+        ["b3b7", 239, "b3b7 f7f6 g5e3 f8e7 b7c8 e7d8 e3a7 e8e7 d1d5"],
+        ["d1d7", 0, "d1d7 e8d7 b3b7 d7d6 b7a6 d6c7 a6a7 c7c8 a7a8 c8c7"],
+      ],
+    ),
+    observe(
+      "1n2kb1r/p4ppp/4q3/4p1B1/4P3/8/PPP2PPP/2KR4 w k - 0 17",
+      ["Rd8#"],
+      [
+        ["d1d8", 99999, "d1d8"],
+        ["d1d3", -1012, "d1d3 f7f6 g5e3 b8c6 d3b3 f8e7 h2h4 e8f7 c1b1"],
+        ["c1b1", -1013, "c1b1 f8e7 g5e7 e8e7 a2a4 h8c8 d1d3 g7g6 d3c3"],
+      ],
+    ),
+  ]);
+  expect(shown.map(({ san }) => san).toSorted()).toEqual([
+    "Nxd5",
+    "Qb8+",
+    "Rd8#",
+  ]);
+});
