@@ -47,14 +47,14 @@ test("a player steps through the answer, branches with their own move and asks a
       timeout: 20_000,
     },
   );
-  await expect(stepper).toContainText("1 / 3");
+  await expect(stepper).toContainText("Step 1 of 3");
   await expect(bubble).toContainText("Qxg5+");
   await expect(previous).toBeDisabled();
   await next.click();
-  await expect(stepper).toContainText("2 / 3");
+  await expect(stepper).toContainText("Step 2 of 3");
   await expect(bubble).toHaveText("I have to play Kh8.");
   await previous.click();
-  await expect(stepper).toContainText("1 / 3");
+  await expect(stepper).toContainText("Step 1 of 3");
   await previous.press("ArrowRight");
   await expect(bubble).toHaveText("I have to play Kh8.");
 
@@ -68,7 +68,7 @@ test("a player steps through the answer, branches with their own move and asks a
   await expect(bubble).toHaveText("Qg7# instead is checkmate.");
   await expect(page.locator("[data-move-cue-arrow='g5:g7']")).toHaveCount(1);
   await back.click();
-  await expect(stepper).toContainText("2 / 3");
+  await expect(stepper).toContainText("Step 2 of 3");
   await expect(bubble).toHaveText("I have to play Kh8.");
 
   // A typed "why" about a move in the line is answered by code, offline
@@ -78,7 +78,7 @@ test("a player steps through the answer, branches with their own move and asks a
   await ask.fill("why Kh8?");
   await ask.press("Enter");
   await expect(bubble).toHaveText("Kh8 is my only legal move.");
-  await expect(stepper).toContainText("2 / 3");
+  await expect(stepper).toContainText("Step 2 of 3");
   await expect(square(page, "Black king on h8")).toBeVisible();
   await next.click();
   await expect(bubble).toHaveText("Qg7# is checkmate.");
@@ -96,7 +96,7 @@ test("a question in words is answered on the step without moving the board", asy
   await page.getByRole("button", { name: "Show me" }).click();
   await page.getByRole("button", { name: "Next step" }).click();
   await page.getByRole("button", { name: "Next step" }).click();
-  await expect(stepper).toContainText("3 / 3");
+  await expect(stepper).toContainText("Step 3 of 3");
   const queen = square(page, "White queen on g7");
   await expect(queen).toBeVisible();
 
@@ -104,7 +104,7 @@ test("a question in words is answered on the step without moving the board", asy
   await ask.fill("why would queen take");
   await ask.press("Enter");
   await expect(bubble).toContainText("Qxg5+ leads to mate.");
-  await expect(stepper).toContainText("3 / 3");
+  await expect(stepper).toContainText("Step 3 of 3");
   await expect(queen).toBeVisible();
   await expect(page.getByText("Something else")).toHaveCount(0);
   await expect(

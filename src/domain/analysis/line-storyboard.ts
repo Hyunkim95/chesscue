@@ -43,6 +43,14 @@ export interface StoryFrame {
     readonly change: "gained" | "lost";
   }[];
   readonly caption: string;
+  // The piece a point storyboard is heading for, where it stands in this
+  // frame: the piece the point wins, or the king it mates.
+  readonly goal?: StoryGoal;
+}
+
+export interface StoryGoal {
+  readonly square: Square;
+  readonly piece: string;
 }
 
 // The learner's moves a storyboard covers, matching the explanation reach.
@@ -1011,6 +1019,103 @@ export function refutationStoryboard({
 // quiet moves named and nothing more, then the payoff. frames[i] plays
 // moves[i]. Undefined when the line neither mates nor wins material once it
 // settles: a quiet line has no point to show.
+// Where a point lands in a line, and the piece it is after. The point is
+// the learner's most valuable capture or promotion, or mate. An immediate
+// recapture on the same square settles it, and the line plays on while
+// Rook can win material straight back, so the result is never overstated.
+function pointLanding(
+  fen: string,
+  frames: readonly StoryFrame[],
+  learner: Color,
+):
+  | {
+      readonly gain: number;
+      readonly end: number;
+      readonly target: Square;
+      readonly piece: PieceSymbol;
+    }
+  | undefined {
+  const board = new Chess(fen);
+  const moves: Move[] = [];
+  let gain = -1;
+  let gainValue = 0;
+  for (const frame of frames) {
+    const move = play(board, frame.moveUci);
+    if (!move) break;
+    moves.push(move);
+    if (board.isCheckmate()) {
+      gain = moves.length - 1;
+      gainValue = Infinity;
+      break;
+    }
+    const value =
+      (move.captured ? PIECE_VALUE[move.captured] : 0) +
+      (move.promotion ? PIECE_VALUE[move.promotion] - PIECE_VALUE.p : 0);
+    if (move.color === learner && value > gainValue) {
+      gain = moves.length - 1;
+      gainValue = value;
+    }
+  }
+  const landing = moves[gain];
+  if (!landing) return undefined;
+  let end = gain;
+  if (gainValue !== Infinity) {
+    const after = new Chess(fen);
+    for (const move of moves.slice(0, end + 1)) after.move(move);
+    for (;;) {
+      const next = moves[end + 1];
+      const last = moves[end];
+      if (!next || !last) break;
+      const recaptures = next.captured !== undefined && next.to === last.to;
+      const rookWins = after.turn() !== learner && pendingWin(after);
+      if (!recaptures && !rookWins) break;
+      after.move(next);
+      end += 1;
+    }
+  }
+  // The piece it is after: the king a mate traps, else the piece taken.
+  const mated = gainValue === Infinity;
+  let target: Square = landing.to;
+  const piece: PieceSymbol = mated
+    ? "k"
+    : (landing.captured ?? landing.promotion ?? "p");
+  if (mated) {
+    const final = new Chess(fen);
+    for (const move of moves.slice(0, gain + 1)) final.move(move);
+    const king = piecesOf(final, opponent(learner)).find(
+      ({ type }) => type === "k",
+    );
+    if (!king) return undefined;
+    target = king.square;
+  }
+  return { gain, end, target, piece };
+}
+
+const squareNamed = (name: string): Square | undefined =>
+  SQUARES.find((square) => square === name);
+
+// Where the goal piece stands after each move: traced back from where the
+// point lands to where it started, then forward through the line.
+function goalSquares(
+  frames: readonly StoryFrame[],
+  target: Square,
+  gain: number,
+): Square[] {
+  const moves = frames.map(({ moveUci }) => moveUci);
+  let start = target;
+  for (let index = gain - 1; index >= 0; index--) {
+    const uci = moves[index] ?? "";
+    if (uci.slice(2, 4) === start)
+      start = squareNamed(uci.slice(0, 2)) ?? start;
+  }
+  let current = start;
+  return moves.map((uci, index) => {
+    if (index <= gain && uci.slice(0, 2) === current)
+      current = squareNamed(uci.slice(2, 4)) ?? current;
+    return current;
+  });
+}
+
 export function pointStoryboard(
   fen: string,
   line: readonly string[],
@@ -1024,17 +1129,16 @@ export function pointStoryboard(
   const all = lineStoryboard(fen, line, learner);
   const [first] = all;
   if (!first) return undefined;
-  // Where the point has landed and the material is settled: the last move
-  // that captures, promotes or mates.
-  const board = new Chess(fen);
-  let last = 0;
-  for (const [index, frame] of all.entries()) {
-    const move = play(board, frame.moveUci);
-    if (!move) break;
-    if (move.captured || move.promotion || board.isCheckmate()) last = index;
-  }
+  const side = learner ?? new Chess(fen).turn();
+  const landing = pointLanding(fen, all, side);
+  if (!landing) return undefined;
+  const goals = goalSquares(all, landing.target, landing.gain);
+  const goalAt = (index: number): StoryGoal | undefined => {
+    const square = goals[index];
+    return square ? { square, piece: PIECE_NAME[landing.piece] } : undefined;
+  };
   const kept = all
-    .slice(0, last + 1)
+    .slice(0, landing.end + 1)
     .map((frame, index) =>
       index === 0 ? frame : plainQuiet(all[index - 1]?.fen ?? fen, frame),
     );
@@ -1054,10 +1158,24 @@ export function pointStoryboard(
     ...first,
     caption: `${result}${pointReason(fen, first.moveUci, mates)}`,
   };
+  const steps = [point, ...kept.slice(1)].map((frame, index) => {
+    const goal = goalAt(index);
+    return goal ? { ...frame, goal } : frame;
+  });
   return {
-    frames: [point, ...kept.slice(1), ...(payoff && !mates ? [payoff] : [])],
+    frames: [...steps, ...(payoff && !mates ? [payoff] : [])],
     moves: line,
   };
+}
+
+// A move with nothing tactical about it: it takes nothing, gives no check,
+// and leaves nothing Rook can win at once on the square it moved to.
+export function isQuietMove(fen: string, uci: string): boolean {
+  const board = new Chess(fen);
+  const move = play(board, uci);
+  if (!move) return false;
+  if (move.captured || move.promotion || board.inCheck()) return false;
+  return staticExchange(board, move.to, board.turn()) <= 0;
 }
 
 function sanOf(fen: string, uci: string): string | undefined {
