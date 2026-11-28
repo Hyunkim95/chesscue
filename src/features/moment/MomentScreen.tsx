@@ -964,8 +964,13 @@ export function MomentScreen({
         outlines: [],
         spot: square(attempt.uci.slice(2, 4)),
       });
+      // A chance the player took in the real game, found again.
+      const again =
+        attempt.uci === moment.playedInGame?.uci
+          ? `You found ${moment.playedInGame.san} in the game too. `
+          : "";
       setSay({
-        text: "Want to see why it works, or what I could have tried instead? Or tap Done.",
+        text: `${again}Want to see why it works, or what I could have tried instead? Or tap Done.`,
         mood: "happy",
       });
       return;

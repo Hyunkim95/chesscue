@@ -77,3 +77,30 @@ it("plays a queen trade on to the fork that wins the rook", async () => {
     fireEvent.click(screen.getByRole("button", { name: "Next step" }));
   expect(bubble()).toHaveTextContent("You've won a rook.");
 });
+
+it("says so when the player found the same move in the real game", async () => {
+  render(
+    <MomentScreen
+      moment={{ ...MOMENT, playedInGame: { uci: "d1d8", san: "Qxd8+" } }}
+      online={false}
+      checkMove={(uci, signal) =>
+        checkTry({ position: MOMENT, uci, engine, signal })
+      }
+      checkFrom={(position, uci, signal) =>
+        checkTry({ position, uci, engine, signal })
+      }
+      analyzePosition={() =>
+        Promise.resolve(ok({ candidates: [candidate(LINE.slice(1))] }))
+      }
+      askRook={() => Promise.resolve({ kind: "unrouted" })}
+      onComplete={() => undefined}
+      onContinue={() => undefined}
+    />,
+  );
+  fireEvent.click(square("White queen on d1"));
+  fireEvent.click(square("Black queen on d8"));
+  await screen.findByRole("button", { name: "Why does it work?" });
+  expect(bubble()).toHaveTextContent(
+    /^You found Qxd8\+ in the game too\. Want to see why it works/,
+  );
+});

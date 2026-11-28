@@ -55,6 +55,7 @@ test("an imported game replays to its report, stops at the player's win and open
   await expect(page.getByRole("button", { name: "Done ✓" })).toBeVisible({
     timeout: 20_000,
   });
+  await expect(bubble).toContainText("You found Qh4# in the game too.");
   await page.getByRole("button", { name: "Back to the game" }).click();
   await expect(
     page.getByRole("button", { name: "Keep watching" }),
