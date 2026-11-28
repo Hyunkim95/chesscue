@@ -1,7 +1,11 @@
 import { Chess } from "chess.js";
 import { expect, test } from "vitest";
 
-import { sacrificeThreat } from "./sacrifice-threat";
+import {
+  sacrificeStoryboard,
+  sacrificeThreat,
+  takeBack,
+} from "./sacrifice-threat";
 
 const uci = (fen: string, sans: readonly string[]) => {
   const board = new Chess(fen);
@@ -17,8 +21,10 @@ test("names the mate threat after the sacrifice is taken back", () => {
   expect(sacrificeThreat(GREEK, line)).toEqual({
     text: "Bxh7+ takes a pawn with check. If Black takes the bishop, Ng5+ and Qh3 threaten mate on h7.",
     line,
+    mateFrom: "h3",
     mateSquare: "h7",
     mateUci: "h3h7",
+    mateSan: "Qh7#",
   });
 });
 
@@ -42,4 +48,28 @@ test("says nothing about a move that is not a capture or a check", () => {
   expect(
     sacrificeThreat(GREEK, uci(GREEK, ["h3", "f5", "exf6"])),
   ).toBeUndefined();
+});
+
+test("finds the cheapest take-back", () => {
+  expect(takeBack(GREEK, "d3h7")).toBe("g8h7");
+  expect(takeBack(GREEK, "h2h3")).toBeUndefined();
+});
+
+test("plays the take-back line with the mate square outlined", () => {
+  const line = uci(GREEK, ["Bxh7+", "Kxh7", "Ng5+", "Kg8", "Qh3"]);
+  const threat = sacrificeThreat(GREEK, line);
+  if (!threat) throw new Error("no threat");
+  const frames = sacrificeStoryboard(GREEK, threat);
+  expect(frames.map(({ moveUci }) => moveUci)).toEqual(line);
+  expect(frames[0]?.caption).toBe(threat.text);
+  expect(frames.at(-1)?.caption).toBe("Qh3 threatens Qh7#.");
+  expect(frames.at(-1)?.outlines).toContainEqual({
+    square: "h7",
+    tone: "coral",
+  });
+  expect(frames.at(-1)?.arrows).toContainEqual({
+    from: "h3",
+    to: "h7",
+    kind: "threat",
+  });
 });
