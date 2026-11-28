@@ -1,9 +1,12 @@
+import { Chess } from "chess.js";
+
 import { PositionLoading } from "../../shared/loading/LoadingState";
 import type { WeekDay } from "../../domain/progress/types";
 import { RookBubble, RookSays } from "../../shared/rook/RookBubble";
 import { RookCharacter } from "../../shared/rook/RookCharacter";
 import { Button, Ring } from "../../shared/ui/primitives";
 import { ChessBoard } from "../board/ChessBoard";
+import { pieceSymbols } from "../board/board-pieces";
 import "./today.css";
 
 export type TodayState =
@@ -23,6 +26,88 @@ export type TodayState =
   | { readonly kind: "warm-up"; readonly fen: string; readonly prompt: string }
   | { readonly kind: "caught-up" };
 
+// A recommended puzzle under Today's position. Never named by its idea.
+export interface TodayPuzzle {
+  readonly id: string;
+  readonly fen: string;
+  readonly rating: number;
+}
+
+const turnOf = (fen: string) => (fen.split(" ")[1] === "b" ? "Black" : "White");
+
+// A still picture of the position, the side to move at the bottom. The
+// button carries its name, so the squares are hidden from screen readers.
+function MiniBoard({ fen }: { readonly fen: string }) {
+  let rows: ReturnType<Chess["board"]>;
+  try {
+    rows = new Chess(fen).board();
+  } catch {
+    return null;
+  }
+  const flipped = turnOf(fen) === "Black";
+  const ordered = flipped
+    ? rows.toReversed().map((row) => row.toReversed())
+    : rows;
+  return (
+    <span className="today-puzzle__board" aria-hidden="true">
+      {ordered.flatMap((row, r) =>
+        row.map((piece, f) => (
+          <span
+            key={`${String(r)}${String(f)}`}
+            className={`today-puzzle__square${(r + f) % 2 ? " today-puzzle__square--dark" : ""}`}
+          >
+            {piece && (
+              <span
+                className={`today-puzzle__piece${piece.color === "w" ? " today-puzzle__piece--white" : ""}`}
+              >
+                {pieceSymbols.b[piece.type]}
+              </span>
+            )}
+          </span>
+        )),
+      )}
+    </span>
+  );
+}
+
+// "Puzzles for you" (owner approval, 28 November 2026): up to three
+// thumbnails under the main action, each opening its puzzle.
+function PuzzleStrip({
+  puzzles,
+  onOpen,
+}: {
+  readonly puzzles: readonly TodayPuzzle[];
+  readonly onOpen: (id: string) => void;
+}) {
+  if (puzzles.length === 0) return null;
+  return (
+    <section className="today-puzzles" aria-labelledby="today-puzzles-title">
+      <h2 id="today-puzzles-title" className="today__eyebrow">
+        Puzzles for you
+      </h2>
+      <ul className="today-puzzles__list">
+        {puzzles.map((puzzle) => (
+          <li key={puzzle.id}>
+            <button
+              type="button"
+              className="today-puzzle"
+              aria-label={`Puzzle rated ${String(puzzle.rating)}, ${turnOf(puzzle.fen)} to move`}
+              onClick={() => {
+                onOpen(puzzle.id);
+              }}
+            >
+              <MiniBoard fen={puzzle.fen} />
+              <span className="today-puzzle__rating" aria-hidden="true">
+                {puzzle.rating}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 const WEEKDAY = new Intl.DateTimeFormat("en", {
   weekday: "narrow",
   timeZone: "UTC",
@@ -36,6 +121,8 @@ export function TodayScreen({
   onImport,
   onPlayGame,
   onSky,
+  puzzles = [],
+  onOpenPuzzle,
 }: {
   readonly state: TodayState;
   readonly goal: { readonly done: number; readonly target: number };
@@ -44,7 +131,13 @@ export function TodayScreen({
   readonly onImport: () => void;
   readonly onPlayGame: () => void;
   readonly onSky: () => void;
+  // Recommended puzzles under the main action.
+  readonly puzzles?: readonly TodayPuzzle[];
+  readonly onOpenPuzzle?: (id: string) => void;
 }) {
+  const strip = onOpenPuzzle ? (
+    <PuzzleStrip puzzles={puzzles} onOpen={onOpenPuzzle} />
+  ) : null;
   const left = Math.max(goal.target - goal.done, 0);
   const goalRow = (
     <div className="today__goal">
@@ -89,6 +182,7 @@ export function TodayScreen({
         <Button wide onClick={onPlayGame}>
           Play a game
         </Button>
+        {strip}
         <button type="button" className="today__link" onClick={onSky}>
           ✦ Look at your sky
         </button>
@@ -96,7 +190,7 @@ export function TodayScreen({
     );
 
   const warmUp = state.kind === "warm-up";
-  const turn = state.fen.split(" ")[1] === "b" ? "Black" : "White";
+  const turn = turnOf(state.fen);
   return (
     <div className="today board-split">
       <section
@@ -157,6 +251,7 @@ export function TodayScreen({
             Play it
           </Button>
         )}
+        {strip}
         {goalRow}
       </div>
     </div>

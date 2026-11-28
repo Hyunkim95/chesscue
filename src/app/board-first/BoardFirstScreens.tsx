@@ -39,6 +39,7 @@ import type {
 } from "../../domain/progress/types";
 import { unitHistory } from "../../domain/progress/unit-history";
 import { puzzleGoal } from "../../domain/session/moment-goal";
+import { recommendedPuzzles } from "../../domain/session/recommended-puzzles";
 import { pickToday } from "../../domain/session/today";
 import {
   MomentScreen,
@@ -314,6 +315,22 @@ export function BoardFirstScreens({
   const loading =
     attempts === undefined ||
     (view !== "review-home" && snapshot.status === "checking");
+  // Puzzles for you, under Today's position: never today's own puzzle.
+  const recommended = useMemo(
+    () =>
+      recommendedPuzzles({
+        puzzles: pack.puzzles,
+        attempts: attempts ?? [],
+        stars: progress.stars,
+        exclude:
+          pick.kind === "similar"
+            ? pick.puzzleId
+            : pick.kind === "warm-up"
+              ? warmUp?.id
+              : undefined,
+      }),
+    [attempts, progress, pick],
+  );
 
   const todayMoment = useMemo(
     () =>
@@ -759,6 +776,11 @@ export function BoardFirstScreens({
         onPlayGame={onPlay}
         onSky={() => {
           navigate("sky");
+        }}
+        puzzles={loading ? [] : recommended}
+        onOpenPuzzle={(id) => {
+          const puzzle = pack.puzzles.find((entry) => entry.id === id);
+          if (puzzle) void open(puzzle);
         }}
       />
     </AppShell>
