@@ -650,3 +650,12 @@
 .game-review__debrief-notes--compact .game-review__debrief-actions {
   align-items: center;
 }
+
+.chesscue-sidebar .game-review__debrief-board .review-board {
+  width: 100%;
+  max-width: max(17rem, calc(100svh - 22rem));
+}
+
+.game-review__debrief-notes--compact .game-review__debrief-actions {
+  align-items: center;
+}

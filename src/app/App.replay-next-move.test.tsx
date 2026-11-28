@@ -71,7 +71,13 @@ it("opens Next move from the replay position and returns to the original game li
   window.history.replaceState(null, "", `/#review/${gameId}/replay`);
   render(<App />);
 
-  const advance = await screen.findByRole("button", { name: "Play game move" });
+  // The full replay loads lazily, which can take over a second when the
+  // whole suite runs at once.
+  const advance = await screen.findByRole(
+    "button",
+    { name: "Play game move" },
+    { timeout: 5_000 },
+  );
   fireEvent.click(advance);
   fireEvent.click(screen.getByRole("button", { name: /^Analyze next move$/ }));
   const analysisBoard = await screen.findByRole("grid", {

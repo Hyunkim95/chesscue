@@ -27,6 +27,10 @@ import {
 import type { LearningTheme } from "../../domain/analysis/types";
 import type { BoardCapture } from "../../domain/game/board-balance";
 import type { LessonContentProvider } from "../../infrastructure/ai/lesson-content-provider";
+import { moveLossCp } from "../../domain/analysis/classify-experiment";
+import { REVIEW_MOVE_TOLERANCE_CP } from "../../domain/analysis/review-training";
+import { explainCheckedLoss } from "../rook/explain-checked-loss";
+import { StrongerMoveExplanation } from "../rook/StrongerMoveExplanation";
 import { BoardBalance } from "../board/BoardBalance";
 import { describeReviewMove } from "./describe-review-move";
 import { ReviewBoard } from "./ReviewBoard";
@@ -145,6 +149,7 @@ export function GuidedMoveFeedback({
   const [replyResult, setReplyResult] = useState<{
     readonly fen: string;
     readonly moves: readonly string[];
+    readonly cue?: string;
   } | null>(null);
   const feedback =
     score === null ? null : getAttemptFeedback({ fen, theme, score });
@@ -159,18 +164,43 @@ export function GuidedMoveFeedback({
     .map((moves) => validatedFrames(fen, moves, initialCaptures))
     .find((frames) => frames.length > 2);
   const replyFen =
-    recordedAttempt === undefined &&
+    (recordedAttempt === undefined || score?.accepted === false) &&
     afterAttempt !== undefined &&
     !new Chess(afterAttempt.fen).isGameOver()
       ? afterAttempt.fen
       : null;
+  const needsCue = score?.accepted === false;
   useEffect(() => {
     if (analyzeReply === null || replyFen === null) return;
     const controller = new AbortController();
     void analyzeReply(replyFen, controller.signal)
-      .then((reply) => {
-        if (!controller.signal.aborted)
-          setReplyResult({ fen: replyFen, moves: reply?.line ?? [] });
+      .then(async (reply) => {
+        controller.signal.throwIfAborted();
+        const before =
+          needsCue && attemptedMove && reply
+            ? await analyzeReply(fen, controller.signal, true)
+            : null;
+        controller.signal.throwIfAborted();
+        const cue =
+          before &&
+          reply &&
+          attemptedMove &&
+          before.line[0] !== attemptedMove &&
+          moveLossCp(
+            before.evaluationCpFromSideToMove,
+            reply.evaluationCpFromSideToMove,
+          ) > REVIEW_MOVE_TOLERANCE_CP
+            ? explainCheckedLoss(
+                new Chess(fen).move(attemptedMove),
+                reply,
+                before,
+              )
+            : undefined;
+        setReplyResult({
+          fen: replyFen,
+          moves: reply?.line ?? [],
+          ...(cue && { cue }),
+        });
       })
       .catch(() => {
         if (!controller.signal.aborted)
@@ -179,7 +209,7 @@ export function GuidedMoveFeedback({
     return () => {
       controller.abort();
     };
-  }, [analyzeReply, replyFen]);
+  }, [analyzeReply, replyFen, needsCue, attemptedMove, fen]);
   if (score === null || feedback === null)
     return <p role="alert">This move was not scored.</p>;
   const reply = replyResult?.fen === replyFen ? replyResult.moves : [];
@@ -275,8 +305,21 @@ export function GuidedMoveFeedback({
     : compareFirst
       ? compare
       : retry;
-  const primary = canAdvance ? advance : lineComplete ? afterReplay : null;
-  const alternatives = [rewind, compare, retry, practice, finish].filter(
+  const primary = !score.accepted
+    ? retry
+    : canAdvance
+      ? advance
+      : lineComplete
+        ? afterReplay
+        : null;
+  const alternatives = [
+    !score.accepted && canAdvance ? advance : null,
+    rewind,
+    compare,
+    retry,
+    practice,
+    finish,
+  ].filter(
     (action): action is typeof finish => action !== null && action !== primary,
   );
   return (
@@ -330,6 +373,9 @@ export function GuidedMoveFeedback({
           <LoadingText>Checking their reply…</LoadingText>
         </p>
       ) : null}
+      {line === "attempt" &&
+        replyResult?.fen === replyFen &&
+        replyResult.cue && <p role="status">{replyResult.cue}</p>}
       {primary && (
         <div className="game-review__feedback-controls">
           <button
@@ -354,6 +400,13 @@ export function GuidedMoveFeedback({
         ))}
         {children}
       </div>
+      {!score.accepted && analyzeReply && afterAttempt && (
+        <StrongerMoveExplanation
+          key={feedbackKey}
+          attempt={new Chess(fen).move(score.attemptedMoveUci)}
+          analyzeReply={analyzeReply}
+        />
+      )}
       <ReviewExplanation
         gameId={gameId}
         fen={fen}
