@@ -11,7 +11,7 @@ export function RookSpeechStatus({
   downloadLabel?: string;
 }) {
   const state = voice.state;
-  if (state.status === "idle") return null;
+  if (state.status === "idle" || state.status === "silent") return null;
 
   return (
     <div className="rook-speech-status">

@@ -50,6 +50,16 @@ const HINT_SYSTEM = [
   "Return the id of the one hint whose condition best fits their words.",
 ].join(" ");
 
+const VOICE_SYSTEM = [
+  "Interpret a player's speech in a hands-free chess lesson.",
+  "Use the caption and currently available controls to understand requests phrased in the player's own words.",
+  "Choose a control only when the player clearly wants that action. A question that directly means a visible control can select it.",
+  "Choose a supplied move id only for an instruction to play that exact move, never for a hypothetical, question, negation, or ambiguous description.",
+  "Never recommend a move, infer missing squares, or pick a convenient legal move when the request is unclear.",
+  "Choose clarify-move when the player wants to play a move but hasn't identified a unique legal move, if that choice is available.",
+  "Return none for anything that doesn't clearly match one available action.",
+].join(" ");
+
 const responseSchema = z.object({ intent: z.enum(questionIntents) }).strict();
 const responseConstraint = {
   type: "object",
@@ -225,6 +235,34 @@ function router(route: "device" | "cloud"): QuestionRouter | undefined {
         return result.response.inferenceSource === expected
           ? parseHintPick(result.response.text(), ids)
           : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    async routeVoice(context, signal) {
+      const ids = [
+        "none",
+        ...(context.boardCanMove ? ["clarify-move"] : []),
+        ...context.controls.map(({ id }) => id),
+        ...context.moves.map(({ id }) => id),
+      ] as const;
+      const schema = z.object({ choice: z.enum(ids) }).strict();
+      const constraint = {
+        type: "object",
+        properties: { choice: { type: "string", enum: ids } },
+        required: ["choice"],
+        additionalProperties: false,
+      };
+      try {
+        const result = await generative(
+          VOICE_SYSTEM,
+          constraint,
+        ).generateContent(JSON.stringify(context), {
+          signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
+        });
+        if (result.response.inferenceSource !== expected) return undefined;
+        const choice = schema.safeParse(JSON.parse(result.response.text()));
+        return choice.success ? choice.data.choice : undefined;
       } catch {
         return undefined;
       }

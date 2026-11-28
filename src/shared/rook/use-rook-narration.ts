@@ -17,7 +17,10 @@ export function useRookNarration() {
 
   const readAloud = useCallback(
     (text: string, afterSpeaking?: () => void) => {
-      if (!("speechSynthesis" in window)) return;
+      if (!("speechSynthesis" in window)) {
+        afterSpeaking?.();
+        return;
+      }
       cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "en-US";
@@ -42,6 +45,7 @@ export function useRookNarration() {
         if (narration.current !== utterance) return;
         narration.current = null;
         setSpeaking(false);
+        afterSpeaking?.();
       };
       window.speechSynthesis.speak(utterance);
     },

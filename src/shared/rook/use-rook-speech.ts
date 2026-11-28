@@ -29,7 +29,14 @@ interface RecognitionConstructor {
   install?(options: RecognitionOptions): Promise<boolean>;
 }
 type SpeechState =
-  | { readonly status: "idle" | "starting" | "finishing" | "installing" }
+  | {
+      readonly status:
+        | "idle"
+        | "silent"
+        | "starting"
+        | "finishing"
+        | "installing";
+    }
   | { readonly status: "listening"; readonly text: string }
   | { readonly status: "setup"; readonly download: boolean }
   | { readonly status: "permission" }
@@ -98,11 +105,12 @@ async function installOfflineSpeech(
 interface SpeechInputOptions {
   readonly useMicrophoneTrack?: boolean;
   readonly onInputLevel?: (level: number) => void;
+  readonly handsFree?: boolean;
 }
 
 export function useRookSpeech(
   onMessage: (text: string) => void,
-  { useMicrophoneTrack, onInputLevel }: SpeechInputOptions = {},
+  { useMicrophoneTrack, onInputLevel, handsFree }: SpeechInputOptions = {},
 ) {
   const [state, setState] = useState<SpeechState>({ status: "idle" });
   const request = useRef<AbortController | null>(null);
@@ -291,6 +299,7 @@ export function useRookSpeech(
       recognition.continuous = false;
       recognition.interimResults = true;
       let transcript = "";
+      let finalTranscript = "";
       let endTimer: number | undefined;
       function clearTimers() {
         window.clearTimeout(audioTimer);
@@ -298,6 +307,10 @@ export function useRookSpeech(
         window.clearTimeout(endTimer);
       }
       function noTranscript() {
+        if (handsFree) {
+          done({ status: "silent" });
+          return;
+        }
         if (sampledInput && peakLevel < 0.025) {
           done({
             status: "error",
@@ -317,8 +330,9 @@ export function useRookSpeech(
 
       function complete() {
         clearTimers();
-        if (transcript) {
-          if (done({ status: "idle" })) send.current(transcript);
+        const message = handsFree ? finalTranscript : transcript;
+        if (message) {
+          if (done({ status: "idle" })) send.current(message);
         } else {
           noTranscript();
         }
@@ -333,13 +347,16 @@ export function useRookSpeech(
       recognition.onresult = ({ results }) => {
         if (request.current !== controller) return;
         const spoken = Array.from(results);
-        const heard = spoken
-          .map((result) => result[0]?.transcript ?? "")
-          .join(" ")
-          .trim()
-          .slice(0, 500);
+        const message = (parts: readonly SpeechResult[]) =>
+          parts
+            .map((result) => result[0]?.transcript ?? "")
+            .join(" ")
+            .trim()
+            .slice(0, 500);
+        const heard = message(spoken);
         if (heard) transcript = heard;
-        if (heard && spoken.some(({ isFinal }) => isFinal)) {
+        finalTranscript = message(spoken.filter(({ isFinal }) => isFinal));
+        if (finalTranscript) {
           finish.current?.();
         } else if (heard && endTimer === undefined) {
           setState({ status: "listening", text: transcript });

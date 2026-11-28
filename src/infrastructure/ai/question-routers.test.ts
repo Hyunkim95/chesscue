@@ -120,3 +120,21 @@ it("accepts only a supplied id or none", () => {
     parseDangerReading('{"fact":"mate-threat:e8e1"}', ids),
   ).toBeUndefined();
 });
+
+it("constrains hands-free intent to the currently supplied controls and moves", async () => {
+  const router = nano();
+  const context = {
+    text: "take me through the rest",
+    caption: "I have to play Kh8.",
+    boardCanMove: true,
+    controls: [{ id: "control-0", label: "Next step" }],
+    moves: [{ id: "move-h8h7", san: "Kh7", uci: "h8h7" }],
+  };
+  answer('{"choice":"control-0"}');
+  expect(await router.routeVoice?.(context, signal)).toBe("control-0");
+  answer('{"choice":"move-a2a4"}');
+  expect(await router.routeVoice?.(context, signal)).toBeUndefined();
+  answer('{"choice":"none"}');
+  expect(await router.routeVoice?.(context, signal)).toBe("none");
+  expect(JSON.parse(String(generate.mock.calls[0]?.[0]))).toEqual(context);
+});

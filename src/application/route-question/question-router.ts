@@ -37,6 +37,18 @@ export interface HintContext {
   }[];
 }
 
+export interface VoiceContext {
+  readonly text: string;
+  readonly caption: string;
+  readonly boardCanMove: boolean;
+  readonly controls: readonly { readonly id: string; readonly label: string }[];
+  readonly moves: readonly {
+    readonly id: string;
+    readonly san: string;
+    readonly uci: string;
+  }[];
+}
+
 // What a danger reading names: one of the supplied fact ids, or none.
 export const NO_DANGER = "none";
 
@@ -58,6 +70,12 @@ export interface QuestionRouter {
   // unavailable, fails or returns anything else.
   pickHint(
     context: HintContext,
+    signal: AbortSignal,
+  ): Promise<string | undefined>;
+  // One currently available control or legal move id. "none" leaves the
+  // utterance with Rook's normal question handling.
+  routeVoice?(
+    context: VoiceContext,
     signal: AbortSignal,
   ): Promise<string | undefined>;
 }
