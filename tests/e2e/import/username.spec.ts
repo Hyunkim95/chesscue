@@ -91,8 +91,11 @@ test("imports from Profile into Games and deduplicates on refresh", async ({
   await expect(savedGame).toBeInViewport();
   await page.screenshot({ path: test.info().outputPath("games-desktop.png") });
   await page.setViewportSize({ width: 320, height: 760 });
+  // With a saved name, Games lists it with a way to change it.
+  const lichess = page.getByRole("group", { name: "Lichess" });
+  await expect(lichess.getByText("Sam", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("textbox", { name: "Username", exact: true }),
+    lichess.getByRole("button", { name: "Change Lichess name" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Import PGN", exact: true }).click();
   await expect(page.getByLabel("Paste completed PGN games")).toBeVisible();

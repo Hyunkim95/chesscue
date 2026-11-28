@@ -20,3 +20,15 @@ export function readImportUsernames(key: string): SavedImportUsernames {
     return {};
   }
 }
+
+// Saving is best effort: without storage the name lasts for this visit.
+export function writeImportUsernames(
+  key: string,
+  usernames: SavedImportUsernames,
+): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(usernames));
+  } catch {
+    // The caller keeps the names in memory for this visit.
+  }
+}

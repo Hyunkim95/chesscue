@@ -313,9 +313,11 @@ function Settings({
                 onClick={() => {
                   onImportFrom(name);
                 }}
-                aria-label={`Import from ${name}`}
+                aria-label={
+                  username ? `Change ${name} name` : `Import from ${name}`
+                }
               >
-                Import
+                {username ? "Change" : "Import"}
               </Pill>
             </li>
           );

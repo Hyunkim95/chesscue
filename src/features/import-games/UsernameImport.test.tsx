@@ -76,21 +76,26 @@ test("remembers each provider separately and refreshes after reopening Games", a
     screen.getByRole("button", { name: "Import games from Lichess" }),
   );
   await screen.findByText("No recent completed standard chess games found.");
-  fireEvent.change(username, { target: { value: "Mira" } });
-  fireEvent.click(
-    screen.getByRole("button", { name: "Import games from Chess.com" }),
+  // Once a name is saved, each site gets its own row.
+  expect(screen.queryByRole("textbox", { name: "Username" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Add Chess.com name" }));
+  fireEvent.change(
+    screen.getByRole("textbox", { name: "Chess.com username" }),
+    { target: { value: "Mira" } },
   );
+  fireEvent.click(screen.getByRole("button", { name: "Import games" }));
   await screen.findByText("No recent completed standard chess games found.");
   view.unmount();
 
   render(form);
-  expect(screen.getByRole("textbox", { name: "Username" })).toHaveValue("");
+  expect(screen.getByText("Sam")).toBeVisible();
+  expect(screen.getByText("Mira")).toBeVisible();
   fireEvent.click(
-    screen.getByRole("button", { name: "Refresh Lichess games for Sam" }),
+    screen.getByRole("button", { name: "Refresh Lichess games" }),
   );
   await screen.findByText("No recent completed standard chess games found.");
   fireEvent.click(
-    screen.getByRole("button", { name: "Refresh Chess.com games for Mira" }),
+    screen.getByRole("button", { name: "Refresh Chess.com games" }),
   );
   await screen.findByText("No recent completed standard chess games found.");
   expect(fetchGames.mock.calls.map(([url]) => String(url))).toEqual([
@@ -99,4 +104,21 @@ test("remembers each provider separately and refreshes after reopening Games", a
     expect.stringMatching(/^https:\/\/lichess.org\/api\/games\/user\/sam\?/),
     "https://api.chess.com/pub/player/mira/games/archives",
   ]);
+});
+
+test("forgets a saved name on its provider page", () => {
+  localStorage.setItem("test-imports", JSON.stringify({ lichess: "Sam" }));
+  render(
+    <UsernameImport
+      site="lichess"
+      storageKey="test-imports"
+      onImport={vi.fn().mockResolvedValue(0)}
+    />,
+  );
+  const field = screen.getByRole("textbox", { name: "Lichess username" });
+  expect(field).toHaveValue("Sam");
+  fireEvent.click(screen.getByRole("button", { name: "Forget Sam" }));
+  expect(field).toHaveValue("");
+  expect(localStorage.getItem("test-imports")).toBe("{}");
+  expect(screen.queryByRole("button", { name: /Forget/ })).toBeNull();
 });

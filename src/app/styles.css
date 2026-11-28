@@ -816,7 +816,7 @@ button {
 
 :is(.review-action, .quiet-action, .lesson-secondary),
 .game-review button:not(.chess-board__square),
-.import-panel button {
+.import-panel button:not(.ui-pill) {
   border-radius: var(--cue-radius-control);
 }
 

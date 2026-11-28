@@ -167,7 +167,8 @@
   align-items: center;
 }
 
-.import-panel button {
+/* Shared Button and Pill keep their own design-system look. */
+.import-panel button:not(.ui-button, .ui-pill) {
   min-height: 2.75rem;
   padding: 0.65rem 1rem;
   color: var(--cue-paper);
@@ -354,4 +355,90 @@
   overflow-wrap: anywhere;
   color: var(--cue-muted);
   text-align: center;
+}
+
+/* One row per site once a name is saved: who, then Refresh and Change. */
+.username-accounts {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.username-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--cue-line);
+  border-radius: var(--cue-radius-control);
+}
+
+.username-account__who {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.username-account__who small {
+  color: var(--cue-muted);
+  font-size: 0.8rem;
+}
+
+.username-account__who b {
+  overflow-wrap: anywhere;
+}
+
+.username-account__none {
+  color: var(--cue-muted);
+}
+
+.username-account__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
+.username-account--editing {
+  display: grid;
+  justify-content: stretch;
+  gap: 0.65rem;
+}
+
+.username-account--editing label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.username-account--editing label > span {
+  color: var(--cue-muted);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.username-account__edit-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.import-panel button.username-import__forget {
+  justify-self: start;
+  min-height: var(--ui-space-target);
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--cue-muted);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  background: none;
+  border: 0;
+  text-align: start;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.import-panel button.username-import__forget:hover:not(:disabled) {
+  color: var(--cue-ink);
 }

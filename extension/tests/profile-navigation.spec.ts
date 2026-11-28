@@ -80,7 +80,7 @@ test("opens the same profile from Today and Games", async () => {
       ).toBeVisible();
 
       await expect(
-        page.getByRole("button", { name: "Import from Chess.com" }),
+        page.getByRole("button", { name: "Change Chess.com name" }),
       ).toBeVisible();
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),

@@ -63,7 +63,7 @@ it("shows the usernames saved by Games and prefills the provider import", async 
   expect(await screen.findByText("RapidPlayer")).toBeVisible();
   expect(screen.getByText("QuietKnight")).toBeVisible();
   fireEvent.click(
-    screen.getByRole("button", { name: "Import from Chess.com" }),
+    screen.getByRole("button", { name: "Change Chess.com name" }),
   );
   expect(
     await screen.findByRole("textbox", { name: "Chess.com username" }),

@@ -119,12 +119,12 @@ describe("ProfileScreen", () => {
     ).toBeVisible();
   });
 
-  it("shows saved usernames and keeps both provider imports available", () => {
+  it("offers to change a saved username and to import from the other site", () => {
     const onImportFrom = vi.fn();
     render(<ProfileScreen {...activeProfile} onImportFrom={onImportFrom} />);
     expect(screen.getByText("hyunplays")).toBeVisible();
     fireEvent.click(
-      screen.getByRole("button", { name: "Import from Lichess" }),
+      screen.getByRole("button", { name: "Change Lichess name" }),
     );
     expect(onImportFrom).toHaveBeenCalledWith("Lichess");
     fireEvent.click(
