@@ -21,8 +21,8 @@ import { isMateScore } from "./classify-experiment";
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/7";
-export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/5";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/8";
+export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/6";
 // What counts as a tactic line (tacticKind, isTacticLine). Progress and the
 // curriculum derive units from it, so a change to the rule bumps this.
 // 2: material is counted once the line's exchanges settle.
@@ -68,6 +68,7 @@ const READINGS = [SHORT_LINE, LONG_LINE, LONGEST_LINE] as const;
 const HELD_PLIES = 3;
 // At most this many moves are named in one "After …" clause.
 const NAMED_MOVES = 3;
+const LATER = "Later in the line, ";
 const SETUP: readonly FactKind[] = [
   "mate",
   "double-attack",
@@ -653,7 +654,7 @@ function readLine(
         : `After ${SIDE[only.color]} replies ${only.san}, `;
     // A longer stretch is left to the board, which plays every move. The
     // moves into a forced mate are the lesson, so they are all named.
-    if (between.length > NAMED_MOVES && !mated) return "Later in the line, ";
+    if (between.length > NAMED_MOVES && !mated) return LATER;
     return between.length
       ? `After ${between.map(({ san }) => san).join(" ")}, `
       : "";
@@ -668,13 +669,19 @@ function readLine(
   // Moves read past the usual end, until the material settles, and any
   // unshown capture, such as a take-back, are named before the count they
   // set.
-  const settling =
-    moves.length > plies ||
-    moves.slice(shownPly + 1).some(({ captured }) => captured !== undefined)
+  const tail = moves.slice(shownPly + 1);
+  const led =
+    moves.length > plies || tail.some(({ captured }) => captured !== undefined)
       ? lead({ ply: moves.length })
       : "";
+  // A promotion left to the board is named, since it changes the count.
+  const promoted = tail.findLast(({ promotion }) => promotion !== undefined);
+  const settling =
+    led === LATER && promoted?.promotion
+      ? `${LATER}${promoted.san} makes a new ${NAME[promoted.promotion]}. `
+      : led;
   const owed = takeBack
-    ? `${settling ? "once" : "Once"} ${SIDE[takeBack.by]} takes back on ${takeBack.square}, `
+    ? `${settling && !settling.endsWith(". ") ? "once" : "Once"} ${SIDE[takeBack.by]} takes back on ${takeBack.square}, `
     : "";
   if (!mated)
     rest.push(settling + owed + materialText(SIDE[us], gain, balance));
