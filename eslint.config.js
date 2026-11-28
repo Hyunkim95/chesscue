@@ -13,6 +13,9 @@ export default tseslint.config(
       "research_notes/**",
       "public/stockfish/**",
       "eslint.config.js",
+      // Agent worktrees and the package store hold copies of the repository.
+      ".claude/**",
+      ".pnpm-store/**",
     ],
   },
   eslint.configs.recommended,
