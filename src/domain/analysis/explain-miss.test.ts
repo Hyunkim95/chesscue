@@ -1,3 +1,4 @@
+import { Chess } from "chess.js";
 import { expect, test } from "vitest";
 
 import {
@@ -330,4 +331,32 @@ test("does not explain a quiet move by a tactic several moves later", () => {
       playedSan: "Qd6+",
     }),
   ).toBeUndefined();
+});
+
+// The same game: after e6+ the bishop on d7 has few legal moves only
+// because Black is in check, so it is not trapped.
+test("does not call a piece trapped when its side is in check", () => {
+  const board = new Chess(
+    "r2r4/1pkbQ3/p1p1pN1p/q2pP1PP/2nP4/2N3B1/1PP3P1/2KR3R w - - 1 24",
+  );
+  for (const uci of ["c1b1", "b7b5", "e7c5", "b5b4", "c3d5", "e6d5"])
+    board.move(uci);
+  expect(
+    explainMissedLine({
+      fen: board.fen(),
+      line: ["e5e6", "c7b7", "c5a5", "c4a5", "f6d7", "d8d7", "e6d7", "a5c4"],
+    })?.text ?? "",
+  ).not.toContain("no safe square");
+});
+
+// Lichess Kyk5cxoU: Bb6+ checks, so White cannot save the rook on c8.
+test("names the check before the discovered attack it comes with", () => {
+  expect(
+    explainMissedLine({
+      fen: "2Rbr2k/8/p2P4/1p6/5p2/6Pp/6PP/5NK1 b - - 0 39",
+      line: ["d8b6", "f1e3", "e8c8", "g3f4", "b6e3", "g1f1", "c8c1", "f1e2"],
+    })?.text,
+  ).toMatch(
+    /^Bb6\+ gives check\. Moving the bishop off d8 opens the line for the black rook on e8, which now attacks the white rook on c8\. /,
+  );
 });

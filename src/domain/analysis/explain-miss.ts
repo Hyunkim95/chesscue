@@ -21,8 +21,8 @@ import { isMateScore } from "./classify-experiment";
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/6";
-export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/4";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/7";
+export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/5";
 // What counts as a tactic line (tacticKind, isTacticLine). Progress and the
 // curriculum derive units from it, so a change to the rule bumps this.
 // 2: material is counted once the line's exchanges settle.
@@ -291,7 +291,8 @@ function moveFacts(
 // defended, unless the move takes something worth as much.
 function trapped(board: Chess, square: Square): boolean {
   const piece = board.get(square);
-  if (piece?.color !== board.turn()) return false;
+  // In check, the piece's few legal moves are about the check, not a trap.
+  if (piece?.color !== board.turn() || board.inCheck()) return false;
   const them = opponent(piece.color);
   return board.moves({ square, verbose: true }).every((move) => {
     if (move.captured && PIECE_VALUE[move.captured] >= PIECE_VALUE[piece.type])
@@ -699,11 +700,16 @@ function explainWithin(
   if (!reading) return undefined;
   const { firstMove, setup, rest } = reading;
   // A discovered attack is about another piece, so the move's own capture
-  // is named first.
+  // or check is named first: a check is why the attacked piece cannot be
+  // saved.
   const taking =
-    setup?.kind === "discovered" && firstMove.captured
-      ? `${firstMove.san} takes ${pieceOf(opponent(firstMove.color), firstMove.captured, undefined)} on ${firstMove.to}.`
-      : undefined;
+    setup?.kind !== "discovered"
+      ? undefined
+      : firstMove.captured
+        ? `${firstMove.san} takes ${pieceOf(opponent(firstMove.color), firstMove.captured, undefined)} on ${firstMove.to}.`
+        : firstMove.san.endsWith("+")
+          ? `${firstMove.san} gives check.`
+          : undefined;
   const parts = [
     ...(taking ? [taking] : []),
     setup?.text ?? `${firstMove.san} was the stronger move.`,
