@@ -2891,7 +2891,6 @@ function PlayerApp({
           ) : null}
           {analysis.status === "ready" && analysis.route === reviewRoute ? (
             <div className="review-page__experience">
-              <Pill onClick={openFullReport}>Full report</Pill>
               <GameReviewExperience
                 key={gameRoute}
                 analyzeReply={loadReviewReply}
@@ -2950,6 +2949,8 @@ function PlayerApp({
                       }
                 }
               />
+              {/* Below the review, so the board stays where play puts it. */}
+              <Pill onClick={openFullReport}>Full report</Pill>
             </div>
           ) : null}
         </main>

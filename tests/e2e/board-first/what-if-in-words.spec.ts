@@ -23,6 +23,8 @@ test("a typed what-if while solving plays out at once", async ({
   await expect(
     page.getByRole("heading", { name: /White to move/ }),
   ).toBeVisible({ timeout: 30_000 });
+  // Offline once the app is installed: its files are cached and served.
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   await context.setOffline(true);
   const ask = page.getByRole("textbox", { name: "Ask Rook" });
   await ask.fill("what if my queen goes to h5");
