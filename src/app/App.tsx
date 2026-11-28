@@ -1,3 +1,4 @@
+import { IMPORT_USERNAMES_KEY } from "../infrastructure/persistence/import-usernames";
 import { GameModeChoices } from "../features/play/GameModeChoices";
 import { TrainingAnalysisStatus } from "../features/progression/PlayingSnapshot";
 import type { Skill } from "../features/progression/SkillTree";
@@ -10,6 +11,7 @@ import {
   LoadingMark,
   LoadingState,
   LoadingText,
+  PositionLoading,
 } from "../shared/loading/LoadingState";
 import {
   PanelTabs,
@@ -40,6 +42,7 @@ import {
   HistoryOwner,
   parentPage,
   returnToParent,
+  writeEntryValues,
 } from "../shared/navigation/history-entry";
 import {
   recommendCurriculumUnit,
@@ -47,8 +50,9 @@ import {
   unitForPosition,
 } from "../domain/curriculum/recommend-unit";
 import { usePlayingSnapshot } from "./use-playing-snapshot";
+import { queueImportAnalysis, useImportAnalysis } from "./use-import-analysis";
 import { BoardFirstScreens } from "./board-first/BoardFirstScreens";
-import { gameMomentId } from "./board-first/moment-specs";
+import { gameMomentId, pickGameReviewMoment } from "./board-first/moment-specs";
 import { finalPosition } from "../features/result/final-position";
 import {
   ResultScreen,
@@ -58,8 +62,9 @@ import { rankArt } from "../features/progression/rank-art";
 import { deriveProgress } from "../domain/progress/derive-progress";
 import type { MomentAttemptRecord } from "../domain/progress/types";
 import { AppShell } from "../shared/navigation/AppShell";
-import { Avatar, StreakChip, XpChip } from "../shared/ui/primitives";
-import { TabBar } from "../shared/navigation/TabBar";
+import { Avatar, Pill, StreakChip, XpChip } from "../shared/ui/primitives";
+import { TabBar, type TabId } from "../shared/navigation/TabBar";
+import { checkFen } from "../domain/next-move/next-move";
 import {
   boardFirst,
   boardFirstViews,
@@ -95,6 +100,12 @@ import {
   type CompletedGameExport,
   type GameSite,
 } from "../extension/external-game";
+import {
+  usernameImportPaths,
+  usernameImportSite,
+  type RecentGame,
+} from "../extension/recent-games";
+import { UsernameImport } from "../features/import-games/UsernameImport";
 import { reviewGameSummary } from "../extension/review-game-list";
 import { SidePanelReview } from "../extension/SidePanelReview";
 import { importGames } from "../application/import-games/import-games";
@@ -155,6 +166,7 @@ import {
 import {
   ImportGamesPanel,
   type ImportGamesRequest,
+  type ImportGamesResponse,
   type ImportedReview,
 } from "../features/import-games/ImportGamesPanel";
 import { PlayGameScreen } from "../features/play/PlayGameScreen";
@@ -193,6 +205,10 @@ const RaceView = lazy(async () => ({
 const ShareWin = lazy(async () => ({
   default: (await import("../features/race/SharedWin")).ShareWin,
 }));
+const GameReportScreen = lazy(async () => ({
+  default: (await import("../features/game-report/GameReportScreen"))
+    .GameReportScreen,
+}));
 const NextMoveScreen = lazy(async () => ({
   default: (await import("../features/next-move/NextMoveScreen"))
     .NextMoveScreen,
@@ -202,6 +218,76 @@ const NextMoveScreen = lazy(async () => ({
 function nextMoveEngine() {
   return serialEngine(
     new StockfishAnalysisEngine({ maximumSearchTimeMs: 120_000 }),
+  );
+}
+
+const replayNextMoveKey = "next-move.replay-position";
+const replayNextMovePosition = z
+  .object({
+    fen: z.string().refine((fen) => checkFen(fen).ok),
+    orientation: z.enum(["white", "black"]),
+  })
+  .nullable();
+
+function NextMovePage({
+  onNavigate,
+}: {
+  readonly onNavigate: (tab: TabId) => void;
+}) {
+  const [replay] = useEntryState(
+    replayNextMoveKey,
+    replayNextMovePosition,
+    null,
+  );
+  const closeLabel = replay
+    ? parentPage()?.endsWith("/report")
+      ? "Back to report"
+      : "Back to replay"
+    : "Back to Play";
+  const close = () => {
+    if (replay)
+      returnToParent(() => {
+        onNavigate("games");
+      });
+    else onNavigate("play");
+  };
+
+  return (
+    <div className={replay ? undefined : "next-move-page"}>
+      <Suspense
+        fallback={
+          <div className="next-move">
+            <div className="next-move__top">
+              <button
+                type="button"
+                className="next-move__close"
+                aria-label={closeLabel}
+                onClick={close}
+              >
+                ✕
+              </button>
+              <h1 className="next-move__title">Next move</h1>
+            </div>
+            <LoadingState>Opening your board…</LoadingState>
+          </div>
+        }
+      >
+        <NextMoveScreen
+          createEngine={nextMoveEngine}
+          onClose={close}
+          closeLabel={closeLabel}
+          {...(replay && {
+            initialFen: replay.fen,
+            initialOrientation: replay.orientation,
+          })}
+        />
+      </Suspense>
+      {replay === null && (
+        <div className="next-move-page__rail">
+          <TabBar current="play" onNavigate={onNavigate} />
+        </div>
+      )}
+    </div>
   );
 }
 const SharedWinView = lazy(async () => ({
@@ -224,7 +310,6 @@ type AppView =
   | "import"
   | "training"
   | "review"
-  | "review-home"
   | "result"
   | "practice";
 
@@ -342,36 +427,53 @@ function loadGameAnalysis(
   const key = JSON.stringify([history.name, game.id]);
   const existing = runningAnalyses.get(key);
   if (existing !== undefined) return existing;
-  const task = previousAnalysis
-    .then(async () => {
-      const stored = await analysisRepository.get(game.id, ANALYSIS_VERSION);
+  const task = analysisRepository
+    .get(game.id, ANALYSIS_VERSION)
+    .then(async (stored): Promise<Result<CompletedGameAnalysis, string>> => {
       if (!stored.ok) return err(stored.error.message);
       if (stored.value !== null)
         return ok(completedAnalysisFromRecord(stored.value));
-      const result = await analyzeCompletedGame({
-        game,
-        engine: analysisEngine,
-        analysisVersion: ANALYSIS_VERSION,
-        timeBudgetPerPositionMs: GAME_ANALYSIS_SEARCH.timeBudgetPerPositionMs,
-        depth: GAME_ANALYSIS_SEARCH.depth,
-        signal: new AbortController().signal,
-      });
-      if (!result.ok) return err(result.error.message);
-      const persisted = await analysisRepository.put(
-        createAnalysisRecord({
-          game,
-          analysis: result.value,
-          analyzedAt: new Date().toISOString(),
+      const search = previousAnalysis.then(() =>
+        navigator.locks.request("chesscue-analysis:" + key, async () => {
+          const latest = await analysisRepository.get(
+            game.id,
+            ANALYSIS_VERSION,
+          );
+          if (!latest.ok) return err(latest.error.message);
+          if (latest.value !== null)
+            return ok(completedAnalysisFromRecord(latest.value));
+          const result = await analyzeCompletedGame({
+            game,
+            engine: analysisEngine,
+            analysisVersion: ANALYSIS_VERSION,
+            timeBudgetPerPositionMs:
+              GAME_ANALYSIS_SEARCH.timeBudgetPerPositionMs,
+            depth: GAME_ANALYSIS_SEARCH.depth,
+            signal: new AbortController().signal,
+          });
+          if (!result.ok) return err(result.error.message);
+          const persisted = await analysisRepository.put(
+            createAnalysisRecord({
+              game,
+              analysis: result.value,
+              analyzedAt: new Date().toISOString(),
+            }),
+          );
+          if (!persisted.ok) return err(persisted.error.message);
+          window.dispatchEvent(new Event("chesscue-history"));
+          window.dispatchEvent(
+            new CustomEvent("chesscue-game-analysis", { detail: history.name }),
+          );
+          return ok(result.value);
         }),
       );
-      if (persisted.ok) window.dispatchEvent(new Event("chesscue-history"));
-      return persisted.ok ? ok(result.value) : err(persisted.error.message);
+      previousAnalysis = search.catch(() => undefined);
+      return search;
     })
     .catch(() => err("This game could not be analyzed."))
     .finally(() => {
       runningAnalyses.delete(key);
     });
-  previousAnalysis = task;
   runningAnalyses.set(key, task);
   return task;
 }
@@ -400,14 +502,20 @@ async function loadPerspectiveAnalysis(
 
 type AnalysisViewState =
   | { readonly status: "idle" }
-  | { readonly status: "running" }
+  | {
+      readonly status: "running";
+      readonly route?: string;
+      readonly game?: GameRecord;
+    }
   | {
       readonly status: "ready";
+      readonly route: string;
       readonly game: GameRecord;
       readonly analysis: CompletedGameAnalysis;
     }
   | {
       readonly status: "failed";
+      readonly route: string;
       readonly game: GameRecord;
       readonly message: string;
     };
@@ -514,6 +622,7 @@ function routeView(hash: string): AppView {
   if (hash === "#account") return "account";
   if (
     hash === "#import" ||
+    usernameImportSite(hash) !== null ||
     (location.protocol === "chrome-extension:" &&
       externalImportSite(hash) !== null)
   )
@@ -846,13 +955,42 @@ function PlayerApp({
       (item) => item.id === practiceEntry?.exerciseId,
     );
   const [snapshotRevision, setSnapshotRevision] = useState(0);
+  const adaptiveProfileRun = useRef<Promise<void> | null>(null);
+  const pendingImportAnalysis = useImportAnalysis(
+    history,
+    view !== "play" &&
+      view !== "next-move" &&
+      view !== "moment" &&
+      view !== "practice" &&
+      view !== "review" &&
+      view !== "training",
+    snapshotRevision,
+    loadGameAnalysis,
+  );
+  const [analysisRevision, setAnalysisRevision] = useState(0);
+  useEffect(() => {
+    const onAnalysis = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail === history.name) {
+        adaptiveProfileRun.current = null;
+        setAnalysisRevision((revision) => revision + 1);
+      }
+    };
+    window.addEventListener("chesscue-game-analysis", onAnalysis);
+    return () => {
+      window.removeEventListener("chesscue-game-analysis", onAnalysis);
+    };
+  }, [history]);
   const snapshot = usePlayingSnapshot(
     history,
-    view === "training" ||
-      (view === "practice" && !curated && !mistakeDrill) ||
-      isBoardFirstView(view) ||
-      (boardFirst && view === "result"),
+    view === "training"
+      ? "backfill"
+      : (view === "practice" && !curated && !mistakeDrill) ||
+          (boardFirst && isBoardFirstView(view) && view !== "review-home")
+        ? "saved"
+        : "off",
     snapshotRevision,
+    view === "training" ? 0 : analysisRevision,
+    view === "moment" || view === "practice",
     loadGameAnalysis,
   );
   const curriculumRecommendation = useMemo(
@@ -1010,17 +1148,28 @@ function PlayerApp({
     setDuePractice(pending);
   }, [history, reviewEvidenceRepository]);
 
-  const refreshAdaptiveProfile = useCallback(async (): Promise<void> => {
-    const result = await loadAdaptiveProfile({
+  const refreshAdaptiveProfile = useCallback((): Promise<void> => {
+    if (adaptiveProfileRun.current) return adaptiveProfileRun.current;
+    const run = loadAdaptiveProfile({
       games: repository,
       analyses: analysisRepository,
       reviews: reviewEvidenceRepository,
       initialTargetElo: 1450,
       curriculumVersion: "1.0.0",
       computedAt: new Date().toISOString(),
+    }).then((result) => {
+      if (adaptiveProfileRun.current !== run) return;
+      if (result.ok) setProfile(result.value.profile);
+      else adaptiveProfileRun.current = null;
     });
-    if (result.ok) setProfile(result.value.profile);
+    adaptiveProfileRun.current = run;
+    return run;
   }, [repository, analysisRepository, reviewEvidenceRepository]);
+
+  useEffect(() => {
+    if (view === "play-mode" || view === "play" || view === "training")
+      void refreshAdaptiveProfile();
+  }, [view, refreshAdaptiveProfile]);
 
   useEffect(() => {
     if (view !== "account" && view !== "race") return;
@@ -1034,6 +1183,7 @@ function PlayerApp({
     };
   }, [view, refreshRatings]);
   const refreshHistory = useCallback(() => {
+    adaptiveProfileRun.current = null;
     setSnapshotRevision((n) => n + 1);
     void Promise.all([
       refreshAdaptiveProfile(),
@@ -1061,7 +1211,11 @@ function PlayerApp({
     };
   }, [refreshAdaptiveProfile, refreshRatings, refreshPractice]);
 
-  async function handleImport(request: ImportGamesRequest, singleGame = false) {
+  async function importRequests(
+    requests: readonly ImportGamesRequest[],
+    singleGame: boolean,
+    sharing: "private" | "shared",
+  ): Promise<readonly ImportGamesResponse[]> {
     return navigator.locks.request(
       "chesscue-import-" + history.name,
       async () => {
@@ -1075,44 +1229,117 @@ function PlayerApp({
               : [[game.fingerprint, game] as const],
           ),
         );
-        const result = importGames({
-          ...request,
-          existingFingerprints: new Set(gamesByFingerprint.keys()),
-          idFactory: newGameId,
-          now: () => new Date().toISOString(),
-          curriculumVersion: "1.0.0",
-          configurationVersion: "1.0.0",
-        });
-
-        if (singleGame && result.items.length !== 1)
-          throw new Error("Expected a single completed game.");
-        await queueSubmittedGames(
-          result.items.flatMap((item) =>
-            item.status === "rejected" ? [] : [item.originalPgn],
-          ),
-        );
-        const savedGames = new Map<number, GameRecord>();
-        for (const item of result.items) {
-          if (item.status === "duplicate") {
-            const saved = gamesByFingerprint.get(item.fingerprint);
-            if (saved) savedGames.set(item.index, saved);
-            continue;
+        const imported: GameRecord[] = [];
+        const responses: ImportGamesResponse[] = [];
+        try {
+          for (const request of requests) {
+            const result = importGames({
+              ...request,
+              existingFingerprints: new Set(gamesByFingerprint.keys()),
+              idFactory: newGameId,
+              now: () => new Date().toISOString(),
+              curriculumVersion: "1.0.0",
+              configurationVersion: "1.0.0",
+            });
+            if (singleGame && result.items.length !== 1)
+              throw new Error("Expected a single completed game.");
+            if (sharing === "shared") {
+              await queueSubmittedGames(
+                result.items.flatMap((item) =>
+                  item.status === "rejected" ? [] : [item.originalPgn],
+                ),
+              );
+            }
+            const savedGames = new Map<number, GameRecord>();
+            for (const item of result.items) {
+              if (item.status === "duplicate") {
+                const saved = gamesByFingerprint.get(item.fingerprint);
+                if (saved) savedGames.set(item.index, saved);
+                continue;
+              }
+              if (item.status !== "accepted") continue;
+              const { record } = item.game;
+              const saved = await repository.put(record);
+              if (!saved.ok) throw new Error(saved.error.message);
+              imported.push(record);
+              if (record.fingerprint !== null)
+                gamesByFingerprint.set(record.fingerprint, record);
+            }
+            responses.push({ ...result, savedGames });
           }
-          if (item.status !== "accepted") continue;
-          const saved = await repository.put(item.game.record);
-          if (!saved.ok) throw new Error(saved.error.message);
-          const { record } = item.game;
-          if (record.fingerprint !== null)
-            gamesByFingerprint.set(record.fingerprint, record);
+          return responses;
+        } finally {
+          if (imported.length > 0) {
+            queueImportAnalysis(history, imported);
+            setSnapshotRevision((n) => n + 1);
+            window.dispatchEvent(new Event("chesscue-history"));
+            void refreshAdaptiveProfile();
+          }
         }
-        if (result.items.some(({ status }) => status === "accepted")) {
-          setSnapshotRevision((n) => n + 1);
-        }
-        window.dispatchEvent(new Event("chesscue-history"));
-        void refreshAdaptiveProfile();
-        return { ...result, savedGames };
       },
     );
+  }
+
+  async function handleImport(
+    request: ImportGamesRequest,
+    singleGame = false,
+    sharing: "private" | "shared" = "shared",
+  ): Promise<ImportGamesResponse> {
+    const [result] = await importRequests([request], singleGame, sharing);
+    if (!result) throw new Error("The import could not be completed.");
+    return result;
+  }
+
+  async function importRecentGames(
+    games: readonly RecentGame[],
+    site: GameSite,
+  ) {
+    if (games.length === 0) return 0;
+    const responses = await importRequests(
+      games.map(
+        ({ id, pgn, color }): ImportGamesRequest => ({
+          text: pgn,
+          source: { type: "upload", fileName: site + "-" + id + ".pgn" },
+          playerColor: color,
+        }),
+      ),
+      true,
+      "private",
+    );
+    return responses.reduce(
+      (count, { acceptedCount }) => count + acceptedCount,
+      0,
+    );
+  }
+
+  async function importSingleGame(
+    {
+      id,
+      pgn,
+      localOnly,
+    }: Pick<CompletedGameExport, "id" | "pgn" | "localOnly">,
+    color: PlayerColor,
+    site: GameSite,
+  ): Promise<ImportedReview> {
+    const result = await handleImport(
+      {
+        text: pgn,
+        source: { type: "upload", fileName: site + "-" + id + ".pgn" },
+        playerColor: color,
+      },
+      true,
+      localOnly ? "private" : "shared",
+    );
+    const item = result.items[0];
+    if (item?.status === "accepted") return { game: item.game.record };
+    if (item?.status === "duplicate") {
+      const saved = result.savedGames.get(item.index);
+      if (saved)
+        return saved.playerColor === color
+          ? { game: saved, saved: true }
+          : { game: saved, perspective: color, saved: true };
+    }
+    throw new Error(item?.issue.message ?? "The game could not be imported.");
   }
 
   async function importExternalGame(
@@ -1120,31 +1347,26 @@ function PlayerApp({
     color: PlayerColor,
     site: GameSite,
   ): Promise<GameRecord> {
-    const result = await handleImport(
-      {
-        text: game.pgn,
-        source: { type: "upload", fileName: site + "-" + game.id + ".pgn" },
-        playerColor: color,
-      },
-      true,
-    );
-    const item = result.items[0];
-    if (item?.status === "accepted") return item.game.record;
-    if (item?.status === "duplicate") {
-      const saved = result.savedGames.get(item.index);
-      if (saved?.playerColor === color) return saved;
+    const imported = await importSingleGame(game, color, site);
+    if (imported.perspective)
       throw new Error(
         "This game is already in your history from the other side.",
       );
-    }
-    throw new Error(item?.issue.message ?? "The game could not be imported.");
+    return imported.game;
   }
 
   const [reviewAttempt, setReviewAttempt] = useState(0);
   const [missingGame, setMissingGame] = useState(false);
   const gameRoute = location.hash;
   const gameImportSite = externalImportSite(gameRoute);
-  const sideSegment = gameRoute.split("/")[2];
+  const recentImportSite = usernameImportSite(gameRoute);
+  const reviewRoute =
+    view === "review"
+      ? gameRoute.replace(/\/(?:replay|report)$/, "")
+      : gameRoute;
+  const reviewReplay = view === "review" && gameRoute.endsWith("/replay");
+  const reviewReport = view === "review" && gameRoute.endsWith("/report");
+  const sideSegment = reviewRoute.split("/")[2];
   const reviewPerspective: PlayerColor | undefined =
     view === "review" && (sideSegment === "white" || sideSegment === "black")
       ? sideSegment
@@ -1155,7 +1377,7 @@ function PlayerApp({
     const request = new AbortController();
     const stale = () => request.signal.aborted;
     const load = async () => {
-      const id = routedGameId(gameRoute);
+      const id = routedGameId(reviewRoute);
       const record = id ? await repository.get(id) : null;
       if (stale()) return;
       if (!record?.ok || !record.value?.result) {
@@ -1167,10 +1389,11 @@ function PlayerApp({
         setRatedGame(record.value);
         return;
       }
-      setAnalysis({ status: "running" });
       const game = reviewPerspective
         ? { ...record.value, playerColor: reviewPerspective }
         : record.value;
+      setAnalysis({ status: "running", route: reviewRoute, game });
+      if (reviewReport) return;
       const result = reviewPerspective
         ? await loadPerspectiveAnalysis(game, request.signal)
         : await loadGameAnalysis(history, game);
@@ -1180,7 +1403,7 @@ function PlayerApp({
           localStorage.setItem(
             history.key(recentReviewKey),
             JSON.stringify({
-              route: gameRoute,
+              route: reviewRoute,
               ply: result.value.moments[0]?.ply ?? null,
             }),
           );
@@ -1190,8 +1413,18 @@ function PlayerApp({
       }
       setAnalysis(
         result.ok
-          ? { status: "ready", game, analysis: result.value }
-          : { status: "failed", game, message: result.error },
+          ? {
+              status: "ready",
+              route: reviewRoute,
+              game,
+              analysis: result.value,
+            }
+          : {
+              status: "failed",
+              route: reviewRoute,
+              game,
+              message: result.error,
+            },
       );
       if (result.ok && reviewPerspective === undefined)
         await refreshAdaptiveProfile();
@@ -1202,7 +1435,8 @@ function PlayerApp({
     };
   }, [
     view,
-    gameRoute,
+    reviewRoute,
+    reviewReport,
     history,
     repository,
     reviewAttempt,
@@ -1313,6 +1547,7 @@ function PlayerApp({
       createReviewEvidenceRecord({ gameId: analysis.game.id, log }),
     );
     if (persisted.ok) {
+      adaptiveProfileRun.current = null;
       window.dispatchEvent(new Event("chesscue-history"));
       await Promise.all([refreshAdaptiveProfile(), refreshPractice()]);
     }
@@ -1332,13 +1567,64 @@ function PlayerApp({
   const reviewParent = view === "review" ? parentPage() : undefined;
   const reviewFromPlay =
     reviewParent === "#play" || (!extensionPanel && reviewParent === "");
-  const reviewBackLabel = reviewParent?.startsWith("#result/")
-    ? "Back to game result"
-    : reviewFromPlay
-      ? "Back to play"
-      : "Back to Review";
-  const reviewMatchup =
-    analysis.status === "ready" ? reviewGameSummary(analysis.game) : null;
+  const reviewBackLabel =
+    reviewReplay || reviewReport
+      ? "Back to Review"
+      : reviewParent?.startsWith("#result/")
+        ? "Back to game result"
+        : reviewFromPlay
+          ? "Back to play"
+          : boardFirst
+            ? "Back to Games"
+            : "Back to Review";
+  const reviewPosition = useMemo(
+    () =>
+      boardFirst &&
+      view === "review" &&
+      !reviewReplay &&
+      !reviewReport &&
+      analysis.status === "ready" &&
+      analysis.route === reviewRoute
+        ? pickGameReviewMoment(analysis.game, analysis.analysis)
+        : undefined,
+    [view, reviewReplay, reviewReport, analysis, reviewRoute],
+  );
+  const reviewRecord =
+    analysis.status !== "idle" && analysis.route === reviewRoute
+      ? analysis.game
+      : undefined;
+  const reviewMatchup = reviewRecord ? reviewGameSummary(reviewRecord) : null;
+  const reportOpening = useOpeningReview(
+    reviewReport ? reviewRecord : undefined,
+  );
+  function openFullReplay() {
+    setView("review", reviewRoute + "/replay");
+  }
+  function openFullReport() {
+    setView("review", reviewRoute + "/report");
+  }
+  function exploreReviewPosition(fen: string, orientation: PlayerColor) {
+    setView("next-move");
+    if (location.hash === "#next-move")
+      writeEntryValues(history.name, {
+        [replayNextMoveKey]: { fen, orientation },
+      });
+  }
+  const reviewSource =
+    reviewRecord?.origin.type === "pgn-upload" &&
+    /^lichess-[a-z0-9]{8}\.pgn$/i.test(reviewRecord.origin.sourceName) ? (
+      <a
+        href={
+          "https://lichess.org/" + reviewRecord.origin.sourceName.slice(8, -4)
+        }
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Lichess game"
+        title="Open Lichess game"
+      >
+        <span aria-hidden="true">↗</span>
+      </a>
+    ) : undefined;
   function renderSkillLessons(skill: Skill) {
     const topic =
       skill === "rook" || skill === "endgames"
@@ -1499,6 +1785,14 @@ function PlayerApp({
     openPractice({ id: exercise.id, exercise, goal });
   }
   function backFromReview() {
+    if (reviewReplay || reviewReport) {
+      if (reviewParent === reviewRoute)
+        returnToParent(() => {
+          setView("review", reviewRoute);
+        });
+      else setView("review", reviewRoute);
+      return;
+    }
     if (reviewParent?.startsWith("#result/")) {
       returnToParent(() => {
         setView("review-home");
@@ -1544,38 +1838,193 @@ function PlayerApp({
   // stays, as it does while playing a game.
   if (view === "next-move")
     return (
-      <div className="next-move-page">
-        <Suspense>
-          <NextMoveScreen
-            createEngine={nextMoveEngine}
-            onClose={() => {
-              setView("play-mode");
-            }}
-          />
-        </Suspense>
-        <div className="next-move-page__rail">
-          <TabBar
-            current="play"
-            onNavigate={(tab) => {
-              if (tab === "play") setView("play-mode");
-              else if (tab === "games") setView("review-home");
-              else setView(tab);
-            }}
-          />
-        </div>
-      </div>
+      <NextMovePage
+        onNavigate={(tab) => {
+          if (tab === "play") setView("play-mode");
+          else if (tab === "games") setView("review-home");
+          else setView(tab);
+        }}
+      />
     );
 
-  if (boardFirst && isBoardFirstView(view))
+  if (reviewReport)
+    return (
+      <AppShell
+        mode={{
+          kind: "focus",
+          exitLabel: reviewBackLabel,
+          onExit: backFromReview,
+          top: <h1 className="game-replay__title">Full report</h1>,
+        }}
+      >
+        {missingGame ? (
+          <p role="alert">This game is unavailable in this player’s history.</p>
+        ) : reviewRecord ? (
+          <Suspense
+            fallback={
+              <PositionLoading>Opening the full report…</PositionLoading>
+            }
+          >
+            <GameReportScreen
+              key={JSON.stringify([history.name, reviewRoute])}
+              game={reviewRecord}
+              owner={history.name}
+              opening={
+                reportOpening.kind === "ready"
+                  ? reportOpening.review.opening.name
+                  : undefined
+              }
+              title={
+                reviewMatchup
+                  ? `${reviewMatchup.title} · ${reviewMatchup.result}`
+                  : undefined
+              }
+              onExplore={exploreReviewPosition}
+            />
+          </Suspense>
+        ) : (
+          <PositionLoading>Opening the full report…</PositionLoading>
+        )}
+      </AppShell>
+    );
+
+  if (reviewReplay)
+    return (
+      <AppShell
+        mode={{
+          kind: "focus",
+          exitLabel: reviewBackLabel,
+          onExit: backFromReview,
+          top: (
+            <>
+              <h1 className="game-replay__title">Full replay</h1>
+              <Pill onClick={openFullReport}>Full report</Pill>
+            </>
+          ),
+        }}
+      >
+        {missingGame ? (
+          <p role="alert">This game is unavailable in this player’s history.</p>
+        ) : reviewRecord ? (
+          <GameReviewExperience
+            key={gameRoute}
+            compact
+            replayOnly
+            game={reviewRecord}
+            {...(analysis.status === "ready" && {
+              analysis: analysis.analysis,
+            })}
+            onExploreNextMove={exploreReviewPosition}
+            reviewTitle={
+              reviewMatchup
+                ? `${reviewMatchup.title} · ${reviewMatchup.result}`
+                : undefined
+            }
+            reviewSource={reviewSource}
+          />
+        ) : (
+          <PositionLoading>Opening the full replay…</PositionLoading>
+        )}
+      </AppShell>
+    );
+
+  if (
+    boardFirst &&
+    view === "review" &&
+    !missingGame &&
+    (analysis.status === "idle" ||
+      analysis.status === "running" ||
+      (analysis.status === "ready" && analysis.route !== reviewRoute))
+  )
+    return (
+      <AppShell
+        mode={{
+          kind: "focus",
+          exitLabel: reviewBackLabel,
+          onExit: backFromReview,
+          top: reviewRecord && (
+            <>
+              <Pill onClick={openFullReplay}>Full replay</Pill>
+              <Pill onClick={openFullReport}>Full report</Pill>
+            </>
+          ),
+        }}
+      >
+        <PositionLoading>Finding a moment from this game…</PositionLoading>
+      </AppShell>
+    );
+
+  function renderUsernameImport(site?: GameSite) {
+    return (
+      <UsernameImport
+        key={site}
+        site={site}
+        storageKey={history.key(IMPORT_USERNAMES_KEY)}
+        onImport={importRecentGames}
+      />
+    );
+  }
+
+  const usernameGames = view === "import" && recentImportSite !== null;
+  const reviewHome = (view === "review-home" || usernameGames) && (
+    <SidePanelReview
+      boardFirst={boardFirst}
+      usernameImport={
+        boardFirst || usernameGames
+          ? renderUsernameImport(recentImportSite ?? undefined)
+          : undefined
+      }
+      pendingAnalysis={pendingImportAnalysis}
+      watchLichess={extensionPanel}
+      repository={repository}
+      historyRevision={snapshotRevision}
+      openGame={(route) => {
+        setView("import", route);
+      }}
+      openSavedGame={(route) => {
+        setView("review", route);
+      }}
+      importFrom={(site) => {
+        setView("import", usernameImportPaths[site]);
+      }}
+      importPgn={() => {
+        setView("import", "#import");
+      }}
+    />
+  );
+
+  if (
+    boardFirst &&
+    (isBoardFirstView(view) || usernameGames || reviewPosition !== undefined)
+  )
     return (
       <BoardFirstScreens
-        view={view}
+        key={reviewPosition ? reviewRoute : undefined}
+        view={
+          isBoardFirstView(view)
+            ? view
+            : usernameGames
+              ? "review-home"
+              : "moment"
+        }
+        reviewHome={reviewHome}
+        review={
+          reviewPosition && {
+            position: reviewPosition,
+            alternateSide: reviewPerspective !== undefined,
+            exitLabel: reviewBackLabel,
+            onExit: backFromReview,
+            onReplay: openFullReplay,
+            onReport: openFullReport,
+          }
+        }
         navigate={navigateBoardFirst}
         history={history}
         snapshot={snapshot}
         ratings={ratings}
         playerName={user?.name ?? "You"}
         signedIn={user !== null}
+        onOpenAccount={openAccount}
         onPlay={() => {
           setView("play-mode");
         }}
@@ -1583,7 +2032,10 @@ function PlayerApp({
           setView("review-home");
         }}
         onImport={() => {
-          setView("import", "#import");
+          setView("review-home");
+        }}
+        onImportFrom={(site) => {
+          setView("import", usernameImportPaths[site]);
         }}
       />
     );
@@ -1593,32 +2045,21 @@ function PlayerApp({
     const rated = game !== null && tutorGameMode(game) === "rated";
     const read =
       resultRead?.gameId === game?.id ? resultRead?.moves : undefined;
-    const ownMoves =
-      snapshot.status === "ready" && game !== null
-        ? snapshot.moves.filter((move) => move.game.id === game.id)
-        : [];
+    const ownMoves = read === undefined || read === "failed" ? [] : read;
     const retries = ownMoves
       .filter(({ outcome }) => outcome === "retry")
       .toSorted((a, b) => a.ply - b.ply);
     // What the player did well, from this game's own analysis.
-    const goodMoves =
-      read === undefined || read === "failed" ? [] : goodMovesInGame(read);
-    // Rook keeps reading until the snapshot holds this game's moments, so
-    // "Look at them" always opens a position the moment screen can find.
+    const goodMoves = goodMovesInGame(ownMoves);
     const moments: ResultMoments =
-      read === "failed" || snapshot.status === "failed"
+      read === "failed"
         ? { kind: "failed" }
-        : read === undefined ||
-            snapshot.status !== "ready" ||
-            !snapshot.games.some(({ id }) => id === game?.id) ||
-            (retries.length === 0 &&
-              read.some(({ outcome }) => outcome === "retry") &&
-              snapshot.checked + snapshot.failed < snapshot.total)
+        : read === undefined
           ? { kind: "reading" }
           : { kind: "found", count: retries.length };
     const progress = deriveProgress({
       attempts: resultAttempts,
-      games: snapshot.status === "ready" ? snapshot.moves : [],
+      games: [],
       // Only the streak and XP are shown here; neither reads the curriculum.
       curriculum: [],
       now: new Date(),
@@ -1688,7 +2129,7 @@ function PlayerApp({
                 : undefined
             }
             share={
-              <Suspense>
+              <Suspense fallback={<LoadingText>Opening sharing…</LoadingText>}>
                 <ShareWin
                   game={game}
                   uid={user?.uid ?? null}
@@ -1754,30 +2195,42 @@ function PlayerApp({
             onNavigate={navigateSection}
           />
         )}
-        <button
-          type="button"
-          className="account-button"
-          aria-label="Account"
-          title="Account"
-          aria-current={
-            view === "account" || view === "ranks" ? "page" : undefined
-          }
-          onClick={openAccount}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="21"
-            height="21"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            aria-hidden="true"
+        {boardFirst ? (
+          <div className="app-bar__profile">
+            <Avatar
+              name={user?.name ?? "You"}
+              badgeUrl={rankArt[rankForElo(targetElo).name]}
+              onClick={() => {
+                setView("profile");
+              }}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="account-button"
+            aria-label="Account"
+            title="Account"
+            aria-current={
+              view === "account" || view === "ranks" ? "page" : undefined
+            }
+            onClick={openAccount}
           >
-            <circle cx="12" cy="7" r="3.5" />
-            <path d="M5 20v-1a7 7 0 0 1 14 0v1" />
-          </svg>
-        </button>
+            <svg
+              viewBox="0 0 24 24"
+              width="21"
+              height="21"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="7" r="3.5" />
+              <path d="M5 20v-1a7 7 0 0 1 14 0v1" />
+            </svg>
+          </button>
+        )}
       </header>
       {extensionPanel && !boardFirst && (
         <PanelTabs
@@ -1805,22 +2258,7 @@ function PlayerApp({
           />
         </div>
       )}
-      {view === "review-home" && (
-        <SidePanelReview
-          watchLichess={extensionPanel}
-          repository={repository}
-          historyRevision={snapshotRevision}
-          openGame={(route) => {
-            setView("import", route);
-          }}
-          openSavedGame={(route) => {
-            setView("review", route);
-          }}
-          importPgn={() => {
-            setView("import", "#import");
-          }}
-        />
-      )}
+      {reviewHome}
       {view === "race" &&
         ((hostedRaceSignIn || nativeGoogleSignIn) && user === null ? (
           <HostedRaces
@@ -1965,7 +2403,9 @@ function PlayerApp({
             />
             {recentWin && (
               <div className="play-mode-social">
-                <Suspense>
+                <Suspense
+                  fallback={<LoadingText>Opening sharing…</LoadingText>}
+                >
                   <ShareWin
                     key={recentWin.id}
                     game={recentWin}
@@ -1979,6 +2419,11 @@ function PlayerApp({
         </main>
       ) : null}
 
+      {view === "result" && ratedGame === null && !missingGame && (
+        <main className="content-shell">
+          <LoadingState>Opening your game…</LoadingState>
+        </main>
+      )}
       {view === "result" && missingGame && (
         <p role="alert">This game is unavailable in this player’s history.</p>
       )}
@@ -2147,7 +2592,7 @@ function PlayerApp({
         />
       ) : null}
 
-      {view === "import" ? (
+      {view === "import" && !usernameGames ? (
         <main className="content-shell content-shell--narrow">
           <button
             type="button"
@@ -2156,8 +2601,45 @@ function PlayerApp({
               setView("review-home");
             }}
           >
-            Back to Review
+            {boardFirst && recentImportSite
+              ? "Back to Games"
+              : "Back to Review"}
           </button>
+          {gameImportSite === null && recentImportSite === null && (
+            <nav
+              className="username-import__sources"
+              aria-label="Game import sources"
+            >
+              <button
+                type="button"
+                className="review-action"
+                onClick={() => {
+                  setView("import", usernameImportPaths.lichess);
+                }}
+              >
+                Lichess
+              </button>
+              <button
+                type="button"
+                className="review-action"
+                onClick={() => {
+                  setView("import", usernameImportPaths.chesscom);
+                }}
+              >
+                Chess.com
+              </button>
+              <button
+                type="button"
+                className="review-action"
+                aria-current="page"
+                onClick={() => {
+                  setView("import", "#import");
+                }}
+              >
+                PGN
+              </button>
+            </nav>
+          )}
           {location.protocol === "chrome-extension:" && gameImportSite ? (
             <ExternalGameImport
               key={location.hash}
@@ -2248,6 +2730,9 @@ function PlayerApp({
               moves.
             </p>
           )}
+          {!missingGame && analysis.status === "idle" && (
+            <LoadingState>Opening your review…</LoadingState>
+          )}
           {missingGame ? (
             <p role="alert">
               This game is unavailable in this player’s history.
@@ -2261,6 +2746,12 @@ function PlayerApp({
                 Checking each decision and validating every replay line. This
                 can take a few seconds.
               </p>
+              {reviewRecord && (
+                <>
+                  <Pill onClick={openFullReplay}>Full replay</Pill>
+                  <Pill onClick={openFullReport}>Full report</Pill>
+                </>
+              )}
             </section>
           ) : null}
           {analysis.status === "failed" ? (
@@ -2277,12 +2768,19 @@ function PlayerApp({
               >
                 Try analysis again
               </button>
+              {reviewRecord && (
+                <>
+                  <Pill onClick={openFullReplay}>Full replay</Pill>
+                  <Pill onClick={openFullReport}>Full report</Pill>
+                </>
+              )}
             </section>
           ) : null}
-          {analysis.status === "ready" ? (
+          {analysis.status === "ready" && analysis.route === reviewRoute ? (
             <div className="review-page__experience">
+              <Pill onClick={openFullReport}>Full report</Pill>
               <GameReviewExperience
-                key={analysis.game.id}
+                key={gameRoute}
                 analyzeReply={loadReviewReply}
                 assessPosition={readBoardPosition}
                 game={analysis.game}
@@ -2295,25 +2793,7 @@ function PlayerApp({
                         : "") + reviewMatchup.result
                     : undefined
                 }
-                reviewSource={
-                  analysis.game.origin.type === "pgn-upload" &&
-                  /^lichess-[a-z0-9]{8}\.pgn$/i.test(
-                    analysis.game.origin.sourceName,
-                  ) ? (
-                    <a
-                      href={
-                        "https://lichess.org/" +
-                        analysis.game.origin.sourceName.slice(8, -4)
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label="Lichess game"
-                      title="Open Lichess game"
-                    >
-                      <span aria-hidden="true">↗</span>
-                    </a>
-                  ) : undefined
-                }
+                reviewSource={reviewSource}
                 compact
                 onMistake={async (evidence) => {
                   const game = analysis.game;

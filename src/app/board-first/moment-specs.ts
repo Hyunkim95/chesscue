@@ -1,6 +1,14 @@
 import { Chess } from "chess.js";
 
-import type { ObservedMove } from "../../domain/curriculum/game-drill";
+import type {
+  LearningMoment,
+  MoveAnalysisFact,
+} from "../../domain/analysis/types";
+import {
+  observedGameMoves,
+  type ObservedMove,
+} from "../../domain/curriculum/game-drill";
+import type { GameRecord } from "../../domain/game/types";
 import type { FollowUpPuzzle } from "../../domain/curriculum/follow-up-puzzles";
 import { unitForDrill } from "../../domain/curriculum/recommend-unit";
 import {
@@ -48,6 +56,26 @@ function opponentOf(observed: ObservedMove): string {
 
 export function gameMomentId(observed: ObservedMove): string {
   return `${observed.game.id}:${String(observed.ply)}`;
+}
+
+// Prefer a turning point, then the last checked decision for a clean game.
+export function pickGameReviewMoment(
+  game: GameRecord,
+  analysis: {
+    readonly facts: readonly MoveAnalysisFact[];
+    readonly moments: readonly LearningMoment[];
+  },
+): ObservedMove | undefined {
+  const moves = observedGameMoves(game, analysis);
+  const missed = moves.filter(({ outcome }) => outcome === "retry");
+  for (const moment of analysis.moments) {
+    const observed = missed.find(({ ply }) => ply === moment.ply);
+    if (observed) return observed;
+  }
+  return (
+    missed.toSorted((a, b) => b.impactCp - a.impactCp || a.ply - b.ply)[0] ??
+    moves.toSorted((a, b) => b.ply - a.ply)[0]
+  );
 }
 
 // How much of the game after the player's move "what happened" replays.
@@ -124,11 +152,10 @@ export function momentFromGame(
   };
 }
 
-// A checked puzzle like the player's misses. Its evaluation comes from a
-// search when the moment opens.
+// The installed solution is already checked. A live score is only needed
+// when the player tries or previews a different move.
 export function momentFromPuzzle(
   puzzle: FollowUpPuzzle,
-  bestCp: number,
   units: ReadonlyMap<string, UnitCopy>,
   sourceLabel: string,
 ): MomentSpec | undefined {
@@ -138,7 +165,7 @@ export function momentFromPuzzle(
     id: `puzzle:${puzzle.id}`,
     fen: puzzle.fen,
     bestUci,
-    bestCp,
+    bestCp: undefined,
     solutionLine: puzzle.solution,
     sourceLabel,
     ideaName: units.get(puzzle.unitId)?.title,

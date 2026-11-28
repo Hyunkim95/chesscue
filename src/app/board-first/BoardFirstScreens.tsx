@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  IMPORT_USERNAMES_KEY,
+  readImportUsernames,
+} from "../../infrastructure/persistence/import-usernames";
+import type { GameSite } from "../../extension/external-game";
+import {
+  LoadingState,
+  PositionLoading,
+} from "../../shared/loading/LoadingState";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import {
   explainWhy,
@@ -22,6 +31,7 @@ import { INITIAL_PLAYER_ELO, type RatingEntry } from "../../domain/game/rating";
 import { curriculum } from "../../domain/material/installed-curriculum";
 import { dayRecap } from "../../domain/progress/day-recap";
 import { deriveProgress } from "../../domain/progress/derive-progress";
+import { summarizeSkyGames } from "../../domain/progress/sky-game-review";
 import type {
   CurriculumStage,
   MomentAttemptRecord,
@@ -43,10 +53,15 @@ import { detectOnDeviceCapability } from "../../infrastructure/ai/on-device-capa
 import { StockfishAnalysisEngine } from "../../infrastructure/engine/stockfish-analysis-engine";
 import type { PlayerHistory } from "../../infrastructure/persistence/player-history";
 import { AppShell } from "../../shared/navigation/AppShell";
+import {
+  parentPage,
+  returnToParent,
+} from "../../shared/navigation/history-entry";
 import type { TabId } from "../../shared/navigation/TabBar";
 import { NetworkPill } from "../../shared/rook/NetworkPill";
 import {
   Avatar,
+  Pill,
   ProgressDots,
   StreakChip,
   XpChip,
@@ -185,28 +200,6 @@ function linkedMoment(): string | undefined {
   }
 }
 
-async function puzzleMoment(
-  puzzle: FollowUpPuzzle,
-  sourceLabel: string,
-): Promise<MomentSpec | undefined> {
-  const analysis = await engine.analyze({
-    fen: puzzle.fen,
-    multiPv: 1,
-    depth: 14,
-    timeBudgetMs: 2_000,
-    signal: AbortSignal.timeout(8_000),
-  });
-  const top = analysis.ok ? analysis.value.candidates[0] : undefined;
-  return top
-    ? momentFromPuzzle(
-        puzzle,
-        top.evaluationCpFromSideToMove,
-        units,
-        sourceLabel,
-      )
-    : undefined;
-}
-
 // Plies that count as the opening, as in the game analysis's phases.
 const OPENING_PLIES = 20;
 
@@ -218,26 +211,43 @@ export function BoardFirstScreens({
   ratings,
   playerName,
   signedIn,
+  onOpenAccount,
   onPlay,
   onGames,
   onImport,
+  onImportFrom,
+  review,
+  reviewHome,
 }: {
   readonly view: BoardFirstView;
+  readonly reviewHome?: ReactNode;
+  readonly review?:
+    | {
+        readonly position: ObservedMove;
+        readonly alternateSide: boolean;
+        readonly exitLabel: string;
+        readonly onExit: () => void;
+        readonly onReplay: () => void;
+        readonly onReport?: () => void;
+      }
+    | undefined;
   readonly navigate: (view: BoardFirstView, path?: string) => void;
   readonly history: PlayerHistory;
   readonly snapshot: SnapshotState;
   readonly ratings: readonly RatingEntry[];
   readonly playerName: string;
   readonly signedIn: boolean;
+  readonly onOpenAccount: () => void;
   readonly onPlay: () => void;
   readonly onGames: () => void;
   readonly onImport: () => void;
+  readonly onImportFrom: (site: GameSite) => void;
 }) {
   const online = useOnline();
   const [attempts, setAttempts] = useState<
     readonly MomentAttemptRecord[] | undefined
   >(() => attemptCache.get(history));
-  const [moment, setMoment] = useState<MomentSpec | "opening" | undefined>();
+  const [moment, setMoment] = useState<MomentSpec | undefined>();
   const [voice, setVoice] = useState(() => {
     try {
       return localStorage.getItem(VOICE_KEY) === "1";
@@ -301,12 +311,17 @@ export function BoardFirstScreens({
       }),
     [games, attempts, progress, input],
   );
-  const loading = attempts === undefined || snapshot.status === "checking";
+  const loading =
+    attempts === undefined ||
+    (view !== "review-home" && snapshot.status === "checking");
 
-  const todayMoment =
-    pick.kind === "new" || pick.kind === "returning"
-      ? momentFromGame(pick.moment, units)
-      : undefined;
+  const todayMoment = useMemo(
+    () =>
+      view === "today" && (pick.kind === "new" || pick.kind === "returning")
+        ? momentFromGame(pick.moment, units)
+        : undefined,
+    [pick, view],
+  );
   const todayState: TodayState = loading
     ? { kind: "loading" }
     : pick.kind === "new" || pick.kind === "returning"
@@ -338,83 +353,90 @@ export function BoardFirstScreens({
             }
           : { kind: "caught-up" };
 
-  async function open(target: ObservedMove | FollowUpPuzzle, label?: string) {
-    setMoment("opening");
-    navigate(
-      "moment",
-      momentPath(
-        "drill" in target ? gameMomentId(target) : `puzzle:${target.id}`,
-      ),
-    );
+  function open(target: ObservedMove | FollowUpPuzzle, label?: string) {
     const spec =
       "drill" in target
-        ? momentFromGame(target, units)
-        : await puzzleMoment(target, label ?? PUZZLE_LABEL);
+        ? todayMoment?.id === gameMomentId(target)
+          ? todayMoment
+          : momentFromGame(target, units)
+        : momentFromPuzzle(target, units, label ?? PUZZLE_LABEL);
+    if (!spec) return;
     setMoment(spec);
-    if (!spec) navigate("today");
+    navigate("moment", momentPath(spec.id));
   }
 
   // A refresh or a pasted #moment/<id> link reopens the same position once
   // the player's games are read; an unknown id goes back to Today.
   const linked =
-    view === "moment" && moment === undefined ? linkedMoment() : undefined;
+    view === "moment" && review === undefined ? linkedMoment() : undefined;
+  const opened = moment?.id === linked ? moment : undefined;
+  const linkedGame =
+    linked !== undefined &&
+    opened === undefined &&
+    !linked.startsWith("puzzle:")
+      ? games.find((entry) => gameMomentId(entry) === linked)
+      : undefined;
   const restored = useMemo(() => {
-    if (linked === undefined || linked.startsWith("puzzle:")) return undefined;
-    const observed = games.find((entry) => gameMomentId(entry) === linked);
-    return observed ? momentFromGame(observed, units) : undefined;
-  }, [linked, games]);
+    if (linked === undefined || opened !== undefined) return undefined;
+    if (linked.startsWith("puzzle:")) {
+      const puzzle = pack.puzzles.find(
+        ({ id }) => id === linked.slice("puzzle:".length),
+      );
+      return puzzle
+        ? momentFromPuzzle(
+            puzzle,
+            units,
+            puzzle.id === warmUp?.id ? "Warm-up position" : PUZZLE_LABEL,
+          )
+        : undefined;
+    }
+    return linkedGame ? momentFromGame(linkedGame, units) : undefined;
+  }, [linked, opened, linkedGame]);
   const unresolved =
     view === "moment" &&
-    moment === undefined &&
+    review === undefined &&
+    opened === undefined &&
     restored === undefined &&
     (linked === undefined ||
-      (!linked.startsWith("puzzle:") && snapshot.status !== "checking"));
+      linked.startsWith("puzzle:") ||
+      snapshot.status !== "checking");
   useEffect(() => {
     if (unresolved) navigate("today");
   }, [unresolved, navigate]);
-  useEffect(() => {
-    if (moment !== undefined || !linked?.startsWith("puzzle:")) return;
-    const id = linked.slice("puzzle:".length);
-    const puzzle = pack.puzzles.find((entry) => entry.id === id);
-    if (!puzzle) {
-      navigate("today");
-      return;
-    }
-    let live = true;
-    void puzzleMoment(
-      puzzle,
-      puzzle.id === warmUp?.id ? "Warm-up position" : PUZZLE_LABEL,
-    ).then((spec) => {
-      if (live) setMoment(spec);
-    });
-    return () => {
-      live = false;
+  const reviewPosition = review?.position;
+  const alternateSide = review?.alternateSide ?? false;
+  const reviewMoment = useMemo(() => {
+    if (reviewPosition === undefined) return undefined;
+    const spec = momentFromGame(reviewPosition, units);
+    if (!spec || !alternateSide) return spec;
+    return {
+      ...spec,
+      sourceLabel:
+        reviewPosition.game.playerColor === "black"
+          ? "Reviewing Black’s moves"
+          : "Reviewing White’s moves",
     };
-  }, [linked, moment, navigate]);
-  const active = moment ?? restored;
+  }, [reviewPosition, alternateSide]);
+  const active = reviewMoment ?? opened ?? restored;
   // A moment from a game's opening offers that game's opening storyboard.
-  const source =
-    active !== undefined && active !== "opening" ? active.source : undefined;
+  const source = active?.source;
   const openingGame =
-    source?.kind === "game" &&
-    source.ply <= OPENING_PLIES &&
-    snapshot.status === "ready"
-      ? snapshot.games.find(({ id }) => id === source.gameId)
+    source?.kind === "game" && source.ply <= OPENING_PLIES
+      ? (reviewPosition?.game ??
+        (snapshot.status === "ready"
+          ? snapshot.games.find(({ id }) => id === source.gameId)
+          : undefined))
       : undefined;
   const opening = useOpeningReview(openingGame);
-  const dangers =
-    active !== undefined && active !== "opening"
-      ? active.danger?.facts
-      : undefined;
+  const dangers = active?.danger?.facts;
 
   function playToday() {
-    if (pick.kind === "new" || pick.kind === "returning")
-      void open(pick.moment);
+    if (pick.kind === "new" || pick.kind === "returning") open(pick.moment);
     else if (pick.kind === "similar") {
       const puzzle = pack.puzzles.find(({ id }) => id === pick.puzzleId);
-      if (puzzle) void open(puzzle);
+      if (puzzle) open(puzzle);
     } else if (pick.kind === "warm-up" && warmUp)
-      void open(warmUp, "Warm-up position");
+      open(warmUp, "Warm-up position");
   }
 
   function lookAt(source: MomentAttemptRecord["source"]) {
@@ -423,11 +445,11 @@ export function BoardFirstScreens({
         (entry) =>
           gameMomentId(entry) === `${source.gameId}:${String(source.ply)}`,
       );
-      if (observed) void open(observed);
+      if (observed) open(observed);
       return;
     }
     const puzzle = pack.puzzles.find(({ id }) => id === source.puzzleId);
-    if (puzzle) void open(puzzle);
+    if (puzzle) open(puzzle);
   }
 
   const rating = ratings.at(-1)?.after ?? INITIAL_PLAYER_ELO;
@@ -452,8 +474,8 @@ export function BoardFirstScreens({
       },
       start: (
         <>
-          <StreakChip days={progress.streak.current} />
-          <XpChip xp={progress.xp} />
+          {!loading && <StreakChip days={progress.streak.current} />}
+          {!loading && <XpChip xp={progress.xp} />}
         </>
       ),
       end: (
@@ -467,41 +489,49 @@ export function BoardFirstScreens({
       ),
     }) as const;
 
-  if (view === "moment")
+  if (view === "moment") {
+    const fromSky = parentPage() === "#sky";
     return (
       <AppShell
         mode={{
           kind: "focus",
-          exitLabel: "Leave this position",
-          onExit: () => {
-            navigate("today");
-          },
+          exitLabel:
+            review?.exitLabel ??
+            (fromSky ? "Back to Sky" : "Leave this position"),
+          onExit:
+            review?.onExit ??
+            (() => {
+              if (fromSky)
+                returnToParent(() => {
+                  navigate("sky");
+                });
+              else navigate("today");
+            }),
           top: (
             <>
-              <ProgressDots
-                total={progress.dailyGoal.target}
-                done={Math.min(
-                  progress.dailyGoal.done,
-                  progress.dailyGoal.target,
-                )}
-              />
+              {review ? (
+                <>
+                  <Pill onClick={review.onReplay}>Full replay</Pill>
+                  {review.onReport && (
+                    <Pill onClick={review.onReport}>Full report</Pill>
+                  )}
+                </>
+              ) : (
+                <ProgressDots
+                  total={progress.dailyGoal.target}
+                  done={Math.min(
+                    progress.dailyGoal.done,
+                    progress.dailyGoal.target,
+                  )}
+                />
+              )}
               <NetworkPill online={online} />
             </>
           ),
         }}
       >
-        {active === undefined || active === "opening" ? (
-          <TodayScreen
-            state={{ kind: "loading" }}
-            goal={progress.dailyGoal}
-            week={progress.week}
-            onPlay={() => undefined}
-            onImport={onImport}
-            onPlayGame={onPlay}
-            onSky={() => {
-              navigate("sky");
-            }}
-          />
+        {active === undefined ? (
+          <PositionLoading>Opening your position…</PositionLoading>
         ) : (
           <MomentScreen
             key={active.id}
@@ -541,6 +571,16 @@ export function BoardFirstScreens({
                     })
                 : undefined
             }
+            routeVoice={async (context, signal) => {
+              const cancelled = () => signal.aborted;
+              const { device, cloud } = await questionRouters();
+              if (cancelled()) return undefined;
+              const choice = await device?.routeVoice?.(context, signal);
+              if (choice !== undefined || cancelled()) return choice;
+              if (online && canUse("open-chat"))
+                return cloud?.routeVoice?.(context, signal);
+              return undefined;
+            }}
             askRook={async (question, signal) => {
               const available = await questionRouters();
               return routeQuestion({
@@ -552,7 +592,7 @@ export function BoardFirstScreens({
                 signal,
               });
             }}
-            onComplete={(result) => {
+            onComplete={async (result) => {
               const record = momentRecord({
                 id: `${active.id}@${new Date().toISOString()}`,
                 result,
@@ -560,20 +600,50 @@ export function BoardFirstScreens({
                 unitId: active.unitId,
                 completedAt: new Date(),
               });
-              if (record)
-                void history.moments.add(record).then(() => {
-                  setAttemptsRevision((revision) => revision + 1);
-                });
+              if (!record) return;
+              const saved = await history.moments.add(record);
+              if (!saved.ok) throw new Error(saved.error.message);
+              const updated = [...(attemptCache.get(history) ?? []), record];
+              attemptCache.set(history, updated);
+              setAttempts(updated);
+              setAttemptsRevision((revision) => revision + 1);
             }}
             onContinue={() => {
-              navigate("recap");
+              if (review?.alternateSide) review.onExit();
+              else navigate("recap");
             }}
-            dailyGoal={progress.dailyGoal}
+            trackProgress={!alternateSide}
+            dailyGoal={alternateSide ? undefined : progress.dailyGoal}
             readsAloud={voice}
           />
         )}
       </AppShell>
     );
+  }
+
+  if (loading && (view === "sky" || view === "profile" || view === "recap")) {
+    const mode =
+      view === "recap"
+        ? {
+            kind: "focus" as const,
+            exitLabel: "Back to today",
+            onExit: () => {
+              navigate("today");
+            },
+          }
+        : tabs(view === "sky" ? "sky" : undefined);
+    return (
+      <AppShell mode={mode}>
+        <LoadingState>
+          {view === "sky"
+            ? "Opening your sky…"
+            : view === "profile"
+              ? "Opening your profile…"
+              : "Preparing your recap…"}
+        </LoadingState>
+      </AppShell>
+    );
+  }
 
   if (view === "recap") {
     const recap = dayRecap(input);
@@ -610,7 +680,16 @@ export function BoardFirstScreens({
     );
   }
 
-  if (view === "sky")
+  if (view === "sky") {
+    const gameReview = summarizeSkyGames(input);
+    const seen = new Set(
+      input.attempts.flatMap(({ source }) =>
+        source.kind === "puzzle" ? [source.puzzleId] : [],
+      ),
+    );
+    const followUp = pack.puzzles.find(
+      ({ id, unitId }) => unitId === gameReview.focus?.unitId && !seen.has(id),
+    );
     return (
       <AppShell mode={tabs("sky")}>
         <SkyScreen
@@ -619,9 +698,17 @@ export function BoardFirstScreens({
           newestStar={progress.newestStar}
           history={(unitId) => unitHistory(input, unitId)}
           onLook={lookAt}
+          gameReview={gameReview}
+          followUp={
+            followUp ? { kind: "puzzle", puzzleId: followUp.id } : undefined
+          }
         />
       </AppShell>
     );
+  }
+
+  if (view === "review-home")
+    return <AppShell mode={tabs("games")}>{reviewHome}</AppShell>;
 
   if (view === "profile")
     return (
@@ -646,12 +733,17 @@ export function BoardFirstScreens({
               // The setting lasts for this visit.
             }
           }}
-          linkedAccounts={[]}
+          savedUsernames={readImportUsernames(
+            history.key(IMPORT_USERNAMES_KEY),
+          )}
           syncState={signedIn ? "synced" : "signed-out"}
+          onOpenAccount={onOpenAccount}
           onOpenSky={() => {
             navigate("sky");
           }}
-          onLink={onImport}
+          onImportFrom={(site) => {
+            onImportFrom(site === "Lichess" ? "lichess" : "chesscom");
+          }}
         />
       </AppShell>
     );

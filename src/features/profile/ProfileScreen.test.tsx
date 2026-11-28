@@ -119,13 +119,18 @@ describe("ProfileScreen", () => {
     ).toBeVisible();
   });
 
-  it("shows linked accounts and offers to link the others", () => {
-    const onLink = vi.fn();
-    render(<ProfileScreen {...activeProfile} onLink={onLink} />);
+  it("shows saved usernames and keeps both provider imports available", () => {
+    const onImportFrom = vi.fn();
+    render(<ProfileScreen {...activeProfile} onImportFrom={onImportFrom} />);
     expect(screen.getByText("hyunplays")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Link Lichess" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Link Chess.com" }));
-    expect(onLink).toHaveBeenCalledWith("Chess.com");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Import from Lichess" }),
+    );
+    expect(onImportFrom).toHaveBeenCalledWith("Lichess");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Import from Chess.com" }),
+    );
+    expect(onImportFrom).toHaveBeenCalledWith("Chess.com");
   });
 
   it.each([

@@ -85,31 +85,49 @@ export type SnapshotState =
     };
 export function usePlayingSnapshot(
   history: PlayerHistory,
-  enabled: boolean,
+  mode: "off" | "saved" | "backfill",
   revision: number,
+  analysisRevision: number,
+  waitForCurrent: boolean,
   analyze: (
     history: PlayerHistory,
     game: GameRecord,
   ) => Promise<Result<CompletedGameAnalysis, string>>,
 ) {
-  const [state, setState] = useState<SnapshotState>({ status: "checking" });
+  const [published, setPublished] = useState<{
+    history: PlayerHistory;
+    revision: number;
+    analysisRevision: number;
+    state: SnapshotState;
+  }>();
+  // Completed games and their active-version analysis are immutable.
+  const observations = useRef(new Map<string, readonly ObservedMove[]>());
   // The inputs of the last run that finished. Switching to a screen that does
   // not need the snapshot and back keeps it instead of rebuilding it.
   const finished = useRef<
-    | { history: PlayerHistory; revision: number; analyze: typeof analyze }
+    | {
+        history: PlayerHistory;
+        revision: number;
+        analysisRevision: number;
+        backfilled: boolean;
+      }
     | undefined
   >(undefined);
   useEffect(() => {
-    if (!enabled) return;
+    if (mode === "off") return;
     const done = finished.current;
     if (
       done?.history === history &&
       done.revision === revision &&
-      done.analyze === analyze
+      done.analysisRevision === analysisRevision &&
+      (mode === "saved" || done.backfilled)
     )
       return;
     const controller = new AbortController();
     const isCurrent = () => !controller.signal.aborted;
+    const setState = (state: SnapshotState) => {
+      setPublished({ history, revision, analysisRevision, state });
+    };
     async function prepare() {
       const listed = await history.games.listCompleted();
       if (!isCurrent()) return;
@@ -119,67 +137,66 @@ export function usePlayingSnapshot(
       }
       const games = snapshotGames(listed.value);
       const eligible = games.filter((g) => g.moves.length > 0);
-      if (!eligible.length) {
+      const existingMoves: ObservedMove[] = [];
+      const newMoves: ObservedMove[] = [];
+      const newGames: { key: string; start: number; end: number }[] = [];
+      const missing: GameRecord[] = [];
+      let checked = 0;
+      let failed = 0;
+      function publish() {
+        if (!isCurrent()) return;
+        const moves = existingMoves.concat(newMoves);
         setState({
           status: "ready",
           games,
-          moves: [],
-          checked: 0,
-          failed: 0,
-          total: 0,
-          plan: buildPlayingSnapshot([]),
+          moves,
+          checked,
+          failed,
+          total: eligible.length,
+          plan: buildPlayingSnapshot(moves),
         });
-        finished.current = { history, revision, analyze };
-        return;
       }
-      const cached = await history.analyses.listAll();
-      if (!isCurrent()) return;
-      const byGame = new Map(
-        (cached.ok ? cached.value : [])
-          .filter((a) => a.analysisVersion === ANALYSIS_VERSION)
-          .map((a) => [a.gameId, a]),
-      );
-      const moves: ObservedMove[] = [];
-      const missing: GameRecord[] = [];
-      let checked = 0,
-        failed = 0;
-      function publish() {
-        if (isCurrent())
-          setState({
-            status: "ready",
-            games,
-            moves: [...moves],
-            checked,
-            failed,
-            total: eligible.length,
-            plan: buildPlayingSnapshot(moves),
-          });
+      const keyFor = (game: GameRecord) =>
+        JSON.stringify([history.name, game.id]);
+      function collect(game: GameRecord, analysis: CompletedGameAnalysis) {
+        const start = newMoves.length;
+        newMoves.push(...observedGameMoves(game, analysis));
+        newGames.push({ key: keyFor(game), start, end: newMoves.length });
+        checked++;
       }
       for (const game of eligible) {
-        const record = byGame.get(game.id);
-        if (record) {
-          moves.push(...observedGameMoves(game, record));
+        const cached = observations.current.get(keyFor(game));
+        if (cached !== undefined) {
+          existingMoves.push(...cached);
           checked++;
-        } else missing.push(game);
+          continue;
+        }
+        const record = await history.analyses.get(game.id, ANALYSIS_VERSION);
+        if (!isCurrent()) return;
+        if (!record.ok) failed++;
+        else if (record.value !== null) collect(game, record.value);
+        else missing.push(game);
       }
       publish();
-      for (const game of missing.reverse()) {
-        if (!isCurrent()) return;
-        const result = await analyze(history, game);
-        if (!isCurrent()) return;
-        if (result.ok) {
-          moves.push(...observedGameMoves(game, result.value));
-          checked++;
-        } else failed++;
-        publish();
+      if (mode === "backfill") {
+        for (const game of missing.reverse()) {
+          if (!isCurrent()) return;
+          const result = await analyze(history, game);
+          if (!isCurrent()) return;
+          if (result.ok) collect(game, result.value);
+          else failed++;
+          publish();
+        }
       }
-      const nano = await import("../infrastructure/ai/on-device-capability")
-        .then(
-          async ({ detectOnDeviceCapability }) =>
-            (await detectOnDeviceCapability()).status === "available",
-        )
-        .catch(() => false);
-      for (const [index, entry] of moves.entries()) {
+      const nano = newMoves.some(({ drill }) => drill.mateInOne)
+        ? await import("../infrastructure/ai/on-device-capability")
+            .then(
+              async ({ detectOnDeviceCapability }) =>
+                (await detectOnDeviceCapability()).status === "available",
+            )
+            .catch(() => false)
+        : false;
+      for (const [index, entry] of newMoves.entries()) {
         if (!entry.drill.mateInOne || !isCurrent()) continue;
         const { fen, verification } = entry.drill.exercise;
         const move = verification.principalVariation[0];
@@ -202,7 +219,7 @@ export function usePlayingSnapshot(
               localStorage.setItem(key, motif);
           }
           if (motif === "back-rank" && isCurrent()) {
-            moves[index] = {
+            newMoves[index] = {
               ...entry,
               drill: { ...entry.drill, backRank: true, followUps: [] },
             };
@@ -214,9 +231,19 @@ export function usePlayingSnapshot(
       }
       // Board-model units come after the mate labels: mates never use them, and
       // running them first would delay the back-rank recommendation.
-      await addBoardUnits(moves, history, isCurrent);
-      publish();
-      if (isCurrent()) finished.current = { history, revision, analyze };
+      if (newMoves.some(({ drill }) => !drill.mateInOne && !drill.backRank)) {
+        await addBoardUnits(newMoves, history, isCurrent);
+        publish();
+      }
+      if (!isCurrent()) return;
+      for (const { key, start, end } of newGames)
+        observations.current.set(key, newMoves.slice(start, end));
+      finished.current = {
+        history,
+        revision,
+        analysisRevision,
+        backfilled: mode === "backfill" || checked === eligible.length,
+      };
     }
     void prepare().catch(() => {
       if (isCurrent())
@@ -229,6 +256,13 @@ export function usePlayingSnapshot(
     return () => {
       controller.abort();
     };
-  }, [history, enabled, revision, analyze]);
-  return state;
+  }, [history, mode, revision, analysisRevision, analyze]);
+  if (
+    published?.history !== history ||
+    (waitForCurrent &&
+      (published.revision !== revision ||
+        published.analysisRevision !== analysisRevision))
+  )
+    return { status: "checking" } satisfies SnapshotState;
+  return published.state;
 }

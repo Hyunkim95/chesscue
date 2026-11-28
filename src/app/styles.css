@@ -282,6 +282,13 @@ button {
   backdrop-filter: blur(16px);
 }
 
+.app-bar__profile {
+  display: flex;
+  grid-column: -2 / -1;
+  grid-row: 1;
+  justify-self: end;
+}
+
 .brand,
 .board-back,
 .account-button {

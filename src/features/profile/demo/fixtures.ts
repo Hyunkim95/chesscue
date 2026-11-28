@@ -71,10 +71,11 @@ export const activeProfile: ProfileScreenProps = {
   stageTitles,
   voice: { enabled: true, available: true },
   onVoiceChange: noop,
-  linkedAccounts: [{ site: "Lichess", username: "hyunplays" }],
+  savedUsernames: { lichess: "hyunplays" },
   syncState: "synced",
+  onOpenAccount: () => undefined,
   onOpenSky: noop,
-  onLink: noop,
+  onImportFrom: noop,
 };
 
 export const newProfile: ProfileScreenProps = {
@@ -83,7 +84,7 @@ export const newProfile: ProfileScreenProps = {
   ratingDelta: 0,
   progress: newProgress,
   voice: { enabled: false, available: false },
-  linkedAccounts: [],
+  savedUsernames: {},
   syncState: "signed-out",
 };
 
@@ -111,9 +112,9 @@ export const topProfile: ProfileScreenProps = {
       "night-owl",
     ],
   },
-  linkedAccounts: [
-    { site: "Lichess", username: "alexandra_k" },
-    { site: "Chess.com", username: "AlexandraKonstantinopoulou" },
-  ],
+  savedUsernames: {
+    lichess: "alexandra_k",
+    chesscom: "AlexandraKonstantinopoulou",
+  },
   syncState: "error",
 };

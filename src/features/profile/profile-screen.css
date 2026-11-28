@@ -375,21 +375,8 @@
   color: var(--ui-color-muted);
 }
 
-.profile-setting__account b {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .profile-setting__text--quiet {
   color: var(--ui-color-muted);
-}
-
-.profile-setting__status {
-  flex: none;
-  font-size: 12.5px;
-  font-weight: 800;
-  color: var(--ui-color-jade);
 }
 
 .profile-setting--sync-synced .profile-setting__glyph {

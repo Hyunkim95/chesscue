@@ -53,7 +53,7 @@ export function AppShell({
       </header>
       {/* A new tab mounts a new body, which fades in (app-shell.css). */}
       <main
-        key={mode.kind === "tabs" ? (mode.current ?? "tabs") : "focus"}
+        key={mode.kind === "tabs" ? (mode.current ?? "tabs") : mode.exitLabel}
         className="app-shell__body"
       >
         {children}

@@ -65,20 +65,22 @@
 
 /* Switching tabs fades the new screen in; the tab bar stays still. Opacity
    never changes where a tap lands, so the screen is usable at once. */
-.app-shell--tabs .app-shell__body,
-.app-frame:has(.board-first-tabs) > main {
+.app-shell__body,
+.next-move-page > .next-move,
+.app-frame > main {
   animation: app-shell-screen-in var(--ui-motion-screen) ease-out;
 }
 
 @keyframes app-shell-screen-in {
   from {
-    opacity: 0;
+    opacity: 0.78;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-shell--tabs .app-shell__body,
-  .app-frame:has(.board-first-tabs) > main {
+  .app-shell__body,
+  .next-move-page > .next-move,
+  .app-frame > main {
     animation: none;
   }
 }

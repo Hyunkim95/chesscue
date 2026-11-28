@@ -4,13 +4,13 @@ import crownArt from "../../assets/brand/rank-crown.webp";
 import jadeArt from "../../assets/brand/rank-jade.webp";
 import sapphireArt from "../../assets/brand/rank-sapphire.webp";
 import type { AchievementId, Progress } from "../../domain/progress/types";
+import type { SavedImportUsernames } from "../../infrastructure/persistence/import-usernames";
 import { Avatar, Pill, Toggle } from "../../shared/ui/primitives";
 import { achievementCopy, lockedAchievements } from "./achievement-copy";
 import "./profile-screen.css";
 
 // The rated ranks from src/domain/game/rank-path.ts.
 export type RankName = "Copper" | "Jade" | "Sapphire" | "Amethyst" | "Crown";
-export type LinkedSite = "Lichess" | "Chess.com";
 export type SyncState = "signed-out" | "synced" | "syncing" | "error";
 
 export interface ProfileScreenProps {
@@ -29,13 +29,11 @@ export interface ProfileScreenProps {
   readonly stageTitles: ReadonlyMap<string, string>;
   readonly voice: { readonly enabled: boolean; readonly available: boolean };
   readonly onVoiceChange: (enabled: boolean) => void;
-  readonly linkedAccounts: readonly {
-    readonly site: LinkedSite;
-    readonly username: string;
-  }[];
+  readonly savedUsernames: SavedImportUsernames;
   readonly syncState: SyncState;
+  readonly onOpenAccount: () => void;
   readonly onOpenSky: () => void;
-  readonly onLink: (site: LinkedSite) => void;
+  readonly onImportFrom: (site: ImportProvider) => void;
 }
 
 const RANKS: readonly { readonly name: RankName; readonly art: string }[] = [
@@ -45,7 +43,11 @@ const RANKS: readonly { readonly name: RankName; readonly art: string }[] = [
   { name: "Amethyst", art: amethystArt },
   { name: "Crown", art: crownArt },
 ];
-const SITES: readonly LinkedSite[] = ["Lichess", "Chess.com"];
+const SITES = [
+  { id: "lichess", name: "Lichess" },
+  { id: "chesscom", name: "Chess.com" },
+] as const;
+type ImportProvider = (typeof SITES)[number]["name"];
 
 const SYNC_COPY: Record<SyncState, { readonly glyph: string; text: string }> = {
   "signed-out": {
@@ -265,14 +267,12 @@ function LockShape() {
 function Settings({
   voice,
   onVoiceChange,
-  linkedAccounts,
+  savedUsernames,
   syncState,
-  onLink,
+  onOpenAccount,
+  onImportFrom,
 }: ProfileScreenProps) {
   const sync = SYNC_COPY[syncState];
-  const unlinked = SITES.filter(
-    (site) => !linkedAccounts.some((account) => account.site === site),
-  );
   return (
     <section className="profile-section" aria-labelledby="profile-settings">
       <h2 className="profile-label" id="profile-settings">
@@ -292,46 +292,42 @@ function Settings({
             </small>
           )}
         </li>
-        {linkedAccounts.map(({ site, username }) => (
-          <li key={site} className="profile-setting">
-            <span className="profile-setting__glyph" aria-hidden="true">
-              ♟
-            </span>
-            <span className="profile-setting__text profile-setting__account">
-              <small>{site}</small>
-              <b title={username}>{username}</b>
-            </span>
-            <span className="profile-setting__status">
-              <span aria-hidden="true">✓ </span>Linked
-            </span>
-          </li>
-        ))}
-        {unlinked.map((site) => (
-          <li key={site} className="profile-setting">
-            <span className="profile-setting__glyph" aria-hidden="true">
-              ♟
-            </span>
-            <span className="profile-setting__text profile-setting__text--quiet">
-              {site} · not linked
-            </span>
-            <Pill
-              onClick={() => {
-                onLink(site);
-              }}
-              aria-label={`Link ${site}`}
-            >
-              Link
-            </Pill>
-          </li>
-        ))}
-        <li
-          className={`profile-setting profile-setting--sync-${syncState}`}
-          role="status"
-        >
+        {SITES.map(({ id, name }) => {
+          const username = savedUsernames[id];
+          return (
+            <li key={id} className="profile-setting">
+              <span className="profile-setting__glyph" aria-hidden="true">
+                ♟
+              </span>
+              {username ? (
+                <span className="profile-setting__text profile-setting__account">
+                  <small>{name}</small>
+                  <b>{username}</b>
+                </span>
+              ) : (
+                <span className="profile-setting__text profile-setting__text--quiet">
+                  {name}
+                </span>
+              )}
+              <Pill
+                onClick={() => {
+                  onImportFrom(name);
+                }}
+                aria-label={`Import from ${name}`}
+              >
+                Import
+              </Pill>
+            </li>
+          );
+        })}
+        <li className={`profile-setting profile-setting--sync-${syncState}`}>
           <span className="profile-setting__glyph" aria-hidden="true">
             {sync.glyph}
           </span>
-          <span className="profile-setting__text">{sync.text}</span>
+          <span className="profile-setting__text" role="status">
+            {sync.text}
+          </span>
+          <Pill onClick={onOpenAccount}>Account settings</Pill>
         </li>
       </ul>
     </section>

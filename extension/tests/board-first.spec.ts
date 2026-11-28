@@ -85,6 +85,21 @@ for (const width of [320, 420]) {
       ).toBeVisible();
       await noSideScroll(page);
 
+      const star = page
+        .getByRole("group", { name: "Curriculum star chart" })
+        .getByRole("button")
+        .first();
+      await star.click();
+      const details = page.getByRole("dialog");
+      await expect(details).toBeVisible();
+      await noSideScroll(page);
+      await page.screenshot({
+        path: test.info().outputPath(`sky-star-${String(width)}.png`),
+      });
+      await details.getByRole("button", { name: "Close" }).press("Escape");
+      await expect(details).toHaveCount(0);
+      await expect(star).toBeFocused();
+
       await nav.getByRole("button", { name: "Play" }).click();
       await expect(page).toHaveURL(/#play/);
       await noSideScroll(page);

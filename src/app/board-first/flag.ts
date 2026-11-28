@@ -25,6 +25,7 @@ export const boardFirstViews = [
   "recap",
   "sky",
   "profile",
+  "review-home",
 ] as const;
 
 export type BoardFirstView = (typeof boardFirstViews)[number];
