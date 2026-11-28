@@ -98,6 +98,20 @@ export function UiKit() {
           <Pill>Show me</Pill>
         </div>
         <ChipRow chips={chips} onSelect={() => undefined} />
+        {/* While work runs: the tapped control spins at the same size and
+            the ones that would clash are dimmed. */}
+        <div className="kit-row" aria-label="Busy and disabled">
+          <Button busy>↺ Try again</Button>
+          <Pill busy>Hint</Pill>
+          <Pill disabled>Show me</Pill>
+        </div>
+        <ChipRow
+          chips={chips}
+          onSelect={() => undefined}
+          label="Busy chips"
+          disabled
+          busyId={chips[0]?.id}
+        />
         <AskBar
           mode="offline"
           onAsk={() => undefined}
