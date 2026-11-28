@@ -149,12 +149,27 @@ test("keeps the board, controls and composer aligned across board screens", asyn
     await page
       .getByRole("button", { name: "Import games", exact: true })
       .click();
+    // Review keeps the Stockfish bar (10 px and a 3 px gap) down the board's
+    // left edge, inside the same frame: the squares end where play's do and
+    // are narrower by the bar.
+    const BAR = 13;
     expect(
       await boardBounds(
         page.getByRole("grid", { name: /Training board/ }),
         "review",
       ),
-    ).toEqual(play);
+    ).toEqual(
+      play.map(({ board, controlsTop, composerTop }) => ({
+        board: {
+          x: board.x + BAR,
+          y: board.y,
+          width: board.width - BAR,
+          height: board.height - BAR,
+        },
+        controlsTop: controlsTop === undefined ? undefined : controlsTop - BAR,
+        composerTop,
+      })),
+    );
   } finally {
     await context.close();
   }
@@ -594,6 +609,14 @@ test("finds and reopens an older completed game offline from Review", async () =
         name: "Stockfish evaluation",
       });
       await expect(stockfish).toBeVisible();
+      // The bar sits down the board's left edge, not under it.
+      const bar = rook.getByRole("img", { name: /^Stockfish: / });
+      await expect(bar).toBeVisible();
+      const barBox = await bar.boundingBox();
+      expect(barBox?.height).toBeGreaterThan((barBox?.width ?? 0) * 10);
+      await page.screenshot({
+        path: test.info().outputPath(`review-bar-${String(width)}.png`),
+      });
       const stockfishBox = await stockfish.boundingBox();
       if (!boardBox || !controlsBox || !composerBox)
         throw new Error("Missing review controls");

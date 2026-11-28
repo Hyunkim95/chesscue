@@ -2162,7 +2162,8 @@ export function MomentScreen({
       ? moment.goal
       : undefined;
 
-  const balance = useEvalBar(view.fen, solved ? assessPosition : undefined);
+  const reading = useEvalBar(view.fen, solved ? assessPosition : undefined);
+  const balance = assessPosition ? (reading ?? "reserved") : undefined;
 
   return (
     <div className="moment board-split">

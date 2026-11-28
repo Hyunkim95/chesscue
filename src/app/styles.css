@@ -1103,6 +1103,14 @@ button {
   margin-inline: auto;
 }
 
+/* A board with the Stockfish bar lays the bar and the squares side by side. */
+.chesscue-sidebar
+  .rook-exploration--compact
+  .game-review__board-stage
+  .review-board.chess-board--bar {
+  display: grid;
+}
+
 .chesscue-sidebar .lesson-challenge__board {
   display: flex;
   flex-direction: column;

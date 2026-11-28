@@ -77,8 +77,25 @@ import { explainCheckedLoss, isGenericLoss } from "./explain-checked-loss";
 import { explainLinePlan, explainLineStep } from "./explain-line-step";
 import { proveLinePlan } from "./prove-line-plan";
 import { RookEvaluation } from "./RookEvaluation";
+import { useEvalBar, usePositionAssessment } from "../board/use-eval-bar";
 import { rookCaptureAnswer } from "./rook-capture-answer";
 import "./rook-exploration.css";
+
+// Dev only: the exploration as PGN from its start position, so a board bug can
+// be shared. Headers record the game move that led here and, when it differs
+// from the line's end, the position on screen.
+function explorationPgn(
+  rootFen: string,
+  line: readonly string[],
+  originMoveUci: string | null,
+  shownFen: string,
+): string {
+  const game = new Chess(rootFen);
+  for (const san of line) game.move(san);
+  if (originMoveUci) game.setHeader("OriginMove", originMoveUci);
+  if (shownFen !== game.fen()) game.setHeader("ShownFEN", shownFen);
+  return game.pgn();
+}
 
 interface Position {
   readonly id: number;
@@ -501,6 +518,7 @@ export function RookExploration({
   >("idle");
   const [returnPoint, setReturnPoint] = useState<ReturnPoint | null>(null);
   const [hintLevel, setHintLevel] = useState<HintLevel>(0);
+  const [pgnCopy, setPgnCopy] = useState<"idle" | "copied" | "failed">("idle");
   const [inspectedEscape, setInspectedEscape] = useState<{
     readonly move: Move;
     readonly square: Square;
@@ -2212,12 +2230,27 @@ export function RookExploration({
     ? "Hide conversation"
     : "Discuss position";
 
+  // One Stockfish reading feeds the score under the board; the bar beside
+  // the board follows whatever position the board shows. A practice puzzle
+  // has no bar: a reading would hint the answer.
+  const reading = usePositionAssessment(
+    displayed.fen(),
+    assessPosition ?? undefined,
+    {
+      known: scores.get(displayed.fen()),
+      paused: coaching.status === "checking",
+    },
+  );
+  const boardFen = comparisonMove?.after ?? introFrame?.fen ?? displayed.fen();
+  const barReading = useEvalBar(
+    boardFen,
+    assessPosition && !puzzle ? assessPosition : undefined,
+  );
+  const balance =
+    assessPosition && !puzzle ? (barReading ?? "reserved") : undefined;
   const evaluation = (
     <RookEvaluation
-      fen={displayed.fen()}
-      assess={assessPosition}
-      knownScore={scores.get(displayed.fen())}
-      checking={coaching.status === "checking"}
+      state={assessPosition ? reading.now : { kind: "unavailable" }}
       hidden={comparisonMove !== undefined}
     />
   );
@@ -2892,6 +2925,34 @@ export function RookExploration({
       aria-label="Explore with Rook"
     >
       {onClose && <BoardBack label={closeLabel} onBack={onClose} />}
+      {import.meta.env.DEV && (
+        <button
+          type="button"
+          className="rook-exploration__dev-copy"
+          onClick={() => {
+            const pgn = explorationPgn(
+              fen,
+              active.line,
+              originMoveUci,
+              comparisonMove?.after ?? introFrame?.fen ?? displayed.fen(),
+            );
+            void navigator.clipboard.writeText(pgn).then(
+              () => {
+                setPgnCopy("copied");
+              },
+              () => {
+                setPgnCopy("failed");
+              },
+            );
+          }}
+        >
+          {pgnCopy === "copied"
+            ? "PGN copied"
+            : pgnCopy === "failed"
+              ? "Copy failed"
+              : "Copy PGN (dev)"}
+        </button>
+      )}
       {showHeading && (
         <header className="rook-exploration__heading">
           <h2>Explore with Rook</h2>
@@ -2902,7 +2963,8 @@ export function RookExploration({
         board={
           <>
             <ReviewBoard
-              fen={comparisonMove?.after ?? introFrame?.fen ?? displayed.fen()}
+              balance={balance}
+              fen={boardFen}
               orientation={orientation}
               animateMove={replyAnimation !== null}
               lastMoveUci={

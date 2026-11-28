@@ -62,7 +62,9 @@ export interface ChessBoardProps {
   // The square that glows when a position is solved.
   readonly spotSquare?: Square | undefined;
   // The Stockfish bar down the left edge. Never passed during a game.
-  readonly balance?: BarReading | undefined;
+  // "reserved" keeps its place empty (no reading yet to show, as before a
+  // puzzle is solved), so the board never changes size when it fills.
+  readonly balance?: BarReading | "reserved" | undefined;
 }
 
 function squareCenter(square: Square, orientation: PlayerColor) {
@@ -191,17 +193,21 @@ export function ChessBoard({
     <div
       className={`chess-board${balance ? " chess-board--bar" : ""}${className === undefined ? "" : ` ${className}`}`}
     >
-      {balance && (
-        <div
-          className={`chess-board__bar chess-board__bar--${orientation}`}
-          role="img"
-          aria-label={`Stockfish: ${balance.words}`}
-        >
-          <span
-            className="chess-board__bar-white"
-            style={{ blockSize: `${String(balance.white * 100)}%` }}
-          />
-        </div>
+      {balance === "reserved" ? (
+        <div className="chess-board__bar" aria-hidden="true" />
+      ) : (
+        balance && (
+          <div
+            className={`chess-board__bar chess-board__bar--${orientation}`}
+            role="img"
+            aria-label={`Stockfish: ${balance.words}`}
+          >
+            <span
+              className="chess-board__bar-white"
+              style={{ blockSize: `${String(balance.white * 100)}%` }}
+            />
+          </div>
+        )
       )}
       <div className="chess-board__grid" role="grid" aria-label={label}>
         {order.map((row) => (

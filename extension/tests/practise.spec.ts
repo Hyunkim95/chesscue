@@ -785,10 +785,11 @@ test("shows the entire board, question and four-line reply together in the panel
     expect(await currentBoard.boundingBox()).toEqual(boardBefore);
     expect(await composer.boundingBox()).toEqual(composerBefore);
     const wideDock = rook.locator(".rook-exploration__composer-dock");
+    // Review keeps 13 px of the board's width for the Stockfish bar.
     for (const [width, height, minimumBoardWidth] of [
-      [320, 640, 180],
-      [420, 760, 330],
-      [320, 760, 296],
+      [320, 640, 167],
+      [420, 760, 317],
+      [320, 760, 283],
     ] as const) {
       await review.setViewportSize({ width, height });
       const openWidth = await boardWidth();

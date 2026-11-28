@@ -1,64 +1,22 @@
 import { LoadingText } from "../../shared/loading/LoadingState";
-import { Chess } from "chess.js";
-import { useEffect, useState } from "react";
-
-import type { AssessPosition } from "../../application/analyze-game/assess-position";
-import {
-  terminalAssessment,
-  type PositionAssessment,
-} from "../../domain/game/board-balance";
 import { isMateScore } from "../../domain/analysis/classify-experiment";
+import type { AssessmentState } from "../board/use-eval-bar";
 
 const barLimit = 600;
 
+// Stockfish's score for the review position, as a number. The bar itself
+// sits beside the board; this is the readout under it.
 export function RookEvaluation({
-  fen,
-  assess,
-  knownScore,
-  checking,
+  state,
   hidden,
 }: {
-  readonly fen: string;
-  readonly assess?: AssessPosition | null | undefined;
-  readonly knownScore?: number | undefined;
-  readonly checking: boolean;
+  readonly state: AssessmentState;
   readonly hidden?: boolean;
 }) {
-  const [response, setResponse] = useState<{
-    readonly fen: string;
-    readonly value: PositionAssessment | null;
-  } | null>(null);
-  const terminal = terminalAssessment(new Chess(fen));
-  const search =
-    assess != null &&
-    !checking &&
-    terminal === null &&
-    knownScore === undefined &&
-    response?.fen !== fen;
-  useEffect(() => {
-    if (!search) return;
-    const controller = new AbortController();
-    void assess(fen, controller.signal)
-      .catch(() => null)
-      .then((value) => {
-        if (!controller.signal.aborted) setResponse({ fen, value });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [assess, fen, search]);
-
-  const result =
-    terminal ??
-    (knownScore === undefined
-      ? response?.fen === fen
-        ? response.value
-        : null
-      : { kind: "estimate", whiteCentipawns: knownScore });
-  if (result === null) {
+  if (state.kind !== "ready") {
     return (
       <div className="rook-evaluation" role="status" hidden={hidden}>
-        {search || checking ? (
+        {state.kind === "checking" ? (
           <LoadingText>Checking evaluation…</LoadingText>
         ) : (
           "Evaluation unavailable"
@@ -66,7 +24,7 @@ export function RookEvaluation({
       </div>
     );
   }
-
+  const result = state.assessment;
   let label = "0.0";
   let accessibleLabel = "Even";
   let score = 0;
@@ -92,34 +50,18 @@ export function RookEvaluation({
       accessibleLabel = (value > 0 ? "White" : "Black") + " ahead by " + pawns;
     }
   }
-  const estimatedShare = 50 + (score / barLimit) * 50;
-  const whiteShare =
-    result.kind === "estimate" && !isMateScore(result.whiteCentipawns)
-      ? Math.max(4, Math.min(96, estimatedShare))
-      : estimatedShare;
   return (
-    <div className="rook-evaluation" hidden={hidden}>
-      <span>Stockfish</span>
-      <div
-        className="rook-evaluation__bar"
-        role="meter"
-        aria-label="Stockfish evaluation"
-        aria-valuemin={-barLimit}
-        aria-valuemax={barLimit}
-        aria-valuenow={score}
-        aria-valuetext={accessibleLabel}
-      >
-        <span
-          aria-hidden="true"
-          data-side="white"
-          style={{ width: String(whiteShare) + "%" }}
-        />
-        <span
-          aria-hidden="true"
-          data-side="black"
-          style={{ width: String(100 - whiteShare) + "%" }}
-        />
-      </div>
+    <div
+      className="rook-evaluation"
+      hidden={hidden}
+      role="meter"
+      aria-label="Stockfish evaluation"
+      aria-valuemin={-barLimit}
+      aria-valuemax={barLimit}
+      aria-valuenow={score}
+      aria-valuetext={accessibleLabel}
+    >
+      <span aria-hidden="true">Stockfish</span>
       <strong aria-hidden="true">{label}</strong>
     </div>
   );
