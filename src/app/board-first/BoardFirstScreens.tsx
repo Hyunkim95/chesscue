@@ -780,7 +780,7 @@ export function BoardFirstScreens({
         puzzles={loading ? [] : recommended}
         onOpenPuzzle={(id) => {
           const puzzle = pack.puzzles.find((entry) => entry.id === id);
-          if (puzzle) void open(puzzle);
+          if (puzzle) open(puzzle);
         }}
       />
     </AppShell>
