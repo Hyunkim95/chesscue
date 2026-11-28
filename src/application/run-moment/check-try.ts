@@ -1,4 +1,4 @@
-import { Chess } from "chess.js";
+import { Chess, type Move } from "chess.js";
 
 import { feedbackTier } from "../../domain/session/feedback-tier";
 import type { Attempt } from "../../domain/session/types";
@@ -28,6 +28,8 @@ export interface CheckedTry {
   readonly replyFen: string | undefined;
   readonly replySan: string | undefined;
   readonly playedCp: number | undefined;
+  // How far the tried move trails the best one, in centipawns for the player.
+  readonly gapCp: number | undefined;
   // The tried move and Stockfish's line after it, so a good move of the
   // player's own can be replayed as it is rather than as Rook's main line.
   readonly line: readonly string[];
@@ -46,6 +48,14 @@ const baselines = new WeakMap<
   MomentPosition,
   { readonly engine: AnalysisEngine; readonly score: number }
 >();
+
+function isQuiet(move: Move): boolean {
+  return (
+    move.captured === undefined &&
+    move.promotion === undefined &&
+    !/[+#]$/.test(move.san)
+  );
+}
 
 function play(fen: string, uci: string) {
   try {
@@ -140,7 +150,10 @@ export async function checkTry({
       : feedbackTier({
           bestCp,
           playedCp,
-          ...(position.toleranceCp === undefined
+          // A plan moment accepts nearby quiet moves. A capture, check or
+          // promotion changes the position, so it must be as good as the
+          // best move (owner decision, 28 November 2026).
+          ...(position.toleranceCp === undefined || !isQuiet(move)
             ? {}
             : { toleranceCp: position.toleranceCp }),
         });
@@ -155,6 +168,10 @@ export async function checkTry({
     replyFen: reply?.after,
     replySan: reply?.san,
     playedCp,
+    gapCp:
+      bestCp === undefined || playedCp === undefined
+        ? undefined
+        : bestCp - playedCp,
     line: [move.lan, ...continuation],
   });
 }

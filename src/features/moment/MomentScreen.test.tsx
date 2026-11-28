@@ -224,7 +224,7 @@ const PLAN: MomentSpec = {
   },
 };
 
-it("marks a plan's goal on the board and replays the player's own good move", async () => {
+it("marks a plan's goal on the board and explains Rook's best move after a different good one", async () => {
   // Stockfish rates e4 within the plan tolerance and answers e5.
   const good: AnalysisEngine = {
     ...engine,
@@ -253,18 +253,15 @@ it("marks a plan's goal on the board and replays the player's own good move", as
   // Selecting a piece keeps the goal marked.
   expect(square("Empty e4").className).toContain("outline-jade");
   fireEvent.click(square("Empty e4"));
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Why does it work?" }),
-  );
-  // The player's own move and Rook's answer to it, not Rook's main line.
-  // A quiet line is one frame, then Rook's own move.
-  expect(bubble()).toHaveTextContent(
-    "e4 adds control of d5 and f5. No tactic here, just a useful move.",
-  );
-  next();
+  // A different good move solves it; Rook says how it compares with Nf3
+  // and keeps "why" on Nf3 (owner decision, 28 November 2026).
   expect(
-    screen.getByText("Nf3 works too. It also covers d4 and e5."),
+    await screen.findByText(
+      "That works as well as Nf3. Want to see why Nf3 works, or what I could have tried instead? Or tap Done.",
+    ),
   ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  expect(bubble()).toHaveTextContent(/^Nf3/);
 });
 
 it("offers Rook's other defence after solving and plays it from the solved position", async () => {

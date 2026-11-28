@@ -479,6 +479,9 @@ function withoutAnswer(
   return at === -1 ? line : line.slice(0, at);
 }
 
+// Below this gap Rook calls a different good move as good as the best one.
+const LITTLE_BETTER_CP = 10;
+
 export function MomentScreen({
   moment,
   online,
@@ -1005,11 +1008,15 @@ export function MomentScreen({
       });
       return;
     }
-    const { attempt, afterFen, replyFen, replySan, line } = checked.value;
+    const { attempt, afterFen, replyFen, replySan, line, gapCp } =
+      checked.value;
     send({ kind: "try", attempt });
     setTryLines((current) => new Map(current).set(attempt.uci, line));
     if (attempt.tier === "best") {
-      setSolvedLine(line);
+      // A different good move solves it, but "why" and the what-ifs stay on
+      // Rook's best move (owner decision, 28 November 2026).
+      const otherMove = attempt.uci !== moment.bestUci;
+      if (!otherMove) setSolvedLine(line);
       setView({
         fen: afterFen,
         lastMoveUci: attempt.uci,
@@ -1023,7 +1030,13 @@ export function MomentScreen({
           ? `You found ${moment.playedInGame.san} in the game too. `
           : "";
       setSay({
-        text: `${again}Want to see why it works, or what I could have tried instead? Or tap Done.`,
+        text: otherMove
+          ? `${again}${
+              (gapCp ?? 0) >= LITTLE_BETTER_CP
+                ? `That works, but ${bestSan} was a little better.`
+                : `That works as well as ${bestSan}.`
+            } Want to see why ${bestSan} works, or what I could have tried instead? Or tap Done.`
+          : `${again}Want to see why it works, or what I could have tried instead? Or tap Done.`,
         mood: "happy",
       });
       return;

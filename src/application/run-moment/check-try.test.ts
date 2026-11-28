@@ -172,3 +172,43 @@ it("builds a record from a finished session", () => {
     completedAt: "2026-11-27T10:00:00.000Z",
   });
 });
+
+// Owner report, 28 November 2026 (Lichess OKF17V2X, move 10): Nxe5 trades
+// knights and lets fxe5 take back, about 0.6 to 1 pawn worse than Ne7. A
+// plan's wider tolerance is for quiet moves; a capture must match the best.
+const PLAN: MomentPosition = {
+  fen: "r2q1rk1/pbp2ppp/1pn1pn2/3pN3/3P1P2/2PB1Q2/PP1N1PPP/R3K2R b KQ - 0 12",
+  bestUci: "c6e7",
+  bestCp: -69,
+  solutionLine: ["c6e7", "g2g4"],
+  toleranceCp: 75,
+};
+
+it("holds a capture in a plan moment to the best move's standard", async () => {
+  // Stockfish after Nxe5: White's fxe5 leaves White 1.33 better.
+  const { fake } = engine("f4e5", 133);
+  const result = await checkTry({
+    position: PLAN,
+    uci: "c6e5",
+    engine: fake,
+    signal,
+  });
+  expect(result).toMatchObject({
+    ok: true,
+    value: { attempt: { san: "Nxe5", tier: "worse" }, gapCp: 64 },
+  });
+});
+
+it("still accepts a nearby quiet move in a plan moment", async () => {
+  const { fake } = engine("g2g4", 120);
+  const result = await checkTry({
+    position: PLAN,
+    uci: "a7a5",
+    engine: fake,
+    signal,
+  });
+  expect(result).toMatchObject({
+    ok: true,
+    value: { attempt: { tier: "best" }, gapCp: 51 },
+  });
+});
