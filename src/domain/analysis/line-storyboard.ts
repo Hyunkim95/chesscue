@@ -1364,7 +1364,14 @@ function pointLanding(
     .toSorted((a, b) => b.value - a.value || a.index - b.index);
   for (const { move, index } of gains) {
     const end = settled(index);
-    if (payoffFrame(fen, frames.slice(0, end + 1)) === undefined) continue;
+    // Count the captures for the side this point belongs to, which is Rook
+    // in a Why not refutation.
+    const own = frames.slice(0, end + 1).map((frame, at) => ({
+      ...frame,
+      by:
+        moves[at]?.color === learner ? ("learner" as const) : ("rook" as const),
+    }));
+    if (payoffFrame(fen, own) === undefined) continue;
     return {
       gain: index,
       end,
