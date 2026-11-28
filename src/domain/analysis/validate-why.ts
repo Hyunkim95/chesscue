@@ -1,5 +1,6 @@
 import { Chess, SQUARES, type PieceSymbol } from "chess.js";
 
+import type { PositionPacket } from "./position-packet";
 import type { WhyPacket } from "./why-packet";
 
 // What is wrong with a written "why" before it may be shown. Any problem
@@ -24,11 +25,70 @@ const COUNT = new RegExp(
   "gi",
 );
 const MAX_LENGTH = 400;
+const PIECE_WORD: Readonly<Record<string, string>> = {
+  K: "king",
+  Q: "queen",
+  R: "rook",
+  B: "bishop",
+  N: "knight",
+};
 
 const bare = (move: string) => move.replace(/[+#]$/, "");
 
 export function whyProblems(text: string, packet: WhyPacket): string[] {
-  const written = JSON.stringify(packet);
+  const after = new Chess(packet.fen);
+  after.move(packet.bestMove);
+  const pinners = (packet.bestMoveCaptures?.attackersThatArePinned ?? [])
+    .map(({ pinnedBy }) => pinnedBy)
+    .filter((pinnedBy) => pinnedBy !== null);
+  return problems(text, {
+    written: JSON.stringify(packet),
+    boards: [new Chess(packet.fen), after],
+    canTakeBack: packet.bestMoveCaptures?.canTakeBack.length ?? 1,
+    pinners,
+  });
+}
+
+// An answer to an open question: the same checks on the current board.
+// While solving the packet names none of the player's moves, so any move of
+// theirs in the answer is rejected.
+export function positionProblems(
+  text: string,
+  packet: PositionPacket,
+  context: unknown = null,
+): string[] {
+  const boards = [new Chess(packet.fen)];
+  if (packet.bestMove) {
+    const after = new Chess(packet.fen);
+    try {
+      after.move(packet.bestMove.move);
+      boards.push(after);
+    } catch {
+      // The packet's move was checked when it was built.
+    }
+  }
+  return problems(text, {
+    written: JSON.stringify({ packet, context }),
+    boards,
+    canTakeBack: 1,
+    pinners: [],
+  });
+}
+
+function problems(
+  text: string,
+  {
+    written,
+    boards,
+    canTakeBack,
+    pinners,
+  }: {
+    readonly written: string;
+    readonly boards: readonly Chess[];
+    readonly canTakeBack: number;
+    readonly pinners: readonly string[];
+  },
+): string[] {
   const found: string[] = [];
   if (text.trim().length === 0) found.push("empty");
   if (text.length > MAX_LENGTH) found.push("too long");
@@ -37,12 +97,7 @@ export function whyProblems(text: string, packet: WhyPacket): string[] {
   for (const move of new Set(text.match(MOVE) ?? []))
     if (!known.has(bare(move))) found.push(`move ${move}`);
 
-  // A piece on a square must be in the packet or on the board before or
-  // after the best move.
-  const boards = [new Chess(packet.fen)];
-  const after = new Chess(packet.fen);
-  after.move(packet.bestMove);
-  boards.push(after);
+  // A piece on a square must be in the packet or on one of the boards.
   for (const [, piece = "", square = ""] of text.matchAll(PIECE_ON)) {
     const on = SQUARES.find((value) => value === square);
     if (
@@ -70,23 +125,35 @@ export function whyProblems(text: string, packet: WhyPacket): string[] {
     found.push("own count");
 
   if (/unstoppable/i.test(text)) found.push("unstoppable");
-  if (/\bforced\b|\bforces\b/i.test(text) && !written.includes("checkmate"))
-    found.push("forced");
   if (
-    /\bfree\b/i.test(text) &&
-    (packet.bestMoveCaptures?.canTakeBack.length ?? 1) > 0
+    /\bforced\b|\bforces\b/i.test(text) &&
+    !written.includes("checkmate") &&
+    !written.includes("forced mate")
   )
-    found.push("free");
+    found.push("forced");
+  if (/\bfree\b/i.test(text) && canTakeBack > 0) found.push("free");
 
-  const pinners = (packet.bestMoveCaptures?.attackersThatArePinned ?? [])
-    .map(({ pinnedBy }) => pinnedBy)
-    .filter((pinnedBy) => pinnedBy !== null);
-  if (/pinned by|\bpins?\b/i.test(text) && pinners.length === 0)
+  // A pin is checked when the packet names its pinning piece, or when one of
+  // the board's own captions says a move pins ("I play Re8, pinning …").
+  const pinning = [
+    ...pinners,
+    ...[...written.matchAll(/"pinnedBy":"(\w+) on/g)].map(
+      ([, piece = ""]) => piece,
+    ),
+    ...[
+      ...written.matchAll(
+        /\b([KQRBN])[a-h]?[1-8]?x?[a-h][1-8][+#]?,? pin(?:s|ning)\b/g,
+      ),
+    ].map(([, letter = ""]) => PIECE_WORD[letter] ?? ""),
+    // A line-up with a king behind is a pin by the moving piece.
+    ...(written.includes('"behind":"king on') ? ["line"] : []),
+  ].filter((piece) => piece !== "");
+  if (/pinned by|\bpins?\b|\bpinning\b/i.test(text) && pinning.length === 0)
     found.push("pin");
   for (const [, piece = ""] of text.matchAll(
-    /pinned by (?:your |the |a |their |his |her )?(king|queen|rook|bishop|knight|pawn)/gi,
+    /pinned by (?:your |the |a |their |his |her |my )?(king|queen|rook|bishop|knight|pawn)/gi,
   ))
-    if (!pinners.some((pinnedBy) => pinnedBy.startsWith(piece.toLowerCase())))
+    if (!pinning.some((pinnedBy) => pinnedBy.startsWith(piece.toLowerCase())))
       found.push(`pinned by ${piece}`);
   return found;
 }

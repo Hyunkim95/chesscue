@@ -7,7 +7,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { PositionInput } from "../../domain/analysis/position-packet";
 
 import { checkTry } from "../../application/run-moment/check-try";
 import type {
@@ -103,11 +104,15 @@ function renderFork(
   {
     online = false,
     explainWhy,
+    answerOpen,
     routeVoice,
     trackProgress = true,
     onComplete = () => undefined,
   }: {
     readonly online?: boolean;
+    readonly answerOpen?: (
+      question: { readonly text: string } & PositionInput,
+    ) => Promise<string | undefined>;
     readonly trackProgress?: boolean;
     readonly onComplete?: () => void;
     readonly explainWhy?: (input: WhyInput) => Promise<string | undefined>;
@@ -123,6 +128,7 @@ function renderFork(
       moment={FORK}
       online={online}
       explainWhy={explainWhy}
+      answerOpen={answerOpen}
       {...(routeVoice ? { routeVoice } : {})}
       checkMove={(uci, signal) =>
         checkTry({ position: FORK, uci, engine, signal })
@@ -865,4 +871,77 @@ it("never asks for a written why offline", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
   expect(bubble()).toHaveTextContent(/^Nxg5\+ wins a queen/);
   expect(explainWhy).not.toHaveBeenCalled();
+});
+
+describe("an open question", () => {
+  const ask = (text: string) => {
+    const input = screen.getByRole("textbox", { name: "Ask Rook" });
+    fireEvent.change(input, { target: { value: text } });
+    fireEvent.submit(input);
+  };
+  const ANSWERABLE = /I can explain a move\. Name it/;
+
+  it("is answered by Flash from facts that never name the answer, while solving", async () => {
+    const answerOpen = vi.fn(() =>
+      Promise.resolve(
+        "Nothing of yours is attacked yet, so look at every check first.",
+      ),
+    );
+    renderFork(() => Promise.resolve({ kind: "unrouted" }), {
+      online: true,
+      answerOpen,
+    });
+    ask("What's going on here?");
+    expect(
+      await screen.findByText(
+        "Nothing of yours is attacked yet, so look at every check first.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/Gemini Flash · checked against the board/),
+    ).toBeVisible();
+    expect(answerOpen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "What's going on here?",
+        fen: FORK.fen,
+        learner: "w",
+        goal: "One move here wins material.",
+        hiddenUci: "f3g5",
+      }),
+      expect.anything(),
+    );
+  });
+
+  it.each([
+    ["offline", false, () => Promise.resolve("never shown")],
+    ["without an answer", true, () => Promise.resolve(undefined)],
+  ] as const)("keeps Rook's own answer %s", async (_, online, reply) => {
+    const answerOpen = vi.fn(reply);
+    renderFork(() => Promise.resolve({ kind: "unrouted" }), {
+      online,
+      answerOpen,
+    });
+    ask("What's going on here?");
+    await waitFor(() => {
+      expect(bubble()).toHaveTextContent(ANSWERABLE);
+    });
+    if (!online) expect(answerOpen).not.toHaveBeenCalled();
+  });
+
+  it("opens the Why does it work? story once the position is shown", async () => {
+    const answerOpen = vi.fn(() => Promise.resolve("never shown"));
+    renderFork(() => Promise.resolve({ kind: "unrouted" }), {
+      online: true,
+      answerOpen,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Show me" }));
+    await screen.findByRole("group", { name: "Step through the line" });
+    ask("What's going on here?");
+    await waitFor(() => {
+      expect(
+        screen.getByRole("group", { name: "Step through the line" }),
+      ).toHaveTextContent(/Step 1 of/);
+    });
+    expect(answerOpen).not.toHaveBeenCalled();
+  });
 });

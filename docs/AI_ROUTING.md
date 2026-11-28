@@ -22,6 +22,10 @@ Online with the player's key, after a moment is solved or shown, "Why does it wo
 
 Evidence, 28 November 2026 (`research_notes/why-explanations/scorecard.md`, 20 positions, two blind model graders): Flash gave a true answer with the real reason in 16 of 20 positions and no false claim. Code-only text scored 8 of 20 and Flash-Lite 7 of 20, with 3 false. Nano was not measured for this task.
 
+## Open questions: Flash from the board's facts
+
+With the player's key and online, an open question ("what's going on here?", "what's the plan?") that no chip or move answers goes to Gemini 3.8 Flash while the player is solving. Code sends a position packet (`domain/analysis/position-packet.ts`): the material, the moment's goal, what Rook threatens (minus any threat on the answer's squares) and the approach, never a move for the player. `validate-why.ts` checks the answer against it. Once solved or shown, the same question opens the "Why does it work?" story instead. Evidence, 28 November 2026 (`research_notes/reasoning-answers/scorecard.md`, 20 positions, two blind graders, round 3): 18/20 true with the real reason, 0 false, 0 giving the answer away. "Why not X?" stays with the board's own storyboard: Flash scored 0/20 there with 8 false, the storyboard 16/20.
+
 ## Use Nano for a single teaching turn
 
 The Firebase Web SDK exposes Nano as a single-turn generation route with structured text output. ChessCue owns the transcript and sends a bounded window of relevant turns when needed. This supports an ongoing conversation without assuming the SDK maintains native multi-turn chat. Include the exact position and the evidence behind the current claim. A compact prompt avoids context-window pressure and leaves room for a grounded answer. [Firebase hybrid Web capabilities](https://firebase.google.com/docs/ai-logic/hybrid/web/get-started) · [Chrome Prompt API](https://developer.chrome.com/docs/ai/prompt-api)
