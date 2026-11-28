@@ -42,7 +42,8 @@ test("opens the full installed curriculum and solves a position offline in the s
       const loading = page
         .getByRole("status")
         .filter({ hasText: "Loading skill tree" });
-      await expect(loading.locator("img")).toBeVisible();
+      // SLO-014: the wait shows the shape of the coming content.
+      await expect(loading.locator(".skeleton").first()).toBeVisible();
       await page.screenshot({
         path: test.info().outputPath("loading-skill-tree.png"),
       });

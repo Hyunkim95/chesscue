@@ -1387,6 +1387,11 @@ html:has(.chesscue-sidebar .rook-board-shelf__dock form:not([hidden])) {
   min-width: 0;
 }
 
+.review-matchup .review-navigation {
+  flex: none;
+  margin: 0;
+}
+
 .chesscue-sidebar .review-page__experience:has(> .game-review--debrief) {
   padding-block-start: 0.25rem;
 }
@@ -1453,6 +1458,16 @@ html:has(.chesscue-sidebar .rook-board-shelf__dock form:not([hidden])) {
   align-content: start;
   gap: 1rem;
   padding: 0.875rem 0.75rem;
+}
+
+.chesscue-sidebar .screen-header > h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 600 1.8rem/1.1 var(--cue-display);
+  text-align: start;
+}
+.chesscue-sidebar .training-header > .screen-header {
+  margin-bottom: 0.75rem;
 }
 
 .side-panel-review section,
@@ -1554,6 +1569,10 @@ html:has(.chesscue-sidebar .rook-board-shelf__dock form:not([hidden])) {
 
 .chesscue-sidebar .rook-exploration__heading {
   margin-block-end: 0.5rem;
+}
+
+.chesscue-sidebar .rook-exploration__heading :is(h2, p) {
+  margin: 0;
 }
 
 .chesscue-sidebar .rook-exploration__heading :is(h2, p),

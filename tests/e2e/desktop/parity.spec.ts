@@ -73,7 +73,7 @@ test("uses the same destinations, skill recommendations and Rook review on deskt
   ).toBeVisible();
 });
 
-test("shows a larger animated loader and respects reduced motion", async ({
+test("shows a skeleton of the skill tree and respects reduced motion", async ({
   page,
 }, testInfo) => {
   let release: () => void = () => undefined;
@@ -92,22 +92,16 @@ test("shows a larger animated loader and respects reduced motion", async ({
       .getByRole("status")
       .filter({ hasText: "Loading skill tree" });
     await expect(loader).toBeVisible();
-    const token = loader.locator("img");
-    await expect
-      .poll(async () =>
-        token.evaluate((image) =>
-          image
-            .getAnimations()
-            .some((animation) => animation.playState === "running"),
-        ),
-      )
-      .toBe(true);
-    const bounds = await loader.locator(".loading-mark").boundingBox();
-    expect(bounds?.width).toBeGreaterThanOrEqual(104);
+    // SLO-014: the wait shows the shape of the coming content, shimmering.
+    const block = loader.locator(".skeleton").first();
+    await expect(block).toBeVisible();
+    await expect(block).toHaveCSS("animation-name", "skeleton-shimmer");
+    const bounds = await loader.boundingBox();
+    expect(bounds?.width).toBeGreaterThanOrEqual(320);
     await page.screenshot({ path: testInfo.outputPath("desktop-loading.png") });
 
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await expect(token).toHaveCSS("animation-name", "none");
+    await expect(block).toHaveCSS("animation-name", "none");
     await expect(loader).toBeVisible();
   } finally {
     release();
