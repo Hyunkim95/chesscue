@@ -537,7 +537,9 @@ export function explainMissedLine(
   // the take-back is why. When the line takes back itself, what it wins is
   // the point, and the threat explains only a line nothing else explains.
   const declined =
-    input.takeBackLine && sacrificeThreat(input.fen, input.takeBackLine);
+    input.takeBackLine !== undefined &&
+    input.takeBackLine[1] !== input.line[1] &&
+    sacrificeThreat(input.fen, input.takeBackLine);
   const threat = () => {
     const found = sacrificeThreat(input.fen, input.line);
     return found && { text: [found.text, ...playedClause(input)].join(" ") };

@@ -426,3 +426,17 @@ test("explains a sacrifice by the mate threat after the take-back", () => {
     "Bxh7+ takes a pawn with check. If Black takes the bishop, Ng5+ and Qh3 threaten mate on h7. You played Bb1 instead.",
   );
 });
+
+// Pack puzzle 0jcmc: the line takes back itself and wins the queen, so a
+// take-back line passed alongside does not replace what it wins.
+test("keeps what the line wins when the line itself takes back", () => {
+  const line = ["h1h6", "g7h6", "e6f7", "g3g6", "f7g6"];
+  const text =
+    explainMissedLine({
+      fen: "r3r2k/4b1p1/p1p1Q1Pp/3p4/2p5/6q1/PP2B3/1K1R3R w - - 0 25",
+      line,
+      takeBackLine: line,
+    })?.text ?? "";
+  expect(text).not.toContain("threatens mate");
+  expect(text).toMatch(/queen/);
+});
