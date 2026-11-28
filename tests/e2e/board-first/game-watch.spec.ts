@@ -56,10 +56,22 @@ test("an imported game replays to its report, stops at the player's win and open
     timeout: 20_000,
   });
   await expect(bubble).toContainText("You found Qh4# in the game too.");
-  await page.getByRole("button", { name: "Back to the game" }).click();
+  await page.getByRole("button", { name: "Done ✓" }).click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet).toContainText("played it in a real game");
+  await expect(sheet).toContainText(
+    /You found Qh4# against Maya( on \w+)?, and again today\./,
+  );
+  await page.screenshot({
+    path: test.info().outputPath("found-again-320.png"),
+    animations: "disabled",
+  });
+  // Continue goes back to the game, at the moment.
+  await sheet.getByRole("button", { name: "Continue" }).click();
   await expect(
     page.getByRole("button", { name: "Keep watching" }),
   ).toBeVisible();
+
   await expect(
     page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

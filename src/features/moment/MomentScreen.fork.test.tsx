@@ -81,7 +81,11 @@ it("plays a queen trade on to the fork that wins the rook", async () => {
 it("says so when the player found the same move in the real game", async () => {
   render(
     <MomentScreen
-      moment={{ ...MOMENT, playedInGame: { uci: "d1d8", san: "Qxd8+" } }}
+      moment={{
+        ...MOMENT,
+        playedInGame: { uci: "d1d8", san: "Qxd8+" },
+        game: { opponent: "Ahmed", day: "Tuesday" },
+      }}
       online={false}
       checkMove={(uci, signal) =>
         checkTry({ position: MOMENT, uci, engine, signal })
@@ -102,5 +106,11 @@ it("says so when the player found the same move in the real game", async () => {
   await screen.findByRole("button", { name: "Why does it work?" });
   expect(bubble()).toHaveTextContent(
     /^You found Qxd8\+ in the game too\. Want to see why it works/,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Done ✓" }));
+  const sheet = await screen.findByRole("dialog");
+  expect(sheet).toHaveTextContent("Fork · played it in a real game");
+  expect(sheet).toHaveTextContent(
+    "You found Qxd8+ against Ahmed on Tuesday, and again today.",
   );
 });

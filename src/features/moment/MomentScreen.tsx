@@ -118,6 +118,11 @@ export interface MomentSpec extends MomentPosition {
   // "Your game vs Ahmed · Tuesday", or "A position like ones from your games".
   readonly sourceLabel: string;
   readonly playedInGame?: SanMove | undefined;
+  // Who the game was against and the day it finished, for "You found Nc7+
+  // against Ahmed on Tuesday, and again today."
+  readonly game?:
+    | { readonly opponent: string; readonly day: string | undefined }
+    | undefined;
   readonly bestNonSolution?: SanMove | undefined;
   // What the player is working towards, stated before they move.
   readonly goal: MomentGoal;
@@ -648,6 +653,12 @@ export function MomentScreen({
     moment.solutionLine,
   );
   const solvedUci = solvedLine[0] ?? moment.bestUci;
+  // Solved with the move the player found in the real game.
+  const gameMove = moment.playedInGame;
+  const foundInGame =
+    moment.game && gameMove?.uci === solvedUci
+      ? { ...moment.game, san: gameMove.san }
+      : undefined;
   const alternative = alternativeFrame(moment.fen, solvedUci, moment.bestUci);
   // "Why does it work?" opens on the point and plays only until it lands. A
   // quiet line has no point: one frame shows the move and what it does.
@@ -3050,12 +3061,18 @@ export function MomentScreen({
       >
         {moment.ideaName && !spottedThreat && (
           <div className="moment__idea-card">
-            <b>{moment.ideaName}</b>
+            <b>
+              {foundInGame
+                ? `${moment.ideaName} · played it in a real game`
+                : moment.ideaName}
+            </b>
             {trackProgress && (
               <small>
-                {result?.outcome === "spotted"
-                  ? `Added to your collection · ${moment.sourceLabel}`
-                  : "Spot it on the first try to light its star"}
+                {foundInGame
+                  ? `You found ${foundInGame.san} against ${foundInGame.opponent}${foundInGame.day ? ` on ${foundInGame.day}` : ""}, and again today.`
+                  : result?.outcome === "spotted"
+                    ? `Added to your collection · ${moment.sourceLabel}`
+                    : "Spot it on the first try to light its star"}
               </small>
             )}
           </div>

@@ -131,6 +131,10 @@ export function momentFromGame(
     solutionLine: line,
     sourceLabel: `Your game vs ${opponentOf(observed)}${completed ? ` · ${WEEKDAY.format(new Date(completed))}` : ""}`,
     playedInGame: played ? { uci: played.uci, san: played.san } : undefined,
+    game: {
+      opponent: opponentOf(observed),
+      day: completed ? WEEKDAY.format(new Date(completed)) : undefined,
+    },
     bestNonSolution: nonSolution
       ? sanFor(exercise.fen, nonSolution.uci)
       : undefined,
