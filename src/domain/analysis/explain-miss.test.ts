@@ -383,3 +383,29 @@ test("names the check before a discovered attack on the queen", () => {
     })?.text,
   ).toMatch(/^Ne6\+ gives check\. Moving the knight off g5 opens the line/);
 });
+
+// The same game on a 14-ply line: the count includes a new queen, so the
+// promotion is named even when the moves before it are left to the board.
+test("names a promotion the count depends on", () => {
+  expect(
+    explainMissedLine({
+      fen: "2Rbr2k/8/p2P4/1p6/5p2/6Pp/6PP/5NK1 b - - 0 39",
+      line: [
+        "d8b6",
+        "f1e3",
+        "e8c8",
+        "g3f4",
+        "b6e3",
+        "g1f1",
+        "c8c1",
+        "f1e2",
+        "h3g2",
+        "e2e3",
+        "c1e1",
+        "e3d4",
+        "g2g1q",
+        "d4d5",
+      ],
+    })?.text,
+  ).toContain("Later in the line, g1=Q+ makes a new queen. Black ends up");
+});
