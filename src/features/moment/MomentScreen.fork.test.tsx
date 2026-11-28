@@ -146,7 +146,6 @@ it("says when a chance taken in the real game slipped by today", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Done ✓" }));
   const sheet = await screen.findByRole("dialog", { name: "Not this time" });
   expect(sheet).toHaveTextContent(
-    "You found Qxd8+ against Ahmed on Tuesday. Today it slipped by.",
+    "You found Qxd8+ against Ahmed on Tuesday. Today it slipped by. It will come back.",
   );
-  expect(sheet).not.toHaveTextContent("It will come back");
 });

@@ -17,6 +17,10 @@ export interface TodayInput {
   // A plan position without one clearly best move is skipped, and so is a
   // miss that left the result unchanged.
   readonly moments: readonly ObservedMove[];
+  // Chances the player took in real games (a tactic they played), offered
+  // in a game's replay. They are never new here: one tried from a replay
+  // and not spotted comes back like a missed moment.
+  readonly chancesTaken?: readonly ObservedMove[];
   readonly attempts: readonly MomentAttemptRecord[];
   readonly puzzles: readonly { readonly id: string; readonly unitId: string }[];
   readonly stars: ReadonlyMap<string, StarState>;
@@ -60,7 +64,12 @@ export function pickToday(input: TodayInput): TodayPick {
     const bestCp = Math.max(
       ...verification.candidates.map(({ evaluationCp }) => evaluationCp),
     );
-    if (!changesTheResult(bestCp, moment.impactCp)) return false;
+    // A chance taken lost nothing in the game; its line is what counts.
+    if (
+      moment.outcome === "retry" &&
+      !changesTheResult(bestCp, moment.impactCp)
+    )
+      return false;
     return (
       isServableMoment(
         fen,
@@ -74,7 +83,10 @@ export function pickToday(input: TodayInput): TodayPick {
       !latest.has(momentKey(moment.game.id, moment.ply)) && servable(moment),
   );
   if (fresh) return { kind: "new", moment: fresh };
-  const returning = moments.find((moment) => {
+  const returning = [
+    ...moments,
+    ...(input.chancesTaken ?? []).toSorted(newestGameFirst),
+  ].find((moment) => {
     const { game, ply } = moment;
     const last = latest.get(momentKey(game.id, ply));
     return (

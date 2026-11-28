@@ -25,6 +25,7 @@ import {
   followUpPackSchema,
   type FollowUpPuzzle,
 } from "../../domain/curriculum/follow-up-puzzles";
+import { readGoodMove } from "../../domain/curriculum/good-moves";
 import { canUse } from "../../domain/entitlements";
 import { rankForElo, ranks } from "../../domain/game/rank-path";
 import { INITIAL_PLAYER_ELO, type RatingEntry } from "../../domain/game/rating";
@@ -242,6 +243,25 @@ function linkedMoment(): string | undefined {
   }
 }
 
+// Chances the player took in real games and has since tried from a game's
+// replay, so a miss there comes back on Today.
+function chancesTried(
+  games: readonly ObservedMove[],
+  attempts: readonly MomentAttemptRecord[],
+): readonly ObservedMove[] {
+  const tried = new Set(
+    attempts.flatMap(({ source }) =>
+      source.kind === "game" ? [`${source.gameId}:${String(source.ply)}`] : [],
+    ),
+  );
+  return games.filter(
+    (observed) =>
+      observed.outcome === "matched" &&
+      tried.has(gameMomentId(observed)) &&
+      readGoodMove(observed)?.kind === "tactic",
+  );
+}
+
 // Plies that count as the opening, as in the game analysis's phases.
 const OPENING_PLIES = 20;
 
@@ -355,6 +375,7 @@ export function BoardFirstScreens({
     () =>
       pickToday({
         moments: games.filter(({ outcome }) => outcome === "retry"),
+        chancesTaken: chancesTried(games, attempts ?? []),
         attempts: attempts ?? [],
         puzzles: pack.puzzles,
         stars: progress.stars,

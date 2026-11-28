@@ -83,3 +83,36 @@ test("an imported game replays to its report, stops at the player's win and open
     animations: "disabled",
   });
 });
+
+test("a chance missed in a replay comes back on Today a day later", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-11-28T10:00:00") });
+  await page.goto("/?ui=board-first#import");
+  await page
+    .getByLabel("Paste completed PGN games")
+    .fill(
+      '[White "Maya"]\n[Black "Me"]\n[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1',
+    );
+  await page.getByRole("radio", { name: "I played Black" }).check();
+  await page.getByRole("button", { name: "Import games", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Move 2: a chance you took" })
+    .click({ timeout: 40_000 });
+  await page.getByRole("button", { name: "Try it" }).click();
+  await expect(
+    page.getByRole("heading", { name: /Black to move/ }),
+  ).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("button", { name: "Show me" }).click();
+  await page.getByRole("button", { name: "Done ✓" }).click();
+  const sheet = page.getByRole("dialog", { name: "Not this time" });
+  await expect(sheet).toContainText("Today it slipped by. It will come back.");
+  await sheet.getByRole("button", { name: "Continue" }).click();
+
+  await page.clock.setSystemTime(new Date("2026-11-29T09:00:00"));
+  await page.goto("/?ui=board-first#today");
+  await expect(
+    page.getByText("This one came back. Have another look."),
+  ).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/Your game vs Maya/)).toBeVisible();
+});

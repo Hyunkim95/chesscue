@@ -3120,7 +3120,7 @@ export function MomentScreen({
         <p className="moment__sheet-line">
           {moment.ideaName ? `The idea: ${moment.ideaName}. ` : ""}
           {tookInGame
-            ? `You found ${tookInGame.san} against ${tookInGame.opponent}${tookInGame.day ? ` on ${tookInGame.day}` : ""}. Today it slipped by.`
+            ? `You found ${tookInGame.san} against ${tookInGame.opponent}${tookInGame.day ? ` on ${tookInGame.day}` : ""}. Today it slipped by.${trackProgress ? " It will come back." : ""}`
             : trackProgress
               ? "It will come back, and you’ll know what to look for."
               : "You can review this position again any time."}

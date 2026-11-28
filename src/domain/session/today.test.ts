@@ -194,3 +194,38 @@ it("falls back to an unplayed puzzle like the player's misses", () => {
     }),
   ).toEqual({ kind: "similar", puzzleId: "p2" });
 });
+
+it("never offers a chance taken as new, but brings one missed in a replay back", () => {
+  const chance = forkObservation("matched");
+  const source = {
+    kind: "game",
+    gameId: chance.game.id,
+    ply: chance.ply,
+  } as const;
+  expect(pickToday({ ...empty, chancesTaken: [chance] })).not.toMatchObject({
+    moment: chance,
+  });
+  const missed = attemptRecord({
+    source,
+    outcome: "shown",
+    completedAt: "2026-11-26T09:00:00Z",
+  });
+  expect(
+    pickToday({ ...empty, chancesTaken: [chance], attempts: [missed] }),
+  ).toEqual({ kind: "returning", moment: chance });
+  // Tried less than a day ago, or spotted: not yet, or not again.
+  expect(
+    pickToday({
+      ...empty,
+      chancesTaken: [chance],
+      attempts: [{ ...missed, completedAt: "2026-11-27T09:00:00Z" }],
+    }),
+  ).toEqual({ kind: "caught-up" });
+  expect(
+    pickToday({
+      ...empty,
+      chancesTaken: [chance],
+      attempts: [{ ...missed, outcome: "spotted" }],
+    }),
+  ).toEqual({ kind: "caught-up" });
+});
