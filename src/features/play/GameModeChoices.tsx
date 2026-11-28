@@ -12,12 +12,15 @@ export function GameModeChoices({
   activeGameId,
   ready,
   onOpen,
+  onNextMove,
 }: {
   readonly repository: GameRepository;
   readonly activeMode: TutorGameMode;
   readonly activeGameId: GameId | undefined;
   readonly ready: boolean;
   readonly onOpen: (mode: TutorGameMode) => void;
+  // The next-move tool: any position, outside every game.
+  readonly onNextMove?: () => void;
 }) {
   const [resumable, setResumable] = useState<readonly TutorGameMode[]>([]);
 
@@ -82,6 +85,20 @@ export function GameModeChoices({
           </span>
         </button>
       ))}
+      {onNextMove && (
+        <button
+          type="button"
+          className="game-mode-choice game-mode-choice--next-move"
+          aria-labelledby="mode-next-move"
+          aria-describedby="mode-next-move-description"
+          onClick={onNextMove}
+        >
+          <strong id="mode-next-move">Next move</strong>
+          <span className="game-mode-copy" id="mode-next-move-description">
+            Any position · Stockfish&apos;s best move
+          </span>
+        </button>
+      )}
     </div>
   );
 }

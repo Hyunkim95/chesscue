@@ -332,6 +332,29 @@ button.piece-choice {
   opacity: 0.9;
 }
 
+/* The next-move tool: the best move solid brass, the other top moves jade. */
+.chess-board__cue-arrow--engine-best {
+  --board-arrow: var(--ui-color-brass);
+  opacity: 0.95;
+}
+
+.chess-board__cue-arrow.chess-board__cue-arrow--engine-best
+  .chess-board__cue-shaft {
+  stroke-width: 0.11;
+  stroke-dasharray: none;
+}
+
+.chess-board__cue-arrow--engine-line {
+  --board-arrow: var(--ui-color-jade);
+  opacity: 0.8;
+}
+
+.chess-board__cue-arrow.chess-board__cue-arrow--engine-line
+  .chess-board__cue-shaft {
+  stroke-width: 0.08;
+  stroke-dasharray: none;
+}
+
 .chess-board__cue-arrow--reply {
   --board-arrow: var(--ui-color-coral);
   opacity: 0.9;

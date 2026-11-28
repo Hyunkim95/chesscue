@@ -18,7 +18,10 @@ export type BoardArrowKind =
   | "preview"
   | "reply"
   // What a moved piece attacks, in a storyboard frame.
-  | "attack";
+  | "attack"
+  // The next-move tool: Stockfish's best move and its other top moves.
+  | "engine-best"
+  | "engine-line";
 
 export interface BoardArrow {
   readonly from: Square;
