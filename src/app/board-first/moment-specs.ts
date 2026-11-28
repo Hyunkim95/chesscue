@@ -111,6 +111,16 @@ export function momentFromGame(
     unitId,
     source: { kind: "game", gameId: observed.game.id, ply: observed.ply },
     ...(danger ? { danger } : {}),
+    ...(previous
+      ? {
+          previousMove: {
+            fen:
+              moves.find(({ ply }) => ply === observed.ply - 2)?.fenAfter ??
+              observed.game.initialFen,
+            uci: previous.uci,
+          },
+        }
+      : {}),
   };
 }
 

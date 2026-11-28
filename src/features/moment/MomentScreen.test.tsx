@@ -14,6 +14,7 @@ import type {
   AnalysisEngine,
 } from "../../application/analyze-game/analysis-engine";
 import type { QuestionOutcome } from "../../application/route-question/route-question";
+import type { WhyInput } from "../../domain/analysis/why-packet";
 import { ok } from "../../shared/result/result";
 import { MomentScreen, type MomentSpec } from "./MomentScreen";
 
@@ -93,12 +94,20 @@ function renderFork(
     boardMoveUci?: string | undefined;
     boardMoveSan?: string | undefined;
   }) => Promise<QuestionOutcome> = () => Promise.resolve({ kind: "unrouted" }),
+  {
+    online = false,
+    explainWhy,
+  }: {
+    readonly online?: boolean;
+    readonly explainWhy?: (input: WhyInput) => Promise<string | undefined>;
+  } = {},
 ) {
   const analyses: { fen: string; multiPv: number }[] = [];
   render(
     <MomentScreen
       moment={FORK}
-      online={false}
+      online={online}
+      explainWhy={explainWhy}
       checkMove={(uci, signal) =>
         checkTry({ position: FORK, uci, engine, signal })
       }
@@ -548,4 +557,68 @@ it("hands-free reads each line aloud, listens, and steps on when told next", asy
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+const WHY =
+  "Nxg5+ attacks your king and your queen on e6 at once, so after you move the king I take the queen.";
+
+it("says why the move works in the writer's checked words online", async () => {
+  const explainWhy = vi.fn<(input: WhyInput) => Promise<string | undefined>>(
+    () => Promise.resolve(WHY),
+  );
+  renderFork(undefined, { online: true, explainWhy });
+  await solveFork();
+  await waitFor(() => {
+    expect(explainWhy).toHaveBeenCalledTimes(1);
+  });
+  expect(explainWhy.mock.calls[0]?.[0]).toMatchObject({
+    fen: FORK.fen,
+    bestLine: FORK.solutionLine,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  await waitFor(() => {
+    expect(bubble()).toHaveTextContent(WHY);
+  });
+  // The board still shows the point's frame, stepped one at a time.
+  expect(
+    screen.getByRole("group", { name: "Step through the line" }),
+  ).toHaveTextContent("1 / 4");
+});
+
+it("swaps in a late why while the opening frame is still shown", async () => {
+  let answer: (text: string | undefined) => void = () => undefined;
+  const explainWhy = () =>
+    new Promise<string | undefined>((resolve) => {
+      answer = resolve;
+    });
+  renderFork(undefined, { online: true, explainWhy });
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  expect(bubble()).toHaveTextContent(/^Nxg5\+ wins a queen/);
+  act(() => {
+    answer(WHY);
+  });
+  await waitFor(() => {
+    expect(bubble()).toHaveTextContent(WHY);
+  });
+});
+
+it("keeps the code caption when the why is not written", async () => {
+  renderFork(undefined, {
+    online: true,
+    explainWhy: () => Promise.resolve(undefined),
+  });
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(bubble()).toHaveTextContent(/^Nxg5\+ wins a queen/);
+});
+
+it("never asks for a written why offline", async () => {
+  const explainWhy = vi.fn(() => Promise.resolve<string | undefined>(WHY));
+  renderFork(undefined, { explainWhy });
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
+  expect(bubble()).toHaveTextContent(/^Nxg5\+ wins a queen/);
+  expect(explainWhy).not.toHaveBeenCalled();
 });
