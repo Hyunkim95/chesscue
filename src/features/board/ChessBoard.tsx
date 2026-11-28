@@ -311,9 +311,6 @@ export function ChessBoard({
                       {badge.text}
                     </span>
                   )}
-                  <span className="chess-board__coordinate" aria-hidden="true">
-                    {square}
-                  </span>
                   {column === order[0] && (
                     <span
                       className="chess-board__edge-coordinate chess-board__edge-coordinate--rank"

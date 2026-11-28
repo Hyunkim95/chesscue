@@ -260,23 +260,21 @@ button.chess-board__square--control-inspected {
   }
 }
 
-.chess-board__coordinate {
+/* Coordinates on the edges only, like most boards: ranks down the left,
+   files along the bottom, large enough to read, in the colour of the other
+   square so they stand out on both. */
+.chess-board__edge-coordinate {
   position: absolute;
-  right: 4px;
-  bottom: 2px;
-  font-size: clamp(0.45rem, 2.1cqw, 0.68rem);
+  z-index: 2;
+  color: #4f7a62;
+  font-size: clamp(0.85rem, 4.2cqw, 1.1rem);
   font-weight: 800;
+  line-height: 1;
   pointer-events: none;
 }
 
-.chess-board__edge-coordinate {
-  display: none;
-  position: absolute;
-  z-index: 2;
-  color: #172f22;
-  font-size: clamp(0.625rem, 3cqw, 0.75rem);
-  font-weight: 800;
-  pointer-events: none;
+.chess-board__square--dark .chess-board__edge-coordinate {
+  color: #f1e6cf;
 }
 
 .chess-board__edge-coordinate--rank {
@@ -287,16 +285,6 @@ button.chess-board__square--control-inspected {
 .chess-board__edge-coordinate--file {
   inset-block-end: 2px;
   inset-inline-end: 2px;
-}
-
-@media (max-width: 520px) {
-  .chess-board__coordinate {
-    display: none;
-  }
-
-  .chess-board__edge-coordinate {
-    display: block;
-  }
 }
 
 .chess-board__square--focus {

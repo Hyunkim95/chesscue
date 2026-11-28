@@ -213,7 +213,7 @@
   border-width: 1px;
   box-shadow: none;
 }
-.practice-tree__position .chess-board__coordinate {
+.practice-tree__position .chess-board__edge-coordinate {
   display: none;
 }
 .practice-tree__position button {

@@ -64,7 +64,6 @@
   width: min(100%, 200px);
 }
 
-.games-reading__board .chess-board__coordinate,
 .games-reading__board .chess-board__edge-coordinate {
   display: none;
 }
