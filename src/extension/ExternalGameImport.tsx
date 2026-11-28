@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import type { GameRecord, PlayerColor } from "../domain/game/types";
 import { fetchCompletedGame } from "./lichess-export";
 import { ChessComArchiveMiss, fetchChessComGame } from "./chess-com-export";
+import { fetchChessComComputerGame } from "./chess-com-computer-export";
 import type { CompletedGameExport, GameSite } from "./external-game";
 
 import { PGN_SHARING_NOTICE } from "../domain/import/sharing";
@@ -36,6 +37,8 @@ export function ExternalGameImport({
   manual,
 }: Props) {
   const siteName = site === "chesscom" ? "Chess.com" : "Lichess";
+  const computer =
+    site === "chesscom" && route.startsWith("#chesscom/computer/");
   const [archiveBatch, searchOlder] = useState(0);
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, retry] = useState(0);
@@ -48,25 +51,37 @@ export function ExternalGameImport({
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
-      const [, id, player] = route.split("/");
+      const [, id, player, chessComPlayer] = route.split("/");
       const game =
         choice?.game ??
-        (site === "chesscom"
-          ? await fetchChessComGame(route, archiveBatch, controller.signal)
-          : await fetchCompletedGame(id ?? "", controller.signal));
+        (computer
+          ? await fetchChessComComputerGame(route, controller.signal)
+          : site === "chesscom"
+            ? await fetchChessComGame(route, archiveBatch, controller.signal)
+            : await fetchCompletedGame(id ?? "", controller.signal));
       if (controller.signal.aborted) return;
-      if (!choice) {
-        const color = (["white", "black"] as const).find(
+      const botColor =
+        computer && chessComPlayer
+          ? (["white", "black"] as const).filter(
+              (side) =>
+                game.players[side].user?.id.toLowerCase() ===
+                chessComPlayer.toLowerCase(),
+            )
+          : [];
+      const color =
+        choice?.color ?? (botColor.length === 1 ? botColor[0] : undefined);
+      if (!color) {
+        const suggested = (["white", "black"] as const).find(
           (side) =>
             site === "lichess" &&
             player &&
             game.players[side].user?.id.toLowerCase() === player.toLowerCase(),
         );
-        setState({ status: "choose", game, suggested: color });
+        setState({ status: "choose", game, suggested });
         return;
       }
       setState({ status: "saving" });
-      const record = await save(game, choice.color, site);
+      const record = await save(game, color, site);
       controller.signal.throwIfAborted();
       open(record);
     }
@@ -84,7 +99,7 @@ export function ExternalGameImport({
     return () => {
       controller.abort();
     };
-  }, [route, site, attempt, choice, archiveBatch]);
+  }, [route, site, computer, attempt, choice, archiveBatch]);
   return (
     <section className="import-panel" aria-label={siteName + " game"}>
       <h1>
@@ -102,7 +117,7 @@ export function ExternalGameImport({
       )}
       {state.status === "choose" && (
         <div className="import-panel__actions">
-          <p>{PGN_SHARING_NOTICE}</p>
+          {!state.game.localOnly && <p>{PGN_SHARING_NOTICE}</p>}
           {site === "chesscom" && <p>ChessCue is independent of Chess.com.</p>}
           {(state.suggested
             ? [state.suggested]

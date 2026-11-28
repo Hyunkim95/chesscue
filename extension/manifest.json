@@ -19,8 +19,9 @@
     },
     {
       "matches": [
-        "https://www.chess.com/game/live/*",
-        "https://www.chess.com/game/daily/*",
+        "https://www.chess.com/game/*",
+        "https://www.chess.com/analysis/game/live/*",
+        "https://www.chess.com/analysis/game/daily/*",
         "https://www.chess.com/play/online*"
       ],
       "js": ["chess-com-page.js"]

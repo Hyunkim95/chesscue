@@ -41,14 +41,22 @@ chrome.runtime.onMessage.addListener((message: unknown, sender) => {
       return;
     const page = new URL(sender.url);
     if (page.origin !== "https://www.chess.com") return;
+    const computer = /^\/game(\/computer\/\d{1,18})$/.exec(message.game)?.[1];
     const game = chessComGamePath(message.game);
-    if (
-      !game ||
-      (chessComGamePath(page.pathname) !== game &&
-        !/^\/play\/online\/?$/.test(page.pathname))
-    )
-      return;
-    route = "chesscom" + game + player;
+    const analysisGame = /^\/analysis(\/game\/[^/]+\/[^/]+)(?:\/|$)/.exec(
+      page.pathname,
+    )?.[1];
+    const pageGame = chessComGamePath(analysisGame ?? page.pathname);
+    const shortGameId = /^\/game\/(\d{1,18})\/?$/.exec(page.pathname)?.[1];
+    const matchesGame =
+      pageGame === game || (shortGameId && game?.endsWith(`/${shortGameId}`));
+    if (computer && page.pathname.replace(/\/$/, "") === `/game${computer}`) {
+      route = "chesscom" + computer + player + "/" + String(sender.tab.id);
+    } else {
+      if (!game || (!matchesGame && !/^\/play\/online\/?$/.test(page.pathname)))
+        return;
+      route = "chesscom" + game + player;
+    }
   } else {
     const id = gameIdFromTab(sender.tab);
     if (!id) return;
