@@ -13,6 +13,7 @@ import {
   pinnedToKing,
   rankOf,
   squareAt,
+  staticExchange,
 } from "./board-relations";
 import { isMateScore } from "./classify-experiment";
 
@@ -20,18 +21,19 @@ import { isMateScore } from "./classify-experiment";
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/5";
-export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/3";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/6";
+export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/4";
 // What counts as a tactic line (tacticKind, isTacticLine). Progress and the
 // curriculum derive units from it, so a change to the rule bumps this.
 // 2: material is counted once the line's exchanges settle.
-export const TACTIC_LINE_VERSION = "tactic-line/2";
+export const TACTIC_LINE_VERSION = "tactic-line/3";
 
 type FactKind =
   | "mate"
   | "double-attack"
   | "skewer"
   | "pin"
+  | "trapped"
   | "line"
   | "discovered"
   | "capture-free"
@@ -57,11 +59,19 @@ const SHORT_LINE = 3;
 // Plies without a capture or promotion after which the material is settled.
 const STABLE_PLIES = 4;
 const LONG_LINE = 5;
+// A pin or a trap can take one more move to pay off; read only when the
+// shorter readings find nothing.
+const LONGEST_LINE = 6;
+const READINGS = [SHORT_LINE, LONG_LINE, LONGEST_LINE] as const;
+// After a gain, this many plies without a capture mean the opponent had two
+// moves to win it back and could not.
+const HELD_PLIES = 3;
 const SETUP: readonly FactKind[] = [
   "mate",
   "double-attack",
   "skewer",
   "pin",
+  "trapped",
   "line",
   "discovered",
   "capture-free",
@@ -72,6 +82,7 @@ const TACTIC = new Set<FactKind>([
   "double-attack",
   "skewer",
   "pin",
+  "trapped",
   "line",
   "discovered",
 ]);
@@ -215,6 +226,20 @@ function moveFacts(
           : `${move.san} is safe from ${named(after, square, viewer)}, which is pinned to its king.`,
       );
 
+  // A piece the move attacks with a cheaper one, that has no safe square.
+  for (const { square, type } of mate ? [] : attackedBy(after, move.to))
+    if (
+      type !== "k" &&
+      type !== "p" &&
+      PIECE_VALUE[move.piece] < PIECE_VALUE[type] &&
+      trapped(after, square)
+    )
+      add(
+        "trapped",
+        `${move.san} attacks ${named(after, square, viewer)}, which has no safe square.`,
+        PIECE_VALUE[type],
+      );
+
   for (const direction of mate ? [] : linesFor(move.piece)) {
     const [front, back] = lineHits(after, move.to, direction);
     const a = front && after.get(front);
@@ -259,6 +284,31 @@ function moveFacts(
   return facts;
 }
 
+// Every move of the piece on `square` (its side to move) loses it: the
+// square it reaches is attacked by a cheaper piece, or attacked and not
+// defended, unless the move takes something worth as much.
+function trapped(board: Chess, square: Square): boolean {
+  const piece = board.get(square);
+  if (piece?.color !== board.turn()) return false;
+  const them = opponent(piece.color);
+  return board.moves({ square, verbose: true }).every((move) => {
+    if (move.captured && PIECE_VALUE[move.captured] >= PIECE_VALUE[piece.type])
+      return false;
+    const after = new Chess(move.after);
+    const attackers = after.attackers(move.to, them);
+    return (
+      attackers.some((from) => {
+        const by = after.get(from);
+        return (
+          by !== undefined && PIECE_VALUE[by.type] < PIECE_VALUE[piece.type]
+        );
+      }) ||
+      (attackers.length > 0 &&
+        after.attackers(move.to, piece.color).length === 0)
+    );
+  });
+}
+
 const rank = (fact: Fact) => SETUP.indexOf(fact.kind);
 const lower = (text: string) =>
   text.startsWith("Moving") ? "moving" + text.slice(6) : text;
@@ -270,8 +320,9 @@ function verdict(bestCp: number, playedCp: number): string {
   return `, which Stockfish rates ${((bestCp - playedCp) / 100).toFixed(1)} pawns worse`;
 }
 
-function lineOutcome(start: Chess, end: Chess, us: Color) {
-  const balance = material(end, us) - material(end, opponent(us));
+function lineOutcome(start: Chess, end: Chess, us: Color, takeBack?: TakeBack) {
+  const owed = takeBack ? (takeBack.by === us ? 1 : -1) * takeBack.points : 0;
+  const balance = material(end, us) - material(end, opponent(us)) + owed;
   return {
     gain: balance - (material(start, us) - material(start, opponent(us))),
     balance,
@@ -297,12 +348,57 @@ function materialText(side: string, gain: number, balance: number): string {
 // until the material settles: the line makes no capture or promotion for
 // STABLE_PLIES plies, so a take-back after an in-between check counts too.
 // `boards[i]` is the position after `i` moves; `plies` is the usual reach.
+// What the side to move wins back when a line runs out on a capture.
+interface TakeBack {
+  readonly by: Color;
+  readonly square: Square;
+  readonly points: number;
+}
+
+const changesMaterial = (move: Move | undefined) =>
+  move?.captured !== undefined || move?.promotion !== undefined;
+
+// Where a gain that held is given back by choice: the opponent made two
+// moves without winning material back, and the learner then gives up a
+// piece for a cheaper one (a sacrifice for an attack). The count stops
+// before it, since the move already won what the line later invests.
+function givenBack(fen: string, played: readonly Move[]): number | undefined {
+  const [first] = played;
+  if (!first) return undefined;
+  const us = first.color;
+  const start = new Chess(fen);
+  const board = new Chess(fen);
+  let lastChange = -1;
+  for (const [index, move] of played.entries()) {
+    if (
+      move.color === us &&
+      move.captured !== undefined &&
+      lastChange >= 0 &&
+      index - lastChange - 1 >= HELD_PLIES &&
+      PIECE_VALUE[move.piece] > PIECE_VALUE[move.captured] &&
+      lineOutcome(start, board, us).gain >= 2
+    ) {
+      const after = new Chess(board.fen());
+      after.move(move.lan);
+      if (after.attackers(move.to, opponent(us)).length > 0) return index;
+    }
+    if (changesMaterial(move)) lastChange = index;
+    board.move(move.lan);
+  }
+  return undefined;
+}
+
 function settledLine(
   fen: string,
   line: readonly string[],
   learnerMoves: number,
 ):
-  | { readonly moves: Move[]; readonly boards: Chess[]; readonly plies: number }
+  | {
+      readonly moves: Move[];
+      readonly boards: Chess[];
+      readonly plies: number;
+      readonly takeBack: TakeBack | undefined;
+    }
   | undefined {
   const plies = learnerMoves * 2 - 1;
   const played: Move[] = [];
@@ -322,10 +418,9 @@ function settledLine(
     index < played.length && index < end + STABLE_PLIES;
     index += 1
   ) {
-    const move = played[index];
-    if (move?.captured !== undefined || move?.promotion !== undefined)
-      end = index + 1;
+    if (changesMaterial(played[index])) end = index + 1;
   }
+  end = Math.min(end, givenBack(fen, played) ?? end);
   const moves = played.slice(0, end);
   const board = new Chess(fen);
   const boards: Chess[] = [new Chess(fen)];
@@ -333,7 +428,22 @@ function settledLine(
     board.move(move.lan);
     boards.push(new Chess(board.fen()));
   }
-  return { moves, boards, plies };
+  // A line that runs out on a capture is not settled: the side to move
+  // takes back what the static exchange on that square wins.
+  const last = moves.at(-1);
+  const owed =
+    last?.captured !== undefined && end === played.length && !board.isGameOver()
+      ? staticExchange(board, last.to, board.turn())
+      : 0;
+  return {
+    moves,
+    boards,
+    plies,
+    takeBack:
+      last && owed > 0
+        ? { by: board.turn(), square: last.to, points: owed }
+        : undefined,
+  };
 }
 
 // A line wins material when it gains at least two points within the usual
@@ -343,11 +453,18 @@ function winsWithin(
   boards: readonly Chess[],
   plies: number,
   us: Color,
+  takeBack?: TakeBack,
 ): { readonly wins: boolean; readonly mated: boolean } {
   const end = boards.at(-1) ?? start;
-  const reached = boards[Math.min(plies, boards.length - 1)] ?? start;
-  const settled = lineOutcome(start, end, us);
-  const within = lineOutcome(start, reached, us);
+  const index = Math.min(plies, boards.length - 1);
+  const reached = boards[index] ?? start;
+  const settled = lineOutcome(start, end, us, takeBack);
+  const within = lineOutcome(
+    start,
+    reached,
+    us,
+    index === boards.length - 1 ? takeBack : undefined,
+  );
   return {
     wins: settled.gain >= 2 && (within.mated || within.gain >= 2),
     mated: settled.mated,
@@ -361,12 +478,18 @@ export function tacticKind(
   fen: string,
   line: readonly string[],
 ): "mate" | "material" | undefined {
-  const outcomes = [SHORT_LINE, LONG_LINE].flatMap((learnerMoves) => {
+  const outcomes = READINGS.flatMap((learnerMoves) => {
     const settled = settledLine(fen, line, learnerMoves);
     const [first] = settled?.moves ?? [];
     if (!settled || !first) return [];
     return [
-      winsWithin(new Chess(fen), settled.boards, settled.plies, first.color),
+      winsWithin(
+        new Chess(fen),
+        settled.boards,
+        settled.plies,
+        first.color,
+        settled.takeBack,
+      ),
     ];
   });
   if (outcomes.some(({ mated }) => mated)) return "mate";
@@ -406,8 +529,10 @@ export function explainMissedLine(
   reach: "short" | "long" | "short-then-long" = "short-then-long",
 ): MissedLineExplanation | undefined {
   if (reach === "short") return explainWithin(input, SHORT_LINE);
-  if (reach === "long") return explainWithin(input, LONG_LINE);
-  return explainWithin(input, SHORT_LINE) ?? explainWithin(input, LONG_LINE);
+  const long = () =>
+    explainWithin(input, LONG_LINE) ?? explainWithin(input, LONGEST_LINE);
+  if (reach === "long") return long();
+  return explainWithin(input, SHORT_LINE) ?? long();
 }
 
 interface MissedLineInput {
@@ -440,18 +565,26 @@ function readLine(
 ): LineReading | undefined {
   const settled = settledLine(fen, line, learnerMoves);
   if (!settled) return undefined;
-  const { moves, boards, plies } = settled;
+  const { moves, boards, plies, takeBack } = settled;
   const board = boards.at(-1);
   if (!board) return undefined;
   const [firstMove] = moves;
   const start = boards[0];
   if (!firstMove || !start) return undefined;
   const us = firstMove.color;
-  const { gain, balance, mated } = lineOutcome(countFrom ?? start, board, us);
+  const { gain, balance, mated } = lineOutcome(
+    countFrom ?? start,
+    board,
+    us,
+    takeBack,
+  );
   // Only a line whose payoff is inside the usual reach is explained here, and
   // only if it still holds once the material settles. Longer combinations
   // keep the move-consequence plan.
-  if (!mated && !winsWithin(countFrom ?? start, boards, plies, us).wins)
+  if (
+    !mated &&
+    !winsWithin(countFrom ?? start, boards, plies, us, takeBack).wins
+  )
     return undefined;
 
   const facts: Fact[] = [];
@@ -478,7 +611,10 @@ function readLine(
       ? undefined
       : (later.find((fact) => fact.kind === "mate") ??
         later
-          .filter((fact) => fact.kind.startsWith("capture"))
+          .filter(
+            (fact) =>
+              fact.kind.startsWith("capture") && !traded(moves, fact.ply),
+          )
           .toSorted((a, b) => b.value - a.value)[0]);
   // When the first move only checks or captures, the tactic may come on a
   // later move, before or with the payoff.
@@ -495,7 +631,9 @@ function readLine(
   const rest: string[] = [];
   // Name every move between the last fact shown and the next, so no move in
   // the line is skipped silently.
-  let shownPly = setup ? 0 : -1;
+  // The first move is always named, by its fact or by the sentence that
+  // stands in for one.
+  let shownPly = 0;
   const lead = ({ ply }: { readonly ply: number }) => {
     const between = moves.slice(shownPly + 1, ply);
     shownPly = ply;
@@ -523,8 +661,25 @@ function readLine(
     moves.slice(shownPly + 1).some(({ captured }) => captured !== undefined)
       ? lead({ ply: moves.length })
       : "";
-  if (!mated) rest.push(settling + materialText(SIDE[us], gain, balance));
+  const owed = takeBack
+    ? `${settling ? "once" : "Once"} ${SIDE[takeBack.by]} takes back on ${takeBack.square}, `
+    : "";
+  if (!mated)
+    rest.push(settling + owed + materialText(SIDE[us], gain, balance));
   return { firstMove, setup, bridge, rest };
+}
+
+// A capture answered at once by taking back a piece worth as much on the
+// same square is a trade, not a payoff.
+function traded(moves: readonly Move[], ply: number): boolean {
+  const move = moves[ply];
+  const next = moves[ply + 1];
+  return (
+    move?.captured !== undefined &&
+    next?.to === move.to &&
+    next.captured !== undefined &&
+    PIECE_VALUE[next.captured] >= PIECE_VALUE[move.captured]
+  );
 }
 
 function explainWithin(
@@ -534,7 +689,14 @@ function explainWithin(
   const reading = readLine(input.fen, input.line, learnerMoves);
   if (!reading) return undefined;
   const { firstMove, setup, rest } = reading;
+  // A discovered attack is about another piece, so the move's own capture
+  // is named first.
+  const taking =
+    setup?.kind === "discovered" && firstMove.captured
+      ? `${firstMove.san} takes ${pieceOf(opponent(firstMove.color), firstMove.captured, undefined)} on ${firstMove.to}.`
+      : undefined;
   const parts = [
+    ...(taking ? [taking] : []),
     setup?.text ?? `${firstMove.san} was the stronger move.`,
     ...rest,
   ];
@@ -573,11 +735,22 @@ export function explainAllowedLine(input: {
   // Counted from before the player's move, so a piece it took first is not
   // counted as the opponent's gain.
   const before = new Chess(input.fen);
-  const reading =
-    allowedReading(after.fen(), reply, SHORT_LINE, viewer, before) ??
-    allowedReading(after.fen(), reply, LONG_LINE, viewer, before);
-  if (!reading?.setup) return undefined;
+  const reading = READINGS.reduce<LineReading | undefined>(
+    (found, learnerMoves) =>
+      found ?? allowedReading(after.fen(), reply, learnerMoves, viewer, before),
+    undefined,
+  );
+  if (!reading) return undefined;
   const { firstMove, rest } = reading;
+  // A reply with no fact of its own, such as a pawn push that sets up a
+  // trap, is named before the tactic that follows.
+  if (!reading.setup)
+    return {
+      text: [
+        `After ${played.san}, ${SIDE[firstMove.color]} plays ${firstMove.san}.`,
+        ...rest,
+      ].join(" "),
+    };
   const setup =
     reading.setup.kind === "capture" && winsExchange(firstMove)
       ? {

@@ -223,3 +223,84 @@ test("still calls a line a tactic when it wins material after the take-back", ()
     ]),
   ).toBe("material");
 });
+
+// KPI games where the payoff lands later
+// (research_notes/positional-reasons/later-punishment.md).
+
+// Lichess 4qdlDjCA: dxc6 wins a knight, Black gets nothing back in two
+// moves, and White later gives material back for an attack.
+test("counts a gain that held before the line gives it back by choice", () => {
+  const fen =
+    "r1bq1rk1/ppp2p1p/2n2np1/3Pp1N1/2B5/2PQ4/PPP2PPP/R1B1K2R w KQ - 0 9";
+  const line = ["d5c6", "d8e7", "e1g1", "e7c5", "g5f7", "f8f7", "c1h6", "c5c6"];
+  expect(tacticKind(fen, line)).toBe("material");
+  expect(explainMissedLine({ fen, line, playedSan: "h4" })?.text).toBe(
+    "dxc6 takes the black knight on c6. " +
+      "Moving the pawn off d5 opens the line for the white queen on d3, which now attacks the black queen on d8. " +
+      "White wins 3 points of material and ends up 4 points ahead. You played h4 instead.",
+  );
+});
+
+// Lichess JFjekhiS: after Ba4 b5 Bb3 c4 the bishop has nowhere to go.
+const NOAH = "r1bqkbnr/1p3ppp/p1n5/1Bpp4/8/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 7";
+test("says when the reply traps a piece, and counts the take-back after the line", () => {
+  expect(
+    explainAllowedLine({
+      fen: NOAH,
+      line: [
+        "b5a4",
+        "b7b5",
+        "a4b3",
+        "c5c4",
+        "d3c4",
+        "d5c4",
+        "a2a4",
+        "d8d1",
+        "e1d1",
+        "c4b3",
+      ],
+    })?.text,
+  ).toBe(
+    "After Ba4, Black plays b5. After you reply Bb3, c4 attacks your bishop on b3, which has no safe square. " +
+      "After dxc4 dxc4 a4 Qxd1+ Kxd1, cxb3 takes your bishop on b3. " +
+      "Once White takes back on b3, Black ends up 2 points of material ahead.",
+  );
+});
+
+test("does not count a capture the line ends on before it is taken back", () => {
+  expect(
+    explainAllowedLine({
+      fen: NOAH,
+      line: ["b5a4", "b7b5", "a4b3", "c5c4", "d3c4", "d5c4", "a2a4", "d8d1"],
+    }),
+  ).toBeUndefined();
+});
+
+// Lichess xaIGXpav: Bc4 pins, and the queen that takes back on e6 is lost
+// on White's sixth move.
+test("reads one move further when a pin pays off late", () => {
+  expect(
+    explainMissedLine({
+      fen: "r4rk1/p2nqp1p/1p2bnp1/2p3N1/8/2BB4/P1Q2PPP/R3R1K1 w - - 0 17",
+      line: [
+        "g5e6",
+        "f7e6",
+        "d3c4",
+        "f8e8",
+        "e1e6",
+        "e7e6",
+        "c2b3",
+        "g8f7",
+        "a1e1",
+        "e6c4",
+        "b3c4",
+      ],
+      playedSan: "f4",
+    })?.text,
+  ).toBe(
+    "Nxe6 takes the black bishop on e6. " +
+      "After fxe6 Bc4 Rfe8 Rxe6 Qxe6 Qb3 Kf7, Re1 attacks the black queen on e6, which is pinned to its king. " +
+      "After Black replies Qxc4, Qxc4+ takes the black queen on c4, which had no defender. " +
+      "White wins 2 points of material and levels the material. You played f4 instead.",
+  );
+});
