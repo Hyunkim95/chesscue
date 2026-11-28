@@ -19,11 +19,6 @@
     inset 0 0 0 2px color-mix(in srgb, var(--ui-color-brass) 25%, transparent);
 }
 
-.today__card--skeleton {
-  aspect-ratio: 1 / 1.12;
-  animation: today-pulse 1.4s ease-in-out infinite;
-}
-
 .today__head,
 .today__foot {
   display: flex;
@@ -124,16 +119,4 @@
 
 .today__link:focus-visible {
   outline: 3px solid var(--ui-color-gold);
-}
-
-@keyframes today-pulse {
-  50% {
-    opacity: 0.55;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .today__card--skeleton {
-    animation: none;
-  }
 }

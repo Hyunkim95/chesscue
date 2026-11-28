@@ -9,10 +9,32 @@
       name="description"
       content="ChessCue turns complete chess games into adaptive training."
     />
+    <style>
+      body:has(.launch-state) {
+        margin: 0;
+        background: #071513;
+      }
+      .launch-state {
+        display: grid;
+        min-height: 100dvh;
+        place-content: center;
+        justify-items: center;
+        gap: 1rem;
+        color: #f9efda;
+        font:
+          500 1.25rem Georgia,
+          serif;
+      }
+    </style>
     <title>ChessCue</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="launch-state" role="status">
+        <img src="/favicon.svg" alt="" width="48" height="48" />
+        <span>Opening ChessCue…</span>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

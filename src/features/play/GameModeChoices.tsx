@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { LoadingText } from "../../shared/loading/LoadingState";
 import { findUnfinishedTutorGame } from "../../application/play-game/play-game";
 import type { GameRepository } from "../../application/ports/game-repository";
 import type { GameId, TutorGameMode } from "../../domain/game/types";
@@ -85,6 +86,11 @@ export function GameModeChoices({
           </span>
         </button>
       ))}
+      {!ready && (
+        <span role="status">
+          <LoadingText>Preparing your game…</LoadingText>
+        </span>
+      )}
       {onNextMove && (
         <button
           type="button"

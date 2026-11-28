@@ -1,3 +1,4 @@
+import { PositionLoading } from "../../shared/loading/LoadingState";
 import type { WeekDay } from "../../domain/progress/types";
 import { RookBubble, RookSays } from "../../shared/rook/RookBubble";
 import { RookCharacter } from "../../shared/rook/RookCharacter";
@@ -71,17 +72,7 @@ export function TodayScreen({
   );
 
   if (state.kind === "loading")
-    return (
-      <div className="today" aria-busy="true">
-        <div className="today__card today__card--skeleton" />
-        <RookSays>
-          <RookCharacter mood="think" />
-          <RookBubble tone="muted">
-            Finding a moment from your games…
-          </RookBubble>
-        </RookSays>
-      </div>
-    );
+    return <PositionLoading>Finding a moment from your games…</PositionLoading>;
 
   if (state.kind === "caught-up")
     return (
