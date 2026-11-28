@@ -164,6 +164,20 @@ test("says when the reply takes a piece that had no defender", () => {
   );
 });
 
+// Lichess hG16B4qa: Qd6+ lets the knight take the queen, and exd6 only
+// takes the knight back. Reported by the KPI audit (docs/PRD.md §9).
+test("says when the reply takes a defended piece worth much more", () => {
+  expect(
+    explainAllowedLine({
+      fen: "r2r4/1pkbQ3/p1p1pN1p/q2pP1PP/2nP4/2N3B1/1PP3P1/2KR3R w - - 1 24",
+      line: ["e7d6", "c4d6", "e5d6"],
+    })?.text,
+  ).toBe(
+    "After Qd6+, Black plays Nxd6, taking your queen on d6 with a knight. " +
+      "After you reply exd6+, Black wins 6 points of material and ends up 2 points ahead.",
+  );
+});
+
 // Bxd6 takes a bishop and Nxd6+ only takes one back: the move cost nothing
 // within the line, so there is no material lesson to state.
 test("counts what the player's own move took before the reply", () => {

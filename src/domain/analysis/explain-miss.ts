@@ -1,6 +1,7 @@
 import { Chess, type Color, type Move, type Square } from "chess.js";
 
 import {
+  PIECE_NAME,
   PIECE_VALUE,
   attackedBy,
   fileOf,
@@ -19,8 +20,8 @@ import { isMateScore } from "./classify-experiment";
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/4";
-export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/2";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/5";
+export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/3";
 // What counts as a tactic line (tacticKind, isTacticLine). Progress and the
 // curriculum derive units from it, so a change to the rule bumps this.
 // 2: material is counted once the line's exchanges settle.
@@ -514,9 +515,14 @@ function readLine(
         ? payoff.text
         : lead(payoff) + lower(payoff.text),
     );
-  // Moves read past the usual end, until the material settles, are named
-  // before the count they set.
-  const settling = moves.length > plies ? lead({ ply: moves.length }) : "";
+  // Moves read past the usual end, until the material settles, and any
+  // unshown capture, such as a take-back, are named before the count they
+  // set.
+  const settling =
+    moves.length > plies ||
+    moves.slice(shownPly + 1).some(({ captured }) => captured !== undefined)
+      ? lead({ ply: moves.length })
+      : "";
   if (!mated) rest.push(settling + materialText(SIDE[us], gain, balance));
   return { firstMove, setup, bridge, rest };
 }
@@ -547,7 +553,8 @@ function explainWithin(
 // read from the opponent's side with the player's pieces named "your".
 // `line` starts with the player's move, followed by Stockfish's line for the
 // opponent. Says nothing unless the reply is a tactic, mates, or takes a piece
-// that had no defender: a plain recapture is not the lesson.
+// that had no defender or is worth much more than the piece taking it: a
+// plain recapture is not the lesson.
 export function explainAllowedLine(input: {
   readonly fen: string;
   readonly line: readonly string[];
@@ -570,8 +577,27 @@ export function explainAllowedLine(input: {
     allowedReading(after.fen(), reply, SHORT_LINE, viewer, before) ??
     allowedReading(after.fen(), reply, LONG_LINE, viewer, before);
   if (!reading?.setup) return undefined;
-  const { firstMove, setup, rest } = reading;
+  const { firstMove, rest } = reading;
+  const setup =
+    reading.setup.kind === "capture" && winsExchange(firstMove)
+      ? {
+          ...reading.setup,
+          text: reading.setup.text.replace(
+            /\.$/,
+            ` with a ${PIECE_NAME[firstMove.piece]}.`,
+          ),
+        }
+      : reading.setup;
   return { text: [replySentence(played, firstMove, setup), ...rest].join(" ") };
+}
+
+// A defended piece taken by one worth at least two points less: the
+// exchange itself is the lesson.
+function winsExchange(move: Move): boolean {
+  return (
+    move.captured !== undefined &&
+    PIECE_VALUE[move.captured] - PIECE_VALUE[move.piece] >= 2
+  );
 }
 
 // Facts about a move start with its SAN and a verb, so they join the reply
@@ -614,6 +640,7 @@ function allowedReading(
   if (!reading) return undefined;
   const telling =
     (reading.setup !== undefined && TELLING.has(reading.setup.kind)) ||
+    (reading.setup?.kind === "capture" && winsExchange(reading.firstMove)) ||
     reading.bridge !== undefined;
   return telling ? reading : undefined;
 }
