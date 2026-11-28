@@ -1,3 +1,4 @@
+import { Chess } from "chess.js";
 import {
   act,
   cleanup,
@@ -14,6 +15,7 @@ import type {
   AnalysisEngine,
 } from "../../application/analyze-game/analysis-engine";
 import type { QuestionOutcome } from "../../application/route-question/route-question";
+import type { VoiceContext } from "../../application/route-question/question-router";
 import type { WhyInput } from "../../domain/analysis/why-packet";
 import { ok } from "../../shared/result/result";
 import { MomentScreen, type MomentSpec } from "./MomentScreen";
@@ -58,6 +60,10 @@ const FORK: MomentSpec = {
 };
 // After 35. Nxg5+, where Rook has a choice of defences.
 const AFTER_FORK = "2r5/5k2/4q3/1rBp2N1/p2P1p2/PpR1P1Pp/1P2KP1P/2R5 b - - 0 35";
+const afterMiss = new Chess(FORK.fen);
+afterMiss.move("gxf4");
+afterMiss.move("gxf4");
+const AFTER_MISS = afterMiss.fen();
 
 const candidate = (
   uci: string,
@@ -97,9 +103,18 @@ function renderFork(
   {
     online = false,
     explainWhy,
+    routeVoice,
+    trackProgress = true,
+    onComplete = () => undefined,
   }: {
     readonly online?: boolean;
+    readonly trackProgress?: boolean;
+    readonly onComplete?: () => void;
     readonly explainWhy?: (input: WhyInput) => Promise<string | undefined>;
+    readonly routeVoice?: (
+      context: VoiceContext,
+      signal: AbortSignal,
+    ) => Promise<string | undefined>;
   } = {},
 ) {
   const analyses: { fen: string; multiPv: number }[] = [];
@@ -108,6 +123,7 @@ function renderFork(
       moment={FORK}
       online={online}
       explainWhy={explainWhy}
+      {...(routeVoice ? { routeVoice } : {})}
       checkMove={(uci, signal) =>
         checkTry({ position: FORK, uci, engine, signal })
       }
@@ -121,17 +137,20 @@ function renderFork(
         return Promise.resolve(
           ok({
             candidates:
-              fen === AFTER_FORK
-                ? [
-                    candidate("f7f6", -700, ["f7f6", "g5e6"]),
-                    candidate("f7g8", -720, ["f7g8", "g5e6"]),
-                  ]
-                : [candidate("g5e6", 900)],
+              fen === AFTER_MISS
+                ? [candidate("f3g5", 900, ["f3g5", "f7f6"])]
+                : fen === AFTER_FORK
+                  ? [
+                      candidate("f7f6", -700, ["f7f6", "g5e6"]),
+                      candidate("f7g8", -720, ["f7g8", "g5e6"]),
+                    ]
+                  : [candidate("g5e6", 900)],
           }),
         );
       }}
       askRook={askRook}
-      onComplete={() => undefined}
+      trackProgress={trackProgress}
+      onComplete={onComplete}
       onContinue={() => undefined}
     />,
   );
@@ -153,6 +172,19 @@ async function solveFork() {
   fireEvent.click(square("Black pawn on g5"));
   await screen.findByRole("button", { name: "Done ✓" });
 }
+
+it("lets an alternate-side review finish without awarding progress", async () => {
+  const onComplete = vi.fn();
+  renderFork(undefined, { trackProgress: false, onComplete });
+  await solveFork();
+  fireEvent.click(screen.getByRole("button", { name: "Done ✓" }));
+
+  expect(
+    await screen.findByRole("dialog", { name: /You spotted it/ }),
+  ).toBeVisible();
+  expect(screen.queryByText(/XP|Added to your collection/)).toBeNull();
+  expect(onComplete).not.toHaveBeenCalled();
+});
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const PLAN: MomentSpec = {
@@ -309,6 +341,99 @@ it("lets the player try another move at their turn and shows why it is not as go
   expect(
     screen.getByRole("group", { name: "Step through the line" }),
   ).toHaveTextContent("Step 3 of 3");
+});
+
+it.each(["board", "question"])(
+  "answers a follow-up and lets the learner continue by %s without scoring another try",
+  async (method) => {
+    const askRook = vi.fn(() => Promise.resolve({ kind: "unrouted" } as const));
+    renderFork(askRook);
+    fireEvent.click(square("White pawn on g3"));
+    fireEvent.click(square("Black pawn on f4"));
+    await screen.findByRole("button", { name: "↺ Try again" });
+
+    const input = screen.getByRole("textbox", { name: "Ask Rook" });
+    fireEvent.change(input, {
+      target: { value: "What are you threatening now?" },
+    });
+    fireEvent.submit(input);
+    expect(bubble()).toHaveTextContent(/If it were my move/);
+    expect(askRook).not.toHaveBeenCalled();
+
+    if (method === "board") {
+      fireEvent.click(square("White knight on f3"));
+      fireEvent.click(square("Empty g5"));
+    } else {
+      fireEvent.change(input, { target: { value: "What if I play Ng5+?" } });
+      fireEvent.submit(input);
+    }
+    expect(await screen.findByText(/Best move\. Ng5\+/)).toBeVisible();
+    expect(
+      screen.getByRole("list", { name: "Your tries" }).children,
+    ).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Done ✓" })).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "◀ Back to the position" }),
+    );
+    expect(square("White knight on f3")).toBeVisible();
+    expect(bubble()).toHaveTextContent("I answer gxf4.");
+    fireEvent.click(screen.getByRole("button", { name: "↺ Try again" }));
+    expect(
+      document.querySelector("[data-move-cue-arrow='g3:f4']"),
+    ).toBeInTheDocument();
+  },
+);
+
+it("draws both targets when Rook's reply forks the king and rook", async () => {
+  const moment: MomentSpec = {
+    ...FORK,
+    fen: "7k/8/8/8/3n4/8/7P/R3K1N1 w - - 0 1",
+    bestUci: "e1f2",
+    bestCp: 100,
+    solutionLine: ["e1f2"],
+  };
+  const forkReply: AnalysisEngine = {
+    ...engine,
+    analyze: () =>
+      Promise.resolve(ok({ candidates: [candidate("d4c2", 200)] })),
+  };
+  const askRook = vi.fn(() => Promise.resolve({ kind: "unrouted" } as const));
+  render(
+    <MomentScreen
+      moment={moment}
+      online={false}
+      checkMove={(uci, signal) =>
+        checkTry({ position: moment, uci, engine: forkReply, signal })
+      }
+      checkFrom={(position, uci, signal) =>
+        checkTry({ position, uci, engine: forkReply, signal })
+      }
+      analyzePosition={() => Promise.resolve(ok({ candidates: [] }))}
+      askRook={askRook}
+      onComplete={() => undefined}
+      onContinue={() => undefined}
+    />,
+  );
+  fireEvent.click(square("White pawn on h2"));
+  fireEvent.click(square("Empty h3"));
+  await screen.findByRole("button", { name: "↺ Try again" });
+  const forkLine = "[data-move-cue-arrow='c2:a1']";
+  expect(document.querySelector(forkLine)).toBeInTheDocument();
+  expect(
+    document.querySelector("[data-move-cue-arrow='c2:e1']"),
+  ).toBeInTheDocument();
+
+  const input = screen.getByRole("textbox", { name: "Ask Rook" });
+  fireEvent.change(input, { target: { value: "What are you threatening?" } });
+  fireEvent.submit(input);
+  expect(document.querySelector(forkLine)).not.toBeInTheDocument();
+  fireEvent.change(input, { target: { value: "Where is the fork?" } });
+  fireEvent.submit(input);
+  expect(document.querySelector(forkLine)).toBeInTheDocument();
+  expect(bubble()).toHaveTextContent(
+    /attacking your king on e1 and your rook on a1 at once/,
+  );
+  expect(askRook).not.toHaveBeenCalled();
 });
 
 it("asks why not the player's try and shows what it costs without the answer", async () => {
@@ -528,7 +653,7 @@ it("offers the game's opening only after the position is solved", async () => {
   ).toBeVisible();
 });
 
-it("hands-free reads each line aloud, listens, and steps on when told next", async () => {
+it("hands-free reads each line aloud, listens, and steps on when told to move", async () => {
   const spoken: { text: string; onend: (() => void) | null }[] = [];
   class Utterance {
     lang = "";
@@ -557,13 +682,125 @@ it("hands-free reads each line aloud, listens, and steps on when told next", asy
     line?.onend?.();
     expect(speech.listens).toBe(before + 1);
     act(() => {
-      speech.onMessage("Next.");
+      speech.onMessage("Move.");
     });
     expect(steps).toHaveTextContent("Step 2 of 3");
     expect(spoken.at(-1)?.text).toBe(bubble().textContent);
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+it("hands-free asks for a move, checks legality, and uses the same controls as taps", async () => {
+  const askRook = vi.fn<() => Promise<QuestionOutcome>>(() =>
+    Promise.resolve({ kind: "unrouted" }),
+  );
+  renderFork(askRook);
+  fireEvent.click(screen.getByRole("button", { name: "Hands-free voice" }));
+
+  act(() => {
+    speech.onMessage("Move.");
+  });
+  expect(bubble()).toHaveTextContent("Which move?");
+  act(() => {
+    speech.onMessage("Move knight to a eight.");
+  });
+  expect(bubble()).toHaveTextContent("couldn’t match that move");
+  expect(screen.queryByLabelText("Your tries")).toBeNull();
+
+  act(() => {
+    speech.onMessage("Move knight to g five.");
+  });
+  const why = await screen.findByRole("button", { name: "Why does it work?" });
+  await waitFor(() => {
+    expect(why).toBeEnabled();
+    expect(why).not.toHaveAttribute("aria-disabled", "true");
+  });
+  expect(square("White knight on g5")).toBeVisible();
+
+  act(() => {
+    speech.onMessage("Why does it work?");
+  });
+  expect(
+    screen.getByRole("group", { name: "Step through the line" }),
+  ).toHaveTextContent("Step 1 of 3");
+  expect(askRook).not.toHaveBeenCalled();
+});
+
+it("routes paraphrased speech against available controls and confirms inferred moves", async () => {
+  const routeVoice = vi.fn(async ({ text, controls, moves }: VoiceContext) => {
+    await Promise.resolve();
+    if (text === "Put my horse somewhere better") {
+      expect(moves).toEqual([]);
+      return "clarify-move";
+    }
+    if (text === "Set my horse down on g five")
+      return moves.find(({ uci }) => uci === "f3g5")?.id;
+    if (text === "Yep, that's the one")
+      return controls.find(({ label }) => label.startsWith("Play Nxg5"))?.id;
+    return controls.find(({ label }) => label === "Why does it work?")?.id;
+  });
+  renderFork(undefined, { routeVoice });
+  fireEvent.click(screen.getByRole("button", { name: "Hands-free voice" }));
+  await act(() => {
+    speech.onMessage("Put my horse somewhere better");
+    return Promise.resolve();
+  });
+  expect(bubble()).toHaveTextContent("Which move?");
+  expect(screen.queryByRole("button", { name: /Play Nxg5/ })).toBeNull();
+  await act(() => {
+    speech.onMessage("Set my horse down on g five");
+    return Promise.resolve();
+  });
+  expect(screen.getByRole("button", { name: /Play Nxg5/ })).toBeEnabled();
+  expect(square("White knight on f3")).toBeVisible();
+
+  await act(() => {
+    speech.onMessage("Yep, that's the one");
+    return Promise.resolve();
+  });
+  expect(
+    screen.getByRole("button", { name: "Why does it work?" }),
+  ).toBeEnabled();
+  expect(square("White knight on g5")).toBeVisible();
+  await act(() => {
+    speech.onMessage("Walk me through what made that good");
+    return Promise.resolve();
+  });
+  expect(
+    screen.getByRole("group", { name: "Step through the line" }),
+  ).toHaveTextContent("Step 1 of 3");
+});
+
+it("discards a voice decision when the player changes the screen while routing", async () => {
+  let resolveChoice: ((choice: string | undefined) => void) | undefined;
+  const response = new Promise<string | undefined>((resolve) => {
+    resolveChoice = resolve;
+  });
+  const routeVoice = vi.fn((context: VoiceContext, signal: AbortSignal) => {
+    expect(context.controls.some(({ label }) => label === "Show me")).toBe(
+      true,
+    );
+    expect(signal.aborted).toBe(false);
+    return response;
+  });
+  renderFork(undefined, { routeVoice });
+  fireEvent.click(screen.getByRole("button", { name: "Hands-free voice" }));
+  act(() => {
+    speech.onMessage("Go ahead and show how it's done");
+  });
+  const call = routeVoice.mock.calls[0];
+  fireEvent.click(screen.getByRole("button", { name: "Hint" }));
+  expect(call?.[1].aborted).toBe(true);
+  await act(async () => {
+    resolveChoice?.(
+      call?.[0].controls.find(({ label }) => label === "Show me")?.id,
+    );
+    await response;
+  });
+  expect(
+    screen.queryByRole("group", { name: "Step through the line" }),
+  ).toBeNull();
 });
 
 const WHY =

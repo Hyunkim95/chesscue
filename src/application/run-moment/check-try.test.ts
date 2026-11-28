@@ -60,6 +60,38 @@ it("accepts the best move without a search and answers with the line", async () 
   });
 });
 
+it("accepts the installed solution before a baseline evaluation is available", async () => {
+  const { fake, requests } = engine("a1a1", 0);
+  const result = await checkTry({
+    position: { ...FORK, bestCp: undefined },
+    uci: "f3g5",
+    engine: fake,
+    signal,
+  });
+
+  expect(requests).toHaveLength(0);
+  expect(result).toMatchObject({
+    ok: true,
+    value: { attempt: { tier: "best", replyUci: "f7f6" } },
+  });
+});
+
+it("reads the baseline for an alternative and reuses it on another try", async () => {
+  const { fake, requests } = engine("f7g8", 60);
+  const position = { ...FORK, bestCp: undefined };
+
+  for (const uci of ["g3f4", "c3c2"]) {
+    expect(
+      await checkTry({ position, uci, engine: fake, signal }),
+    ).toMatchObject({
+      ok: true,
+      value: { attempt: { tier: "missed" }, playedCp: -60 },
+    });
+  }
+  expect(requests).toHaveLength(3);
+  expect(requests.filter(({ fen }) => fen === position.fen)).toHaveLength(1);
+});
+
 it("returns a good move of the player's own with Stockfish's line after it", async () => {
   // Within a plan's wider tolerance, a different move counts as best.
   const { fake } = engine("f7g8", -700);

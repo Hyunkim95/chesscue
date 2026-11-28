@@ -12,8 +12,8 @@ import type {
 export interface MomentPosition {
   readonly fen: string;
   readonly bestUci: string;
-  // Evaluation of the best move for the player, in centipawns.
-  readonly bestCp: number;
+  // Installed puzzles can open before the local engine reads this score.
+  readonly bestCp: number | undefined;
   // The best line, starting with bestUci.
   readonly solutionLine: readonly string[];
   // How close to the best move counts as finding it; wider for plans.
@@ -27,7 +27,7 @@ export interface CheckedTry {
   // The position after Rook's reply, when there is one.
   readonly replyFen: string | undefined;
   readonly replySan: string | undefined;
-  readonly playedCp: number;
+  readonly playedCp: number | undefined;
   // The tried move and Stockfish's line after it, so a good move of the
   // player's own can be replayed as it is rather than as Rook's main line.
   readonly line: readonly string[];
@@ -41,6 +41,11 @@ export type CheckFailure =
 const MATED_CP = 100_000;
 
 export const TRY_SEARCH = { depth: 14, timeBudgetMs: 2_000 } as const;
+
+const baselines = new WeakMap<
+  MomentPosition,
+  { readonly engine: AnalysisEngine; readonly score: number }
+>();
 
 function play(fen: string, uci: string) {
   try {
@@ -67,17 +72,42 @@ export async function checkTry({
   readonly engine: AnalysisEngine;
   readonly signal: AbortSignal;
 }): Promise<Result<CheckedTry, CheckFailure>> {
+  const cancelled = () => signal.aborted;
+  if (cancelled())
+    return err({ code: "cancelled", message: "Position check cancelled." });
   const move = play(position.fen, uci);
   if (!move)
     return err({ code: "illegal", message: `${uci} is not legal here.` });
+  const followsSolution = move.lan === position.bestUci;
+  const cached = baselines.get(position);
+  let bestCp =
+    position.bestCp ?? (cached?.engine === engine ? cached.score : undefined);
+  if (bestCp === undefined && !followsSolution) {
+    const analysis = await engine.analyze({
+      fen: position.fen,
+      multiPv: 1,
+      signal,
+      ...TRY_SEARCH,
+    });
+    if (!analysis.ok) return analysis;
+    if (cancelled())
+      return err({ code: "cancelled", message: "Position check cancelled." });
+    bestCp = analysis.value.candidates[0]?.evaluationCpFromSideToMove;
+    if (bestCp === undefined)
+      return err({
+        code: "no-analysis",
+        message: "Stockfish returned no move.",
+      });
+    baselines.set(position, { engine, score: bestCp });
+  }
   const after = new Chess(move.after);
-  let playedCp: number;
+  let playedCp: number | undefined;
   let replyUci: string | undefined;
   let continuation: readonly string[] = [];
   if (after.isCheckmate()) playedCp = MATED_CP;
   else if (after.isDraw()) playedCp = 0;
-  else if (move.lan === position.bestUci) {
-    playedCp = position.bestCp;
+  else if (followsSolution) {
+    playedCp = bestCp;
     replyUci = position.solutionLine[1];
     continuation = position.solutionLine.slice(1);
   } else {
@@ -88,6 +118,8 @@ export async function checkTry({
       ...TRY_SEARCH,
     });
     if (!analysis.ok) return analysis;
+    if (cancelled())
+      return err({ code: "cancelled", message: "Position check cancelled." });
     const [top] = analysis.value.candidates;
     if (!top)
       return err({
@@ -102,13 +134,16 @@ export async function checkTry({
         : [top.uci];
   }
   const reply = replyUci === undefined ? undefined : play(move.after, replyUci);
-  const tier = feedbackTier({
-    bestCp: position.bestCp,
-    playedCp,
-    ...(position.toleranceCp === undefined
-      ? {}
-      : { toleranceCp: position.toleranceCp }),
-  });
+  const tier =
+    bestCp === undefined || playedCp === undefined
+      ? "best"
+      : feedbackTier({
+          bestCp,
+          playedCp,
+          ...(position.toleranceCp === undefined
+            ? {}
+            : { toleranceCp: position.toleranceCp }),
+        });
   return ok({
     attempt: {
       uci: move.lan,

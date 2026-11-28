@@ -68,7 +68,10 @@ const engine: AnalysisEngine = {
   dispose: () => undefined,
 };
 
-function renderDanger(router?: QuestionRouter) {
+function renderDanger(
+  router?: QuestionRouter,
+  complete?: (result: MomentResult) => Promise<void>,
+) {
   const results: MomentResult[] = [];
   const askRook = vi.fn(() => Promise.resolve({ kind: "unrouted" } as const));
   render(
@@ -95,7 +98,12 @@ function renderDanger(router?: QuestionRouter) {
               pickHint({ text, fen: MOMENT.fen, router, signal })
           : undefined
       }
-      onComplete={(result) => results.push(result)}
+      onComplete={
+        complete ??
+        ((result) => {
+          results.push(result);
+        })
+      }
       onContinue={() => undefined}
     />,
   );
@@ -139,8 +147,11 @@ it("asks what is in trouble with only the last move marked", () => {
   );
 });
 
-it("lets Gemini Nano read a partial answer and nudge, then the tap spots it", async () => {
-  const read = vi.fn(() => Promise.resolve("attacked-but-safe:c6"));
+it("nudges a partial description and accepts a correct description without a tap", async () => {
+  const read = vi
+    .fn<QuestionRouter["readDanger"]>()
+    .mockResolvedValueOnce("attacked-but-safe:c6")
+    .mockResolvedValueOnce("wins-material:e6");
   const { results, askRook } = renderDanger({
     model: "Gemini Nano",
     route: () => Promise.resolve(undefined),
@@ -165,8 +176,15 @@ it("lets Gemini Nano read a partial answer and nudge, then the tap spots it", as
     screen.getByRole("heading", { name: /Is something of yours in trouble/ }),
   ).toBeVisible();
 
-  fireEvent.click(square("Black queen on e6"));
-  expect(screen.getByRole("heading", { name: /Spotted it\./ })).toBeVisible();
+  fireEvent.change(input, {
+    target: { value: "White's knight is threatening my queen on e6" },
+  });
+  fireEvent.submit(input);
+  expect(
+    await screen.findByRole("heading", { name: /Spotted it\./ }),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: "Done ✓" })).toBeEnabled();
+  expect(results).toEqual([]);
   expect(arrows().toSorted()).toEqual(["d4:c6", "d4:e6"]);
   expect(square("Black queen on e6").className).toContain("outline-coral");
   expect(square("Black knight on c6").className).toContain("outline-coral");
@@ -261,6 +279,41 @@ it("gives the hint Gemini Nano picks when the answer misses the danger", async (
   expect(
     screen.getByText(/Gemini Nano understood · your own plan/),
   ).toBeVisible();
-  // Not spotted: the danger still has to be tapped.
+  // The answer didn't identify a threat, so the exercise stays open.
   expect(screen.queryByRole("button", { name: "Find a safe move" })).toBeNull();
+});
+
+it("can finish after spotting the threat without playing a safe move", async () => {
+  const { results } = renderDanger();
+  expect(screen.queryByRole("button", { name: "Done ✓" })).toBeNull();
+  fireEvent.click(square("Black queen on e6"));
+  expect(results).toEqual([]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Done ✓" }));
+  expect(
+    await screen.findByRole("dialog", { name: "Threat spotted" }),
+  ).toBeVisible();
+  expect(screen.queryByText(/Added to your collection/)).toBeNull();
+  expect(results).toEqual([
+    { outcome: "spotted", helped: false, explorations: 0, attempts: [] },
+  ]);
+});
+
+it("keeps the spotted position open if saving fails and lets the player retry", async () => {
+  const complete = vi
+    .fn<() => Promise<void>>()
+    .mockRejectedValueOnce(new Error("storage unavailable"))
+    .mockResolvedValueOnce(undefined);
+  renderDanger(undefined, complete);
+  fireEvent.click(square("Black queen on e6"));
+  fireEvent.click(screen.getByRole("button", { name: "Done ✓" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Couldn’t save this position.",
+  );
+  expect(screen.queryByRole("dialog", { name: "Threat spotted" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Done ✓" }));
+  expect(
+    await screen.findByRole("dialog", { name: "Threat spotted" }),
+  ).toBeVisible();
+  expect(complete).toHaveBeenCalledTimes(2);
 });

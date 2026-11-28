@@ -9,7 +9,7 @@ test("hands-free reads Rook aloud and steps through the answer by voice", async 
   page,
 }) => {
   await page.addInitScript(() => {
-    const heard = ["next", "why Kh8"];
+    const heard = ["", "Move.", "why Kh8"];
     const said: string[] = [];
     Object.assign(window, { rookSaid: said });
     class FakeRecognition {
@@ -67,7 +67,7 @@ test("hands-free reads Rook aloud and steps through the answer by voice", async 
   await expect(
     page.getByRole("button", { name: "Hands-free voice" }),
   ).toHaveAttribute("aria-pressed", "true");
-  // Rook reads step 1, listens, hears "next", reads step 2, hears a question.
+  // The mic reopens after silence, then "Move" presses the next-step control.
   await expect(steps).toContainText("Step 2 of 3", { timeout: 10_000 });
   await expect(page.locator(".rook-bubble__text")).toHaveText(
     "Kh8 is my only legal move.",
@@ -88,7 +88,7 @@ test("hands-free never hears Rook's own voice as a question", async ({
     // is open comes back as speech.
     const log = { said: [] as string[], echoed: [] as string[] };
     Object.assign(window, { rookLog: log });
-    let open: FakeRecognition | undefined;
+    const mic: { open?: FakeRecognition | undefined } = {};
     class FakeRecognition {
       lang = "";
       continuous = false;
@@ -103,7 +103,7 @@ test("hands-free never hears Rook's own voice as a question", async ({
         return Promise.resolve("available");
       }
       start() {
-        open = this;
+        mic.open = this;
         setTimeout(() => {
           this.onstart?.();
           this.onaudiostart?.();
@@ -114,15 +114,15 @@ test("hands-free never hears Rook's own voice as a question", async ({
           isFinal: true,
         });
         this.onresult?.({ results: [result] });
-        if (open === this) open = undefined;
+        if (mic.open === this) mic.open = undefined;
         this.onend?.();
       }
       stop() {
-        if (open === this) open = undefined;
+        if (mic.open === this) mic.open = undefined;
         this.onend?.();
       }
       abort() {
-        if (open === this) open = undefined;
+        if (mic.open === this) mic.open = undefined;
         this.onend?.();
       }
     }
@@ -132,7 +132,7 @@ test("hands-free never hears Rook's own voice as a question", async ({
     });
     window.speechSynthesis.speak = (utterance: SpeechSynthesisUtterance) => {
       log.said.push(utterance.text);
-      const listener = open;
+      const listener = mic.open;
       if (listener) {
         log.echoed.push(utterance.text);
         setTimeout(() => {

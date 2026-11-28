@@ -13,6 +13,7 @@ import {
   PIECE_VALUE,
   attackedBy,
   joinedAnd,
+  lineHits,
   linesFor,
   onMinorHome,
   opponent,
@@ -217,6 +218,53 @@ function quietLearnerFrame(after: Chess, move: Move): StoryFrame {
   };
 }
 
+function pinFrame(
+  after: Chess,
+  move: Move,
+  by: StoryFrame["by"],
+): StoryFrame | undefined {
+  if (after.isCheckmate()) return undefined;
+  const enemy = opponent(move.color);
+  const piece = after.get(move.to);
+  if (!piece) return undefined;
+  for (const ray of linesFor(piece.type)) {
+    const [target, king] = lineHits(after, move.to, ray);
+    if (!target || !king) continue;
+    const pinned = after.get(target);
+    const behind = after.get(king);
+    if (
+      pinned?.color !== enemy ||
+      behind?.color !== enemy ||
+      behind.type !== "k"
+    )
+      continue;
+    const side = by === "rook" ? "your" : "my";
+    return {
+      fen: after.fen(),
+      moveUci: move.lan,
+      by,
+      arrows: [
+        {
+          from: move.from,
+          to: move.to,
+          kind: by === "rook" ? "reply" : "preview",
+        },
+        attack(move.to, king),
+      ],
+      outlines: [
+        { square: target, tone: "coral" },
+        { square: king, tone: "coral" },
+      ],
+      control: [],
+      caption:
+        by === "rook"
+          ? `I play ${move.san}, pinning ${side} ${PIECE_NAME[pinned.type]} on ${target} to ${side} king.`
+          : `${move.san} pins ${side} ${PIECE_NAME[pinned.type]} on ${target} to ${side} king.`,
+    };
+  }
+  return undefined;
+}
+
 function learnerFrame(after: Chess, move: Move): StoryFrame {
   const them = opponent(move.color);
   if (after.isCheckmate()) {
@@ -236,6 +284,8 @@ function learnerFrame(after: Chess, move: Move): StoryFrame {
       caption: `${move.san} is checkmate.`,
     };
   }
+  const pin = pinFrame(after, move, "learner");
+  if (pin) return pin;
   const targets = attackedBy(after, move.to)
     .filter(
       ({ type, square }) =>
@@ -403,6 +453,8 @@ function rookFrame(
     control: [],
   };
   const moved: BoardArrow = { from: move.from, to: move.to, kind: "reply" };
+  const pin = pinFrame(after, move, "rook");
+  if (pin) return pin;
   const threat = move.san.startsWith("O-O")
     ? undefined
     : threatOf(before, after, move);
@@ -493,6 +545,38 @@ function rookFrame(
       ? `I answer ${move.san}, bringing my ${PIECE_NAME[move.piece]} into play.`
       : `I answer ${move.san}.`,
   };
+}
+
+// Only named tactics established by replaying the move on the verified board.
+export function tacticFrame(
+  fen: string,
+  uci: string,
+  learner: Color,
+): { readonly kind: "pin" | "fork"; readonly frame: StoryFrame } | undefined {
+  try {
+    const before = new Chess(fen);
+    const after = new Chess(fen);
+    const move = play(after, uci);
+    if (!move || after.isCheckmate()) return undefined;
+    const by = move.color === learner ? "learner" : "rook";
+    const pin = pinFrame(after, move, by);
+    if (pin) return { kind: "pin", frame: pin };
+    const threat = threatOf(before, after, move);
+    if (threat?.kind !== "fork") return undefined;
+    return {
+      kind: "fork",
+      frame:
+        by === "learner"
+          ? learnerFrame(after, move)
+          : threatFrame(after, move, threat, {
+              from: move.from,
+              to: move.to,
+              kind: "reply",
+            }),
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 // The learner moves first unless `learner` says otherwise, as in "What if

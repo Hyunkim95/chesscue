@@ -51,6 +51,22 @@ test("a new player finds the warm-up idea on a retry and sees it recapped", asyn
     "Qxg5",
   );
 
+  const ask = page.getByRole("textbox", { name: "Ask Rook" });
+  const replySquare = page.getByRole("gridcell", {
+    name: /last move ended here/,
+  });
+  const replyLabel = await replySquare.getAttribute("aria-label");
+  expect(replyLabel).toBeTruthy();
+  await ask.fill("What are you threatening now?");
+  await ask.press("Enter");
+  await expect(bubble).toContainText(
+    /If it were my move|Your king is in check|Nothing right now/,
+  );
+  await expect(replySquare).toHaveAttribute("aria-label", replyLabel ?? "");
+  await expect(
+    page.getByRole("list", { name: "Your tries" }).locator("li"),
+  ).toHaveCount(1);
+
   await page.getByRole("button", { name: "↺ Try again" }).click();
   await expect(page.locator("[data-move-cue-arrow='f1:f2']")).toHaveCount(1);
 

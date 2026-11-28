@@ -257,7 +257,7 @@ for (const width of [320, 1280]) {
 // words about c6 to the knight's fact. This checks the wiring from the ask bar
 // through Firebase's on-device route to Rook's code-written line, not Nano's
 // own understanding.
-test("the on-device model reads a partial answer and Rook nudges, at 320 px", async ({
+test("Rook nudges a partial answer and spots a described threat, at 320 px", async ({
   page,
   context,
 }) => {
@@ -276,7 +276,11 @@ test("the on-device model reads a partial answer and Rook nudges, at 320 px", as
               const text = JSON.stringify(contents);
               return Promise.resolve(
                 JSON.stringify({
-                  fact: text.includes("c6") ? "attacked-but-safe:c6" : "none",
+                  fact: text.includes("threatening my queen")
+                    ? "wins-material:e6"
+                    : text.includes("can take my knight")
+                      ? "attacked-but-safe:c6"
+                      : "none",
                 }),
               );
             },
@@ -323,4 +327,37 @@ test("the on-device model reads a partial answer and Rook nudges, at 320 px", as
     '"enum":["check-their-threats","bigger-target","scan"]',
   );
   await shoot(page, "2-nano-nudge", 320);
+  await input.fill("White's knight is threatening my queen on e6");
+  await input.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: /Spotted it\./ }),
+  ).toBeVisible();
+  await expect(page.locator("[data-move-cue-arrow='d4:e6']")).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "Find a safe move" }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "Done ✓" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Threat spotted" }),
+  ).toBeVisible();
+});
+
+test("Done saves the threat spot and Today advances offline", async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 320, height: 860 });
+  await seed(page);
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Play it", exact: true }).click();
+  await square(page, "Black queen on e6").click();
+  await page.getByRole("button", { name: "Done ✓" }).click();
+  const completion = page.getByRole("dialog", { name: "Threat spotted" });
+  await expect(completion).toBeVisible();
+  await completion.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Next moment" }).click();
+  await page.reload();
+  await expect(page.locator(".today")).toBeVisible();
+  await expect(page.getByText(/Your game vs Ahmed/)).toHaveCount(0);
 });

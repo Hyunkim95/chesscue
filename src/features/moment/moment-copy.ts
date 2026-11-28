@@ -1,4 +1,4 @@
-import { Chess, SQUARES } from "chess.js";
+import { Chess, SQUARES, type Color } from "chess.js";
 
 import type { BoardArrow } from "../../domain/analysis/board-move-cues";
 import {
@@ -15,12 +15,14 @@ export function tierLine({
   tier,
   trySan,
   replySan,
+  replyCaption,
   preview,
   plan = false,
 }: {
   readonly tier: FeedbackTier;
   readonly trySan: string;
   readonly replySan: string | undefined;
+  readonly replyCaption?: string | undefined;
   readonly preview: boolean;
   // A plan position has a stated goal rather than one winning move.
   readonly plan?: boolean;
@@ -28,7 +30,11 @@ export function tierLine({
   const stronger = plan
     ? "Something does more for your goal here."
     : "But something much stronger was here.";
-  const answer = replySan ? `I answer ${replySan}. ` : "";
+  const answer = replyCaption
+    ? `${replyCaption} `
+    : replySan
+      ? `I answer ${replySan}. `
+      : "";
   const lead = preview
     ? replySan
       ? `If you play ${trySan}, I answer ${replySan}. `
@@ -71,30 +77,31 @@ export interface BoardAnswer {
 }
 
 // "What are you threatening?": Rook's captures and checks if it were his move.
-export function threatsAnswer(fen: string): BoardAnswer {
+export function threatsAnswer(fen: string, learner: Color): BoardAnswer {
+  const board = new Chess(fen);
+  const [king] = board.findPiece({ type: "k", color: learner });
+  const checkers =
+    king && board.turn() === learner && board.inCheck()
+      ? board.attackers(king, opponent(learner))
+      : [];
+  if (king && checkers.length > 0) {
+    return {
+      text: `Your king is in check from ${listed(checkers.map((square) => `my ${NAME[board.get(square)?.type ?? "k"]} on ${square}`))}.`,
+      arrows: checkers.map((from) => ({ from, to: king, kind: "reply" })),
+      outlines: [{ square: king, tone: "coral" }],
+    };
+  }
   const fields = fen.split(" ");
-  const flipped = [
-    fields[0],
-    fields[1] === "w" ? "b" : "w",
-    fields[2],
-    "-",
-    "0",
-    "1",
-  ].join(" ");
-  const scan = (() => {
-    try {
-      return new Chess(fen).inCheck() ? undefined : forcingScan(flipped);
-    } catch {
-      return undefined;
-    }
-  })();
+  const flipped = [fields[0], opponent(learner), fields[2], "-", "0", "1"].join(
+    " ",
+  );
+  const scan = forcingScan(board.turn() === learner ? flipped : fen);
   if (!scan || (scan.captures.length === 0 && scan.checks.length === 0))
     return {
       text: "Nothing right now: none of my pieces can capture or give check.",
       arrows: [],
       outlines: [],
     };
-  const board = new Chess(fen);
   const captures = scan.captures.slice(0, 3);
   const targets = captures.map(({ to }) => {
     const piece = board.get(to);
@@ -108,7 +115,7 @@ export function threatsAnswer(fen: string): BoardAnswer {
       : []),
   ];
   return {
-    text: `If it were my move, ${parts.join(", and ")}. Check what guards them before you move.`,
+    text: `${board.turn() === learner ? "If it were my move, " : ""}${parts.join(", and ")}.`,
     arrows: [...captures, ...checks].map(({ from, to }) => ({
       from,
       to,

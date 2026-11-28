@@ -10,6 +10,7 @@ import {
   isQuietMove,
   pointStoryboard,
   refutationStoryboard,
+  tacticFrame,
 } from "./line-storyboard";
 
 // Lichess 0jcIg: Nd4+ forks king and rook.
@@ -593,5 +594,38 @@ describe("insteadFrame names the mechanism the try missed", () => {
     ).toBe(
       "Bd4 threatens to win my rook on a1, so after Kh1 you take the rook with Bxa1.",
     );
+  });
+});
+
+it("draws a rook’s pin as a ray through the piece to the king", () => {
+  const fen = "k6r/8/8/8/8/8/4N3/4K3 b - - 0 1";
+  const pin = tacticFrame(fen, "h8e8", "w");
+  expect(pin).toMatchObject({
+    kind: "pin",
+    frame: {
+      arrows: [
+        { from: "h8", to: "e8", kind: "reply" },
+        { from: "e8", to: "e1", kind: "attack" },
+      ],
+      outlines: [
+        { square: "e2", tone: "coral" },
+        { square: "e1", tone: "coral" },
+      ],
+      caption: "I play Re8, pinning your knight on e2 to your king.",
+    },
+  });
+  expect(lineStoryboard(fen, ["h8e8"], "w")[0]).toEqual(pin?.frame);
+});
+
+it("draws the fork to both targets even when it occurs on Rook’s move", () => {
+  expect(tacticFrame(KNIGHT_FORK, "f5d4", "b")).toMatchObject({
+    kind: "fork",
+    frame: {
+      arrows: [
+        { from: "f5", to: "d4", kind: "reply" },
+        { from: "d4", to: "e6", kind: "attack" },
+        { from: "d4", to: "b3", kind: "attack" },
+      ],
+    },
   });
 });
