@@ -78,6 +78,7 @@ import type { Result } from "../../shared/result/result";
 import type { HintPick } from "../../application/route-question/pick-hint";
 import { AskBar } from "../../shared/rook/AskBar";
 import { useRookNarration } from "../../shared/rook/use-rook-narration";
+import { echoOf } from "../../shared/rook/echo";
 import { useRookSpeech } from "../../shared/rook/use-rook-speech";
 import { RookSpeechStatus } from "../../shared/rook/RookSpeechStatus";
 import { RookBubble, RookSays } from "../../shared/rook/RookBubble";
@@ -2145,8 +2146,21 @@ export function MomentScreen({
     heard.current(text);
   });
   const listening = voice.state.status === "listening";
+  const listen = useRef(voice.start);
+  const stopListening = useRef(voice.cancel);
+  useEffect(() => {
+    listen.current = voice.start;
+    stopListening.current = voice.cancel;
+  });
+  // What Rook last read aloud: the mic can still pick up its tail, so words
+  // that only repeat it are Rook's own voice, never a question.
+  const lastRead = useRef("");
   useEffect(() => {
     heard.current = (text) => {
+      if (echoOf(text, lastRead.current)) {
+        if (handsFreeOn.current) void listen.current();
+        return;
+      }
       const command = handsFreeOn.current ? voiceCommand(text) : undefined;
       if (command === "next" && story) stepTo(story.step + 1);
       else if (command === "back" && story) stepTo(story.step - 1);
@@ -2156,15 +2170,14 @@ export function MomentScreen({
       else void ask(text.trim().slice(0, 400));
     };
   });
-  const listen = useRef(voice.start);
-  useEffect(() => {
-    listen.current = voice.start;
-  });
   const { readAloud, cancel: stopReading } = narration;
   const spoken =
     say.mood !== "think" && typeof say.text === "string" ? say.text : "";
   useEffect(() => {
     if (!spoken || !(handsFree || readsAloud)) return;
+    // Rook never speaks into an open mic: it would hear itself.
+    stopListening.current();
+    lastRead.current = spoken;
     readAloud(spoken, () => {
       if (handsFreeOn.current) void listen.current();
     });
