@@ -360,3 +360,26 @@ test("names the check before the discovered attack it comes with", () => {
     /^Bb6\+ gives check\. Moving the bishop off d8 opens the line for the black rook on e8, which now attacks the white rook on c8\. /,
   );
 });
+
+// Lichess case 11 of the KPI set: Rxc1 is answered by Qxc1, so its pin on
+// the bishop is not the tactic.
+test("does not name a tactic on a capture that is traded straight back", () => {
+  const text =
+    explainMissedLine({
+      fen: "1r3rk1/p2q1ppp/4bnn1/4p3/6P1/P1RP1P2/3QPNBP/1R4K1 b - - 0 22",
+      line: ["b8b1", "g2f1", "d7e7", "a3a4", "f6d5", "c3c1", "b1c1", "d2c1"],
+    })?.text ?? "";
+  expect(text).toMatch(
+    /^Rxb1\+ takes the white rook on b1, which had no defender\. /,
+  );
+  expect(text).not.toContain("pinned");
+});
+
+test("names the check before a discovered attack on the queen", () => {
+  expect(
+    explainMissedLine({
+      fen: "r1B5/2k1np2/1pnp2pq/2p1p1N1/4P3/pPNP4/P1PQ1PP1/2K5 w - - 0 20",
+      line: ["g5e6", "f7e6", "d2h6", "a8c8", "f2f4", "c7d7", "f4e5", "d6e5"],
+    })?.text,
+  ).toMatch(/^Ne6\+ gives check\. Moving the knight off g5 opens the line/);
+});

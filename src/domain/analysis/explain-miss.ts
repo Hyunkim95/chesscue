@@ -627,7 +627,9 @@ function readLine(
       : later
           .filter(
             (fact) =>
-              TACTIC.has(fact.kind) && (!payoff || fact.move <= payoff.move),
+              TACTIC.has(fact.kind) &&
+              !traded(moves, fact.ply) &&
+              (!payoff || fact.move <= payoff.move),
           )
           .toSorted((a, b) => a.move - b.move || rank(a) - rank(b))[0];
 
