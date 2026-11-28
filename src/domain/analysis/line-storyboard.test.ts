@@ -699,3 +699,45 @@ it("shows a quiet try's missed prize as the goal, without naming the move", () =
   expect(frames[0]?.goal?.rook).toBeUndefined();
   expect(JSON.stringify(frames)).not.toMatch(/Nd4/);
 });
+
+// Lichess puzzle 0N3LV: Qxc4 dxc4 Rxd8+ trades queens and nets a rook, and
+// in a KPI game Qxh5 wins a knight before the queens come off.
+it.each([
+  {
+    fen: "3q2k1/p3r1pp/1p3p2/3p4/2rQn3/5N2/P1P2PPP/3R1RK1 w - - 0 20",
+    line: ["d4d3", "c4c3", "d3e2", "e4g3"],
+    instead: ["d4c4", "d5c4", "d1d8", "g8f7", "d8d4"],
+    prize: "rook",
+  },
+  {
+    fen: "3r1rk1/pp3ppp/2p1p3/7n/2BP1q2/2P4P/P1P1QP2/R3R2K w - - 2 23",
+    line: ["e1g1", "h5f6", "g1g3", "c6c5"],
+    instead: [
+      "e2h5",
+      "c6c5",
+      "h1g2",
+      "c5d4",
+      "c4d3",
+      "g7g6",
+      "h5e5",
+      "f4e5",
+      "e1e5",
+    ],
+    prize: "knight",
+  },
+])(
+  "names the piece a missed chance wins once trades cancel out ($prize)",
+  ({ fen, line, instead, prize }) => {
+    const frames = refutationStoryboard({
+      fen,
+      line,
+      learner: "w",
+      standing: "better",
+      instead,
+      answerKnown: false,
+    });
+    expect(frames.at(-1)?.caption).toBe(
+      `You missed a chance to win my ${prize}. Try again.`,
+    );
+  },
+);

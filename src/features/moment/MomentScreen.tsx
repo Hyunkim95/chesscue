@@ -53,6 +53,7 @@ import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
 import { chipsFor, type SanMove } from "../../domain/session/chips";
 import type { MomentGoal } from "../../domain/session/moment-goal";
+import type { PositionInput } from "../../domain/analysis/position-packet";
 import type { DangerReading } from "../../application/route-question/read-danger";
 import {
   advanceSpot,
@@ -495,6 +496,7 @@ export function MomentScreen({
   readDanger,
   pickHint,
   explainWhy,
+  answerOpen,
   assessPosition,
 }: {
   readonly moment: MomentSpec;
@@ -555,6 +557,15 @@ export function MomentScreen({
   // again before it is returned. undefined keeps the code caption.
   readonly explainWhy?:
     | ((input: WhyInput, signal: AbortSignal) => Promise<string | undefined>)
+    | undefined;
+  // Online on the player's own Gemini key: an open question while solving,
+  // answered from checked board facts that never name the answer and
+  // checked again before it is returned. undefined keeps the code answer.
+  readonly answerOpen?:
+    | ((
+        question: { readonly text: string } & PositionInput,
+        signal: AbortSignal,
+      ) => Promise<string | undefined>)
     | undefined;
   // Stockfish's reading of a position, for the bar beside the board. The bar
   // waits until the moment is solved or shown, so it never hints the answer.
@@ -1354,6 +1365,39 @@ export function MomentScreen({
     setStory({ ...story, step: found.index });
     setView(frameView(frame));
     setSay({ text: reason, mood: "idle", understood });
+    return true;
+  }
+
+  // An open question ("what's going on here?") or a plan question. Solved:
+  // the "Why does it work?" story, whose first caption is the checked
+  // online why when there is one. Solving: Gemini Flash on the player's key
+  // from facts that never name the answer. false keeps the code answer.
+  async function openQuestion(text: string): Promise<boolean> {
+    if (!solving) {
+      if (answerStory.frames.length === 0) return false;
+      openStory(answerStory);
+      return true;
+    }
+    if (!online || !answerOpen) return false;
+    setSay({ text: "Let me think…", mood: "think" });
+    const answer = await whileBusy(
+      answerOpen(
+        {
+          text,
+          fen: moment.fen,
+          learner: learnerColor,
+          goal: moment.goal.prompt,
+          hiddenUci: moment.bestUci,
+        },
+        controller.current.signal,
+      ),
+    );
+    if (answer === undefined) return false;
+    setSay({
+      text: answer,
+      mood: "idle",
+      understood: "Gemini Flash · checked against the board",
+    });
     return true;
   }
 
@@ -2293,6 +2337,12 @@ export function MomentScreen({
         controller.current.signal,
       ),
     );
+    const open =
+      outcome.kind === "unrouted" ||
+      ((outcome.kind === "act" || outcome.kind === "confirm") &&
+        (outcome.action.kind === "something-else" ||
+          outcome.action.kind === "plan"));
+    if (open && (await openQuestion(text))) return;
     switch (outcome.kind) {
       case "act":
         if (movesBoard(outcome.action)) {

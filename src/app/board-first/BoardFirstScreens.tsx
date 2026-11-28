@@ -79,6 +79,9 @@ import {
 } from "./moment-specs";
 import type { BoardFirstView } from "./flag";
 import { readBar } from "./read-bar";
+import type { PositionInput } from "../../domain/analysis/position-packet";
+import type { createOpenQuestionWriter } from "../../infrastructure/ai/reasoning-gemini";
+import type { answerOpenQuestion } from "../../application/explain-why/explain-reasoning";
 import {
   forgetGeminiKey,
   GEMINI_KEY_CHANGE,
@@ -210,6 +213,44 @@ async function saveCheckedGeminiKey(text: string): Promise<GeminiKeySave> {
   const check = await checkGeminiKey(key.data, AbortSignal.timeout(10_000));
   if (check.status !== "ok") return check.status;
   return saveGeminiKey(key.data) ? "saved" : "unsaved";
+}
+
+let openModules:
+  | Promise<
+      readonly [
+        { readonly createOpenQuestionWriter: typeof createOpenQuestionWriter },
+        { readonly answerOpenQuestion: typeof answerOpenQuestion },
+      ]
+    >
+  | undefined;
+// An open question while solving: Gemini Flash on the player's own key,
+// from checked facts that never name the answer, then the checker.
+// undefined keeps Rook's code answer.
+async function answerOpenOnline(
+  { text, ...input }: { readonly text: string } & PositionInput,
+  signal: AbortSignal,
+): Promise<string | undefined> {
+  openModules ??= Promise.all([
+    import("../../infrastructure/ai/reasoning-gemini"),
+    import("../../application/explain-why/explain-reasoning"),
+  ]);
+  try {
+    const [writers, reasoning] = await openModules;
+    const writer = writers.createOpenQuestionWriter();
+    if (!writer) return undefined;
+    const result = await reasoning.answerOpenQuestion({
+      input,
+      question: text,
+      frames: [],
+      analyze: analyzePosition,
+      writer,
+      signal,
+    });
+    return result.kind === "written" ? result.text : undefined;
+  } catch {
+    openModules = undefined;
+    return undefined;
+  }
 }
 
 function analyzePosition(fen: string, multiPv: number, signal: AbortSignal) {
@@ -640,6 +681,7 @@ export function BoardFirstScreens({
             }
             analyzePosition={analyzePosition}
             explainWhy={explainWhyOnline}
+            answerOpen={canUse("open-chat") ? answerOpenOnline : undefined}
             assessPosition={readBar}
             readDanger={
               dangers && nanoReady
