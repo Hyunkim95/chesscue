@@ -61,7 +61,13 @@ import "./play-game.css";
 type EngineStatus = "starting" | "ready" | "failed";
 type PreviewLevel = 1 | 2 | "move";
 type CoachPreview =
-  | { readonly key: string; readonly status: "checking" | "unavailable" }
+  | { readonly key: string; readonly status: "unavailable" }
+  // The hint button that asked shows the spinner.
+  | {
+      readonly key: string;
+      readonly status: "checking";
+      readonly level: PreviewLevel;
+    }
   | {
       readonly key: string;
       readonly status: "ready";
@@ -573,7 +579,7 @@ export function PlayGameScreen({
     const request = new AbortController();
     coachPreviewAbort.current?.abort();
     coachPreviewAbort.current = request;
-    setCoachPreview({ key: previewKey, status: "checking" });
+    setCoachPreview({ key: previewKey, status: "checking", level });
     try {
       const result = await analyzeCoachMove(previewFen, request.signal);
       const [move] = legalBoardLine(previewFen, result?.line.slice(0, 1) ?? []);
@@ -946,6 +952,10 @@ export function PlayGameScreen({
                           ? 2
                           : (checkedPreview?.level ?? 0)
                       }
+                      busy={
+                        visiblePreview?.status === "checking" &&
+                        visiblePreview.level !== "move"
+                      }
                       disabled={visiblePreview?.status === "checking"}
                       onClick={() => {
                         void showCoachPreview(
@@ -954,6 +964,10 @@ export function PlayGameScreen({
                       }}
                     />
                     <NextMovePill
+                      busy={
+                        visiblePreview?.status === "checking" &&
+                        visiblePreview.level === "move"
+                      }
                       disabled={
                         visiblePreview?.status === "checking" ||
                         checkedPreview?.level === "move"
