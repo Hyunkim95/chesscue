@@ -49,7 +49,7 @@ for (const width of [320, 420])
     await expect(bubble).toHaveText(WHY, { timeout: 30_000 });
     await expect(
       page.getByRole("group", { name: "Step through the line" }),
-    ).toContainText("1 /");
+    ).toContainText("Step 1 of");
     expect(sent).toHaveLength(1);
     expect(sent[0]).toContain('\\"bestMove\\":\\"Qxg5+\\"');
     await page.getByRole("button", { name: "Next step" }).click();
