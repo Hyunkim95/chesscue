@@ -34,6 +34,12 @@ import { PIECE_NAME } from "../../domain/analysis/board-relations";
 import { scanHint } from "../../domain/analysis/forcing-moves";
 import type { WhyInput } from "../../domain/analysis/why-packet";
 import {
+  sacrificeStoryboard,
+  sacrificeThreat,
+  takeBack,
+  type SacrificeThreat,
+} from "../../domain/analysis/sacrifice-threat";
+import {
   describedMoves,
   mentionedMove,
   writtenMove,
@@ -559,10 +565,22 @@ export function MomentScreen({
     { readonly uci: string; readonly text: string } | undefined
   >();
   const whyText = why?.uci === solvedUci ? why.text : undefined;
+  // A sacrifice the line declines, whose take-back runs into a mate threat:
+  // "Why does it work?" plays the take-back line, with the mate square
+  // outlined.
+  const [sacrifice, setSacrifice] = useState<
+    { readonly uci: string; readonly threat: SacrificeThreat } | undefined
+  >();
+  // Only when the line declines the sacrifice: when it takes back, what
+  // it wins is the point.
+  const threat = sacrifice?.uci === solvedUci ? sacrifice.threat : undefined;
+  const threatFrames = threat ? sacrificeStoryboard(moment.fen, threat) : [];
   const storyboard = [
-    ...(opening
-      ? [whyText ? { ...opening, caption: whyText } : opening, ...told]
-      : []),
+    ...(threatFrames.length > 0
+      ? threatFrames
+      : opening
+        ? [whyText ? { ...opening, caption: whyText } : opening, ...told]
+        : []),
     ...(alternative ? [alternative] : []),
   ];
   const answerStory: Story = {
@@ -570,7 +588,12 @@ export function MomentScreen({
     frames: storyboard,
     step: 0,
     mood: "happy",
-    moves: point ? point.moves : solvedLine,
+    moves:
+      threat && threatFrames.length > 0
+        ? threat.line
+        : point
+          ? point.moves
+          : solvedLine,
   };
   const afterSolution = (() => {
     try {
@@ -605,6 +628,34 @@ export function MomentScreen({
         });
     });
   }, [solved, afterSolution, analyzePosition, solvedLine]);
+
+  // Once solved, a capture or check that can be taken back: read the line
+  // where the opponent takes back, for a mate threat.
+  useEffect(() => {
+    const uci = solvedLine[0];
+    if (!solved || uci === undefined) return;
+    const back = takeBack(moment.fen, uci);
+    if (back === undefined || solvedLine[1] === back) return;
+    const board = new Chess(moment.fen);
+    try {
+      board.move(uciMove(uci));
+      board.move(uciMove(back));
+    } catch {
+      return;
+    }
+    if (board.isGameOver()) return;
+    const local = new AbortController();
+    const signal = AbortSignal.any([controller.current.signal, local.signal]);
+    void analyzePosition(board.fen(), 1, signal).then((analysis) => {
+      if (!analysis.ok || signal.aborted) return;
+      const line = analysis.value.candidates[0]?.principalVariation ?? [];
+      const found = sacrificeThreat(moment.fen, [uci, back, ...line]);
+      if (found) setSacrifice({ uci, threat: found });
+    });
+    return () => {
+      local.abort();
+    };
+  }, [solved, solvedLine, moment.fen, analyzePosition]);
   const bestSan = sanFor(moment.fen, moment.bestUci) ?? moment.bestUci;
 
   // Once solved or shown, and online, ask for the checked "why" in the

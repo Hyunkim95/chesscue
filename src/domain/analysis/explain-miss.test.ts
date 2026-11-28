@@ -409,3 +409,34 @@ test("names a promotion the count depends on", () => {
     })?.text,
   ).toContain("Later in the line, g1=Q+ makes a new queen. Black ends up");
 });
+
+// Lichess qAmdmtgs: Stockfish's line declines with Kh8, but the point of
+// Bxh7+ is what happens if Black takes the bishop.
+test("explains a sacrifice by the mate threat after the take-back", () => {
+  const fen =
+    "1r3rk1/1b1n1ppp/pqpNp3/1p1nP3/3P4/Q2B1N2/P4PPP/2RR2K1 w - - 3 18";
+  expect(
+    explainMissedLine({
+      fen,
+      line: ["d3h7", "g8h8", "f3g5", "f7f5"],
+      takeBackLine: ["d3h7", "g8h7", "f3g5", "h7g8", "a3h3"],
+      playedSan: "Bb1",
+    })?.text,
+  ).toBe(
+    "Bxh7+ takes a pawn with check. If Black takes the bishop, Ng5+ and Qh3 threaten mate on h7. You played Bb1 instead.",
+  );
+});
+
+// Pack puzzle 0jcmc: the line takes back itself and wins the queen, so a
+// take-back line passed alongside does not replace what it wins.
+test("keeps what the line wins when the line itself takes back", () => {
+  const line = ["h1h6", "g7h6", "e6f7", "g3g6", "f7g6"];
+  const text =
+    explainMissedLine({
+      fen: "r3r2k/4b1p1/p1p1Q1Pp/3p4/2p5/6q1/PP2B3/1K1R3R w - - 0 25",
+      line,
+      takeBackLine: line,
+    })?.text ?? "";
+  expect(text).not.toContain("threatens mate");
+  expect(text).toMatch(/queen/);
+});

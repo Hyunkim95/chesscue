@@ -16,12 +16,13 @@ import {
   staticExchange,
 } from "./board-relations";
 import { isMateScore } from "./classify-experiment";
+import { sacrificeThreat } from "./sacrifice-threat";
 
 // Explains a missed tactic from a checked line without a language model. Every
 // sentence restates a relation chess.js found by replaying the line. The
 // ranking is by fact kind, not by motif.
 
-export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/8";
+export const MISSED_LINE_WORDING_VERSION = "missed-line-facts/9";
 export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/6";
 // What counts as a tactic line (tacticKind, isTacticLine). Progress and the
 // curriculum derive units from it, so a change to the rule bumps this.
@@ -532,16 +533,32 @@ export function explainMissedLine(
   input: MissedLineInput,
   reach: "short" | "long" | "short-then-long" = "short-then-long",
 ): MissedLineExplanation | undefined {
-  if (reach === "short") return explainWithin(input, SHORT_LINE);
+  // A sacrifice the opponent's best reply declines: the mate threat after
+  // the take-back is why. When the line takes back itself, what it wins is
+  // the point, and the threat explains only a line nothing else explains.
+  const declined =
+    input.takeBackLine !== undefined &&
+    input.takeBackLine[1] !== input.line[1] &&
+    sacrificeThreat(input.fen, input.takeBackLine);
+  const threat = () => {
+    const found = sacrificeThreat(input.fen, input.line);
+    return found && { text: [found.text, ...playedClause(input)].join(" ") };
+  };
+  if (declined)
+    return { text: [declined.text, ...playedClause(input)].join(" ") };
+  if (reach === "short") return explainWithin(input, SHORT_LINE) ?? threat();
   const long = () =>
     explainWithin(input, LONG_LINE) ?? explainWithin(input, LONGEST_LINE);
-  if (reach === "long") return long();
-  return explainWithin(input, SHORT_LINE) ?? long();
+  if (reach === "long") return long() ?? threat();
+  return explainWithin(input, SHORT_LINE) ?? long() ?? threat();
 }
 
 interface MissedLineInput {
   readonly fen: string;
   readonly line: readonly string[];
+  // When the better move can be taken back and the line declines: the line
+  // where the opponent takes back, starting with the better move.
+  readonly takeBackLine?: readonly string[];
   readonly playedSan?: string;
   readonly scores?: { readonly bestCp: number; readonly playedCp: number };
 }
@@ -724,15 +741,19 @@ function explainWithin(
     setup?.text ?? `${firstMove.san} was the stronger move.`,
     ...rest,
   ];
-  if (input.playedSan)
-    parts.push(
-      `You played ${input.playedSan} instead` +
-        (input.scores
-          ? verdict(input.scores.bestCp, input.scores.playedCp)
-          : "") +
-        ".",
-    );
-  return { text: parts.join(" ") };
+  return { text: [...parts, ...playedClause(input)].join(" ") };
+}
+
+function playedClause(input: MissedLineInput): string[] {
+  return input.playedSan
+    ? [
+        `You played ${input.playedSan} instead` +
+          (input.scores
+            ? verdict(input.scores.bestCp, input.scores.playedCp)
+            : "") +
+          ".",
+      ]
+    : [];
 }
 
 // What the player's move allowed: the opponent's best reply and what it wins,
