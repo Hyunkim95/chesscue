@@ -419,3 +419,46 @@ button.piece-choice {
   --board-arrow: var(--ui-color-gold);
   opacity: 0.85;
 }
+
+/* The Stockfish bar down the left edge, inside the frame: White's share
+   fills from White's side of the board. No number, only the fill. */
+.chess-board--bar {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  column-gap: 3px;
+  background: #ac8e5b;
+}
+
+.chess-board__bar {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #1d2b25;
+}
+
+.chess-board__bar-white {
+  position: absolute;
+  inset-inline: 0;
+  background: #f1e6cf;
+  transition: block-size 450ms ease-out;
+}
+
+.chess-board__bar--white .chess-board__bar-white {
+  inset-block-end: 0;
+}
+
+.chess-board__bar--black .chess-board__bar-white {
+  inset-block-start: 0;
+}
+
+@media (min-width: 720px) {
+  .chess-board--bar {
+    grid-template-columns: 14px minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chess-board__bar-white {
+    transition: none;
+  }
+}

@@ -20,6 +20,7 @@ import type {
   AnalysisEngineFailure,
   PositionAnalysis,
 } from "../../application/analyze-game/analysis-engine";
+import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import type { BoardArrow } from "../../domain/analysis/board-move-cues";
 import {
   alternativeFrame,
@@ -84,6 +85,7 @@ import {
 } from "../../shared/ui/primitives";
 import { ChessBoard, type BoardOutline } from "../board/ChessBoard";
 import { departureBadges } from "../board/departure-badges";
+import { useEvalBar } from "../board/use-eval-bar";
 import {
   checksAnswer,
   captureReasonFromBoard,
@@ -407,6 +409,7 @@ export function MomentScreen({
   readDanger,
   pickHint,
   explainWhy,
+  assessPosition,
 }: {
   readonly moment: MomentSpec;
   readonly online: boolean;
@@ -462,6 +465,9 @@ export function MomentScreen({
   readonly explainWhy?:
     | ((input: WhyInput, signal: AbortSignal) => Promise<string | undefined>)
     | undefined;
+  // Stockfish's reading of a position, for the bar beside the board. The bar
+  // waits until the moment is solved or shown, so it never hints the answer.
+  readonly assessPosition?: AssessPosition | undefined;
 }) {
   const danger = moment.danger;
   const start: BoardView = {
@@ -2156,6 +2162,8 @@ export function MomentScreen({
       ? moment.goal
       : undefined;
 
+  const balance = useEvalBar(view.fen, solved ? assessPosition : undefined);
+
   return (
     <div className="moment board-split">
       <div className="board-split__main">
@@ -2201,6 +2209,7 @@ export function MomentScreen({
           previewTag={view.previewTag}
           badges={departureBadges(view.arrows)}
           spotSquare={view.spot}
+          balance={balance}
           controlChanges={
             view.control && view.control.length > 0
               ? new Map(

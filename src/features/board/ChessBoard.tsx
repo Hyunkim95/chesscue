@@ -5,6 +5,7 @@ import type {
   BoardArrow,
   BoardMoveCue,
 } from "../../domain/analysis/board-move-cues";
+import type { BarReading } from "../../domain/game/eval-bar";
 import type { PlayerColor } from "../../domain/game/types";
 import { pieceNames, pieceSymbols } from "./board-pieces";
 import { NO_MOTION, pieceMotion } from "./piece-motion";
@@ -60,6 +61,8 @@ export interface ChessBoardProps {
   readonly previewTag?: string | undefined;
   // The square that glows when a position is solved.
   readonly spotSquare?: Square | undefined;
+  // The Stockfish bar down the left edge. Never passed during a game.
+  readonly balance?: BarReading | undefined;
 }
 
 function squareCenter(square: Square, orientation: PlayerColor) {
@@ -145,6 +148,7 @@ export function ChessBoard({
   outlines = [],
   previewTag,
   spotSquare,
+  balance,
 }: ChessBoardProps) {
   // The position shown before this one, kept only when it should animate.
   const [shown, setShown] = useState<{
@@ -185,10 +189,20 @@ export function ChessBoard({
   ];
   return (
     <div
-      className={
-        className === undefined ? "chess-board" : `chess-board ${className}`
-      }
+      className={`chess-board${balance ? " chess-board--bar" : ""}${className === undefined ? "" : ` ${className}`}`}
     >
+      {balance && (
+        <div
+          className={`chess-board__bar chess-board__bar--${orientation}`}
+          role="img"
+          aria-label={`Stockfish: ${balance.words}`}
+        >
+          <span
+            className="chess-board__bar-white"
+            style={{ blockSize: `${String(balance.white * 100)}%` }}
+          />
+        </div>
+      )}
       <div className="chess-board__grid" role="grid" aria-label={label}>
         {order.map((row) => (
           <div className="chess-board__row" role="row" key={row}>

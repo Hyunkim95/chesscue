@@ -484,6 +484,10 @@ for (const width of [320, 1280]) {
       name: "· and 3 things you did well",
     });
     await expect(row).toBeVisible();
+    // The game is over, so the Stockfish bar sits beside the final position.
+    await expect(
+      page.getByRole("img", { name: "Stockfish: White has won by mate" }),
+    ).toBeVisible();
     // Look at it stays the one brass action.
     await expect(page.locator(".ui-button--primary")).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Look at it" })).toHaveClass(

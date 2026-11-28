@@ -35,9 +35,18 @@ test("a player steps through the answer, branches with their own move and asks a
     await expect(bubble).not.toContainText("Qxg5");
   }
   await expect(page.locator("[data-move-cue-arrow='g4:g5']")).toHaveCount(0);
+  // The Stockfish bar would hint the answer, so it waits until it is shown.
+  const bar = page.getByRole("img", { name: /^Stockfish: / });
+  await expect(bar).toHaveCount(0);
 
   // Show me opens the answer on its first step and waits for the player.
   await page.getByRole("button", { name: "Show me" }).click();
+  await expect(bar).toHaveAccessibleName(
+    /White (is winning|has a forced mate)/,
+    {
+      timeout: 20_000,
+    },
+  );
   await expect(stepper).toContainText("1 / 3");
   await expect(bubble).toContainText("Qxg5+");
   await expect(previous).toBeDisabled();

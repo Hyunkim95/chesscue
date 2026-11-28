@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 
+import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import type { StoryFrame } from "../../domain/analysis/line-storyboard";
 import type { GoodMove } from "../../domain/curriculum/good-moves";
 import { ranks } from "../../domain/game/rank-path";
@@ -8,6 +9,7 @@ import { RookCharacter } from "../../shared/rook/RookCharacter";
 import { Button, Pill } from "../../shared/ui/primitives";
 import { ChessBoard } from "../board/ChessBoard";
 import { departureBadges } from "../board/departure-badges";
+import { useEvalBar } from "../board/use-eval-bar";
 import type { FinalPosition, ResultOutcome } from "./final-position";
 import "./result-screen.css";
 
@@ -71,6 +73,7 @@ export function ResultScreen({
   share,
   opening,
   goodMoves = [],
+  assessPosition,
   onLookAtMoments,
   onPlayAgain,
   onRetryRating,
@@ -83,6 +86,9 @@ export function ResultScreen({
   readonly opening?: ResultOpening | undefined;
   // What the player did well, read from the same analysis as the moments.
   readonly goodMoves?: readonly GoodMove[] | undefined;
+  // Stockfish's reading for the bar beside the board. The game is over, so
+  // the bar is always shown.
+  readonly assessPosition?: AssessPosition | undefined;
   readonly onLookAtMoments: () => void;
   readonly onPlayAgain: () => void;
   readonly onRetryRating: () => void;
@@ -98,6 +104,7 @@ export function ResultScreen({
   const step = story?.step;
   const frame = step === undefined ? undefined : frames[step];
   const next = story?.kind === "good" ? good[story.index + 1] : undefined;
+  const balance = useEvalBar(frame?.fen ?? position.fen, assessPosition);
   const goTo = (step: number) => {
     if (story) setStory({ ...story, step });
   };
@@ -122,6 +129,7 @@ export function ResultScreen({
           extraArrows={frame?.arrows ?? []}
           outlines={frame?.outlines ?? []}
           badges={departureBadges(frame?.arrows ?? [])}
+          balance={balance}
           controlChanges={
             frame && frame.control.length > 0
               ? new Map(

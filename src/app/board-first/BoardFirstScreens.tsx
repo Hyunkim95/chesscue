@@ -61,6 +61,7 @@ import {
   type UnitCopy,
 } from "./moment-specs";
 import type { BoardFirstView } from "./flag";
+import { readBar } from "./read-bar";
 import { serialEngine } from "./serial-engine";
 
 const engine = serialEngine(new StockfishAnalysisEngine());
@@ -517,6 +518,7 @@ export function BoardFirstScreens({
             }
             analyzePosition={analyzePosition}
             explainWhy={explainWhyOnline}
+            assessPosition={readBar}
             readDanger={
               dangers && nanoReady
                 ? async (text, signal) =>

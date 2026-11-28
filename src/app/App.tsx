@@ -126,6 +126,7 @@ import {
   type VerifiedGameDrill,
 } from "../domain/curriculum/game-drill";
 import { goodMovesInGame } from "../domain/curriculum/good-moves";
+import { readBar } from "./board-first/read-bar";
 import { mateOpportunities } from "../domain/game/coach-moments";
 import type { PracticeExercise } from "../domain/transfer/types";
 import {
@@ -1634,6 +1635,7 @@ function PlayerApp({
             }
             moments={moments}
             goodMoves={goodMoves}
+            assessPosition={readBar}
             opening={
               resultOpening.kind === "ready"
                 ? {
