@@ -894,13 +894,147 @@ export function costFrame(
   };
 }
 
-// The closing frame of a refutation once the answer is known: back at the
-// position, the line move drawn, with what it wins. "Rxb3 instead wins the
-// rook."
+// Why the line move works, shown on the position right after it: what it
+// sets up (a fork, an uncovered attack, a check or a threat) and the capture
+// it leads to, or a piece it takes that has no defender. `shown` is the
+// checked line: the line move, Rook's reply, then the learner's capture.
+// Undefined unless code confirms the mechanism on the board.
+function missedMechanismFrame(
+  move: Move,
+  tried: StoryFrame,
+  shown: readonly StoryFrame[],
+  // What the whole line nets the learner: the named capture must carry it.
+  net: number,
+): StoryFrame | undefined {
+  const board = new Chess(move.after);
+  const rook = opponent(move.color);
+  const frame = (
+    arrows: readonly BoardArrow[],
+    targets: readonly Square[],
+    caption: string,
+  ): StoryFrame => ({
+    fen: move.after,
+    moveUci: "",
+    by: "learner",
+    arrows,
+    outlines: targets.map((square) => ({ square, tone: "coral" })),
+    control: [],
+    caption,
+  });
+
+  // A piece taken for free needs no follow-up.
+  if (
+    move.captured &&
+    PIECE_VALUE[move.captured] >= net &&
+    board.attackers(move.to, rook).length === 0
+  )
+    return frame(
+      [{ from: move.from, to: move.to, kind: "preview" }],
+      [move.to],
+      `${move.san} takes my ${PIECE_NAME[move.captured]}, which has no defender.`,
+    );
+
+  const [, replyFrame, captureFrame] = shown;
+  if (!replyFrame || !captureFrame) return undefined;
+  const threat = threatOf(new Chess(move.before), board, move);
+  const scratch = new Chess(move.after);
+  const reply = play(scratch, replyFrame.moveUci);
+  if (!reply) return undefined;
+  const capture = play(scratch, captureFrame.moveUci);
+  if (!capture?.captured || PIECE_VALUE[capture.captured] < net)
+    return undefined;
+  const prize = capture.captured;
+  // Rook may take something back, but less than the prize.
+  const back = pendingCapture(scratch);
+  if (back && PIECE_VALUE[back] >= PIECE_VALUE[prize]) return undefined;
+  const prizeName = PIECE_NAME[prize];
+  // The prize is still there after the tried move and the try does not win
+  // it too, so the try really missed it.
+  const other = new Chess(tried.fen);
+  const kept = other.get(capture.to);
+  if (kept?.type !== prize || kept.color !== rook) return undefined;
+  if (staticExchange(other, capture.to, move.color) >= 2) return undefined;
+  const replied = { from: reply.from, to: reply.to, kind: "reply" } as const;
+  const then = `so after ${reply.san} you take the ${prizeName} with ${capture.san}.`;
+
+  if (threat?.kind === "fork" && capture.from === move.to) {
+    const tempo = threat.targets.find(({ square }) => square === reply.from);
+    const target = threat.targets.find(({ square }) => square === capture.to);
+    const both = tempo && target && tempo.square !== target.square;
+    const alreadyForked =
+      both &&
+      other
+        .attackers(tempo.square, move.color)
+        .some((from) =>
+          other.attackers(target.square, move.color).includes(from),
+        );
+    if (both && !alreadyForked) {
+      const squares = [tempo.square, target.square];
+      return frame(
+        [...squares.map((square) => attack(move.to, square)), replied],
+        squares,
+        `${move.san} forks my ${PIECE_NAME[tempo.type]} and ${prizeName}, ${then}`,
+      );
+    }
+  }
+
+  if (
+    threat?.kind === "uncovered" &&
+    capture.from === threat.from &&
+    capture.to === threat.square
+  )
+    return frame(
+      [attack(threat.from, threat.square), replied],
+      [threat.square],
+      `${move.san} uncovers your ${PIECE_NAME[threat.piece]}'s attack on my ${prizeName}, so after ${reply.san} you take it with ${capture.san}.`,
+    );
+
+  // The capture was already on once the line move was played.
+  const lined = board.attackers(capture.to, move.color).includes(capture.from);
+  if (!lined) return undefined;
+  if (board.inCheck()) {
+    const kings = kingSquare(board, rook);
+    return frame(
+      [
+        ...kings.flatMap((king) =>
+          board.attackers(king, move.color).map((from) => attack(from, king)),
+        ),
+        attack(capture.from, capture.to),
+        replied,
+      ],
+      [...kings, capture.to],
+      `${move.san} gives check, ${then}`,
+    );
+  }
+  // A threat names the capture only when it is the threat itself, or a mate
+  // threat that the reply has to meet.
+  const facts = board.turn() === rook ? (dangerFacts(board.fen()) ?? []) : [];
+  const mateWith = /with (\S+)\.$/.exec(
+    facts.find(({ kind }) => kind === "mate-threat")?.text ?? "",
+  )?.[1];
+  const wins = facts.find(
+    ({ kind, target }) => kind === "wins-material" && target === capture.to,
+  );
+  const threatens = mateWith
+    ? `threatens mate with ${mateWith}`
+    : wins
+      ? `threatens to win my ${PIECE_NAME[wins.piece]} on ${wins.target}`
+      : undefined;
+  if (threatens)
+    return frame(
+      [attack(capture.from, capture.to), replied],
+      [capture.to],
+      `${move.san} ${threatens}, ${then}`,
+    );
+  return undefined;
+}
+
+// Close a refutation by showing a verified missed mechanism or its payoff.
 export function insteadFrame(
   fen: string,
   line: readonly string[],
   learner: Color,
+  tried?: StoryFrame,
 ): StoryFrame | undefined {
   const [lineUci] = line;
   let start: Chess;
@@ -938,7 +1072,11 @@ export function insteadFrame(
     };
   const won = wonBy(replayed, learner);
   const lost = wonBy(replayed, rook);
-  if (worth(won) > worth(lost))
+  if (worth(won) > worth(lost)) {
+    const mechanism = tried
+      ? missedMechanismFrame(move, tried, shown, worth(won) - worth(lost))
+      : undefined;
+    if (mechanism) return mechanism;
     return {
       ...base,
       outlines: captureSquares(replayed, learner, "origin").map((square) => ({
@@ -950,6 +1088,7 @@ export function insteadFrame(
           ? `${move.san} instead wins ${oneOrList(won, "the")}.`
           : `${move.san} instead wins ${oneOrList(won, "the")} for ${pieceList(lost)}.`,
     };
+  }
   return {
     ...base,
     outlines: [],
@@ -1002,7 +1141,9 @@ export function refutationStoryboard({
     control: [],
     caption: STANDING[standing](triedSan),
   };
-  const closing = answerKnown ? insteadFrame(fen, instead, learner) : undefined;
+  const closing = answerKnown
+    ? insteadFrame(fen, instead, learner, first)
+    : undefined;
   return [...frames, cost, ...(closing ? [closing] : [])];
 }
 

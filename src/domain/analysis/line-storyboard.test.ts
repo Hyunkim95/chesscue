@@ -1,4 +1,5 @@
-import { expect, it } from "vitest";
+import { Chess } from "chess.js";
+import { describe, expect, it } from "vitest";
 
 import {
   alternativeFrame,
@@ -89,7 +90,20 @@ it("plays a refutation and names the line move only once the answer is known", (
     instead: KNIGHT_LINE,
     answerKnown: true,
   });
-  expect(after.at(-1)?.caption).toBe("Nd4+ instead wins the rook.");
+  expect(after.at(-1)).toMatchObject({
+    caption:
+      "Nd4+ forks my king and rook, so after Ke5 you take the rook with Nxb3.",
+    arrows: [
+      { from: "d4", to: "e6", kind: "attack" },
+      { from: "d4", to: "b3", kind: "attack" },
+      { from: "e6", to: "e5", kind: "reply" },
+    ],
+  });
+
+  const [sameFork] = lineStoryboard(KNIGHT_FORK, KNIGHT_LINE);
+  expect(insteadFrame(KNIGHT_FORK, KNIGHT_LINE, "w", sameFork)?.caption).toBe(
+    "Nd4+ instead wins the rook.",
+  );
 
   // No material changes hands: Stockfish's verdict closes the line.
   const start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -424,4 +438,69 @@ it("names the net gain and a quiet move's mate threat", () => {
   const [qf3] = lineStoryboard(italian, ["d1f3"]);
   expect(qf3?.caption).toBe("Qf3 threatens mate with Qxf7#.");
   expect(qf3?.arrows.map(({ from, to }) => `${from}${to}`)).toContain("f3f7");
+});
+
+describe("insteadFrame names the mechanism the try missed", () => {
+  // Real Lichess positions from the teachable-moments KPI set.
+  const closing = (fen: string, best: string[], played: string[]) => {
+    const learner = new Chess(fen).turn();
+    const [tried] = lineStoryboard(fen, played, learner);
+    return insteadFrame(fen, best, learner, tried);
+  };
+
+  it("an uncovered attack", () => {
+    expect(
+      closing(
+        "r1B5/2k1np2/1pnp2pq/2p1p1N1/4P3/pPNP4/P1PQ1PP1/2K5 w - - 0 20",
+        ["g5e6", "f7e6", "d2h6", "a8c8", "f2f4", "c7d7"],
+        ["c8h3", "h6h4", "c3b5", "c7b8"],
+      ),
+    ).toMatchObject({
+      caption:
+        "Ne6+ uncovers your queen's attack on my queen, so after fxe6 you take it with Qxh6.",
+      arrows: [
+        { from: "d2", to: "h6", kind: "attack" },
+        { from: "f7", to: "e6", kind: "reply" },
+      ],
+      outlines: [{ square: "h6", tone: "coral" }],
+    });
+  });
+
+  it("a piece with no defender", () => {
+    expect(
+      closing(
+        "3r1rk1/pp3ppp/2p1p3/7n/2BP1q2/2P4P/P1P1QP2/R3R2K w - - 2 23",
+        ["e2h5", "f4f2", "e1e2", "f2f4", "h1g2", "c6c5"],
+        ["e1g1", "h5f6", "g1g3", "c6c5"],
+      )?.caption,
+    ).toBe("Qxh5 takes my knight, which has no defender.");
+  });
+
+  it("a check that gains the time to take", () => {
+    expect(
+      closing(
+        "7r/1N1nkppp/4pn2/3p4/6b1/5N2/qPP1Q1PP/2KR1B1R b - - 0 15",
+        ["a2a1", "c1d2", "a1b2", "e2a6", "f6e4", "d2e3"],
+        ["h8b8", "e2a6", "a2a6", "f1a6"],
+      ),
+    ).toMatchObject({
+      caption: "Qa1+ gives check, so after Kd2 you take the pawn with Qxb2.",
+      outlines: [
+        { square: "c1", tone: "coral" },
+        { square: "b2", tone: "coral" },
+      ],
+    });
+  });
+
+  it("a threat on the piece it then takes", () => {
+    expect(
+      closing(
+        "r7/1ppk1p2/2np2rp/p1b1p3/1PP4B/P2P1PPq/4BP1P/R2Q1RK1 b - - 0 16",
+        ["c5d4", "g1h1", "d4a1", "d1a1", "a5b4", "f3f4"],
+        ["c5a7", "g1h1", "a7d4", "a1c1"],
+      )?.caption,
+    ).toBe(
+      "Bd4 threatens to win my rook on a1, so after Kh1 you take the rook with Bxa1.",
+    );
+  });
 });
