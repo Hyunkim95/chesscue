@@ -4,20 +4,35 @@ import {
   GamesEmptyIntro,
   type GameSource,
 } from "../features/import-games/GamesEmpty";
-import { LoadingMark, LoadingState } from "../shared/loading/LoadingState";
+import {
+  LoadingMark,
+  LoadingState,
+  SkeletonLines,
+} from "../shared/loading/LoadingState";
 import { EmptyState } from "../shared/empty-state/EmptyState";
 import { ScreenHeader } from "../shared/navigation/ScreenHeader";
 import { Button, Pill } from "../shared/ui/primitives";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { z } from "zod";
 
 import type { GameId } from "../domain/game/types";
-import type { GameRepository } from "../application/ports/game-repository";
+import type {
+  CompletedGamePages,
+  GameRepository,
+} from "../application/ports/game-repository";
 import { reviewGameList } from "./review-game-list";
+import type { HistoryProgress } from "./game-history";
 
 type Library =
   | { status: "loading" | "failed" }
-  | { status: "ready"; games: ReturnType<typeof reviewGameList> };
+  | {
+      status: "ready";
+      games: ReturnType<typeof reviewGameList>;
+      // More completed games exist beyond the rows read so far.
+      more: boolean;
+      // How many rows this read was for.
+      rows: number;
+    };
 
 const pageContext = z.object({
   finished: z.boolean(),
@@ -62,6 +77,33 @@ async function readActiveGame(): Promise<Context> {
   }
 }
 
+const GAMES_PAGE = 20;
+const siteNames: Readonly<Record<GameSite, string>> = {
+  lichess: "Lichess",
+  chesscom: "Chess.com",
+};
+
+function historyLine(
+  site: GameSite,
+  status: "fetching" | "waiting" | "offline" | "failed",
+  fetched: number,
+) {
+  const name = siteNames[site];
+  const count = `${fetched.toLocaleString("en")} ${fetched === 1 ? "game" : "games"} so far`;
+  switch (status) {
+    case "fetching":
+      return fetched === 0
+        ? `Fetching your ${name} history…`
+        : `Fetching your ${name} history · ${count}`;
+    case "waiting":
+      return `${name} asked us to slow down. Continuing in a minute · ${count}`;
+    case "offline":
+      return `${name} history paused while offline · ${count}`;
+    case "failed":
+      return `Couldn’t reach ${name}. Trying again next visit · ${count}`;
+  }
+}
+
 export function SidePanelReview({
   boardFirst = false,
   repository,
@@ -74,10 +116,11 @@ export function SidePanelReview({
   usernameImport,
   pendingAnalysis,
   momentCounts,
+  historyProgress = {},
 }: {
   readonly boardFirst?: boolean;
   readonly watchLichess?: boolean;
-  readonly repository: GameRepository;
+  readonly repository: GameRepository & CompletedGamePages;
   readonly historyRevision: number;
   readonly openGame: (route: string) => void;
   readonly openSavedGame: (route: string) => void;
@@ -87,6 +130,7 @@ export function SidePanelReview({
   readonly pendingAnalysis?: ReadonlySet<GameId>;
   // Board-first: the chances taken and missed that each checked game's
   // replay stops at.
+  readonly historyProgress?: HistoryProgress;
   readonly momentCounts?: ReadonlyMap<
     GameId,
     { readonly wins: number; readonly misses: number }
@@ -97,21 +141,56 @@ export function SidePanelReview({
   });
 
   const [library, setLibrary] = useState<Library>({ status: "loading" });
+  // Rows render a page at a time; nearing the end of the list shows more.
+  const [visible, setVisible] = useState(GAMES_PAGE);
+  const more = useRef<HTMLDivElement>(null);
+  const hasMore = library.status === "ready" && library.more;
+  // Ask for the next page only once the last one has landed.
+  const settled = library.status === "ready" && library.rows === visible;
+  useEffect(() => {
+    const target = more.current;
+    if (!hasMore || !settled || !target) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some(({ isIntersecting }) => isIntersecting))
+          setVisible((count) => count + GAMES_PAGE);
+      },
+      { rootMargin: "0px 0px 600px 0px" },
+    );
+    observer.observe(target);
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, settled, visible]);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let current = true;
-    void repository.listCompleted().then((result) => {
-      if (current)
-        setLibrary(
-          result.ok
-            ? { status: "ready", games: reviewGameList(result.value) }
-            : { status: "failed" },
-        );
+    // Reads only the rows to show, newest first, through the storage index;
+    // one extra row says whether there are more.
+    void repository.listCompletedPage(null, visible + 1).then((result) => {
+      if (!current) return;
+      if (!result.ok) {
+        setLibrary({ status: "failed" });
+        return;
+      }
+      const seen = new Set<string>();
+      const unique = result.value.games.filter(({ fingerprint }) => {
+        if (fingerprint === null) return true;
+        if (seen.has(fingerprint)) return false;
+        seen.add(fingerprint);
+        return true;
+      });
+      setLibrary({
+        status: "ready",
+        games: reviewGameList(unique.slice(0, visible)),
+        more: result.value.games.length > visible,
+        rows: visible,
+      });
     });
     return () => {
       current = false;
     };
-  }, [repository, historyRevision, attempt]);
+  }, [repository, historyRevision, attempt, visible]);
 
   useEffect(() => {
     if (!watchLichess) return;
@@ -251,6 +330,21 @@ export function SidePanelReview({
       })}
     </ol>
   );
+  const moreGames = hasMore && (
+    <div className="games-more" ref={more}>
+      <SkeletonLines>Loading more games…</SkeletonLines>
+    </div>
+  );
+  const historyLines = (["lichess", "chesscom"] as const).flatMap((site) => {
+    const progress = historyProgress[site];
+    if (!progress || progress.status === "done") return [];
+    return [
+      <p className="games-history-sync" role="status" key={site}>
+        {progress.status === "fetching" && <LoadingMark />}
+        {historyLine(site, progress.status, progress.fetched)}
+      </p>,
+    ];
+  });
   const loading = library.status === "loading" && (
     <LoadingState shape="list">Loading games…</LoadingState>
   );
@@ -290,6 +384,7 @@ export function SidePanelReview({
         {importForm ?? <GameImportSources onAdd={addFrom} />}
         {activeGame}
         {loading}
+        {historyLines}
         {queue.length > 0 && (
           <p className="games-queue" role="status">
             <LoadingMark />
@@ -305,6 +400,7 @@ export function SidePanelReview({
           </div>
         )}
         {gameList}
+        {moreGames}
       </div>
     );
   }
@@ -373,6 +469,7 @@ export function SidePanelReview({
         </div>
       )}
       {loading}
+      {historyLines}
       {library.status === "failed" && (
         <div role="alert">
           <p>Your saved games could not be loaded.</p>
@@ -382,6 +479,7 @@ export function SidePanelReview({
         </div>
       )}
       {gameList}
+      {moreGames}
     </main>
   );
 }

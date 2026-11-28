@@ -11,6 +11,7 @@ const lichessGame = z.object({
   variant: z.enum(["standard", "fromPosition"]),
   status: z.string(),
   pgn: z.string().min(1).max(DEFAULT_PGN_LIMITS.maxBytes),
+  createdAt: z.number().int().nonnegative().optional(),
 });
 const finishedStatuses = new Set([
   "mate",
@@ -46,13 +47,18 @@ export interface RecentGame {
   readonly result: "Draw" | "Win" | "Loss";
 }
 
-async function fetchRecentLichessGames(username: string, signal: AbortSignal) {
+export async function fetchLichessGames(
+  username: string,
+  signal: AbortSignal,
+  page: { readonly max: number; readonly until?: number } = { max: limit },
+) {
   const throttled = "Lichess is rate limiting requests. Try again in a minute.";
   if (Date.now() < lichessRetryAfter) throw new Error(throttled);
 
   const url = new URL("/api/games/user/" + username, "https://lichess.org");
   url.search = new URLSearchParams({
-    max: String(limit),
+    max: String(page.max),
+    ...(page.until !== undefined && { until: String(page.until) }),
     ongoing: "false",
     finished: "true",
     pgnInJson: "true",
@@ -74,17 +80,23 @@ async function fetchRecentLichessGames(username: string, signal: AbortSignal) {
     throw new Error("Lichess couldn’t find that username.");
   if (!response.ok)
     throw new Error("Lichess couldn’t load recent games. Try again.");
-  return (await response.text())
+  const lines = (await response.text())
     .split(/\r?\n/)
     .filter(Boolean)
-    .slice(0, limit)
-    .flatMap((line) => {
-      const raw: unknown = JSON.parse(line);
-      const entry = lichessGame.safeParse(raw);
-      return entry.success && finishedStatuses.has(entry.data.status)
-        ? [entry.data]
-        : [];
-    });
+    .slice(0, page.max)
+    .map((line): unknown => JSON.parse(line));
+  const entries = lines.flatMap((raw) => {
+    const entry = lichessGame.safeParse(raw);
+    return entry.success ? [entry.data] : [];
+  });
+  return {
+    games: entries.filter(({ status }) => finishedStatuses.has(status)),
+    // Lichess pages by creation time; the next page starts before this one.
+    oldestCreatedAt: Math.min(
+      ...entries.flatMap(({ createdAt }) => createdAt ?? []),
+    ),
+    complete: lines.length < page.max,
+  };
 }
 
 export async function fetchRecentGames(
@@ -104,7 +116,7 @@ export async function fetchRecentGames(
   try {
     candidates =
       site === "lichess"
-        ? await fetchRecentLichessGames(username, request)
+        ? (await fetchLichessGames(username, request)).games
         : await fetchRecentChessComGames(username, limit, request);
   } catch (error) {
     if (request.aborted && !signal.aborted)
@@ -121,6 +133,14 @@ export async function fetchRecentGames(
     throw error;
   }
 
+  return toRecentGames(username, candidates);
+}
+
+// Keeps the games where the username sat on exactly one side.
+export function toRecentGames(
+  username: string,
+  candidates: readonly { readonly id: string; readonly pgn: string }[],
+): readonly RecentGame[] {
   return candidates.flatMap(({ id, pgn }) => {
     const batch = parsePgnBatch(pgn);
     const item =

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const IMPORT_USERNAMES_KEY = "username-imports";
+export const IMPORT_USERNAMES_CHANGED = "chesscue-import-usernames-changed";
 
 const usernameValue = z.string().regex(/^[a-z0-9_-]{2,30}$/i);
 const rememberedUsernames = z.object({
@@ -31,4 +32,5 @@ export function writeImportUsernames(
   } catch {
     // The caller keeps the names in memory for this visit.
   }
+  window.dispatchEvent(new Event(IMPORT_USERNAMES_CHANGED));
 }

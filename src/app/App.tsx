@@ -52,6 +52,7 @@ import {
 } from "../domain/curriculum/recommend-unit";
 import { usePlayingSnapshot } from "./use-playing-snapshot";
 import { queueImportAnalysis, useImportAnalysis } from "./use-import-analysis";
+import { useHistoryBackfill } from "./use-history-backfill";
 import { BoardFirstScreens } from "./board-first/BoardFirstScreens";
 import { gameMomentId } from "./board-first/moment-specs";
 import { useGameReport } from "./use-game-report";
@@ -1003,6 +1004,11 @@ function PlayerApp({
     snapshotRevision,
     loadGameAnalysis,
   );
+  const historyProgress = useHistoryBackfill(
+    history,
+    (games, site, analyze) => importRecentGames(games, site, { analyze }),
+    refreshAfterImport,
+  );
   const momentCounts = useMomentCounts(
     history,
     boardFirst && (view === "review-home" || view === "import"),
@@ -1256,6 +1262,12 @@ function PlayerApp({
     requests: readonly ImportGamesRequest[],
     singleGame: boolean,
     sharing: "private" | "shared",
+    // A history download picks which games Stockfish checks now and refreshes
+    // the app itself, so each page does not reload every screen.
+    options: {
+      readonly analyze?: (requestIndex: number) => boolean;
+      readonly quiet?: boolean;
+    } = {},
   ): Promise<readonly ImportGamesResponse[]> {
     return navigator.locks.request(
       "chesscue-import-" + history.name,
@@ -1271,9 +1283,10 @@ function PlayerApp({
           ),
         );
         const imported: GameRecord[] = [];
+        const toAnalyze: GameRecord[] = [];
         const responses: ImportGamesResponse[] = [];
         try {
-          for (const request of requests) {
+          for (const [requestIndex, request] of requests.entries()) {
             const result = importGames({
               ...request,
               existingFingerprints: new Set(gamesByFingerprint.keys()),
@@ -1303,6 +1316,8 @@ function PlayerApp({
               const saved = await repository.put(record);
               if (!saved.ok) throw new Error(saved.error.message);
               imported.push(record);
+              if (options.analyze?.(requestIndex) ?? true)
+                toAnalyze.push(record);
               if (record.fingerprint !== null)
                 gamesByFingerprint.set(record.fingerprint, record);
             }
@@ -1310,15 +1325,17 @@ function PlayerApp({
           }
           return responses;
         } finally {
-          if (imported.length > 0) {
-            queueImportAnalysis(history, imported);
-            setSnapshotRevision((n) => n + 1);
-            window.dispatchEvent(new Event("chesscue-history"));
-            void refreshAdaptiveProfile();
-          }
+          if (toAnalyze.length > 0) queueImportAnalysis(history, toAnalyze);
+          if (imported.length > 0 && !options.quiet) refreshAfterImport();
         }
       },
     );
+  }
+
+  function refreshAfterImport() {
+    setSnapshotRevision((n) => n + 1);
+    window.dispatchEvent(new Event("chesscue-history"));
+    void refreshAdaptiveProfile();
   }
 
   async function handleImport(
@@ -1334,6 +1351,7 @@ function PlayerApp({
   async function importRecentGames(
     games: readonly RecentGame[],
     site: GameSite,
+    history?: { readonly analyze: (index: number) => boolean },
   ) {
     if (games.length === 0) return 0;
     const responses = await importRequests(
@@ -1346,6 +1364,7 @@ function PlayerApp({
       ),
       true,
       "private",
+      history ? { analyze: history.analyze, quiet: true } : {},
     );
     return responses.reduce(
       (count, { acceptedCount }) => count + acceptedCount,
@@ -2084,6 +2103,7 @@ function PlayerApp({
   const reviewHome = (view === "review-home" || usernameGames) && (
     <SidePanelReview
       boardFirst={boardFirst}
+      historyProgress={historyProgress}
       usernameImport={
         boardFirst || usernameGames
           ? renderUsernameImport(recentImportSite ?? undefined)

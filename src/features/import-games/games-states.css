@@ -260,7 +260,7 @@
 }
 
 /* Board-first: one line for the import queue, above the games. */
-.games-state > .games-queue {
+.games-state > :is(.games-queue, .games-history-sync) {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -304,4 +304,14 @@
 .games-history__count--miss {
   color: var(--ui-color-coral);
   background: color-mix(in srgb, var(--ui-color-coral) 16%, transparent);
+}
+
+/* A long history downloads in the background; this line says how far. */
+.games-state > .games-history-sync {
+  color: var(--ui-color-muted);
+}
+
+/* Shown under the last rendered row; reaching it renders the next page. */
+.games-more {
+  padding: 8px 12px;
 }

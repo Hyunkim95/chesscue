@@ -52,7 +52,7 @@ async function readArchive(url: string, signal: AbortSignal): Promise<unknown> {
   return response.json();
 }
 
-async function listArchives(username: string, request: AbortSignal) {
+export async function listArchives(username: string, request: AbortSignal) {
   const base = "/pub/player/" + username.toLowerCase() + "/games/";
   const list = archivesList.safeParse(
     await readArchive(archiveOrigin + base + "archives", request),
@@ -80,6 +80,34 @@ async function listArchives(username: string, request: AbortSignal) {
     .reverse();
 }
 
+// One month of finished standard games, newest first.
+export async function fetchChessComMonth(
+  archive: string,
+  signal: AbortSignal,
+): Promise<readonly { id: string; pgn: string }[]> {
+  const month = archiveGames.safeParse(await readArchive(archive, signal));
+  if (!month.success)
+    throw new Error("Chess.com returned an unreadable game archive.");
+  return month.data.games
+    .flatMap((entry) => {
+      const game = archivedGame.safeParse(entry);
+      return game.success ? [game.data] : [];
+    })
+    .sort((left, right) => right.end_time - left.end_time)
+    .flatMap((game) => {
+      const url = new URL(game.url);
+      if (
+        url.origin !== "https://www.chess.com" &&
+        url.origin !== "https://chess.com"
+      )
+        return [];
+      const path = chessComGamePath(url.pathname);
+      return path
+        ? [{ id: path.slice(path.lastIndexOf("/") + 1), pgn: game.pgn }]
+        : [];
+    });
+}
+
 export async function fetchRecentChessComGames(
   username: string,
   limit: number,
@@ -90,26 +118,8 @@ export async function fetchRecentChessComGames(
   const archives = await listArchives(username, signal);
   const games = new Map<string, { id: string; pgn: string }>();
   for (const archive of archives.slice(0, lookupBatchSize)) {
-    const month = archiveGames.safeParse(await readArchive(archive, signal));
-    if (!month.success)
-      throw new Error("Chess.com returned an unreadable game archive.");
-    const finished = month.data.games
-      .flatMap((entry) => {
-        const game = archivedGame.safeParse(entry);
-        return game.success ? [game.data] : [];
-      })
-      .sort((left, right) => right.end_time - left.end_time);
-    for (const game of finished) {
-      const url = new URL(game.url);
-      if (
-        url.origin !== "https://www.chess.com" &&
-        url.origin !== "https://chess.com"
-      )
-        continue;
-      const path = chessComGamePath(url.pathname);
-      if (!path) continue;
-      const id = path.slice(path.lastIndexOf("/") + 1);
-      if (!games.has(id)) games.set(id, { id, pgn: game.pgn });
+    for (const game of await fetchChessComMonth(archive, signal)) {
+      if (!games.has(game.id)) games.set(game.id, game);
       if (games.size >= limit) return [...games.values()];
     }
   }
