@@ -1,6 +1,5 @@
 import { LoadingState } from "../../shared/loading/LoadingState";
 import { useEffect, useState } from "react";
-import { readSubmittedGame } from "../../infrastructure/firebase/submitted-games";
 import type { ParsedPgnGame } from "../../domain/import/types";
 import { ChessBoard } from "../board/ChessBoard";
 
@@ -15,7 +14,9 @@ export function SharedGameReplay({
   const [ply, setPly] = useState(0);
   useEffect(() => {
     let active = true;
-    void readSubmittedGame(id)
+    // Firebase loads only for a shared link, never with the app (SLO-014).
+    void import("../../infrastructure/firebase/submitted-games")
+      .then(({ readSubmittedGame }) => readSubmittedGame(id))
       .then((record) => {
         if (active) {
           setPly(
@@ -38,7 +39,7 @@ export function SharedGameReplay({
     <main className="content-shell content-shell--narrow shared-game-replay">
       <h1>Shared game</h1>
       {game === null ? (
-        <LoadingState>Loading game…</LoadingState>
+        <LoadingState shape="board">Loading game…</LoadingState>
       ) : game === "failed" ? (
         <p role="alert">
           This game could not be loaded. Check your connection and reload.
