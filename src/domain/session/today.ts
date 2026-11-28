@@ -53,27 +53,30 @@ export function pickToday(input: TodayInput): TodayPick {
     )
       latest.set(key, attempt);
   }
-  const moments = input.moments
-    .filter(
-      (moment) =>
-        input.alwaysServe?.(moment) === true ||
-        isServableMoment(
-          moment.drill.exercise.fen,
-          moment.drill.exercise.verification.principalVariation,
-          moment.drill.exercise.verification.candidates,
-        ),
-    )
-    .sort(newestGameFirst);
+  const moments = input.moments.toSorted(newestGameFirst);
+  function servable(moment: ObservedMove): boolean {
+    const { fen, verification } = moment.drill.exercise;
+    return (
+      isServableMoment(
+        fen,
+        verification.principalVariation,
+        verification.candidates,
+      ) || input.alwaysServe?.(moment) === true
+    );
+  }
   const fresh = moments.find(
-    ({ game, ply }) => !latest.has(momentKey(game.id, ply)),
+    (moment) =>
+      !latest.has(momentKey(moment.game.id, moment.ply)) && servable(moment),
   );
   if (fresh) return { kind: "new", moment: fresh };
-  const returning = moments.find(({ game, ply }) => {
+  const returning = moments.find((moment) => {
+    const { game, ply } = moment;
     const last = latest.get(momentKey(game.id, ply));
     return (
       last !== undefined &&
       last.outcome !== "spotted" &&
-      input.now.getTime() - Date.parse(last.completedAt) >= RETURN_AFTER_MS
+      input.now.getTime() - Date.parse(last.completedAt) >= RETURN_AFTER_MS &&
+      servable(moment)
     );
   });
   if (returning) return { kind: "returning", moment: returning };

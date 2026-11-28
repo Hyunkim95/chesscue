@@ -196,21 +196,17 @@ describe("advanceSpot", () => {
     ).toEqual(partial);
   });
 
-  it("asks for the tap when a typed answer names the danger", () => {
+  it("spots the same danger by description or by tapping", () => {
     const moment = danger();
-    const answered = run(moment, { kind: "read", factId: "wins-material:e6" });
-    expect(answered).toEqual({ kind: "answered", factId: "wins-material:e6" });
-    expect(spotLine(moment, FEN, answered)).toBe(
-      "Yes, your queen on e6 is in trouble. Tap it and I'll show you why.",
-    );
-    // Only the tap spots it.
+    const described = run(moment, { kind: "read", factId: "wins-material:e6" });
+    expect(described).toEqual(run(moment, { kind: "tap", square: "e6" }));
     expect(
       run(
         moment,
         { kind: "read", factId: "wins-material:e6" },
         { kind: "find" },
       ),
-    ).toEqual(answered);
+    ).toEqual({ kind: "finding" });
   });
 
   it("answers taps elsewhere and typed answers that match nothing", () => {

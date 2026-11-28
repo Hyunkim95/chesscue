@@ -50,7 +50,7 @@ function spottedAchievements(
 ): readonly TimedAchievement[] {
   const earned = new Map<AchievementId, number>();
   for (const { record, at } of records) {
-    if (record.outcome !== "spotted") continue;
+    if (record.outcome !== "spotted" || record.firstMoveUci === "") continue;
     if (!earned.has("first-idea")) earned.set("first-idea", at);
     if (record.unitId === undefined) continue;
     const id: AchievementId = `first-unit:${record.unitId}`;

@@ -145,11 +145,10 @@ export function dangerMoment(input: {
   };
 }
 
-// Where the player is in the format. "answered": a typed answer named a real
-// danger and Rook asks for the tap. "finding": handed over to the moment loop.
+// A tap or a description of a verified threat can spot it. "finding" hands
+// over to the safe-move loop.
 export type SpotState =
   | { readonly kind: "looking" }
-  | { readonly kind: "answered"; readonly factId: string }
   | { readonly kind: "nudged"; readonly cause: NudgeCause }
   | { readonly kind: "spotted"; readonly factId: string }
   | { readonly kind: "finding" };
@@ -174,9 +173,7 @@ export const startSpot: SpotState = { kind: "looking" };
 
 // The player is still looking for the danger: taps and typed answers apply.
 export const spotting = (state: SpotState) =>
-  state.kind === "looking" ||
-  state.kind === "answered" ||
-  state.kind === "nudged";
+  state.kind === "looking" || state.kind === "nudged";
 
 function factFor(moment: DangerMoment, id: string | undefined) {
   return moment.facts.find((fact) => fact.id === id);
@@ -197,7 +194,7 @@ export function advanceSpot(
     const fact = factFor(moment, event.factId);
     if (!fact) return { kind: "nudged", cause: { kind: "none" } };
     return isDanger(fact)
-      ? { kind: "answered", factId: fact.id }
+      ? { kind: "spotted", factId: fact.id }
       : { kind: "nudged", cause: { kind: "safe-attacked", factId: fact.id } };
   }
   const tapped = moment.facts.filter(({ target }) => target === event.square);
@@ -335,13 +332,6 @@ export function spotLine(
   switch (state.kind) {
     case "looking":
       return LOOKING;
-    case "answered": {
-      const fact = factFor(moment, state.factId);
-      if (!fact) return LOOKING;
-      return fact.kind === "mate-threat"
-        ? "Yes, your king is in danger. Tap it and I'll show you why."
-        : `Yes, your ${PIECE_NAME[fact.piece]} on ${fact.target} is in trouble. Tap it and I'll show you why.`;
-    }
     case "nudged":
       return nudge(moment, fen, state.cause);
     case "spotted": {

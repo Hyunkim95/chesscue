@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 
 import type { ObservedMove } from "../curriculum/game-drill";
 import { attemptRecord, forkObservation } from "../progress/test-fixtures";
@@ -73,6 +73,27 @@ it("serves a moment the app always serves, such as Spot the danger", () => {
   expect(
     pickToday({ ...empty, moments: [unclear], alwaysServe: () => true }),
   ).toEqual({ kind: "new", moment: unclear });
+});
+
+it("checks the special format only for an eligible candidate that needs it", () => {
+  const newest = forkObservation("retry", "2026-11-27T10:01:00Z", "seen");
+  const next = forkObservation("retry", "2026-11-27T09:01:00Z");
+  const alwaysServe = vi.fn(() => false);
+
+  expect(
+    pickToday({
+      ...empty,
+      moments: [planMoment(-40), next, newest],
+      attempts: [
+        attemptRecord({
+          source: { kind: "game", gameId: newest.game.id, ply: newest.ply },
+          outcome: "spotted",
+        }),
+      ],
+      alwaysServe,
+    }),
+  ).toEqual({ kind: "new", moment: next });
+  expect(alwaysServe).not.toHaveBeenCalled();
 });
 
 it("brings a missed moment back after a day, but not a spotted one", () => {

@@ -16,7 +16,8 @@ export type SessionEvent =
   | { readonly kind: "help" }
   | { readonly kind: "explore"; readonly key: string }
   | { readonly kind: "show" }
-  | { readonly kind: "finish" };
+  | { readonly kind: "finish" }
+  | { readonly kind: "finish-spot" };
 
 export const startSession: MomentSession = {
   state: { kind: "before" },
@@ -82,6 +83,21 @@ export function advanceSession(
             ...session,
             helped: true,
             state: { kind: "shown", attempts: attemptsOf(state) },
+          }
+        : session;
+    case "finish-spot":
+      return state.kind === "before"
+        ? {
+            ...session,
+            state: {
+              kind: "done",
+              result: {
+                outcome: "spotted",
+                helped: session.helped,
+                explorations: session.explored.length,
+                attempts: [],
+              },
+            },
           }
         : session;
     case "finish": {

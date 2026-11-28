@@ -21,8 +21,10 @@ export function dayRecap(input: ProgressInput): {
   }
 
   return {
-    ideasSpotted: attemptsToday.filter(({ outcome }) => outcome === "spotted")
-      .length,
+    ideasSpotted: attemptsToday.filter(
+      ({ outcome, firstMoveUci }) =>
+        outcome === "spotted" && firstMoveUci !== "",
+    ).length,
     streak: currentStreak(today, byDay),
     xpToday: totalXp(attemptsToday),
     newIdeas,

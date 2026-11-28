@@ -16,13 +16,14 @@ export function momentRecord({
   readonly completedAt: Date;
 }): MomentAttemptRecord | undefined {
   const [first] = result.attempts;
-  // Show me before any try leaves no first move: recorded as "".
-  if (!first && result.outcome !== "shown") return undefined;
+  // Spotting the threat completes the position without move-based evidence.
+  const spottedThreat = !first && result.outcome === "spotted";
+  if (!first && !spottedThreat && result.outcome !== "shown") return undefined;
   return {
     schemaVersion: 1,
     id,
     source,
-    ...(unitId === undefined ? {} : { unitId }),
+    ...(unitId === undefined || spottedThreat ? {} : { unitId }),
     firstMoveUci: first?.uci ?? "",
     tiers: result.attempts.map(({ tier }) => tier),
     outcome: result.outcome,
