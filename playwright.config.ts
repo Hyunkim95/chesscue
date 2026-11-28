@@ -16,6 +16,19 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
+    // Board-first is the web default (28 November 2026). The classic suites
+    // still cover the screens board-first has not replaced, so a test starts
+    // pinned to classic; board-first tests pass ?ui=board-first, and
+    // web-default.spec.ts starts with empty storage to test the real default.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: baseURL,
+          localStorage: [{ name: "chesscue-board-first", value: "0" }],
+        },
+      ],
+    },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

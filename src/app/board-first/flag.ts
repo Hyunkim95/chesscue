@@ -1,9 +1,10 @@
-// The board-first redesign runs beside the existing screens until its
-// journeys pass the same E2E coverage (ENGINEERING.md §17.3 rule 9). It is the
-// default in the extension side panel and opt-in on the web.
-// ?ui=board-first turns it on for this browser; ?ui=classic turns it off.
+// The board-first redesign is the default in the extension side panel and on
+// the web (owner decision, 28 November 2026: desktop matches the extension).
+// The classic screens stay reachable until their journeys are replaced
+// (ENGINEERING.md §17.3 rule 9). ?ui=classic turns board-first off for this
+// browser; ?ui=board-first turns it back on.
 const KEY = "chesscue-board-first";
-const DEFAULT_ON = import.meta.env.MODE === "extension";
+const DEFAULT_ON = true;
 
 function readFlag(): boolean {
   try {
