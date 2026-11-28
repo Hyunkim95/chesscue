@@ -35,10 +35,19 @@ function playedUnit(observed: ObservedMove): string | undefined {
   return good.kind === "threat" ? THREAT_UNIT : unitForDrill(drill);
 }
 
+// Stars, the idea collection and the star sheet share each immutable snapshot.
+const evidenceBySnapshot = new WeakMap<
+  readonly ObservedMove[],
+  readonly GameIdeaEvidence[]
+>();
+
 export function gameIdeaEvidence(
   games: readonly ObservedMove[],
 ): readonly GameIdeaEvidence[] {
-  return games.flatMap((observed) => {
+  const cached = evidenceBySnapshot.get(games);
+  if (cached !== undefined) return cached;
+
+  const evidence = games.flatMap<GameIdeaEvidence>((observed) => {
     const { game, ply, outcome, drill } = observed;
     const unitId =
       outcome === "matched" ? playedUnit(observed) : unitForDrill(drill);
@@ -53,4 +62,6 @@ export function gameIdeaEvidence(
       },
     ];
   });
+  evidenceBySnapshot.set(games, evidence);
+  return evidence;
 }

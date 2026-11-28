@@ -1,4 +1,10 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import {
+  useDeferredValue,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import "@fontsource/newsreader/latin-600-italic.css";
 
 import type {
@@ -6,6 +12,7 @@ import type {
   StarState,
   unitHistory,
 } from "../../domain/progress";
+import type { SkyGameReview } from "../../domain/progress/sky-game-review";
 import { Button } from "../../shared/ui/primitives";
 import { useMediaQuery } from "../../shared/ui/use-media-query";
 import { RookCharacter } from "../../shared/rook/RookCharacter";
@@ -30,6 +37,8 @@ export interface SkyScreenProps {
   readonly newestStar: string | undefined;
   readonly history: (unitId: string) => ReturnType<typeof unitHistory>;
   readonly onLook: (source: MomentAttemptRecord["source"]) => void;
+  readonly gameReview?: SkyGameReview | undefined;
+  readonly followUp?: MomentAttemptRecord["source"] | undefined;
 }
 
 const chartWidth = 288;
@@ -80,8 +89,18 @@ export function SkyScreen({
   newestStar,
   history,
   onLook,
+  gameReview,
+  followUp,
 }: SkyScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const deferredId = useDeferredValue(selectedId);
+  const moments = useMemo(
+    () =>
+      selectedId !== null && deferredId === selectedId
+        ? history(selectedId)
+        : undefined,
+    [deferredId, history, selectedId],
+  );
   const chartRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -93,6 +112,23 @@ export function SkyScreen({
 
   const units = stages.flatMap(({ units }) => units);
   const selected = units.find(({ unitId }) => unitId === selectedId);
+  const reviewIdeas = [
+    {
+      summary: gameReview?.strength,
+      label: "What went well",
+      verb: "Played",
+      state: "shining",
+    },
+    {
+      summary: gameReview?.focus,
+      label: "Next to practise",
+      verb: "Missed",
+      state: "missed",
+    },
+  ] as const;
+  const hasReview = (gameReview?.strength ?? gameReview?.focus) !== undefined;
+  const selectedFocus =
+    selectedId === gameReview?.focus?.unitId ? gameReview.focus : undefined;
   const litCount = units.filter(({ unitId }) =>
     isLit(stars.get(unitId)),
   ).length;
@@ -120,6 +156,11 @@ export function SkyScreen({
     openerRef.current = null;
   }, [selected]);
 
+  function openStar(unitId: string, opener: HTMLButtonElement) {
+    openerRef.current = opener;
+    setSelectedId(unitId);
+  }
+
   return (
     <section className="sky-screen" aria-label="Your sky">
       <header className="sky-header">
@@ -139,6 +180,47 @@ export function SkyScreen({
           ))}
         </ul>
       </header>
+
+      {hasReview && (
+        <section
+          className="sky-game-review"
+          aria-labelledby="sky-game-review-title"
+          inert={selected !== undefined}
+        >
+          <h2 id="sky-game-review-title">From your games</h2>
+          <div className="sky-game-review__ideas">
+            {reviewIdeas.map(({ summary, label, verb, state }) => {
+              const unit = units.find(
+                ({ unitId }) => unitId === summary?.unitId,
+              );
+              if (!unit || !summary) return null;
+              return (
+                <Button
+                  key={label}
+                  variant="ghost"
+                  className="sky-game-review__idea"
+                  aria-haspopup="dialog"
+                  onClick={(event) => {
+                    openStar(unit.unitId, event.currentTarget);
+                  }}
+                >
+                  <span className="sky-game-review__label">
+                    <svg viewBox="-10 -10 20 20" aria-hidden="true">
+                      <StarMark state={state} />
+                    </svg>
+                    {label}
+                  </span>
+                  <strong>{unit.title}</strong>
+                  <small>
+                    {verb} in {summary.games}{" "}
+                    {summary.games === 1 ? "game" : "games"}
+                  </small>
+                </Button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="sky-region">
         <div
@@ -236,8 +318,7 @@ export function SkyScreen({
                               aria-label={`${unitTitle}, ${starLabels[state].toLowerCase()}`}
                               aria-haspopup="dialog"
                               onClick={(event) => {
-                                openerRef.current = event.currentTarget;
-                                setSelectedId(unitId);
+                                openStar(unitId, event.currentTarget);
                               }}
                             >
                               <span>{unitTitle}</span>
@@ -255,9 +336,12 @@ export function SkyScreen({
 
         {selected && (
           <StarSheet
+            key={selected.unitId}
             title={selected.title}
             state={stars.get(selected.unitId) ?? "not-seen"}
-            moments={history(selected.unitId)}
+            moments={moments}
+            retry={selectedFocus?.retry}
+            followUp={selectedFocus ? followUp : undefined}
             onClose={() => {
               setSelectedId(null);
             }}

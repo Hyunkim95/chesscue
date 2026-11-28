@@ -384,6 +384,109 @@
   accent-color: var(--cue-pine);
 }
 
+.game-replay__title {
+  margin: 0;
+  font: 600 26px/1.1 var(--ui-font-display);
+}
+
+.game-replay__timeline {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-card);
+}
+
+.game-replay__current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+}
+
+.game-replay__current strong {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.game-replay__current span {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-replay__timeline input {
+  width: 100%;
+  min-height: 36px;
+  margin: 0;
+  accent-color: var(--ui-color-brass);
+  cursor: pointer;
+}
+
+.game-replay__step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+.game-replay__step .graphic-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ui-space-target);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  color: var(--ui-color-ink);
+  background: var(--ui-color-deep);
+  font: 700 14px var(--ui-font-body);
+  cursor: pointer;
+}
+
+.game-replay__step .graphic-control:hover:not(:disabled) {
+  color: var(--ui-color-brass);
+}
+
+.game-replay__step .graphic-control:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.game-replay__timeline :focus-visible {
+  outline: 2px solid var(--ui-color-brass);
+  outline-offset: 2px;
+}
+
+.game-replay__timeline > .ui-pill {
+  justify-self: start;
+}
+
+.game-replay__seek summary {
+  min-height: var(--ui-space-target);
+  padding-block: 11px;
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.game-replay .review-matchup {
+  justify-content: space-between;
+  color: var(--ui-color-muted);
+}
+
+.game-replay .board-balance {
+  margin: 0;
+}
+
+.game-replay__markers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 56rem) {
   .game-review__training-layout,
   .game-review__layout {

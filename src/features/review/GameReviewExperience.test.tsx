@@ -195,6 +195,52 @@ const playOriginalBest = (): void => {
   playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
 };
 
+it("shows the recorded move beside the focused replay controls", () => {
+  const fixture = reviewFixture();
+  const onExploreNextMove = vi.fn();
+  const { rerender } = render(
+    <GameReviewExperience
+      game={fixture.game}
+      compact
+      replayOnly
+      onExploreNextMove={onExploreNextMove}
+    />,
+  );
+  const controls = screen.getByRole("group", { name: "Replay controls" });
+  const previous = within(controls).getByRole("button", {
+    name: "Previous move",
+  });
+  const next = within(controls).getByRole("button", { name: "Play game move" });
+
+  expect(screen.getByText("Starting position")).toBeVisible();
+  expect(previous).toBeDisabled();
+  fireEvent.click(next);
+  expect(screen.getByText("e4", { exact: true })).toBeVisible();
+  expect(
+    screen.getByRole("gridcell", { name: /White pawn on e4/ }),
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: /^Analyze next move$/ }));
+  expect(onExploreNextMove).toHaveBeenCalledWith(
+    fixture.game.moves[0]?.fenAfter,
+    "white",
+  );
+  expect(screen.getByText("e4", { exact: true })).toBeVisible();
+  rerender(
+    <GameReviewExperience
+      {...fixture}
+      compact
+      replayOnly
+      onExploreNextMove={onExploreNextMove}
+    />,
+  );
+  expect(screen.getByText("e4", { exact: true })).toBeVisible();
+  fireEvent.click(screen.getByText("Jump to position", { exact: true }));
+  const slider = screen.getByRole("slider", { name: "Move through the game" });
+  fireEvent.change(slider, { target: { value: "4" } });
+  expect(screen.getByText("Nc6", { exact: true })).toBeVisible();
+  expect(next).toBeDisabled();
+});
+
 describe("GameReviewExperience transfer set", () => {
   it("replays recorded moves on the same board and hands over before the critical move", async () => {
     vi.stubGlobal(

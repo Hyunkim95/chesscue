@@ -60,11 +60,16 @@ test("names all four states, counts lit stars, and highlights the newest star", 
 });
 
 test("opens the sheet with ordered moments and passes the selected source to Look", () => {
-  const history = vi.fn<SkyScreenProps["history"]>(() => [
-    { kind: "played", at: "2026-11-27T12:00:00Z", source: played },
-    { kind: "spotted", at: "2026-11-26T12:00:00Z", source: spotted },
-    { kind: "missed", at: "2026-11-25T12:00:00Z", source: played },
-  ]);
+  const history = vi.fn<SkyScreenProps["history"]>(() => {
+    expect(
+      screen.queryByRole("dialog", { name: "Back-rank mate" }),
+    ).toBeInTheDocument();
+    return [
+      { kind: "played", at: "2026-11-27T12:00:00Z", source: played },
+      { kind: "spotted", at: "2026-11-26T12:00:00Z", source: spotted },
+      { kind: "missed", at: "2026-11-25T12:00:00Z", source: played },
+    ];
+  });
   const onLook = vi.fn();
   render(<SkyScreen {...props} history={history} onLook={onLook} />);
 
@@ -112,6 +117,84 @@ test("shows the unlit sky and restores keyboard focus after Escape", () => {
   fireEvent.keyDown(close, { key: "Escape" });
   expect(dialog).not.toBeInTheDocument();
   expect(star).toHaveFocus();
+});
+
+test("links the game summary to the stars and opens a recommended practice position", () => {
+  const retry = { kind: "game", gameId: "earlier-game", ply: 7 } as const;
+  const onLook = vi.fn();
+  render(
+    <SkyScreen
+      {...props}
+      gameReview={{
+        strength: { unitId: "mate", games: 1 },
+        focus: { unitId: "pin", games: 3, retry },
+      }}
+      followUp={spotted}
+      onLook={onLook}
+    />,
+  );
+
+  const review = within(
+    screen.getByRole("region", { name: "From your games" }),
+  );
+  const strength = review.getByRole("button", {
+    name: /What went well.*Back-rank mate.*Played in 1 game/,
+  });
+  fireEvent.click(strength);
+  const strengthSheet = within(
+    screen.getByRole("dialog", { name: "Back-rank mate" }),
+  );
+  expect(
+    strengthSheet.queryByRole("button", { name: "Try a missed position" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(strengthSheet.getByRole("button", { name: "Close" }));
+  expect(strength).toHaveFocus();
+
+  const focus = review.getByRole("button", {
+    name: /Next to practise.*Pin.*Missed in 3 games/,
+  });
+  fireEvent.click(focus);
+  const practice = within(screen.getByRole("dialog", { name: "Pin" }));
+  fireEvent.click(
+    practice.getByRole("button", { name: "Try a missed position" }),
+  );
+  expect(onLook).toHaveBeenLastCalledWith(retry);
+  fireEvent.click(focus);
+  fireEvent.click(
+    within(screen.getByRole("dialog", { name: "Pin" })).getByRole("button", {
+      name: "Try a similar puzzle",
+    }),
+  );
+  expect(onLook).toHaveBeenLastCalledWith(spotted);
+});
+
+test("keeps the remaining moments available without rendering all rows at once", () => {
+  const source = played;
+  render(
+    <SkyScreen
+      {...props}
+      history={() =>
+        Array.from({ length: 21 }, () => ({
+          kind: "played",
+          at: "2026-11-27T12:00:00Z",
+          source,
+        }))
+      }
+    />,
+  );
+
+  fireEvent.click(
+    screen.getByRole("button", { name: "Back-rank mate, shining" }),
+  );
+  const dialog = within(screen.getByRole("dialog", { name: "Back-rank mate" }));
+  expect(
+    dialog.getAllByRole("button", { name: /look at moment/i }),
+  ).toHaveLength(20);
+  fireEvent.click(dialog.getByRole("button", { name: "Show more moments" }));
+  expect(
+    dialog.getAllByRole("button", { name: /look at moment/i }),
+  ).toHaveLength(21);
+  expect(dialog.getByRole("button", { name: "Close" })).toHaveFocus();
 });
 
 test.each([
