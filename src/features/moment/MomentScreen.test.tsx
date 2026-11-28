@@ -237,7 +237,10 @@ it("steps through the line only when the player steps, by button or arrow key", 
   await solveFork();
   fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
   const stepper = screen.getByRole("group", { name: "Step through the line" });
-  expect(stepper).toHaveTextContent("1 / 4");
+  expect(stepper).toHaveTextContent("Step 1 of 3Goal: the queen on e6");
+  // The queen the point wins is the goal: outlined in brass and tagged.
+  expect(square("Black queen on e6").className).toContain("outline-brass");
+  expect(square("Black queen on e6")).toHaveTextContent("GOAL");
   // The point is said on the first move's frame.
   expect(bubble()).toHaveTextContent(/^Nxg5\+ wins a queen/);
   expect(screen.getByRole("button", { name: "Previous step" })).toHaveAttribute(
@@ -246,10 +249,10 @@ it("steps through the line only when the player steps, by button or arrow key", 
   );
   // The board stays on the first frame until the player steps.
   await new Promise((resolve) => setTimeout(resolve, 50));
-  expect(stepper).toHaveTextContent("1 / 4");
+  expect(stepper).toHaveTextContent("Step 1 of 3");
 
   next();
-  expect(stepper).toHaveTextContent("2 / 4");
+  expect(stepper).toHaveTextContent("Step 2 of 3");
   expect(square("Black king on f6")).toBeVisible();
   fireEvent.keyDown(stepper, { key: "ArrowRight" });
   expect(bubble()).toHaveTextContent(/^Nxe6 takes my queen/);
@@ -263,7 +266,7 @@ it("steps through the line only when the player steps, by button or arrow key", 
     "true",
   );
   fireEvent.keyDown(stepper, { key: "ArrowLeft" });
-  expect(stepper).toHaveTextContent("3 / 4");
+  expect(stepper).toHaveTextContent("Step 3 of 3");
 
   fireEvent.click(screen.getByRole("button", { name: "↺ Reset" }));
   expect(square("White knight on f3")).toBeVisible();
@@ -298,14 +301,14 @@ it("lets the player try another move at their turn and shows why it is not as go
   expect(bubble()).toHaveTextContent("Nxe6 instead wins the queen.");
 
   fireEvent.click(screen.getByRole("button", { name: "◀ Back to the answer" }));
-  expect(stepper).toHaveTextContent("2 / 4");
+  expect(stepper).toHaveTextContent("Step 2 of 3");
   expect(square("Black king on f6")).toBeVisible();
   // The line's own move steps on.
   fireEvent.click(square("White knight on g5"));
   fireEvent.click(square("Black queen on e6"));
   expect(
     screen.getByRole("group", { name: "Step through the line" }),
-  ).toHaveTextContent("3 / 4");
+  ).toHaveTextContent("Step 3 of 3");
 });
 
 it("asks why not the player's try and shows what it costs without the answer", async () => {
@@ -361,7 +364,7 @@ it("answers a typed why about a move in the line by code, staying on the frame",
   expect(asked).toEqual([]);
   expect(
     screen.getByRole("group", { name: "Step through the line" }),
-  ).toHaveTextContent("3 / 4");
+  ).toHaveTextContent("Step 3 of 3");
 });
 
 it("answers a typed question in place and only moves the board when asked", async () => {
@@ -382,7 +385,7 @@ it("answers a typed question in place and only moves the board when asked", asyn
   next();
   next();
   const steps = screen.getByRole("group", { name: "Step through the line" });
-  expect(steps).toHaveTextContent("3 / 4");
+  expect(steps).toHaveTextContent("Step 3 of 3");
   const before = screen
     .getAllByRole("gridcell")
     .map((cell) => cell.getAttribute("aria-label"));
@@ -397,7 +400,7 @@ it("answers a typed question in place and only moves the board when asked", asyn
   const offer = await screen.findByRole("button", {
     name: "Show it on the board",
   });
-  expect(steps).toHaveTextContent("3 / 4");
+  expect(steps).toHaveTextContent("Step 3 of 3");
   expect(
     screen
       .getAllByRole("gridcell")
@@ -546,7 +549,7 @@ it("hands-free reads each line aloud, listens, and steps on when told next", asy
     await solveFork();
     fireEvent.click(screen.getByRole("button", { name: "Why does it work?" }));
     const steps = screen.getByRole("group", { name: "Step through the line" });
-    expect(steps).toHaveTextContent("1 / 4");
+    expect(steps).toHaveTextContent("Step 1 of 3");
     fireEvent.click(screen.getByRole("button", { name: "Hands-free voice" }));
     const line = spoken.at(-1);
     expect(line?.text).toBe(bubble().textContent);
@@ -556,7 +559,7 @@ it("hands-free reads each line aloud, listens, and steps on when told next", asy
     act(() => {
       speech.onMessage("Next.");
     });
-    expect(steps).toHaveTextContent("2 / 4");
+    expect(steps).toHaveTextContent("Step 2 of 3");
     expect(spoken.at(-1)?.text).toBe(bubble().textContent);
   } finally {
     vi.unstubAllGlobals();
@@ -586,7 +589,7 @@ it("says why the move works in the writer's checked words online", async () => {
   // The board still shows the point's frame, stepped one at a time.
   expect(
     screen.getByRole("group", { name: "Step through the line" }),
-  ).toHaveTextContent("1 / 4");
+  ).toHaveTextContent("Step 1 of 3");
 });
 
 it("swaps in a late why while the opening frame is still shown", async () => {

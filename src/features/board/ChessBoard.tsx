@@ -26,7 +26,8 @@ export interface BoardBadge {
 // An outlined piece, such as one of the player's pieces Rook could capture.
 export interface BoardOutline {
   readonly square: Square;
-  readonly tone: "coral" | "jade";
+  // Brass marks the goal a storyboard is heading for.
+  readonly tone: "coral" | "jade" | "brass";
 }
 
 export interface ChessBoardProps {

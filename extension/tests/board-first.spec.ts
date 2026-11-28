@@ -61,9 +61,9 @@ for (const width of [320, 420]) {
       const stepper = page.getByRole("group", {
         name: "Step through the line",
       });
-      await expect(stepper).toContainText("1 / 3");
+      await expect(stepper).toContainText("Step 1 of 3");
       await page.getByRole("button", { name: "Next step" }).click();
-      await expect(stepper).toContainText("2 / 3");
+      await expect(stepper).toContainText("Step 2 of 3");
       await noSideScroll(page);
       await page.screenshot({
         path: `test-results/extension-stepper-${String(width)}.png`,

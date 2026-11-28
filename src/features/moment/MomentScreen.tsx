@@ -24,11 +24,13 @@ import type { AssessPosition } from "../../application/analyze-game/assess-posit
 import type { BoardArrow } from "../../domain/analysis/board-move-cues";
 import {
   alternativeFrame,
+  isQuietMove,
   lineStoryboard,
   payoffFrame,
   pointStoryboard,
   refutationStoryboard,
   type StoryFrame,
+  type StoryGoal,
 } from "../../domain/analysis/line-storyboard";
 import { PIECE_NAME } from "../../domain/analysis/board-relations";
 import { scanHint } from "../../domain/analysis/forcing-moves";
@@ -137,6 +139,8 @@ interface BoardView {
   readonly previewTag?: string | undefined;
   readonly spot?: Square | undefined;
   readonly control?: StoryFrame["control"];
+  // The piece a "Why does it work?" storyboard is heading for.
+  readonly goal?: StoryGoal | undefined;
 }
 
 interface Say {
@@ -252,9 +256,42 @@ function frameView(frame: StoryFrame): BoardView {
     lastMoveUci: frame.moveUci,
     animate: true,
     arrows: frame.arrows,
-    outlines: frame.outlines,
+    outlines: frame.goal
+      ? [
+          ...frame.outlines.filter(
+            ({ square }) => square !== frame.goal?.square,
+          ),
+          { square: frame.goal.square, tone: "brass" },
+        ]
+      : frame.outlines,
     control: frame.control,
+    goal: frame.goal,
   };
+}
+
+// "Step 2 of 3" while a storyboard heads for its goal, then "Result", with
+// the goal named on every frame. Other stories count their frames.
+function stepLabel(story: Story): {
+  readonly step: string;
+  readonly goal?: string;
+} {
+  const steps = story.frames.filter(({ goal }) => goal !== undefined).length;
+  const goal = story.frames.find((frame) => frame.goal !== undefined)?.goal;
+  const frame = story.frames[story.step];
+  const count = `${String(story.step + 1)} / ${String(story.frames.length)}`;
+  if (!goal || !frame) return { step: count };
+  const named =
+    goal.piece === "king"
+      ? "Goal: mate the king"
+      : `Goal: the ${goal.piece} on ${goal.square}`;
+  if (frame.goal)
+    return {
+      step: `Step ${String(story.step + 1)} of ${String(steps)}`,
+      goal: named,
+    };
+  return story.step === steps
+    ? { step: "Result", goal: named }
+    : { step: count };
 }
 
 // The position a frame's move was played from.
@@ -555,7 +592,10 @@ export function MomentScreen({
       ? [
           {
             ...quietFirst,
-            caption: `${quietFirst.caption} No tactic here, just a useful move.`,
+            // Never for a capture, a check or an offered piece.
+            caption: isQuietMove(moment.fen, quietFirst.moveUci)
+              ? `${quietFirst.caption} No tactic here, just a useful move.`
+              : quietFirst.caption,
           },
         ]
       : [];
@@ -2196,6 +2236,7 @@ export function MomentScreen({
       view.outlines.length > 0 ||
       view.arrows.length > ghostArrows(attempts).length);
   const stepper = story && story.frames.length > 1 ? story : undefined;
+  const stepText = stepper ? stepLabel(stepper) : undefined;
   const back = story?.back;
   const missed = attempts.filter((attempt) => attempt.tier !== "best");
   const xp = result ? attemptXp(result) : 0;
@@ -2259,7 +2300,19 @@ export function MomentScreen({
           }
           outlines={goalMarks ? goalMarks.outlines : view.outlines}
           previewTag={view.previewTag}
-          badges={departureBadges(view.arrows)}
+          badges={[
+            ...departureBadges(view.arrows),
+            ...(view.goal
+              ? [
+                  {
+                    square: view.goal.square,
+                    text: "GOAL",
+                    tone: "brass" as const,
+                    label: `Goal: the ${view.goal.piece}`,
+                  },
+                ]
+              : []),
+          ]}
           spotSquare={view.spot}
           balance={balance}
           controlChanges={
@@ -2294,8 +2347,13 @@ export function MomentScreen({
             >
               ◀
             </Pill>
-            <span className="moment__step">
-              {stepper.step + 1} / {stepper.frames.length}
+            <span
+              className={`moment__step${stepText?.goal ? " moment__step--goal" : ""}`}
+            >
+              {stepText?.step}
+              {stepText?.goal && (
+                <small className="moment__goal">{stepText.goal}</small>
+              )}
             </span>
             <Pill
               aria-label="Next step"

@@ -61,6 +61,22 @@
   color: var(--ui-color-muted);
 }
 
+/* A storyboard with a goal names it under the step on every frame, so the
+   label keeps one height and the arrows never move. */
+.moment__step--goal {
+  flex: 1;
+  min-width: 0;
+}
+
+.moment__goal {
+  display: block;
+  overflow: hidden;
+  font: 600 12px var(--ui-font-body);
+  color: var(--ui-color-brass);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .moment__tries {
   display: flex;
   flex-wrap: wrap;

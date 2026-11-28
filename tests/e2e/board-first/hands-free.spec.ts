@@ -62,13 +62,13 @@ test("hands-free reads Rook aloud and steps through the answer by voice", async 
   ).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Show me" }).click();
   const steps = page.getByRole("group", { name: "Step through the line" });
-  await expect(steps).toContainText("1 / 3");
+  await expect(steps).toContainText("Step 1 of 3");
   await page.getByRole("button", { name: "Hands-free voice" }).click();
   await expect(
     page.getByRole("button", { name: "Hands-free voice" }),
   ).toHaveAttribute("aria-pressed", "true");
   // Rook reads step 1, listens, hears "next", reads step 2, hears a question.
-  await expect(steps).toContainText("2 / 3", { timeout: 10_000 });
+  await expect(steps).toContainText("Step 2 of 3", { timeout: 10_000 });
   await expect(page.locator(".rook-bubble__text")).toHaveText(
     "Kh8 is my only legal move.",
     { timeout: 10_000 },

@@ -7,6 +7,7 @@ import {
   insteadFrame,
   lineStoryboard,
   payoffFrame,
+  isQuietMove,
   pointStoryboard,
   refutationStoryboard,
 } from "./line-storyboard";
@@ -438,6 +439,96 @@ it("names the net gain and a quiet move's mate threat", () => {
   const [qf3] = lineStoryboard(italian, ["d1f3"]);
   expect(qf3?.caption).toBe("Qf3 threatens mate with Qxf7#.");
   expect(qf3?.arrows.map(({ from, to }) => `${from}${to}`)).toContain("f3f7");
+});
+
+// Lichess 0fVN0 with Stockfish's depth-14 line: the fork wins the queen on
+// move 3, and the line then picks up pawns.
+const QUEEN_FORK = "6k1/pp3pp1/2p4p/8/6q1/1N1P2Pn/PP2QPKP/4R3 b - - 4 26";
+const QUEEN_FORK_LINE = [
+  "h3f4",
+  "g2g1",
+  "f4e2",
+  "g1f1",
+  "g4f3",
+  "b3d2",
+  "e2g3",
+  "h2g3",
+  "f3d3",
+  "e1e2",
+  "d3a6",
+  "b2b3",
+  "a6a2",
+  "e2e8",
+  "g8h7",
+  "f1e2",
+  "a2a6",
+  "d2c4",
+];
+
+it("stops the point storyboard where the point lands, not at the line's last capture", () => {
+  const story = pointStoryboard(QUEEN_FORK, QUEEN_FORK_LINE);
+  expect(story?.frames.map(({ caption }) => caption)).toEqual([
+    "Nf4+ wins a queen. It hits two pieces at once.",
+    "I answer Kg1.",
+    "Nxe2+ takes my queen and checks my king.",
+    "You've won a queen.",
+  ]);
+  // The queen is the goal on every step, and not on the result.
+  expect(story?.frames.map(({ goal }) => goal)).toEqual([
+    { square: "e2", piece: "queen" },
+    { square: "e2", piece: "queen" },
+    { square: "e2", piece: "queen" },
+    undefined,
+  ]);
+});
+
+it("keeps a long point's goal on the piece as it moves", () => {
+  // Lichess 0ZyeL: the queen on d2 recaptures on e3 and is won there.
+  const story = pointStoryboard(
+    "2nr1rk1/5pp1/5q1p/pPbp4/P1P1p2P/4P3/1B1QN1P1/RN4KR b - - 0 21",
+    ["c5e3", "d2e3", "f6b2", "b1c3", "b2a1", "g1h2", "d5d4", "h1a1", "d4e3"],
+  );
+  const goals = story?.frames.map(({ goal }) => goal?.square);
+  expect(goals?.slice(0, 2)).toEqual(["d2", "e3"]);
+  expect(goals?.at(-2)).toBe("e3");
+  expect(story?.frames[0]?.goal?.piece).toBe("queen");
+});
+
+it("plays on while Rook can win material straight back", () => {
+  // Rxa7 wins the queen, but Bxe4 takes the loose knight at once.
+  const story = pointStoryboard("6k1/q4ppp/2b5/8/4N3/8/5PPP/R5K1 w - - 0 1", [
+    "a1a7",
+    "c6e4",
+  ]);
+  expect(story?.frames[0]?.caption).toMatch(
+    /^Rxa7 wins a queen for a knight\./,
+  );
+  expect(story?.frames).toHaveLength(3);
+});
+
+it("names the king as the goal of a mate", () => {
+  const mate = pointStoryboard(WARM_UP, ["g4g5", "g8h8", "g5g7"]);
+  expect(mate?.frames.map(({ goal }) => goal)).toEqual([
+    { square: "g8", piece: "king" },
+    { square: "h8", piece: "king" },
+    { square: "h8", piece: "king" },
+  ]);
+});
+
+it("calls a move quiet only when it captures nothing, gives no check and offers nothing", () => {
+  const start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  expect(isQuietMove(start, "g1f3")).toBe(true);
+  // The Greek gift: Bxh7+ takes a pawn with check.
+  const greek =
+    "r1bq1rk1/pppn1ppp/4p3/3pP3/1b1P4/2NB1N2/PPP2PPP/R2QK2R w KQ - 0 8";
+  expect(isQuietMove(greek, "d3h7")).toBe(false);
+  // Nd5 offers the knight to the pawn on e6.
+  expect(
+    isQuietMove(
+      "r1bqkb1r/pppp1ppp/2n1pn2/8/3P4/2N2N2/PPP1PPPP/R1BQKB1R w KQkq - 0 4",
+      "c3d5",
+    ),
+  ).toBe(false);
 });
 
 describe("insteadFrame names the mechanism the try missed", () => {
