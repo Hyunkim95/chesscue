@@ -27,7 +27,7 @@ export const ALLOWED_LINE_WORDING_VERSION = "allowed-line-facts/6";
 // What counts as a tactic line (tacticKind, isTacticLine). Progress and the
 // curriculum derive units from it, so a change to the rule bumps this.
 // 2: material is counted once the line's exchanges settle.
-export const TACTIC_LINE_VERSION = "tactic-line/3";
+export const TACTIC_LINE_VERSION = "tactic-line/4";
 
 type FactKind =
   | "mate"
@@ -433,22 +433,42 @@ function settledLine(
     board.move(move.lan);
     boards.push(new Chess(board.fen()));
   }
-  // A line that runs out on a capture is not settled: the side to move
-  // takes back what the static exchange on that square wins.
+  // A line that runs out is not settled while the side to move can still
+  // win material: it takes what the best static exchange on the board wins,
+  // such as a piece just captured with or one left attacked.
   const last = moves.at(-1);
   const owed =
-    last?.captured !== undefined && end === played.length && !board.isGameOver()
-      ? staticExchange(board, last.to, board.turn())
-      : 0;
+    last !== undefined && end === played.length && !board.isGameOver()
+      ? bestExchange(board, last.to)
+      : undefined;
   return {
     moves,
     boards,
     plies,
-    takeBack:
-      last && owed > 0
-        ? { by: board.turn(), square: last.to, points: owed }
-        : undefined,
+    takeBack: owed && { by: board.turn(), ...owed },
   };
+}
+
+// The side to move's most profitable legal capture, preferring `first` on a
+// tie. A side in check only counts captures that answer the check.
+function bestExchange(
+  board: Chess,
+  first: Square,
+): { readonly square: Square; readonly points: number } | undefined {
+  const side = board.turn();
+  const targets = new Set(
+    board
+      .moves({ verbose: true })
+      .filter(({ captured }) => captured !== undefined)
+      .map(({ to }) => to),
+  );
+  let best: { square: Square; points: number } | undefined;
+  for (const square of [first, ...targets]) {
+    if (!targets.has(square)) continue;
+    const points = staticExchange(board, square, side);
+    if (points > 0 && points > (best?.points ?? 0)) best = { square, points };
+  }
+  return best;
 }
 
 // A line wins material when it gains at least two points within the usual
@@ -698,7 +718,7 @@ function readLine(
       ? `${LATER}${promoted.san} makes a new ${NAME[promoted.promotion]}. `
       : led;
   const owed = takeBack
-    ? `${settling && !settling.endsWith(". ") ? "once" : "Once"} ${SIDE[takeBack.by]} takes back on ${takeBack.square}, `
+    ? `${settling && !settling.endsWith(". ") ? "once" : "Once"} ${SIDE[takeBack.by]} ${takeBack.square === moves.at(-1)?.to ? "takes back" : "takes"} on ${takeBack.square}, `
     : "";
   if (!mated)
     rest.push(settling + owed + materialText(SIDE[us], gain, balance));

@@ -149,7 +149,7 @@ test("names the capture before the discovered attack it opens", () => {
     "After Be5, White plays Nxe6, taking your queen on e6. " +
       "Moving the knight off d4 opens the line for the white bishop on b2, which now attacks your bishop on e5. " +
       "After you reply Bxb2, Nxd8 takes your rook on d8. " +
-      "White ends up 11 points of material ahead.",
+      "Once Black takes on d8, White ends up 8 points of material ahead.",
   );
 });
 
@@ -439,4 +439,22 @@ test("keeps what the line wins when the line itself takes back", () => {
     })?.text ?? "";
   expect(text).not.toContain("threatens mate");
   expect(text).toMatch(/queen/);
+});
+
+// From a real game: the analysed line stops after Bxb4 while the knight on c7
+// is still attacked by the rook on c8, so the gain is not settled.
+test("counts a piece left hanging where the line runs out", () => {
+  const fen = "r3kbnr/ppp3pp/3p4/3PpbB1/1nq5/2N5/PP1Q1PPP/2R2RK1 w kq - 0 1";
+  const line = [
+    "a2a4",
+    "c4d3",
+    "c3b5",
+    "d3d2",
+    "b5c7",
+    "e8d7",
+    "g5d2",
+    "a8c8",
+    "d2b4",
+  ];
+  expect(tacticKind(fen, line)).toBeUndefined();
 });

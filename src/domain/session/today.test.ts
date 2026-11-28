@@ -68,6 +68,50 @@ it("skips a plan position with several good moves for the next candidate", () =>
   });
 });
 
+// The fork moment with other scores: `bestCp` for the best move and the
+// played move `impactCp` below it, both for the player.
+function scoredMoment(bestCp: number, impactCp: number): ObservedMove {
+  const base = forkObservation("retry", "2026-11-26T10:01:00Z", "scored");
+  const { exercise } = base.drill;
+  const [best, ...rest] = exercise.verification.candidates;
+  if (!best) throw new Error("The fork fixture has no best move.");
+  return {
+    ...base,
+    impactCp,
+    drill: {
+      ...base.drill,
+      exercise: {
+        ...exercise,
+        verification: {
+          ...exercise.verification,
+          candidates: [
+            { ...best, evaluationCp: bestCp },
+            ...rest.map((move) => ({
+              ...move,
+              evaluationCp: bestCp - impactCp,
+            })),
+          ],
+        },
+      },
+    },
+  };
+}
+
+it("skips a moment whose result was decided whatever the player played", () => {
+  const lost = scoredMoment(-718, 71);
+  const won = scoredMoment(900, 200);
+  for (const decided of [lost, won]) {
+    expect(
+      pickToday({ ...empty, moments: [decided], alwaysServe: () => true }),
+    ).toEqual({ kind: "caught-up" });
+  }
+  const level = scoredMoment(0, 80);
+  expect(pickToday({ ...empty, moments: [level] })).toEqual({
+    kind: "new",
+    moment: level,
+  });
+});
+
 it("serves a moment the app always serves, such as Spot the danger", () => {
   const unclear = planMoment(-40);
   expect(

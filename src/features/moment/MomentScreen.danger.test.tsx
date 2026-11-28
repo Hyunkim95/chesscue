@@ -189,7 +189,7 @@ it("nudges a partial description and accepts a correct description without a tap
   expect(square("Black queen on e6").className).toContain("outline-coral");
   expect(square("Black knight on c6").className).toContain("outline-coral");
   expect(bubble()).toHaveTextContent(
-    "Yes. White threatens Nxe6, winning your queen for a knight. In your game, after Be5, White plays Nxc6, taking your knight on c6.",
+    "Yes. White threatens Nxe6, winning your queen for a knight. In your game you played Be5, and White answered Nxc6.",
   );
   expect(screen.queryByRole("textbox", { name: "Ask Rook" })).toBeNull();
 

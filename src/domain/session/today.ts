@@ -1,6 +1,6 @@
 import type { ObservedMove } from "../curriculum/game-drill";
 import type { MomentAttemptRecord, StarState } from "../progress/types";
-import { isServableMoment } from "./moment-goal";
+import { changesTheResult, isServableMoment } from "./moment-goal";
 
 // Today's position (design §3.1): a new moment from the player's games; else
 // a missed moment coming back; else a checked puzzle like the player's
@@ -14,7 +14,8 @@ export type TodayPick =
 
 export interface TodayInput {
   // Moments from analysed real games, where the player missed a better move.
-  // A plan position without one clearly best move is skipped.
+  // A plan position without one clearly best move is skipped, and so is a
+  // miss that left the result unchanged.
   readonly moments: readonly ObservedMove[];
   readonly attempts: readonly MomentAttemptRecord[];
   readonly puzzles: readonly { readonly id: string; readonly unitId: string }[];
@@ -56,6 +57,10 @@ export function pickToday(input: TodayInput): TodayPick {
   const moments = input.moments.toSorted(newestGameFirst);
   function servable(moment: ObservedMove): boolean {
     const { fen, verification } = moment.drill.exercise;
+    const bestCp = Math.max(
+      ...verification.candidates.map(({ evaluationCp }) => evaluationCp),
+    );
+    if (!changesTheResult(bestCp, moment.impactCp)) return false;
     return (
       isServableMoment(
         fen,

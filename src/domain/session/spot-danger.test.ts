@@ -50,7 +50,7 @@ describe("dangerMoment", () => {
     expect(moment.lastMoveUci).toBe("f3d4");
     expect(moment.facts[0]?.id).toBe("wins-material:e6");
     expect(moment.gameCaption).toBe(
-      "In your game, after Be5, White plays Nxc6, taking your knight on c6.",
+      "In your game you played Be5, and White answered Nxc6.",
     );
   });
 
@@ -162,7 +162,7 @@ describe("advanceSpot", () => {
     expect(spotted).toEqual({ kind: "spotted", factId: "wins-material:e6" });
     expect(spotLine(moment, FEN, spotted)).toBe(
       "Yes. White threatens Nxe6, winning your queen for a knight. " +
-        "In your game, after Be5, White plays Nxc6, taking your knight on c6.",
+        "In your game you played Be5, and White answered Nxc6.",
     );
     // Arrows from the knight to everything it hits, outlines on them.
     expect(dangerMarks(moment, "wins-material:e6")).toEqual({

@@ -208,7 +208,7 @@ for (const width of [320, 1280]) {
       /outline-coral/,
     );
     await expect(bubble(page)).toHaveText(
-      "Yes. White threatens Nxe6, winning your queen for a knight. In your game, after Be5, White plays Nxc6, taking your knight on c6.",
+      "Yes. White threatens Nxe6, winning your queen for a knight. In your game you played Be5, and White answered Nxc6.",
     );
     await expect(page.getByRole("textbox", { name: "Ask Rook" })).toHaveCount(
       0,

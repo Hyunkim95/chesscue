@@ -81,6 +81,24 @@ export function hasClearBestMove(
   );
 }
 
+// Lichess's fit from an evaluation to the side's winning chances, from -1
+// (lost) to 1 (won).
+function winningChances(cp: number): number {
+  return 2 / (1 + Math.exp(-0.00368208 * cp)) - 1;
+}
+
+// The smallest change in winning chances Lichess calls an inaccuracy.
+export const RESULT_CHANGE = 0.1;
+
+// Whether the best move would have changed the game's likely result. In a
+// position already won or lost the best move only wins or loses by a little
+// more, so the line has no point to teach (owner decision, 28 November 2026).
+export function changesTheResult(bestCp: number, impactCp: number): boolean {
+  return (
+    winningChances(bestCp) - winningChances(bestCp - impactCp) >= RESULT_CHANGE
+  );
+}
+
 // A tactic is always worth serving. A plan position is served only when one
 // move is clearly best, because otherwise several moves are equally right.
 export function isServableMoment(
