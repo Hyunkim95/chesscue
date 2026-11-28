@@ -301,7 +301,7 @@ export function StudyScreen({
         className="content-shell study-shell"
         aria-label="Lessons and position practice"
       >
-        <LoadingState>Opening your games…</LoadingState>
+        <LoadingState shape="list">Opening your games…</LoadingState>
       </section>
     );
   if (!library && games.length > 0)

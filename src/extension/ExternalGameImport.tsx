@@ -110,10 +110,12 @@ export function ExternalGameImport({
           : "Practise this game"}
       </h1>
       {state.status === "loading" && (
-        <LoadingState>Checking the {siteName} result…</LoadingState>
+        <LoadingState shape="board">
+          Checking the {siteName} result…
+        </LoadingState>
       )}
       {state.status === "saving" && (
-        <LoadingState>Opening your review…</LoadingState>
+        <LoadingState shape="board">Opening your review…</LoadingState>
       )}
       {state.status === "choose" && (
         <div className="import-panel__actions">

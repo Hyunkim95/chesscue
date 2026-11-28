@@ -1,4 +1,4 @@
-import { LoadingText } from "../../shared/loading/LoadingState";
+import { SkeletonLines } from "../../shared/loading/LoadingState";
 import { EmptyState } from "../../shared/empty-state/EmptyState";
 import { useEffect, useState } from "react";
 
@@ -158,9 +158,7 @@ export function SharedPuzzleLibrary({
               <PuzzleButtons puzzles={ordered} onPractice={onPractice} />
             </>
           ) : loading ? (
-            <p role="status">
-              <LoadingText>Loading puzzles…</LoadingText>
-            </p>
+            <SkeletonLines lines={3}>Loading puzzles…</SkeletonLines>
           ) : (
             <EmptyState
               art="practice"

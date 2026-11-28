@@ -203,7 +203,7 @@ export function SharedWinView({
       ) : error || unavailable ? (
         <p>This win link is unavailable.</p>
       ) : (
-        <LoadingState>Loading the position…</LoadingState>
+        <LoadingState shape="board">Loading the position…</LoadingState>
       )}
       <button className="primary-link" onClick={onPlay}>
         Play your own game

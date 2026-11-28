@@ -12,6 +12,7 @@ import {
   LoadingState,
   LoadingText,
   PositionLoading,
+  SkeletonLines,
 } from "../shared/loading/LoadingState";
 import {
   PanelTabs,
@@ -302,7 +303,7 @@ function NextMovePage({
               </button>
               <h1 className="next-move__title">Next move</h1>
             </div>
-            <LoadingState>Opening your board…</LoadingState>
+            <LoadingState shape="board">Opening your board…</LoadingState>
           </div>
         }
       >
@@ -2206,7 +2207,7 @@ function PlayerApp({
               This game is unavailable in this player’s history.
             </p>
           ) : (
-            <LoadingState>Opening your game…</LoadingState>
+            <LoadingState shape="board">Opening your game…</LoadingState>
           )
         ) : (
           <ResultScreen
@@ -2237,7 +2238,9 @@ function PlayerApp({
                 : undefined
             }
             share={
-              <Suspense fallback={<LoadingText>Opening sharing…</LoadingText>}>
+              <Suspense
+                fallback={<SkeletonLines>Opening sharing…</SkeletonLines>}
+              >
                 <ShareWin
                   game={game}
                   uid={user?.uid ?? null}
@@ -2394,7 +2397,9 @@ function PlayerApp({
           </Suspense>
         ))}
       {view === "win" && (
-        <Suspense fallback={<LoadingState>Loading win…</LoadingState>}>
+        <Suspense
+          fallback={<LoadingState shape="board">Loading win…</LoadingState>}
+        >
           <SharedWinView
             key={socialHash}
             id={socialHash.slice(socialHash.indexOf("/") + 1)}
@@ -2512,7 +2517,7 @@ function PlayerApp({
             {recentWin && (
               <div className="play-mode-social">
                 <Suspense
-                  fallback={<LoadingText>Opening sharing…</LoadingText>}
+                  fallback={<SkeletonLines>Opening sharing…</SkeletonLines>}
                 >
                   <ShareWin
                     key={recentWin.id}
@@ -2529,7 +2534,7 @@ function PlayerApp({
 
       {view === "result" && ratedGame === null && !missingGame && (
         <main className="content-shell">
-          <LoadingState>Opening your game…</LoadingState>
+          <LoadingState shape="board">Opening your game…</LoadingState>
         </main>
       )}
       {view === "result" && missingGame && (
@@ -2558,7 +2563,7 @@ function PlayerApp({
               />
               {selectedRating.result === "Won" && (
                 <Suspense
-                  fallback={<LoadingText>Loading sharing…</LoadingText>}
+                  fallback={<SkeletonLines>Loading sharing…</SkeletonLines>}
                 >
                   <a className="review-action" href="#races">
                     Race friends
@@ -2648,7 +2653,7 @@ function PlayerApp({
       {view === "practice" &&
         !activePractice &&
         (snapshot.status === "checking" || openingReviewMistake ? (
-          <LoadingState>Opening puzzle…</LoadingState>
+          <LoadingState shape="board">Opening puzzle…</LoadingState>
         ) : (
           <p role="status">This practice position is unavailable.</p>
         ))}
@@ -2839,7 +2844,7 @@ function PlayerApp({
             </p>
           )}
           {!missingGame && analysis.status === "idle" && (
-            <LoadingState>Opening your review…</LoadingState>
+            <LoadingState shape="board">Opening your review…</LoadingState>
           )}
           {missingGame ? (
             <p role="alert">

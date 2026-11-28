@@ -222,7 +222,7 @@ export function SidePanelReview({
     </ol>
   );
   const loading = library.status === "loading" && (
-    <LoadingState>Loading games…</LoadingState>
+    <LoadingState shape="list">Loading games…</LoadingState>
   );
   const activeGame = context.status === "active" && (
     <p role="status">Finish your Lichess game to review it with Rook.</p>

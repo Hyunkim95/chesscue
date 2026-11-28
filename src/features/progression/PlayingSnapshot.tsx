@@ -1,4 +1,4 @@
-import { LoadingText } from "../../shared/loading/LoadingState";
+import { LoadingText, SkeletonLines } from "../../shared/loading/LoadingState";
 import { EmptyState } from "../../shared/empty-state/EmptyState";
 import type { SnapshotState } from "../../app/use-playing-snapshot";
 import type { VerifiedGameDrill } from "../../domain/curriculum/game-drill";
@@ -78,9 +78,7 @@ export function TrainingAnalysisStatus({
 }) {
   if (state.status === "checking")
     return (
-      <p role="status">
-        <LoadingText>Reading your completed games…</LoadingText>
-      </p>
+      <SkeletonLines lines={3}>Reading your completed games…</SkeletonLines>
     );
   if (state.status === "failed") return <p role="alert">{state.message}</p>;
   if (state.games.length === 0)

@@ -1,4 +1,4 @@
-import { LoadingState, LoadingText } from "../../shared/loading/LoadingState";
+import { LoadingState, SkeletonLines } from "../../shared/loading/LoadingState";
 import { BusyButton } from "../../shared/ui/primitives";
 import { EmptyState } from "../../shared/empty-state/EmptyState";
 import { ScreenHeader } from "../../shared/navigation/ScreenHeader";
@@ -240,7 +240,9 @@ export function RaceView({
             online &&
             !linksLoaded &&
             !linksError &&
-            links.length === 0 && <LoadingState>Loading races…</LoadingState>}
+            links.length === 0 && (
+              <LoadingState shape="list">Loading races…</LoadingState>
+            )}
           {linksLoaded && links.length === 0 && (
             <EmptyState
               art="race"
@@ -291,7 +293,7 @@ export function RaceView({
           )}
           {session && !goal && !error && !accountError && online && (
             <p role="status">
-              <LoadingText>Loading invitation…</LoadingText>
+              <SkeletonLines>Loading invitation…</SkeletonLines>
             </p>
           )}
           <BusyButton
