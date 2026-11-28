@@ -73,6 +73,7 @@ export function SidePanelReview({
   importFrom,
   usernameImport,
   pendingAnalysis,
+  momentCounts,
 }: {
   readonly boardFirst?: boolean;
   readonly watchLichess?: boolean;
@@ -84,6 +85,12 @@ export function SidePanelReview({
   readonly importFrom: (site: GameSite) => void;
   readonly usernameImport?: ReactNode;
   readonly pendingAnalysis?: ReadonlySet<GameId>;
+  // Board-first: the chances taken and missed that each checked game's
+  // replay stops at.
+  readonly momentCounts?: ReadonlyMap<
+    GameId,
+    { readonly wins: number; readonly misses: number }
+  >;
 }) {
   const [context, setContext] = useState<Context>({
     status: watchLichess ? "checking" : "none",
@@ -165,6 +172,7 @@ export function SidePanelReview({
     >
       {library.games.map(({ id, title, result, resultMark, source, stamp }) => {
         const pending = pendingAnalysis?.has(id) ?? false;
+        const counts = pending ? undefined : momentCounts?.get(id);
         return (
           <li key={id}>
             <button
@@ -201,6 +209,28 @@ export function SidePanelReview({
                     <span aria-hidden="true">{resultMark}</span>
                     <span className="ui-visually-hidden">{result}</span>
                   </span>
+                  {counts && counts.wins + counts.misses > 0 && (
+                    <span className="games-history__counts">
+                      {counts.wins > 0 && (
+                        <span className="games-history__count games-history__count--win">
+                          <span aria-hidden="true">★ {counts.wins}</span>
+                          <span className="ui-visually-hidden">
+                            {counts.wins === 1
+                              ? "1 chance taken"
+                              : `${String(counts.wins)} chances taken`}
+                          </span>
+                        </span>
+                      )}
+                      {counts.misses > 0 && (
+                        <span className="games-history__count games-history__count--miss">
+                          <span aria-hidden="true">{counts.misses}</span>
+                          <span className="ui-visually-hidden">
+                            {`${String(counts.misses)} missed`}
+                          </span>
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </>
               ) : (
                 <>

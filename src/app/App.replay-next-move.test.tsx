@@ -15,6 +15,13 @@ import { guestHistory } from "../infrastructure/persistence/player-history";
 import { err, ok } from "../shared/result/result";
 import { App } from "./App";
 
+// The classic Full report and Full replay; board-first plays a game as one
+// replay that is also its report (GameWatchScreen).
+vi.mock(import("./board-first/flag"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  boardFirst: false,
+}));
+
 afterEach(() => {
   cleanup();
   window.history.replaceState(null, "", "/");

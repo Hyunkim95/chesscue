@@ -55,6 +55,7 @@ import { queueImportAnalysis, useImportAnalysis } from "./use-import-analysis";
 import { BoardFirstScreens } from "./board-first/BoardFirstScreens";
 import { gameMomentId } from "./board-first/moment-specs";
 import { useGameReport } from "./use-game-report";
+import { useMomentCounts } from "./use-moment-counts";
 import { watchMarkers } from "../domain/session/game-watch";
 import {
   GameWatchScreen,
@@ -1001,6 +1002,11 @@ function PlayerApp({
       view !== "training",
     snapshotRevision,
     loadGameAnalysis,
+  );
+  const momentCounts = useMomentCounts(
+    history,
+    boardFirst && (view === "review-home" || view === "import"),
+    `${String(snapshotRevision)}:${[...pendingImportAnalysis].join(",")}`,
   );
   const [analysisRevision, setAnalysisRevision] = useState(0);
   useEffect(() => {
@@ -2084,6 +2090,7 @@ function PlayerApp({
           : undefined
       }
       pendingAnalysis={pendingImportAnalysis}
+      momentCounts={momentCounts}
       watchLichess={extensionPanel}
       repository={repository}
       historyRevision={snapshotRevision}

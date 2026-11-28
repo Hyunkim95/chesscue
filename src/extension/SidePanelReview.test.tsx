@@ -68,3 +68,37 @@ it("shows a compact result, source and date on each saved-game row and opens tha
   expect(row).not.toHaveAttribute("aria-busy");
   expect(screen.queryByRole("status")).toBeNull();
 });
+
+it("shows the chances a checked game's replay stops at on its row", async () => {
+  const gameId = createGameId("counted-game");
+  const [item] = importGames({
+    text: '[White "You"]\n[Black "Ines"]\n[UTCDate "2026.11.27"]\n[Result "1-0"]\n\n1. e4 e5 1-0',
+    source: { type: "paste" },
+    playerColor: "white",
+    existingFingerprints: new Set(),
+    idFactory: () => gameId,
+    now: () => "2026-11-27T13:00:00.000Z",
+    curriculumVersion: "1",
+    configurationVersion: "1",
+  }).items;
+  if (item?.status !== "accepted") throw new Error("Invalid test PGN");
+  const repository = new IndexedDbGameRepository("games-count-test");
+  expect((await repository.put(item.game.record)).ok).toBe(true);
+  render(
+    <SidePanelReview
+      boardFirst
+      watchLichess={false}
+      repository={repository}
+      historyRevision={0}
+      openGame={vi.fn()}
+      openSavedGame={vi.fn()}
+      importPgn={vi.fn()}
+      importFrom={vi.fn()}
+      momentCounts={new Map([[gameId, { wins: 1, misses: 2 }]])}
+    />,
+  );
+  const row = await screen.findByRole("button", { name: /vs\. Ines/ });
+  expect(row).toHaveAccessibleName(/1 chance taken.*2 missed/);
+  expect(within(row).getByText("★ 1")).toBeVisible();
+  expect(within(row).getByText("2")).toBeVisible();
+});

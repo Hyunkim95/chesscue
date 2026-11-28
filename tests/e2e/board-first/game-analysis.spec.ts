@@ -45,6 +45,13 @@ test("the game list opens before queued analysis and a review is reusable offlin
   await expect(maya).not.toContainText("you can watch it", {
     timeout: 30_000,
   });
+  // Once checked, the row shows the chances its replay stops at.
+  await expect(maya).toHaveAccessibleName(/1 chance taken/);
+  await expect(maya.getByText("★ 1")).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath("games-counts-320.png"),
+    animations: "disabled",
+  });
   await page.setViewportSize({ width: 420, height: 760 });
   await maya.click();
   await expect(
