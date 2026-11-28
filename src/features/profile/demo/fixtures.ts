@@ -76,6 +76,11 @@ export const activeProfile: ProfileScreenProps = {
   onOpenAccount: () => undefined,
   onOpenSky: noop,
   onImportFrom: noop,
+  geminiKey: {
+    lastFour: undefined,
+    onSave: () => Promise.resolve("saved"),
+    onRemove: noop,
+  },
 };
 
 export const newProfile: ProfileScreenProps = {

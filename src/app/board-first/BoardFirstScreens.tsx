@@ -78,6 +78,14 @@ import {
 } from "./moment-specs";
 import type { BoardFirstView } from "./flag";
 import { readBar } from "./read-bar";
+import {
+  forgetGeminiKey,
+  GEMINI_KEY_CHANGE,
+  geminiKey as geminiKeyText,
+  readGeminiKey,
+  saveGeminiKey,
+} from "../../infrastructure/persistence/gemini-key";
+import type { GeminiKeySave } from "../../features/profile/GeminiKeySetting";
 import { serialEngine } from "./serial-engine";
 
 const engine = serialEngine(new StockfishAnalysisEngine());
@@ -135,31 +143,51 @@ function useOnline(): boolean {
   return online;
 }
 
-let routers:
-  | Promise<{ cloud?: QuestionRouter; device?: QuestionRouter }>
+let routerModule:
+  | Promise<{
+      readonly flash: () => QuestionRouter | undefined;
+      readonly device: QuestionRouter | undefined;
+    }>
   | undefined;
-function questionRouters() {
-  routers ??= import("../../infrastructure/ai/question-routers")
-    .then(({ createFlashQuestionRouter, createNanoQuestionRouter }) => {
-      const cloud = createFlashQuestionRouter();
-      const device = createNanoQuestionRouter();
-      return { ...(cloud ? { cloud } : {}), ...(device ? { device } : {}) };
-    })
-    .catch(() => ({}));
-  return routers;
+// Nano is set up once. Flash runs on the player's own key, so it is made per
+// question: saving or removing the key applies at once.
+async function questionRouters(): Promise<{
+  cloud?: QuestionRouter;
+  device?: QuestionRouter;
+}> {
+  routerModule ??= import("../../infrastructure/ai/question-routers").then(
+    ({ createFlashQuestionRouter, createNanoQuestionRouter }) => ({
+      flash: createFlashQuestionRouter,
+      device: createNanoQuestionRouter(),
+    }),
+  );
+  try {
+    const { flash, device } = await routerModule;
+    const cloud = flash();
+    return { ...(cloud ? { cloud } : {}), ...(device ? { device } : {}) };
+  } catch {
+    routerModule = undefined;
+    return {};
+  }
 }
 
-let whyWriter: Promise<WhyWriter | undefined> | undefined;
-// Why the solved move is good: Stockfish's searches, Gemini Flash's words,
-// then the checker. undefined keeps the code caption.
+let whyModule:
+  | Promise<{ readonly createFlashWhyWriter: () => WhyWriter | undefined }>
+  | undefined;
+// Why the solved move is good: Stockfish's searches, Gemini Flash's words on
+// the player's own key, then the checker. undefined keeps the code caption.
 async function explainWhyOnline(
   input: WhyInput,
   signal: AbortSignal,
 ): Promise<string | undefined> {
-  whyWriter ??= import("../../infrastructure/ai/why-gemini")
+  whyModule ??= import("../../infrastructure/ai/why-gemini");
+  const writer = await whyModule
     .then(({ createFlashWhyWriter }) => createFlashWhyWriter())
-    .catch(() => undefined);
-  const writer = await whyWriter;
+    .catch(() => {
+      // Loading failed, perhaps offline: try again next time.
+      whyModule = undefined;
+      return undefined;
+    });
   if (!writer) return undefined;
   const result = await explainWhy({
     input,
@@ -168,6 +196,19 @@ async function explainWhyOnline(
     signal,
   });
   return result.kind === "written" ? result.text : undefined;
+}
+
+// Google checks the key before it is kept, so a typo never silently turns
+// Rook's online explanations off.
+async function saveCheckedGeminiKey(text: string): Promise<GeminiKeySave> {
+  const key = geminiKeyText.safeParse(text.trim());
+  if (!key.success) return "invalid";
+  // Loaded on demand: cloud code stays out of the first screen (SLO-014).
+  const { checkGeminiKey } =
+    await import("../../infrastructure/ai/player-gemini");
+  const check = await checkGeminiKey(key.data, AbortSignal.timeout(10_000));
+  if (check.status !== "ok") return check.status;
+  return saveGeminiKey(key.data) ? "saved" : "unsaved";
 }
 
 function analyzePosition(fen: string, multiPv: number, signal: AbortSignal) {
@@ -249,6 +290,17 @@ export function BoardFirstScreens({
     readonly MomentAttemptRecord[] | undefined
   >(() => attemptCache.get(history));
   const [moment, setMoment] = useState<MomentSpec | undefined>();
+  // The player's own Gemini key, kept in step with saves from any screen.
+  const [geminiKey, setGeminiKey] = useState(readGeminiKey);
+  useEffect(() => {
+    const update = () => {
+      setGeminiKey(readGeminiKey());
+    };
+    window.addEventListener(GEMINI_KEY_CHANGE, update);
+    return () => {
+      window.removeEventListener(GEMINI_KEY_CHANGE, update);
+    };
+  }, []);
   const [voice, setVoice] = useState(() => {
     try {
       return localStorage.getItem(VOICE_KEY) === "1";
@@ -763,6 +815,11 @@ export function BoardFirstScreens({
           }}
           onImportFrom={(site) => {
             onImportFrom(site === "Lichess" ? "lichess" : "chesscom");
+          }}
+          geminiKey={{
+            lastFour: geminiKey?.slice(-4),
+            onSave: saveCheckedGeminiKey,
+            onRemove: forgetGeminiKey,
           }}
         />
       </AppShell>

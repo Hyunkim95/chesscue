@@ -8,6 +8,7 @@ import {
 import { archiveExercise } from "../../domain/material/archive-exercise";
 import type { VerifiedTransferExercise } from "../../domain/transfer/types";
 import { createStudyAI } from "./study-gemini";
+import { playerGemini } from "./player-gemini";
 import { reflectionSchema } from "../../domain/material/reflection";
 import {
   getAI,
@@ -15,7 +16,6 @@ import {
   GoogleAIBackend,
   InferenceMode,
   InferenceSource,
-  Schema,
 } from "firebase/ai";
 import { z } from "zod";
 
@@ -141,25 +141,22 @@ export async function draftCloudFollowUp(
       checkedLine: verification.principalVariation,
     }),
   );
-  const model = getGenerativeModel(
-    models(),
-    {
-      mode: InferenceMode.ONLY_IN_CLOUD,
-      inCloudParams: {
-        model: "gemini-3.5-flash-lite",
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: Schema.object({
-            properties: {
-              followUpId: Schema.string(),
-              question: Schema.string(),
-            },
-          }),
-        },
+  // Cloud runs on the player's own key (owner decision, 28 November 2026).
+  const model = playerGemini({
+    model: "gemini-3.5-flash-lite",
+    system: "Return only JSON.",
+    schema: {
+      type: "object",
+      properties: {
+        followUpId: { type: "string" },
+        question: { type: "string" },
       },
+      required: ["followUpId", "question"],
     },
-    { timeout: 20_000 },
-  );
+    timeoutMs: 20_000,
+  });
+  if (!model)
+    throw new Error("Add your Gemini key to draft a cloud follow-up.");
   const prompt = JSON.stringify({
     task: "Prepare a different exercise for the selected skill. Use one of the supplied engine-verified positions. Write a fresh, neutral, open-ended question about the learner’s decision, adapted to their experience. Do not reveal the answer or include chess claims, piece names, notation or numbers. Return the source followUpId and your question.",
     theme: drill.exercise.theme,
@@ -167,10 +164,9 @@ export async function draftCloudFollowUp(
     observations,
     options,
   });
-  const result = await model.generateContent(prompt, { signal });
-  if (result.response.inferenceSource !== InferenceSource.IN_CLOUD)
-    throw new Error("Cloud inference was not confirmed.");
-  const draft = followUpDraftSchema.parse(JSON.parse(result.response.text()));
+  const response = await model.generate(prompt, signal);
+  if (response === undefined) throw new Error("Cloud inference failed.");
+  const draft = followUpDraftSchema.parse(JSON.parse(response));
   if (
     !options.some((item) => item.id === draft.followUpId) ||
     /mate|rook|pawn|king|bishop|knight|queen|check|capture|fork|castle|exchange/i.test(
@@ -194,7 +190,7 @@ export async function draftCloudFollowUp(
       runId,
       promptVersion: "transfer-question-v2",
       promptHash: await sha256(prompt),
-      responseHash: await sha256(result.response.text()),
+      responseHash: await sha256(response),
     },
   });
   return { followUpId: exercise.id, question: exercise.prompt, exercise };

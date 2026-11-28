@@ -1,15 +1,7 @@
-import {
-  getAI,
-  getGenerativeModel,
-  GoogleAIBackend,
-  InferenceMode,
-  InferenceSource,
-  ThinkingLevel,
-} from "firebase/ai";
 import { z } from "zod";
 
 import type { WhyWriter } from "../../application/explain-why/explain-why";
-import { initializeFirebaseClient } from "../firebase/firebase-client";
+import { playerGemini } from "./player-gemini";
 
 // The round 2 prompt from research_notes/why-explanations (cloud.mjs), with
 // counts as fragments: Gemini 3.8 Flash gave a true answer with the real
@@ -43,45 +35,22 @@ export function parseWhy(text: string): string | undefined {
   }
 }
 
+// On the player's own key; undefined without one, so the code caption stays.
 export function createFlashWhyWriter(): WhyWriter | undefined {
-  const firebase = initializeFirebaseClient({
-    enableAppCheck: true,
-    appCheckDebug:
-      import.meta.env.DEV &&
-      import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG === "true",
+  const model = playerGemini({
+    model: WHY_MODEL,
+    system: WHY_PROMPT,
+    schema: responseConstraint,
+    maxOutputTokens: 2048,
+    thinkingLevel: "LOW",
+    timeoutMs: TIMEOUT_MS,
   });
-  if (firebase.status !== "ready") return undefined;
-  const ai = getAI(firebase.services.app, { backend: new GoogleAIBackend() });
-  const model = getGenerativeModel(
-    ai,
-    {
-      mode: InferenceMode.ONLY_IN_CLOUD,
-      inCloudParams: {
-        model: WHY_MODEL,
-        systemInstruction: WHY_PROMPT,
-        generationConfig: {
-          maxOutputTokens: 2048,
-          responseMimeType: "application/json",
-          responseJsonSchema: responseConstraint,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        },
-      },
-    },
-    { timeout: TIMEOUT_MS },
-  );
+  if (!model) return undefined;
   return {
     model: "Gemini Flash",
     async write(packet, signal) {
-      try {
-        const result = await model.generateContent(JSON.stringify(packet), {
-          signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
-        });
-        return result.response.inferenceSource === InferenceSource.IN_CLOUD
-          ? parseWhy(result.response.text())
-          : undefined;
-      } catch {
-        return undefined;
-      }
+      const text = await model.generate(JSON.stringify(packet), signal);
+      return text === undefined ? undefined : parseWhy(text);
     },
   };
 }

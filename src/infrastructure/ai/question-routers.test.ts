@@ -2,7 +2,9 @@ import type * as FirebaseAI from "firebase/ai";
 import { InferenceSource } from "firebase/ai";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { saveGeminiKey } from "../persistence/gemini-key";
 import {
+  createFlashQuestionRouter,
   createNanoQuestionRouter,
   parseDangerReading,
 } from "./question-routers";
@@ -137,4 +139,32 @@ it("constrains hands-free intent to the currently supplied controls and moves", 
   answer('{"choice":"none"}');
   expect(await router.routeVoice?.(context, signal)).toBe("none");
   expect(JSON.parse(String(generate.mock.calls[0]?.[0]))).toEqual(context);
+});
+
+it("routes through Flash only on the player's own key, never Firebase's cloud", async () => {
+  localStorage.clear();
+  expect(createFlashQuestionRouter()).toBeUndefined();
+  saveGeminiKey("AIza" + "b".repeat(35));
+  const fetch = vi.fn(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: '{"intent":"why"}' }] } }],
+        }),
+      ),
+    ),
+  );
+  vi.stubGlobal("fetch", fetch);
+  const router = createFlashQuestionRouter();
+  expect(router?.model).toBe("Gemini Flash");
+  expect(
+    await router?.route(
+      { text: "why Nf3?", fen: "8/8/8/8/8/8/8/K6k w - - 0 1", legalMoves: [] },
+      signal,
+    ),
+  ).toBe("why");
+  expect(fetch).toHaveBeenCalledOnce();
+  expect(model).not.toHaveBeenCalled();
+  vi.unstubAllGlobals();
+  localStorage.clear();
 });

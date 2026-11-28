@@ -23,6 +23,16 @@ function gemini(text: string) {
   };
 }
 
+// Flash runs only on the player's own Gemini key (owner decision,
+// 28 November 2026), sent straight to Google's Gemini API.
+const KEY = "AIza" + "e2e".repeat(11) + "xy";
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.title.startsWith("without a key")) return;
+  await page.addInitScript((key) => {
+    localStorage.setItem("gemini-api-key", key);
+  }, KEY);
+});
+
 for (const width of [320, 420])
   test(`online, Why does it work? says the checked why on the point, at ${String(width)} px`, async ({
     page,
@@ -36,6 +46,10 @@ for (const width of [320, 420])
         return;
       }
       sent.push(body);
+      expect(route.request().url()).toMatch(
+        /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/models\/gemini-3\.8-flash:generateContent$/,
+      );
+      expect(await route.request().headerValue("x-goog-api-key")).toBe(KEY);
       await gemini(JSON.stringify({ why: WHY }))(route);
     });
     await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
@@ -91,4 +105,23 @@ test("a why that fails the check keeps the code caption", async ({ page }) => {
   await page.waitForTimeout(500);
   await expect(bubble).toContainText(/^Qxg5\+/);
   await expect(bubble).not.toContainText("12 points");
+});
+
+test("without a key, Rook keeps the code caption and asks Google nothing", async ({
+  page,
+}) => {
+  let asked = 0;
+  await page.route("**/*:generateContent*", async (route) => {
+    asked += 1;
+    await route.abort();
+  });
+  await page.goto("/?ui=board-first#moment/puzzle%3A0HfcA");
+  await expect(
+    page.getByRole("heading", { name: /White to move/ }),
+  ).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Show me" }).click();
+  const bubble = page.locator(".rook-bubble__text");
+  await expect(bubble).toContainText(/^Qxg5\+/, { timeout: 30_000 });
+  await page.waitForTimeout(1_000);
+  expect(asked).toBe(0);
 });

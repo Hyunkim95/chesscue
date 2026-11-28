@@ -4,7 +4,6 @@ import {
   GoogleAIBackend,
   InferenceMode,
   InferenceSource,
-  ThinkingLevel,
 } from "firebase/ai";
 import { z } from "zod";
 
@@ -18,6 +17,7 @@ import {
   type QuestionRouter,
 } from "../../application/route-question/question-router";
 import { initializeFirebaseClient } from "../firebase/firebase-client";
+import { hasPlayerGemini, playerGemini } from "./player-gemini";
 
 // The routing prompt from research_notes/rook-intent-spike: Gemini 3.8 Flash
 // routed 30/30 and 11/12 threat questions; Gemini Nano 28/30 and 9/12. The
@@ -136,11 +136,18 @@ function dangerConstraint(ids: readonly string[]) {
   } as const;
 }
 
-function router(route: "device" | "cloud"): QuestionRouter | undefined {
-  if (
-    route === "device" &&
-    (typeof window === "undefined" || window.LanguageModel === undefined)
-  )
+// Sends one prompt and returns the model's JSON text, or undefined.
+type Generate = (
+  system: string,
+  constraint: Readonly<Record<string, unknown>>,
+  input: string,
+  signal: AbortSignal,
+) => Promise<string | undefined>;
+
+// Gemini Nano through Firebase's on-device route. undefined where the browser
+// has no Prompt API.
+function nanoGenerate(): Generate | undefined {
+  if (typeof window === "undefined" || window.LanguageModel === undefined)
     return undefined;
   const firebase = initializeFirebaseClient({
     enableAppCheck: true,
@@ -150,94 +157,97 @@ function router(route: "device" | "cloud"): QuestionRouter | undefined {
   });
   if (firebase.status !== "ready") return undefined;
   const ai = getAI(firebase.services.app, { backend: new GoogleAIBackend() });
-  const generative = (
-    system: string,
-    constraint: Readonly<Record<string, unknown>>,
-  ) =>
-    getGenerativeModel(
+  return async (system, constraint, input, signal) => {
+    const model = getGenerativeModel(
       ai,
-      route === "device"
-        ? {
-            mode: InferenceMode.ONLY_ON_DEVICE,
-            onDeviceParams: {
-              createOptions: {
-                expectedInputs: [{ type: "text", languages: ["en"] }],
-                expectedOutputs: [{ type: "text", languages: ["en"] }],
-                initialPrompts: [
-                  {
-                    role: "system",
-                    content: [{ type: "text", value: system }],
-                  },
-                ],
-              },
-              promptOptions: { responseConstraint: constraint },
-            },
-          }
-        : {
-            mode: InferenceMode.ONLY_IN_CLOUD,
-            inCloudParams: {
-              model: FLASH_ROUTER_MODEL,
-              systemInstruction: system,
-              generationConfig: {
-                responseMimeType: "application/json",
-                responseJsonSchema: constraint,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-              },
-            },
+      {
+        mode: InferenceMode.ONLY_ON_DEVICE,
+        onDeviceParams: {
+          createOptions: {
+            expectedInputs: [{ type: "text", languages: ["en"] }],
+            expectedOutputs: [{ type: "text", languages: ["en"] }],
+            initialPrompts: [
+              { role: "system", content: [{ type: "text", value: system }] },
+            ],
           },
+          promptOptions: { responseConstraint: constraint },
+        },
+      },
       { timeout: TIMEOUT_MS },
     );
-  const model = generative(SYSTEM, responseConstraint);
-  const expected =
-    route === "device" ? InferenceSource.ON_DEVICE : InferenceSource.IN_CLOUD;
+    const result = await model.generateContent(input, {
+      signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
+    });
+    return result.response.inferenceSource === InferenceSource.ON_DEVICE
+      ? result.response.text()
+      : undefined;
+  };
+}
+
+// Gemini Flash on the player's own key. undefined without one.
+function flashGenerate(): Generate | undefined {
+  if (!hasPlayerGemini()) return undefined;
+  return (system, constraint, input, signal) =>
+    playerGemini({
+      model: FLASH_ROUTER_MODEL,
+      system,
+      schema: constraint,
+      thinkingLevel: "LOW",
+      timeoutMs: TIMEOUT_MS,
+    })?.generate(input, signal) ?? Promise.resolve(undefined);
+}
+
+function router(
+  model: QuestionRouter["model"],
+  generate: Generate | undefined,
+): QuestionRouter | undefined {
+  if (!generate) return undefined;
+  // Any failure reads as no answer, so Rook falls back to code.
+  const ask = async (
+    system: string,
+    constraint: Readonly<Record<string, unknown>>,
+    input: string,
+    signal: AbortSignal,
+  ) => {
+    try {
+      return await generate(system, constraint, input, signal);
+    } catch {
+      return undefined;
+    }
+  };
   return {
-    model: route === "device" ? "Gemini Nano" : "Gemini Flash",
+    model,
     async route(context, signal) {
-      try {
-        const result = await model.generateContent(prompt(context), {
-          signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
-        });
-        return result.response.inferenceSource === expected
-          ? parse(result.response.text())
-          : undefined;
-      } catch {
-        return undefined;
-      }
+      const text = await ask(
+        SYSTEM,
+        responseConstraint,
+        prompt(context),
+        signal,
+      );
+      return text === undefined ? undefined : parse(text);
     },
     // The fact ids change with the position, so each reading gets a model
     // constrained to that position's ids.
     async readDanger({ text, facts }: DangerContext, signal) {
       const ids = facts.map(({ id }) => id);
-      try {
-        const result = await generative(
-          DANGER_SYSTEM,
-          dangerConstraint(ids),
-        ).generateContent(JSON.stringify({ message: text, facts }), {
-          signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
-        });
-        return result.response.inferenceSource === expected
-          ? parseDangerReading(result.response.text(), ids)
-          : undefined;
-      } catch {
-        return undefined;
-      }
+      const answer = await ask(
+        DANGER_SYSTEM,
+        dangerConstraint(ids),
+        JSON.stringify({ message: text, facts }),
+        signal,
+      );
+      return answer === undefined ? undefined : parseDangerReading(answer, ids);
     },
     async pickHint({ text, options }: HintContext, signal) {
       const ids = options.map(({ id }) => id);
       if (ids.length === 0) return undefined;
-      try {
-        const result = await generative(
-          HINT_SYSTEM,
-          hintConstraint(ids),
-        ).generateContent(JSON.stringify({ message: text, hints: options }), {
-          signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
-        });
-        return result.response.inferenceSource === expected
-          ? parseHintPick(result.response.text(), ids)
-          : undefined;
-      } catch {
-        return undefined;
-      }
+      const answer = await ask(
+        HINT_SYSTEM,
+        hintConstraint(ids),
+        JSON.stringify({ message: text, hints: options }),
+        signal,
+      );
+      return answer === undefined ? undefined : parseHintPick(answer, ids);
     },
     async routeVoice(context, signal) {
       const ids = [
@@ -253,15 +263,15 @@ function router(route: "device" | "cloud"): QuestionRouter | undefined {
         required: ["choice"],
         additionalProperties: false,
       };
+      const answer = await ask(
+        VOICE_SYSTEM,
+        constraint,
+        JSON.stringify(context),
+        signal,
+      );
+      if (answer === undefined) return undefined;
       try {
-        const result = await generative(
-          VOICE_SYSTEM,
-          constraint,
-        ).generateContent(JSON.stringify(context), {
-          signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
-        });
-        if (result.response.inferenceSource !== expected) return undefined;
-        const choice = schema.safeParse(JSON.parse(result.response.text()));
+        const choice = schema.safeParse(JSON.parse(answer));
         return choice.success ? choice.data.choice : undefined;
       } catch {
         return undefined;
@@ -270,5 +280,8 @@ function router(route: "device" | "cloud"): QuestionRouter | undefined {
   };
 }
 
-export const createFlashQuestionRouter = () => router("cloud");
-export const createNanoQuestionRouter = () => router("device");
+// Flash runs on the player's own key, so this is undefined without one.
+export const createFlashQuestionRouter = () =>
+  router("Gemini Flash", flashGenerate());
+export const createNanoQuestionRouter = () =>
+  router("Gemini Nano", nanoGenerate());
