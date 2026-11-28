@@ -947,7 +947,7 @@ button {
 
 .chesscue-sidebar .game-mode-choices {
   flex: 1;
-  grid-template-rows: repeat(2, minmax(8rem, 1fr));
+  grid-template-rows: repeat(2, minmax(8rem, 1fr)) auto;
   gap: 0.65rem;
 }
 
@@ -1002,8 +1002,45 @@ button {
 
 @media (max-height: 520px) {
   .chesscue-sidebar .game-mode-choices {
-    grid-template-rows: repeat(2, minmax(5.5rem, 1fr));
+    grid-template-rows: repeat(2, minmax(5.5rem, 1fr)) auto;
   }
+}
+
+/* The Next move tool is a tool, not a game mode: a compact row under the
+   two game cards, so all three fit above the tabs. */
+.chesscue-sidebar .game-mode-choice.game-mode-choice--next-move {
+  position: static;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  justify-items: start;
+  align-content: center;
+  row-gap: 0;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
+  text-align: left;
+}
+
+.chesscue-sidebar .game-mode-choice.game-mode-choice--next-move::before {
+  grid-row: 1 / span 2;
+  width: auto;
+  height: auto;
+  margin: 0;
+  font-size: 1.9rem;
+}
+
+.chesscue-sidebar .game-mode-choice.game-mode-choice--next-move strong {
+  font-size: 1.2rem;
+}
+
+.chesscue-sidebar
+  .game-mode-choice.game-mode-choice--next-move
+  .game-mode-copy {
+  grid-column: 2;
+}
+
+.chesscue-sidebar .game-mode-choice.game-mode-choice--next-move::after {
+  position: static;
+  grid-area: 1 / 3 / span 2;
+  translate: none;
 }
 .chesscue-sidebar .app-frame > :is(.content-shell, .play-shell) {
   min-height: calc(100dvh - 52px - var(--panel-nav-height));

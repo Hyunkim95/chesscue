@@ -427,15 +427,22 @@ test("opens Review first and keeps Practice, Play and import within reach", asyn
       const coached = await page
         .getByRole("button", { name: "Coached", exact: true })
         .boundingBox();
+      // The Next move tool is a compact row under the two game modes.
+      const nextMove = await page
+        .getByRole("button", { name: "Next move", exact: true })
+        .boundingBox();
       const tabs = await nav.boundingBox();
-      if (!rated || !coached || !tabs)
+      if (!rated || !coached || !nextMove || !tabs)
         throw new Error("Missing game mode choices");
       expect(rated.height).toBeGreaterThan(200);
       expect(coached.height).toBeCloseTo(rated.height, 0);
       expect(coached.width).toBeCloseTo(rated.width, 0);
       expect(coached.y).toBeGreaterThan(rated.y + rated.height);
-      expect(tabs.y - (coached.y + coached.height)).toBeGreaterThanOrEqual(0);
-      expect(tabs.y - (coached.y + coached.height)).toBeLessThan(24);
+      expect(nextMove.y).toBeGreaterThan(coached.y + coached.height);
+      expect(nextMove.height).toBeGreaterThanOrEqual(44);
+      expect(nextMove.height).toBeLessThan(80);
+      expect(tabs.y - (nextMove.y + nextMove.height)).toBeGreaterThanOrEqual(0);
+      expect(tabs.y - (nextMove.y + nextMove.height)).toBeLessThan(24);
       await page.screenshot({
         path: test.info().outputPath(`game-mode-${String(width)}.png`),
       });
