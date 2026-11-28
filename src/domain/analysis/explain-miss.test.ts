@@ -262,7 +262,7 @@ test("says when the reply traps a piece, and counts the take-back after the line
     })?.text,
   ).toBe(
     "After Ba4, Black plays b5. After you reply Bb3, c4 attacks your bishop on b3, which has no safe square. " +
-      "After dxc4 dxc4 a4 Qxd1+ Kxd1, cxb3 takes your bishop on b3. " +
+      "Later in the line, cxb3 takes your bishop on b3. " +
       "Once White takes back on b3, Black ends up 2 points of material ahead.",
   );
 });
@@ -299,8 +299,35 @@ test("reads one move further when a pin pays off late", () => {
     })?.text,
   ).toBe(
     "Nxe6 takes the black bishop on e6. " +
-      "After fxe6 Bc4 Rfe8 Rxe6 Qxe6 Qb3 Kf7, Re1 attacks the black queen on e6, which is pinned to its king. " +
+      "Later in the line, Re1 attacks the black queen on e6, which is pinned to its king. " +
       "After Black replies Qxc4, Qxc4+ takes the black queen on c4, which had no defender. " +
       "White wins 2 points of material and levels the material. You played f4 instead.",
   );
+});
+
+// Lichess hG16B4qa on a 14-ply line: Kb1 does nothing to name, and e6+
+// traps a bishop five moves later. That is not one lesson.
+test("does not explain a quiet move by a tactic several moves later", () => {
+  expect(
+    explainMissedLine({
+      fen: "r2r4/1pkbQ3/p1p1pN1p/q2pP1PP/2nP4/2N3B1/1PP3P1/2KR3R w - - 1 24",
+      line: [
+        "c1b1",
+        "b7b5",
+        "e7c5",
+        "b5b4",
+        "c3d5",
+        "e6d5",
+        "e5e6",
+        "c7b7",
+        "c5a5",
+        "c4a5",
+        "f6d7",
+        "d8d7",
+        "e6d7",
+        "a5c4",
+      ],
+      playedSan: "Qd6+",
+    }),
+  ).toBeUndefined();
 });

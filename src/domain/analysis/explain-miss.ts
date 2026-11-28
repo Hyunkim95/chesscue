@@ -66,6 +66,8 @@ const READINGS = [SHORT_LINE, LONG_LINE, LONGEST_LINE] as const;
 // After a gain, this many plies without a capture mean the opponent had two
 // moves to win it back and could not.
 const HELD_PLIES = 3;
+// At most this many moves are named in one "After …" clause.
+const NAMED_MOVES = 3;
 const SETUP: readonly FactKind[] = [
   "mate",
   "double-attack",
@@ -628,6 +630,10 @@ function readLine(
           )
           .toSorted((a, b) => a.move - b.move || rank(a) - rank(b))[0];
 
+  // A first move with nothing to name and a tactic several moves later is
+  // not one lesson.
+  if (!setup && bridge && bridge.ply - 1 > NAMED_MOVES) return undefined;
+
   const rest: string[] = [];
   // Name every move between the last fact shown and the next, so no move in
   // the line is skipped silently.
@@ -642,6 +648,9 @@ function readLine(
       return only.color === viewer
         ? `After you reply ${only.san}, `
         : `After ${SIDE[only.color]} replies ${only.san}, `;
+    // A longer stretch is left to the board, which plays every move. The
+    // moves into a forced mate are the lesson, so they are all named.
+    if (between.length > NAMED_MOVES && !mated) return "Later in the line, ";
     return between.length
       ? `After ${between.map(({ san }) => san).join(" ")}, `
       : "";
