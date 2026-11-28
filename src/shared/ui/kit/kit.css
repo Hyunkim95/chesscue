@@ -1,0 +1,18 @@
+.kit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.kit-prompt {
+  margin: 0;
+  font: 600 19px/1.25 var(--ui-font-display);
+}
+
+.kit-prompt small {
+  display: block;
+  margin-top: 2px;
+  font: 500 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}

@@ -8,6 +8,8 @@ const unitSchema = z.object({
   exercises: z.tuple([exerciseSchema, exerciseSchema]),
 });
 
+export type CurriculumUnit = z.infer<typeof unitSchema>;
+
 export const installedCurriculumSchema = z
   .object({
     version: z.literal(1),

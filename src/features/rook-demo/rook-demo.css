@@ -1,0 +1,144 @@
+.rook-demo {
+  width: min(100% - 24px, 420px);
+  margin-inline: auto;
+  padding-block: 12px 28px;
+}
+.rook-demo header,
+.rook-demo__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rook-demo__actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.rook-demo header {
+  flex-wrap: wrap;
+}
+.rook-demo h1 {
+  font-family: "Newsreader", serif;
+  font-size: 1.7rem;
+  font-weight: 500;
+}
+.rook-demo label {
+  white-space: nowrap;
+}
+.rook-demo label input {
+  accent-color: var(--cue-gold);
+}
+.rook-demo__coach,
+.rook-demo__practice {
+  padding-block: 10px;
+}
+.rook-demo__coach p {
+  margin-block: 0 10px;
+}
+.rook-demo form > input {
+  width: 100%;
+  margin-bottom: 8px;
+  min-height: 44px;
+  background: var(--cue-paper);
+  color: var(--cue-ink);
+  border: 1px solid var(--cue-muted);
+  border-radius: 8px;
+  padding-inline: 10px;
+}
+.rook-demo button:not([role="gridcell"]) {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--cue-gold);
+  border-radius: 8px;
+  background: var(--cue-paper);
+  color: var(--cue-gold);
+}
+.rook-demo button[type="submit"] {
+  background: var(--cue-gold);
+  color: var(--cue-action-ink);
+}
+.rook-demo h2 {
+  font-size: 1rem;
+  margin-block: 0 4px;
+}
+.rook-demo ul {
+  padding-inline-start: 18px;
+  margin: 0;
+}
+
+.rook-demo .rook-demo__verdict {
+  font-family: "Newsreader", serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-block: 0 6px;
+}
+.rook-demo__verdict[data-outcome="good"] {
+  color: var(--cue-pine);
+}
+.rook-demo__verdict[data-outcome="mistake"] {
+  color: var(--cue-coral);
+}
+
+.rook-demo__speaking {
+  display: block;
+  margin-block-end: 4px;
+  color: var(--cue-pine);
+  font-size: 0.875rem;
+}
+.rook-demo__meter {
+  display: block;
+  width: min(100%, 160px);
+  height: 14px;
+  margin-block: 8px 4px;
+}
+.rook-demo__meter::-webkit-meter-optimum-value {
+  background: var(--cue-pine);
+}
+
+.rook-demo__board-status {
+  margin-block: 4px;
+  color: var(--cue-muted);
+  font-size: 0.875rem;
+}
+.rook-demo__board-status[data-preview="true"] {
+  color: var(--cue-coral);
+}
+
+.rook-demo__comparison {
+  margin-block: 10px;
+}
+.rook-demo__comparison summary {
+  min-height: 44px;
+  padding-block: 10px;
+  color: var(--cue-gold);
+  cursor: pointer;
+}
+.rook-demo__comparison table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+.rook-demo__comparison caption {
+  color: var(--cue-muted);
+  text-align: left;
+  margin-block-end: 6px;
+}
+.rook-demo__comparison th,
+.rook-demo__comparison td {
+  padding: 5px;
+  border-bottom: 1px solid var(--cue-paper-deep);
+}
+
+.rook-demo__conversation {
+  margin-block: 12px;
+}
+.rook-demo__conversation ol {
+  max-height: 14rem;
+  overflow-y: auto;
+  padding-inline-start: 20px;
+  margin-block: 8px;
+}
+.rook-demo__conversation li {
+  padding-block: 4px;
+}

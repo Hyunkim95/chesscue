@@ -32,3 +32,7 @@ Firebase, React, chess.js, idb, Zod, Vite, Workbox, Playwright, Vitest, and thei
 ```bash
 pnpm licenses list
 ```
+
+## Opening names
+
+The opening book in `src/domain/openings/openings.generated.json` is compiled from [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings/tree/48a8c0e733facfdc9a3723fe882e51ec28014074), dedicated to the public domain under CC0-1.0. `scripts/openings/build-openings.mjs` rebuilds it from that commit.

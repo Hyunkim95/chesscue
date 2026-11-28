@@ -1,0 +1,210 @@
+.today {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.today--caught-up {
+  align-items: center;
+  padding-top: 24px;
+  text-align: center;
+}
+
+.today__card {
+  padding: 10px;
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-color-surface);
+  box-shadow:
+    0 5px 0 var(--ui-color-shade),
+    inset 0 0 0 2px color-mix(in srgb, var(--ui-color-brass) 25%, transparent);
+}
+
+.today__head,
+.today__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 2px 4px 8px;
+}
+
+.today__foot {
+  padding: 8px 4px 2px;
+  font-size: 14px;
+}
+
+.today__eyebrow {
+  margin: 0;
+  font: 800 12px var(--ui-font-body);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ui-color-brass);
+}
+
+.today__source {
+  font: 700 12px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.today__turn {
+  font-weight: 800;
+}
+
+.today__question {
+  font-weight: 700;
+  color: var(--ui-color-brass);
+}
+
+.today__title {
+  margin: 0;
+  font: 600 26px/1.15 var(--ui-font-display);
+}
+
+.today__note {
+  margin: 0;
+  color: var(--ui-color-muted);
+}
+
+.today__goal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ui-color-muted);
+}
+
+.today__goal b {
+  color: var(--ui-color-ink);
+}
+
+.today__week {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.today__week i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ui-color-deep);
+}
+
+.today__week i.today__day--done {
+  background: var(--ui-color-flame);
+}
+
+.today__week i.today__day--today {
+  box-shadow: 0 0 0 2px var(--ui-color-brass);
+}
+
+.today__links {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+}
+
+.today__link {
+  appearance: none;
+  min-height: var(--ui-space-target);
+  padding: 0 4px;
+  border: 0;
+  font: 700 14px var(--ui-font-body);
+  color: var(--ui-color-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.today__link:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+}
+
+/* Puzzles for you: three thumbnails in a row under the main action. */
+.today-puzzles {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.today-puzzles .today__eyebrow {
+  text-align: start;
+}
+
+.today-puzzles__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-puzzle {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: var(--ui-space-target);
+  padding: 6px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--ui-color-ink);
+  background: var(--ui-color-surface);
+  box-shadow: 0 3px 0 var(--ui-color-shade);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform var(--ui-motion-fast);
+}
+
+.today-puzzle:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--ui-color-shade);
+  transition-duration: 0s;
+}
+
+.today-puzzle:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  outline-offset: 2px;
+}
+
+.today-puzzle__board {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 3px;
+  container-type: inline-size;
+}
+
+.today-puzzle__square {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  background: #ded7bb;
+  color: #192925;
+  line-height: 1;
+}
+
+.today-puzzle__square--dark {
+  background: #789988;
+}
+
+.today-puzzle__piece {
+  font-family: var(--cue-chess-font);
+  font-size: 11cqw;
+  line-height: 1;
+}
+
+.today-puzzle__piece--white {
+  color: #fff2d4;
+  -webkit-text-stroke: 0.9px #192925;
+  paint-order: stroke fill;
+}
+
+.today-puzzle__rating {
+  font: 800 13px var(--ui-font-body);
+  color: var(--ui-color-brass);
+  text-align: center;
+}

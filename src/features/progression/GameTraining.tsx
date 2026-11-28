@@ -1,3 +1,4 @@
+import { BusyButton } from "../../shared/ui/primitives";
 import type { AuthoredCue } from "../../domain/material/verified";
 import { exerciseSchema } from "../../domain/material/verified";
 import { starterPack } from "../../domain/material/pack";
@@ -231,26 +232,29 @@ export function GameTraining({
             {reviewButton}
           </details>
           <div className="progress-actions">
-            <button
+            <BusyButton
               className="review-action"
-              disabled={pending !== null}
+              busy={pending === "nano"}
+              disabled={pending === "cloud"}
               onClick={() => void act("nano")}
             >
-              {pending === "nano"
-                ? "Preparing a local prompt…"
-                : "Personalize with Gemini Nano"}
-            </button>
-            <button
+              Personalize with Gemini Nano
+            </BusyButton>
+            <BusyButton
               className="review-action"
-              disabled={!online || pending !== null}
+              busy={pending === "cloud"}
+              disabled={!online || pending === "nano"}
               onClick={() => void act("cloud")}
             >
-              {pending === "cloud"
-                ? "Building your path…"
-                : online
-                  ? "Build path online"
-                  : "Go online to build a path"}
-            </button>
+              {online ? "Build path online" : "Go online to build a path"}
+            </BusyButton>
+            {pending !== null && (
+              <p role="status">
+                {pending === "nano"
+                  ? "Preparing a local prompt…"
+                  : "Building your path…"}
+              </p>
+            )}
           </div>
           {path && (
             <section

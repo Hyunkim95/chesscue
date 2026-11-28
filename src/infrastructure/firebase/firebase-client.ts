@@ -4,7 +4,15 @@ import {
   type AppCheck,
 } from "firebase/app-check";
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
+import {
+  getAuth,
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  connectAuthEmulator,
+  type Auth,
+} from "firebase/auth";
+import { usesExtensionGoogleSignIn } from "./extension-google";
 import {
   getFirestore,
   connectFirestoreEmulator,
@@ -82,7 +90,12 @@ export const initializeFirebaseClient = (
         appName,
       );
 
-    const auth = getAuth(app);
+    const auth =
+      usesExtensionGoogleSignIn() && existingApp === undefined
+        ? initializeAuth(app, {
+            persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+          })
+        : getAuth(app);
     const firestore = getFirestore(app);
     const emulated =
       import.meta.env.VITE_ACCOUNT_EMULATORS === "true" &&

@@ -1,23 +1,133 @@
 import { Chess, SQUARES, type Square } from "chess.js";
+import { useMemo, useState, type ReactNode } from "react";
 
+import type {
+  BoardArrow,
+  BoardMoveCue,
+} from "../../domain/analysis/board-move-cues";
+import type { BarReading } from "../../domain/game/eval-bar";
 import type { PlayerColor } from "../../domain/game/types";
 import { pieceNames, pieceSymbols } from "./board-pieces";
+import { NO_MOTION, pieceMotion } from "./piece-motion";
 import "./chess-board.css";
 
 const indices = [0, 1, 2, 3, 4, 5, 6, 7];
 
+export type SquareControlChange = "gained" | "lost";
+
+// A short label pinned to a square, such as "+3" or "✓".
+export interface BoardBadge {
+  readonly square: Square;
+  readonly text: string;
+  readonly tone: "coral" | "jade" | "brass";
+  readonly label: string;
+}
+
+// An outlined piece, such as one of the player's pieces Rook could capture.
+export interface BoardOutline {
+  readonly square: Square;
+  // Brass marks the goal a storyboard is heading for.
+  readonly tone: "coral" | "jade" | "brass";
+}
+
 export interface ChessBoardProps {
+  // Content laid over the board, such as a transient notice.
+  readonly overlay?: ReactNode;
   readonly fen?: string | undefined;
   readonly label: string;
   readonly orientation?: PlayerColor;
   readonly className?: string;
   readonly lastMoveUci?: string | null | undefined;
+  // Pieces slide from the position shown before: one move, a move and its
+  // reply, or a Reset back to the start.
+  readonly animateMove?: boolean;
   readonly highlightedSquare?: string | null;
   readonly focusSquares?: readonly Square[];
+  readonly hintSquares?: readonly Square[] | undefined;
+  readonly moveCue?: BoardMoveCue | undefined;
+  readonly controlChanges?:
+    | ReadonlyMap<Square, SquareControlChange>
+    | undefined;
   readonly selectedSquare?: string | null;
+  readonly controlTarget?: Square | undefined;
+  readonly controlMoveLabel?: string;
   readonly legalTargets?: readonly string[];
   readonly onSquareSelect?: ((square: Square) => void) | null;
   readonly disabled?: boolean;
+  // Board-first overlays (design §3.2). Extra arrows draw under the move cue.
+  readonly extraArrows?: readonly BoardArrow[];
+  readonly badges?: readonly BoardBadge[];
+  readonly outlines?: readonly BoardOutline[];
+  // "Preview · not played" while a what-if move is on the board.
+  readonly previewTag?: string | undefined;
+  // The square that glows when a position is solved.
+  readonly spotSquare?: Square | undefined;
+  // The Stockfish bar down the left edge. Never passed during a game.
+  // "reserved" keeps its place empty (no reading yet to show, as before a
+  // puzzle is solved), so the board never changes size when it fills.
+  readonly balance?: BarReading | "reserved" | undefined;
+  // A board being set up by hand may have no king or an impossible position
+  // for a while; draw whatever is placed.
+  readonly setup?: boolean;
+}
+
+function squareCenter(square: Square, orientation: PlayerColor) {
+  const index = SQUARES.indexOf(square);
+  const x = (index % 8) + 0.5;
+  const y = Math.floor(index / 8) + 0.5;
+  return orientation === "white" ? { x, y } : { x: 8 - x, y: 8 - y };
+}
+
+function BoardArrows({
+  arrows,
+  orientation,
+  inspectingControl,
+}: {
+  readonly arrows: readonly BoardArrow[];
+  readonly orientation: PlayerColor;
+  readonly inspectingControl: boolean;
+}) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      className="chess-board__control-arrows"
+      viewBox="0 0 8 8"
+    >
+      {arrows.map(({ from, to, kind, offset = 0 }) => {
+        const origin = squareCenter(from, orientation);
+        const target = squareCenter(to, orientation);
+        const dx = target.x - origin.x;
+        const dy = target.y - origin.y;
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+        const tip = Math.hypot(dx, dy) - 0.328;
+        const base = tip - 0.288;
+        return (
+          <g
+            key={`${kind}:${from}:${to}`}
+            className={`chess-board__cue-arrow chess-board__cue-arrow--${kind}`}
+            data-control-arrow={inspectingControl ? `${from}:${to}` : undefined}
+            data-move-cue-arrow={
+              inspectingControl ? undefined : `${from}:${to}`
+            }
+            transform={`translate(${String(origin.x)} ${String(origin.y)}) rotate(${String(angle)}) translate(0 ${String(offset)})`}
+          >
+            <line
+              className="chess-board__cue-shaft"
+              x1=".28"
+              x2={kind === "move" ? base + 0.08 : base - 0.08}
+              y1="0"
+              y2="0"
+            />
+            <polygon
+              className="chess-board__cue-tip"
+              points={`${String(base)},-.148 ${String(tip)},0 ${String(base)},.148`}
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
 }
 
 export function ChessBoard({
@@ -26,28 +136,84 @@ export function ChessBoard({
   orientation = "white",
   className,
   lastMoveUci,
+  animateMove = false,
   highlightedSquare,
   focusSquares = [],
+  hintSquares = [],
+  moveCue,
+  controlChanges,
   selectedSquare,
+  controlTarget,
+  controlMoveLabel = "the better move",
   legalTargets = [],
   onSquareSelect,
   disabled = false,
+  overlay,
+  extraArrows = [],
+  badges = [],
+  outlines = [],
+  previewTag,
+  spotSquare,
+  balance,
+  setup = false,
 }: ChessBoardProps) {
+  // The position shown before this one, kept only when it should animate.
+  const [shown, setShown] = useState<{
+    readonly fen: string | undefined;
+    readonly from: string | undefined;
+  }>({ fen, from: undefined });
+  if (shown.fen !== fen)
+    setShown({ fen, from: animateMove ? shown.fen : undefined });
+  const motion = useMemo(
+    () =>
+      shown.from === undefined || fen === undefined
+        ? NO_MOTION
+        : pieceMotion(shown.from, fen),
+    [shown.from, fen],
+  );
   let board: ReturnType<Chess["board"]>;
   try {
-    board = new Chess(fen).board();
+    board = new Chess(fen, { skipValidation: setup }).board();
   } catch {
     return <p role="alert">This position could not be displayed.</p>;
   }
   const order = orientation === "white" ? indices : indices.toReversed();
   const lastFrom = lastMoveUci?.slice(0, 2);
   const lastTo = lastMoveUci?.slice(2, 4);
+  // Without a position before (a board that opens on a move), the last
+  // move slides in.
+  const animatedOrigin =
+    animateMove && shown.from === undefined
+      ? SQUARES.find((square) => square === lastFrom)
+      : undefined;
+  const arrows: readonly BoardArrow[] = [
+    ...extraArrows,
+    ...(controlTarget
+      ? focusSquares.map(
+          (from): BoardArrow => ({ from, to: controlTarget, kind: "control" }),
+        )
+      : (moveCue?.arrows ?? [])),
+  ];
   return (
     <div
-      className={
-        className === undefined ? "chess-board" : `chess-board ${className}`
-      }
+      className={`chess-board${balance ? " chess-board--bar" : ""}${className === undefined ? "" : ` ${className}`}`}
     >
+      {balance === "reserved" ? (
+        <div className="chess-board__bar" aria-hidden="true" />
+      ) : (
+        balance && (
+          <div
+            className={`chess-board__bar chess-board__bar--${orientation}`}
+            role="img"
+            aria-label={`Stockfish: ${balance.words}`}
+          >
+            <span
+              className="chess-board__bar-white"
+              style={{ blockSize: `${String(balance.white * 100)}%` }}
+            />
+          </div>
+        )
+      )}
       <div className="chess-board__grid" role="grid" aria-label={label}>
         {order.map((row) => (
           <div className="chess-board__row" role="row" key={row}>
@@ -55,14 +221,40 @@ export function ChessBoard({
               const square = SQUARES[row * 8 + column];
               if (square === undefined) return null;
               const piece = board[row]?.[column];
+              const origin =
+                motion.slides.get(square) ??
+                (square === lastTo ? animatedOrigin : undefined);
+              const slide = origin
+                ? {
+                    from: squareCenter(origin, orientation),
+                    to: squareCenter(square, orientation),
+                  }
+                : undefined;
+              const appearing = motion.appearing.has(square);
               const dark = (row + column) % 2 === 1;
               const selected = selectedSquare === square;
               const target = legalTargets.includes(square);
               const moved = square === lastFrom || square === lastTo;
               const emphasis =
-                selected || moved || highlightedSquare === square;
+                (selected && !controlChanges) ||
+                moved ||
+                highlightedSquare === square;
               const focus = focusSquares.includes(square);
-              const squareClass = `chess-board__square${dark ? " chess-board__square--dark" : ""}${emphasis ? " chess-board__square--highlighted" : ""}${target ? " chess-board__square--target" : ""}${focus ? " chess-board__square--focus" : ""}`;
+              const hint = hintSquares.includes(square);
+              const controlChange = controlChanges?.get(square);
+              const inspecting = square === controlTarget;
+              const cue = moveCue?.squares?.find(
+                (item) => item.square === square,
+              );
+              const badge = badges.find((item) => item.square === square);
+              const outline = outlines.find((item) => item.square === square);
+              const ghost =
+                moveCue?.ghost?.from === square ? moveCue.ghost : undefined;
+              const cueDescription =
+                badge?.label ??
+                cue?.label ??
+                (ghost ? `Former defender on ${square}.` : undefined);
+              const squareClass = `chess-board__square${dark ? " chess-board__square--dark" : ""}${emphasis ? " chess-board__square--highlighted" : ""}${target ? " chess-board__square--target" : ""}${focus ? " chess-board__square--focus" : ""}${controlChange ? ` chess-board__square--control-${controlChange}` : ""}${inspecting ? " chess-board__square--control-inspected" : ""}${outline ? ` chess-board__square--outline-${outline.tone}` : ""}${spotSquare === square ? " chess-board__square--spot" : ""}`;
               const pieceLabel =
                 piece == null
                   ? `Empty ${square}`
@@ -83,20 +275,91 @@ export function ChessBoard({
                 pieceLabel +
                 movementLabel +
                 stateLabel +
-                (focus ? ", Rook highlight" : "");
+                (focus
+                  ? controlTarget
+                    ? `, controls ${controlTarget}`
+                    : ", Rook highlight"
+                  : "") +
+                (hint ? ", Rook hint" : "") +
+                (controlChange
+                  ? `, control ${controlChange} by ${controlMoveLabel}`
+                  : "");
               const contents = (
                 <>
                   {piece == null ? null : (
                     <span
-                      className={`chess-board__piece chess-board__piece--${piece.color === "w" ? "white" : "black"}`}
+                      // A new key per position restarts the slide.
+                      key={
+                        origin
+                          ? `slide:${origin}:${String(fen)}`
+                          : appearing
+                            ? `appear:${String(fen)}`
+                            : "piece"
+                      }
+                      className={`chess-board__piece chess-board__piece--${piece.color === "w" ? "white" : "black"}${slide ? " chess-board__piece--sliding" : ""}${appearing ? " chess-board__piece--appearing" : ""}`}
+                      style={
+                        slide
+                          ? {
+                              translate: `${String((slide.from.x - slide.to.x) * 12.5)}cqw ${String((slide.from.y - slide.to.y) * 12.5)}cqw`,
+                            }
+                          : undefined
+                      }
                       aria-hidden="true"
                     >
                       {pieceSymbols.b[piece.type]}
                     </span>
                   )}
-                  <span className="chess-board__coordinate" aria-hidden="true">
-                    {square}
-                  </span>
+                  {ghost && piece == null && (
+                    <span
+                      className={`chess-board__piece chess-board__piece--ghost${ghost.color === "w" ? " chess-board__piece--white" : ""}`}
+                      aria-hidden="true"
+                    >
+                      {pieceSymbols.b[ghost.piece]}
+                    </span>
+                  )}
+                  {hint && (
+                    <span
+                      className="chess-board__hint-mark"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {cue && (
+                    <span className="chess-board__cue-mark" aria-hidden="true">
+                      {cue.glyph}
+                    </span>
+                  )}
+                  {badge && (
+                    <span
+                      className={`chess-board__badge chess-board__badge--${badge.tone}`}
+                      aria-hidden="true"
+                    >
+                      {badge.text}
+                    </span>
+                  )}
+                  {column === order[0] && (
+                    <span
+                      className="chess-board__edge-coordinate chess-board__edge-coordinate--rank"
+                      aria-hidden="true"
+                    >
+                      {square[1]}
+                    </span>
+                  )}
+                  {row === order.at(-1) && (
+                    <span
+                      className="chess-board__edge-coordinate chess-board__edge-coordinate--file"
+                      aria-hidden="true"
+                    >
+                      {square[0]}
+                    </span>
+                  )}
+                  {controlChange && (
+                    <span
+                      className="chess-board__control-mark"
+                      aria-hidden="true"
+                    >
+                      {controlChange === "gained" ? "+" : "−"}
+                    </span>
+                  )}
                 </>
               );
               return onSquareSelect == null ? (
@@ -105,6 +368,8 @@ export function ChessBoard({
                   role="gridcell"
                   className={squareClass}
                   aria-label={accessibleLabel}
+                  aria-description={cueDescription}
+                  data-board-cue={cue?.glyph}
                 >
                   {contents}
                 </div>
@@ -115,8 +380,14 @@ export function ChessBoard({
                   role="gridcell"
                   className={squareClass}
                   aria-label={accessibleLabel}
+                  aria-description={cueDescription}
+                  data-board-cue={cue?.glyph}
                   aria-selected={selected}
-                  disabled={disabled}
+                  disabled={
+                    disabled ||
+                    (controlChanges !== undefined &&
+                      controlChange === undefined)
+                  }
                   onClick={() => {
                     onSquareSelect(square);
                   }}
@@ -127,7 +398,20 @@ export function ChessBoard({
             })}
           </div>
         ))}
+        {arrows.length > 0 && (
+          <BoardArrows
+            arrows={arrows}
+            orientation={orientation}
+            inspectingControl={controlTarget !== undefined}
+          />
+        )}
+        {previewTag && (
+          <span className="chess-board__preview-tag" role="status">
+            {previewTag}
+          </span>
+        )}
       </div>
+      {overlay}
     </div>
   );
 }

@@ -23,6 +23,9 @@ export interface AnalyzeCompletedGameInput {
   readonly engine: AnalysisEngine;
   readonly analysisVersion: string;
   readonly timeBudgetPerPositionMs: number;
+  // Search every position to this depth from a cleared hash, so a game always
+  // gets the same analysis. timeBudgetPerPositionMs still caps each search.
+  readonly depth?: number;
   readonly signal: AbortSignal;
 }
 
@@ -125,9 +128,16 @@ async function analyzePosition(
   engine: AnalysisEngine,
   fen: string,
   timeBudgetMs: number,
+  depth: number | undefined,
   signal: AbortSignal,
 ): Promise<Result<PositionAnalysis, AnalysisEngineFailure>> {
-  return engine.analyze({ fen, timeBudgetMs, multiPv: 3, signal });
+  return engine.analyze({
+    fen,
+    timeBudgetMs,
+    multiPv: 3,
+    ...(depth !== undefined && { depth }),
+    signal,
+  });
 }
 
 function engineFailure(
@@ -195,6 +205,7 @@ export async function analyzeCompletedGame(
         input.engine,
         fenBefore,
         input.timeBudgetPerPositionMs,
+        input.depth,
         input.signal,
       );
       if (!result.ok) return err(engineFailure(result.error, provisionalFacts));
@@ -239,6 +250,7 @@ export async function analyzeCompletedGame(
         input.engine,
         chess.fen(),
         input.timeBudgetPerPositionMs,
+        input.depth,
         input.signal,
       );
       if (!afterResult.ok)

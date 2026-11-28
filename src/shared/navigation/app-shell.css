@@ -1,0 +1,152 @@
+.app-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  color: var(--ui-color-ink);
+  background: radial-gradient(
+    120% 70% at 50% 0%,
+    color-mix(in srgb, var(--ui-color-jade-dark) 35%, var(--ui-color-canvas)) 0%,
+    var(--ui-color-canvas) 60%
+  );
+  font: 15px/1.4 var(--ui-font-body);
+  overflow-x: clip;
+}
+
+.app-shell__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--ui-space-target);
+  padding: 10px var(--ui-space-gutter) 0;
+}
+
+.app-shell__start {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-shell__exit {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--ui-space-target);
+  height: var(--ui-space-target);
+  margin-left: -8px;
+  border: 0;
+  border-radius: 50%;
+  font-size: 18px;
+  color: var(--ui-color-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.app-shell__exit:active {
+  color: var(--ui-color-ink);
+  background: color-mix(in srgb, var(--ui-color-ink) 12%, transparent);
+}
+
+.app-shell__exit:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+}
+
+.app-shell__body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px var(--ui-space-gutter) 18px;
+}
+
+/* Switching tabs fades the new screen in; the tab bar stays still. Opacity
+   never changes where a tap lands, so the screen is usable at once. */
+.app-shell__body,
+.next-move-page > .next-move,
+.app-frame > main {
+  animation: app-shell-screen-in var(--ui-motion-screen) ease-out;
+}
+
+@keyframes app-shell-screen-in {
+  from {
+    opacity: 0.78;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell__body,
+  .next-move-page > .next-move,
+  .app-frame > main {
+    animation: none;
+  }
+}
+
+/* On wide screens the column stays phone-shaped and centred. */
+.app-shell__top,
+.app-shell__body {
+  width: 100%;
+  max-width: 460px;
+  margin-inline: auto;
+}
+
+/* Board screens: the board, then Rook's column. Stacked up to 960 px, where
+   a side column would shrink the board below its phone size; side by side
+   above, with the board as large as the screen height allows. */
+.board-split,
+.board-split__main,
+.board-split__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+@media (min-width: 960px) {
+  .app-shell__top:has(
+    + .app-shell__body :is(.board-split, .sky-screen, .profile-screen)
+  ),
+  .app-shell__body:has(.board-split, .sky-screen, .profile-screen) {
+    max-width: 1120px;
+  }
+
+  .board-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+    gap: 24px;
+  }
+
+  .board-split__main {
+    justify-self: center;
+    width: min(100%, calc(100dvh - 190px));
+  }
+
+  .board-split__aside {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .board-split {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 32px;
+  }
+}
+
+/* The tab bar becomes a left rail on wide screens. */
+@media (min-width: 720px) {
+  .app-shell--tabs {
+    padding-left: 88px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .app-shell--tabs {
+    padding-left: 220px;
+  }
+}

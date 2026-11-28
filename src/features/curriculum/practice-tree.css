@@ -2,6 +2,7 @@
   max-width: 34rem;
   margin: 0 auto 1.1rem;
   --tree-wire: #637b69;
+  --tree-branch-gap: 0.7rem;
   background:
     radial-gradient(ellipse at 50% 35%, #19342875, transparent 72%),
     radial-gradient(#88ac941f 1px, transparent 1px);
@@ -38,6 +39,34 @@
   color: var(--cue-gold);
   pointer-events: none;
 }
+.practice-tree--continuous {
+  --tree-stage-gap: 1.5rem;
+}
+.practice-tree__stage + .practice-tree__stage {
+  margin-block-start: var(--tree-stage-gap);
+}
+.practice-tree__stage h2 {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  max-width: 90%;
+  margin: 0 auto;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--tree-wire);
+  border-radius: var(--cue-radius-control);
+  background: var(--cue-paper-deep);
+  color: var(--cue-ink);
+  font: 650 1.15rem/1.2 var(--cue-display);
+  text-align: center;
+}
+.practice-tree__stage:not(:last-child) .practice-tree__nodes::before {
+  bottom: calc(-1 * var(--tree-stage-gap));
+  background: var(--tree-wire);
+}
+.practice-tree--continuous > .practice-tree__return {
+  display: block;
+  margin: 0 auto 0.5rem;
+}
 .practice-tree__nodes {
   position: relative;
   isolation: isolate;
@@ -46,7 +75,7 @@
   list-style: none;
   margin: 0;
   padding: 1.35rem 0.25rem 0.6rem;
-  row-gap: 0.7rem;
+  row-gap: var(--tree-branch-gap);
 }
 .practice-tree__nodes::before {
   content: "";
@@ -88,27 +117,38 @@
   font: inherit;
   cursor: pointer;
 }
-.practice-tree__node[aria-pressed="true"]::after {
+.practice-tree__node[data-terminal] {
+  width: 50%;
+  justify-self: center;
+}
+.practice-tree__node[data-terminal]::before {
+  content: none;
+}
+.practice-tree__node[data-terminal] .practice-tree__name {
+  padding-inline: 0.25rem;
+  /* Hide only the stage wire behind the label, not a box over the tree. */
+  background: linear-gradient(
+    90deg,
+    transparent calc(50% - 3px),
+    var(--cue-paper) calc(50% - 3px) calc(50% + 3px),
+    transparent calc(50% + 3px)
+  );
+}
+.practice-tree__announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.practice-tree__node[aria-controls]::after {
   content: "";
   position: absolute;
   inset: 100% auto auto 50%;
   width: 2px;
-  height: 0.7rem;
+  height: var(--tree-branch-gap);
   background: var(--cue-gold);
   pointer-events: none;
-}
-.practice-tree__seal {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 2.85rem;
-  height: 2.85rem;
-  border: 1px solid #789181;
-  border-radius: 50%;
-  background: radial-gradient(at 38% 28%, #385d49, #11281f 75%);
-  color: #e2efdd;
-  box-shadow: 0 0 0 3px var(--cue-paper);
-  font: 1.7rem/1 var(--cue-chess-font, serif);
 }
 .practice-tree__node:is(:hover, :focus-visible, [aria-pressed="true"])
   .practice-tree__seal {
@@ -138,6 +178,8 @@
   text-wrap: balance;
 }
 .practice-tree__challenge {
+  position: relative;
+  z-index: 1;
   grid-column: 1 / -1;
   min-width: 0;
   border-radius: var(--cue-radius-card);
@@ -171,7 +213,7 @@
   border-width: 1px;
   box-shadow: none;
 }
-.practice-tree__position .chess-board__coordinate {
+.practice-tree__position .chess-board__edge-coordinate {
   display: none;
 }
 .practice-tree__position button {
@@ -209,7 +251,36 @@
   max-width: 100%;
 }
 
-.practice-tree__puzzle {
+.practice-tree__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+.practice-tree__positions {
+  flex: 1 0 100%;
+}
+.practice-tree__more {
+  position: relative;
+  z-index: 2;
+  align-self: start;
+  justify-self: end;
+}
+.practice-tree__more summary {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+  color: var(--cue-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.practice-tree__more summary::-webkit-details-marker {
+  display: none;
+}
+.practice-tree__more button {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
   display: block;
-  margin-block: 0.5rem;
 }

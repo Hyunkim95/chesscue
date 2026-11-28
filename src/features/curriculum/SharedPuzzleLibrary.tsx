@@ -1,35 +1,11 @@
+import { SkeletonLines } from "../../shared/loading/LoadingState";
 import { EmptyState } from "../../shared/empty-state/EmptyState";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 import { z } from "zod";
-import seedJson from "../../../scripts/material/library-seed.generated.json?raw";
-import expansionJson from "../../../scripts/material/library-expansion.generated.json?raw";
 import { useEntryState } from "../../shared/navigation/history-entry";
-import {
-  librarySeedSchema,
-  type LibraryPuzzle,
-} from "../../domain/material/puzzle-library";
-
-const seed = librarySeedSchema.parse(JSON.parse(seedJson));
-const expansion = librarySeedSchema.parse(JSON.parse(expansionJson));
-const installed = {
-  motifs: [...seed.motifs, ...expansion.motifs],
-  curricula: [...seed.curricula, ...expansion.curricula],
-  puzzles: [...seed.puzzles, ...expansion.puzzles],
-};
-
-function merge<T extends { id: string; version: number }>(
-  base: readonly T[],
-  updates: readonly T[],
-) {
-  const latest = new Map(base.map((item) => [item.id, item]));
-  for (const item of updates) {
-    if (item.version >= (latest.get(item.id)?.version ?? 0)) {
-      latest.set(item.id, item);
-    }
-  }
-  return [...latest.values()];
-}
+import type { LibraryPuzzle } from "../../domain/material/puzzle-library";
+import { installed, merge, puzzlesByRating } from "./puzzle-catalog";
 
 type OpenPuzzle = (puzzle: LibraryPuzzle) => void;
 
@@ -62,88 +38,6 @@ function PuzzleButtons({
         );
       })}
     </ol>
-  );
-}
-
-function puzzlesByRating(puzzles: readonly LibraryPuzzle[]) {
-  return puzzles.toSorted(
-    (left, right) => (left.rating ?? Infinity) - (right.rating ?? Infinity),
-  );
-}
-
-export function SkillPuzzles({
-  motifs,
-  isSolved,
-  renderPuzzle,
-  fallback,
-}: {
-  readonly motifs: readonly string[];
-  readonly isSolved: (puzzle: LibraryPuzzle) => boolean;
-  readonly renderPuzzle: (puzzle: LibraryPuzzle) => ReactNode;
-  readonly fallback: ReactNode;
-}) {
-  const [available, setAvailable] = useState({
-    motifs: installed.motifs,
-    puzzles: installed.puzzles,
-  });
-  useEffect(() => {
-    const controller = new AbortController();
-    void import("../../infrastructure/firebase/puzzle-library")
-      .then(async ({ readLibraryCatalog, readLibraryPuzzles }) => {
-        const catalog = await readLibraryCatalog(true);
-        controller.signal.throwIfAborted();
-        const matched = merge(installed.motifs, catalog.motifs).filter(
-          ({ name }) => motifs.includes(name.trim().toLowerCase()),
-        );
-        const results = await Promise.allSettled(
-          matched.map(({ id }) => readLibraryPuzzles(id, true)),
-        );
-        if (controller.signal.aborted) return;
-        setAvailable({
-          motifs: merge(
-            installed.motifs,
-            matched.filter((motif, index) => {
-              const result = results[index];
-              return (
-                result?.status === "fulfilled" &&
-                result.value.some(
-                  (puzzle) => puzzle.motifVersion === motif.version,
-                )
-              );
-            }),
-          ),
-          puzzles: merge(
-            installed.puzzles,
-            results.flatMap((result) =>
-              result.status === "fulfilled" ? result.value : [],
-            ),
-          ),
-        });
-      })
-      .catch(() => {
-        // The installed puzzles remain available offline.
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [motifs]);
-
-  const matchingMotifs = new Map(
-    available.motifs
-      .filter(({ name }) => motifs.includes(name.trim().toLowerCase()))
-      .map((motif) => [motif.id, motif]),
-  );
-  const puzzles = puzzlesByRating(
-    available.puzzles.filter(
-      (puzzle) =>
-        matchingMotifs.get(puzzle.motifId)?.version === puzzle.motifVersion,
-    ),
-  );
-  const next = puzzles.find((puzzle) => !isSolved(puzzle));
-  return (
-    <section aria-label="Shared puzzles for this skill">
-      {next ? renderPuzzle(next) : fallback}
-    </section>
   );
 }
 
@@ -264,7 +158,7 @@ export function SharedPuzzleLibrary({
               <PuzzleButtons puzzles={ordered} onPractice={onPractice} />
             </>
           ) : loading ? (
-            <p role="status">Loading puzzles…</p>
+            <SkeletonLines lines={3}>Loading puzzles…</SkeletonLines>
           ) : (
             <EmptyState
               art="practice"

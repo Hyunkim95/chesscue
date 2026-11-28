@@ -1,10 +1,14 @@
+import { LoadingState, SkeletonLines } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
 import { EmptyState } from "../../shared/empty-state/EmptyState";
+import { ScreenHeader } from "../../shared/navigation/ScreenHeader";
 import { useEffect, useState } from "react";
+import bronzeRook from "../../assets/brand/rating-rook.webp";
+import jadeRook from "../../assets/brand/rook.webp";
 
 import {
   firstCrossing,
   goalLabel,
-  goalSchema,
   raceProgress,
   type RaceGoal,
 } from "../../domain/race/elo-race";
@@ -56,6 +60,7 @@ export function CopyLink({ url, label }: { url: string; label: string }) {
 const message = (e: unknown) =>
   e instanceof Error ? e.message : "Could not update the race. Try again.";
 export function RaceView({
+  panel,
   id,
   user,
   session,
@@ -65,6 +70,7 @@ export function RaceView({
   conflict,
   uploadsPending,
 }: {
+  panel: boolean;
   id: string | null;
   user: AccountIdentity | null;
   session: AccountSession | null;
@@ -85,8 +91,6 @@ export function RaceView({
     cached(key, standingSchema.array(), []),
   );
   const [goal, setGoal] = useState<RaceGoal | null>(null);
-  const [kind, setKind] = useState<RaceGoal["kind"]>("gain");
-  const [value, setValue] = useState("50");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
@@ -144,11 +148,9 @@ export function RaceView({
     }
   }
   const activeGoal = own?.goal ?? goal;
+  const highest = activeGoal?.kind === "highest";
   const underReview = members.some((m) => m.disputed) || conflict;
-  const earliest = conflict ? null : firstCrossing(members);
-  const tied =
-    earliest !== null &&
-    members.filter((m) => m.crossedAt === earliest).length > 1;
+  const earliest = highest || conflict ? null : firstCrossing(members);
   const rows = members
     .map((m) => {
       const local =
@@ -163,27 +165,48 @@ export function RaceView({
         local,
         pending:
           local &&
-          (local.current !== m.current || local.crossedAt !== m.crossedAt),
+          (highest
+            ? local.peak !== m.peak
+            : local.current !== m.current || local.crossedAt !== m.crossedAt),
       };
     })
     .sort(
       (a, b) =>
         Number(a.disputed) - Number(b.disputed) ||
-        (a.crossedAt ?? "z").localeCompare(b.crossedAt ?? "z") ||
-        (a.target === null || a.current === null
-          ? Infinity
-          : a.target - a.current) -
-          (b.target === null || b.current === null
-            ? Infinity
-            : b.target - b.current) ||
+        (highest
+          ? (b.peak ?? -1) - (a.peak ?? -1)
+          : (a.crossedAt ?? "z").localeCompare(b.crossedAt ?? "z") ||
+            (a.target === null || a.current === null
+              ? Infinity
+              : a.target - a.current) -
+              (b.target === null || b.current === null
+                ? Infinity
+                : b.target - b.current)) ||
         a.uid.localeCompare(b.uid),
     );
+  const leadPeak = highest && !underReview ? (rows[0]?.peak ?? null) : null;
+  const tied = highest
+    ? leadPeak !== null && rows.filter((m) => m.peak === leadPeak).length > 1
+    : earliest !== null &&
+      members.filter((m) => m.crossedAt === earliest).length > 1;
   return (
-    <main className="content-shell race-view">
-      <a href="#play-mode" className="lesson-back" aria-label="Back to Play">
-        Back to Play
-      </a>
-      <h1>{activeGoal ? goalLabel(activeGoal) : "Elo races"}</h1>
+    <main
+      className={
+        user
+          ? "content-shell race-view"
+          : "content-shell race-view race-view--sign-in"
+      }
+    >
+      {(!panel || id) && (
+        <a
+          href={panel ? "#races" : "#play-mode"}
+          className="lesson-back"
+          aria-label={panel ? "Back to Elo races" : "Back to Play"}
+        >
+          {panel ? "Back to Elo races" : "Back to Play"}
+        </a>
+      )}
+      <ScreenHeader title={activeGoal ? goalLabel(activeGoal) : "Elo races"} />
       {error || accountError || linksError ? (
         <p role="alert">
           {error || (accountError ?? "Your races could not be loaded.")}
@@ -197,26 +220,34 @@ export function RaceView({
           description={
             id
               ? "Sign in to join the race and track your Elo progress."
-              : "Pick an Elo goal and send a friend an invite. Play rated games to track your progress."
+              : "Invite friends and see who reaches the highest Elo in rated CPU games."
           }
         >
-          <button
+          <BusyButton
             className="primary-link"
-            disabled={!session || busy || !online}
+            busy={busy}
+            disabled={!session || !online}
             onClick={() => {
               if (session) void act(() => session.signIn());
             }}
           >
             Continue with Google
-          </button>
+          </BusyButton>
         </EmptyState>
       ) : !id ? (
         <>
+          {session &&
+            online &&
+            !linksLoaded &&
+            !linksError &&
+            links.length === 0 && (
+              <LoadingState shape="list">Loading races…</LoadingState>
+            )}
           {linksLoaded && links.length === 0 && (
             <EmptyState
               art="race"
               title="Start your first race"
-              description="Set a goal below. Then share your invite with a friend."
+              description="Share an invite and see who reaches the highest Elo."
             />
           )}
           {links.length > 0 && (
@@ -236,55 +267,39 @@ export function RaceView({
               e.preventDefault();
               if (!session) return;
               void act(async () => {
-                const newId = await session.races.create(
-                  goalSchema.parse({ kind, value: Number(value) }),
-                );
+                const newId = await session.races.create();
                 location.hash = "race/" + newId;
               });
             }}
           >
-            <h2>Start a race</h2>
-            <label>
-              Goal
-              <select
-                value={kind}
-                onChange={(e) => {
-                  const k = e.target.value === "gain" ? "gain" : "milestone";
-                  setKind(k);
-                  setValue(k === "gain" ? "50" : "1200");
-                }}
-              >
-                <option value="gain">Gain the same number of points</option>
-                <option value="milestone">Reach the same rating</option>
-              </select>
-            </label>
-            <label>
-              {kind === "gain" ? "Elo to gain" : "Target Elo"}
-              <input
-                type="number"
-                min="1"
-                max="10000"
-                required
-                value={value}
-                onChange={(e) => {
-                  setValue(e.target.value);
-                }}
-              />
-            </label>
-            <button className="primary-link" disabled={busy || !online}>
+            <BusyButton
+              type="submit"
+              className="primary-link"
+              busy={busy}
+              disabled={!online}
+            >
               Create race
-            </button>
+            </BusyButton>
           </form>
         </>
       ) : !own ? (
         <>
-          <p>
-            Play rated CPU games to reach the goal. Your first published Elo
-            sets your starting point.
-          </p>
-          <button
+          {activeGoal && (
+            <p>
+              {highest
+                ? "Play rated CPU games. Your highest Elo in this race stays on the leaderboard."
+                : "Play rated CPU games to reach the goal. Your first published Elo sets your starting point."}
+            </p>
+          )}
+          {session && !goal && !error && !accountError && online && (
+            <p role="status">
+              <SkeletonLines>Loading invitation…</SkeletonLines>
+            </p>
+          )}
+          <BusyButton
             className="primary-link"
-            disabled={!goal || busy || !online}
+            busy={busy}
+            disabled={!goal || !online}
             onClick={() => {
               if (session)
                 void act(async () => {
@@ -293,11 +308,21 @@ export function RaceView({
             }}
           >
             Join race
-          </button>
+          </BusyButton>
         </>
       ) : (
         <>
-          <h2>Standings</h2>
+          {highest ? (
+            <div className="race-leaderboard-banner">
+              <h2>Leaderboard</h2>
+              <div className="race-leaderboard-banner__art" aria-hidden="true">
+                <img src={jadeRook} alt="" />
+                <img src={bronzeRook} alt="" />
+              </div>
+            </div>
+          ) : (
+            <h2>Standings</h2>
+          )}
           {underReview && (
             <p>Placings are on hold while game records are under review.</p>
           )}
@@ -313,6 +338,22 @@ export function RaceView({
                   </strong>
                   {disputed ? (
                     <span>Under review</span>
+                  ) : highest ? (
+                    <>
+                      <span>
+                        {m.peak == null
+                          ? "In placement"
+                          : `${m.peak.toString()} Elo`}
+                      </span>
+                      {leadPeak !== null && m.peak === leadPeak && (
+                        <small>{tied ? "Tied for first" : "Leading"}</small>
+                      )}
+                      {m.pending && m.local?.peak != null && (
+                        <small>
+                          {m.local.peak.toString()} Elo · Pending sync
+                        </small>
+                      )}
+                    </>
                   ) : (
                     <>
                       <span>

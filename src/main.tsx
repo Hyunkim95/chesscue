@@ -11,7 +11,11 @@ import "@fontsource/newsreader/latin-700.css";
 
 import { SharedGameReplay } from "./features/import-games/SharedGameReplay";
 import { App } from "./app/App";
+import { MicrophoneSetup } from "./extension/MicrophoneSetup";
 import "./app/styles.css";
+import { applyTokens } from "./shared/ui/apply-tokens";
+
+applyTokens(document.documentElement.style);
 
 if (
   location.protocol === "chrome-extension:" &&
@@ -28,9 +32,13 @@ if (root === null) {
 
 const query = new URLSearchParams(location.search);
 const sharedId = query.get("sharedGame");
+const microphoneSetup =
+  location.protocol === "chrome-extension:" && query.get("microphone") === "1";
 createRoot(root).render(
   <StrictMode>
-    {sharedId !== null ? (
+    {microphoneSetup ? (
+      <MicrophoneSetup />
+    ) : sharedId !== null ? (
       <SharedGameReplay id={sharedId} initialPly={Number(query.get("ply"))} />
     ) : (
       <App />

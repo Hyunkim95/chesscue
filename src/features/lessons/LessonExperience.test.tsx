@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { hangingPiecePlaybook } from "../../test/fixtures/hanging-piece";
@@ -61,9 +67,13 @@ describe("LessonExperience", () => {
       />,
     );
 
-    expect(await screen.findByLabelText("Content source")).toHaveTextContent(
-      "on-device wording, verified against playbook facts",
-    );
+    // The label renders at once with the playbook wording; the generated
+    // wording replaces it when the provider resolves.
+    await waitFor(() => {
+      expect(screen.getByLabelText("Content source")).toHaveTextContent(
+        "on-device wording, verified against playbook facts",
+      );
+    });
   });
 
   it("moves from the verified position to deterministic feedback and the next step", () => {

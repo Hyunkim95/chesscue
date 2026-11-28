@@ -15,13 +15,12 @@ test("plays the installed generated lessons offline, including retry, recorded r
   page,
   context,
 }) => {
-  await page.goto("/#skill-tree");
+  await page.goto("/#study/rook");
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
   await page.reload();
   await context.setOffline(true);
-  await page.getByRole("button", { name: /Rook endings.*Explore/ }).click();
   const lessons = courses.rook.lessons,
     first = lessons[0],
     open = page.getByRole("button", {
@@ -45,7 +44,10 @@ test("plays the installed generated lessons offline, including retry, recorded r
   await challenge.getByRole("button", { name: "Explore with Rook" }).click();
   const exploration = page.getByRole("region", { name: "Explore with Rook" });
   await expect(exploration.getByRole("grid")).toBeVisible();
-  await exploration.getByRole("button", { name: "Close exploration" }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: "Back to challenge" })
+    .click();
   await expect(challenge.getByRole("status")).toContainText("Try again");
   await challenge
     .getByRole("button", { name: "Try again", exact: true })
@@ -78,11 +80,17 @@ test("plays the installed generated lessons offline, including retry, recorded r
   await expect(open).toBeVisible();
   await open.click();
   await play(board, new Chess(first.fen).move(first.continuation[0] ?? "").lan);
-  await challenge.getByRole("button", { name: /Back to challenges/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: "Back to challenges" })
+    .click();
   await open.click();
   await expect(challenge.getByRole("status")).toContainText("Your move");
   await page.reload();
   await expect(challenge.getByRole("status")).toContainText("Your move");
-  await challenge.getByRole("button", { name: /Back to challenges/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: "Back to challenges" })
+    .click();
   await expect(open).toBeVisible();
 });

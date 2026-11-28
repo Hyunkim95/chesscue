@@ -2,6 +2,7 @@ import { starterPack } from "../../domain/material/pack";
 import { useState, type ReactNode } from "react";
 import { Chess, type Move, type Square } from "chess.js";
 import { ChessBoard } from "../board/ChessBoard";
+import { PromotionPiece } from "../board/PromotionPiece";
 import type {
   PlayerProfile,
   CurriculumTheme,
@@ -157,18 +158,24 @@ function RetryMate({
         disabled={last !== null}
       />
       {promotion && (
-        <div className="progress-actions">
+        <div
+          className="progress-actions"
+          role="group"
+          aria-label="Choose promotion"
+        >
           {legal
-            .filter((m) => m.to === promotion)
+            .filter((m) => m.to === promotion && m.promotion !== undefined)
             .map((m) => (
               <button
                 key={m.san}
-                className="review-action"
+                className="review-action piece-choice"
+                aria-label={m.san}
+                title={m.san}
                 onClick={() => {
                   attempt(m);
                 }}
               >
-                {m.san}
+                <PromotionPiece piece={m.promotion ?? "q"} color={m.color} />
               </button>
             ))}
         </div>

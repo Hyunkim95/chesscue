@@ -1,48 +1,63 @@
 import { expect, test, type Page } from "@playwright/test";
 import { Chess } from "chess.js";
 
-const buildCompletedTutorGame = () => {
-  const chess = new Chess();
-  const initialFen = chess.fen();
+function buildCompletedTutorGame(
+  chess: Chess,
+  result: "white-win" | "black-win",
+  mode?: "rated" | "coached",
+) {
+  const history = chess.history({ verbose: true });
   const playedAt = "2026-11-24T12:00:00.000Z";
-  const moves = [
-    "e4",
-    "e5",
-    "Nf3",
-    "Nc6",
-    "Bb5",
-    "a6",
-    "Bxc6",
-    "dxc6",
-    "d4",
-    "exd4",
-  ].map((san, index) => {
-    const move = chess.move(san);
-    return {
-      ply: index + 1,
-      san: move.san,
-      uci: `${move.from}${move.to}${move.promotion ?? ""}`,
-      fenAfter: chess.fen(),
-      playedAt,
-    };
-  });
-
+  const moves = history.map((move, index) => ({
+    ply: index + 1,
+    san: move.san,
+    uci: move.lan,
+    fenAfter: move.after,
+    playedAt,
+  }));
+  chess.setHeader("Result", result === "white-win" ? "1-0" : "0-1");
   return {
     schemaVersion: 1,
     id: "review-e2e-game",
-    origin: { type: "tutor" },
-    initialFen,
+    origin: { type: "tutor", ...(mode && { mode, opponentElo: 1450 }) },
+    initialFen: history[0]?.before ?? chess.fen(),
     moves,
     pgn: chess.pgn(),
     playerColor: "white",
-    result: "black-win",
+    result,
     createdAt: playedAt,
     completedAt: "2026-11-24T12:10:00.000Z",
     curriculumVersion: "1.0.0",
     configurationVersion: "1.0.0",
     fingerprint: null,
   };
-};
+}
+
+async function storeCompletedGame(
+  page: Page,
+  record: ReturnType<typeof buildCompletedTutorGame>,
+) {
+  await page.evaluate(async (game) => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open("adaptive-chess-tutor");
+      request.onerror = () => {
+        reject(request.error ?? new Error("Could not open IndexedDB"));
+      };
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction("games", "readwrite");
+        transaction.objectStore("games").put(game);
+        transaction.oncomplete = () => {
+          database.close();
+          resolve();
+        };
+        transaction.onerror = () => {
+          reject(transaction.error ?? new Error("Could not seed game"));
+        };
+      };
+    });
+  }, record);
+}
 
 async function commitFirstLegalMove(
   page: Page,
@@ -64,18 +79,28 @@ async function commitFirstLegalMove(
   throw new Error("No legal board move was available for the training set");
 }
 
-async function openReviewFromTraining(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Training plan" }).click();
-  const reviewGame = page.getByText("Review this game", { exact: true });
-  await expect(reviewGame).toBeAttached();
-  const evidence = page.getByText("Show what Stockfish checked", {
-    exact: true,
-  });
-  if (await evidence.isVisible()) await evidence.click();
-  await reviewGame.click();
+async function openTurningPoint(page: Page): Promise<void> {
+  const rook = page.getByRole("region", { name: "Explore with Rook" });
+  await expect(rook.getByLabel("Ask Rook")).toBeVisible({ timeout: 30000 });
+  await rook
+    .getByText(/^Replay the (?:full game|game and saved coach notes)$/)
+    .click();
+  await rook
+    .getByRole("button", { name: "Practice the turning point", exact: true })
+    .click();
+}
+
+async function openReviewFromHistory(page: Page): Promise<void> {
   await page
-    .getByRole("button", { name: "Explore the turning point" })
-    .click({ timeout: 30_000 });
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("button", { name: "Review", exact: true })
+    .click();
+  await page
+    .getByRole("list", { name: "Completed games" })
+    .getByRole("button")
+    .first()
+    .click();
+  await openTurningPoint(page);
 }
 
 test("plays from a verified learning moment and retains the original game", async ({
@@ -86,30 +111,25 @@ test("plays from a verified learning moment and retains the original game", asyn
     timeout: 10_000,
   });
 
-  const record = buildCompletedTutorGame();
-  await page.evaluate(async (game) => {
-    await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open("adaptive-chess-tutor");
-      request.onerror = () => {
-        reject(request.error ?? new Error("Could not open IndexedDB"));
-      };
-      request.onsuccess = () => {
-        const database = request.result;
-        const transaction = database.transaction("games", "readwrite");
-        transaction.objectStore("games").put(game);
-        transaction.oncomplete = () => {
-          database.close();
-          resolve();
-        };
-        transaction.onerror = () => {
-          reject(transaction.error ?? new Error("Could not seed game"));
-        };
-      };
-    });
-  }, record);
+  const chess = new Chess();
+  for (const move of [
+    "e4",
+    "e5",
+    "Nf3",
+    "Nc6",
+    "Bb5",
+    "a6",
+    "Bxc6",
+    "dxc6",
+    "d4",
+    "exd4",
+  ])
+    chess.move(move);
+  const record = buildCompletedTutorGame(chess, "black-win");
+  await storeCompletedGame(page, record);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await openReviewFromTraining(page);
+  await openReviewFromHistory(page);
 
   await expect(
     page.getByRole("heading", {
@@ -120,7 +140,7 @@ test("plays from a verified learning moment and retains the original game", asyn
   await page.screenshot({ path: test.info().outputPath("rewind-mobile.png") });
   await page.setViewportSize({ width: 1280, height: 720 });
   await expect(
-    page.getByRole("button", { name: "Back to training plan" }),
+    page.getByRole("banner").getByRole("button", { name: "Back to Rook" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Your Training Profile" }),
@@ -217,20 +237,21 @@ test("plays from a verified learning moment and retains the original game", asyn
   await expect(page.getByText("Your next-game cue")).toBeVisible();
   await expect(page.getByText(/%/)).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Back to training plan" }).click();
-  await page.getByRole("button", { name: "Account", exact: true }).click();
+  const header = page.getByRole("banner");
+  await header.getByRole("button", { name: "Back to Rook" }).click();
+  await header.getByRole("button", { name: "Back to Review" }).click();
   await expect(
-    page.getByText("Evidence from 0 imported games and 1 tutor game."),
+    page.getByRole("list", { name: "Completed games" }),
   ).toBeVisible();
-  await expect(page.getByText(/% observed score/).first()).toBeVisible();
 });
 
 async function openImportedReview(page: Page, fen: string, moves: string) {
   await page.goto("/");
   await page
     .getByRole("navigation", { name: "Primary navigation" })
-    .getByRole("button", { name: "Import games", exact: true })
+    .getByRole("button", { name: "Review", exact: true })
     .click();
+  await page.getByRole("button", { name: "Import PGN", exact: true }).click();
   await page
     .getByLabel("Paste completed PGN games")
     .fill(
@@ -241,10 +262,7 @@ async function openImportedReview(page: Page, fen: string, moves: string) {
     .getByRole("main")
     .getByRole("button", { name: "Import games", exact: true })
     .click();
-  await expect(page.getByRole("heading", { name: "Game debrief" })).toBeVisible(
-    { timeout: 30_000 },
-  );
-  await page.getByRole("button", { name: "Explore the turning point" }).click();
+  await openTurningPoint(page);
 }
 
 test("lets the learner keep playing after the CPU responds to the queen exchange", async ({
@@ -307,10 +325,7 @@ test("lets the learner keep playing after the CPU responds to the queen exchange
   await expect(
     board.getByRole("gridcell", { name: /Black king on d8/ }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Training plan", exact: true })
-    .click();
-  await openReviewFromTraining(page);
+  await openReviewFromHistory(page);
   await expect(
     board.getByRole("gridcell", { name: /White queen on a5/ }),
   ).toBeVisible();
@@ -353,3 +368,91 @@ test("compares the two replies to the queen check and lets White try both", asyn
     board.getByRole("gridcell", { name: /White king on f1/ }),
   ).toBeVisible();
 });
+
+for (const scenario of [
+  {
+    name: "a hanging queen",
+    fen: "rnb1kbnr/pppp1ppp/8/4p3/4P2q/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+    best: "Nxh4",
+    attempt: "Qe2",
+    mode: "coached",
+  },
+  {
+    name: "mate in one",
+    fen: "6k1/3r1ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+    best: "Re8#",
+    attempt: "Rd1",
+    mode: "rated",
+  },
+] as const) {
+  test(`saves a Stockfish retry for ${scenario.name} tried in a CPU game review`, async ({
+    page,
+    context,
+  }) => {
+    const chess = new Chess(scenario.fen);
+    const best = chess.move(scenario.best);
+    const game = buildCompletedTutorGame(chess, "white-win", scenario.mode);
+    await page.goto("/");
+    await expect(page.getByRole("status")).toHaveText("Your move");
+    await storeCompletedGame(page, game);
+    await page.goto("/#review/" + game.id);
+    const rook = page.getByRole("region", { name: "Explore with Rook" });
+    const attempt = new Chess(scenario.fen).move(scenario.attempt);
+    const board = rook.getByRole("grid");
+    await board
+      .getByRole("gridcell", { name: new RegExp("on " + attempt.from) })
+      .click();
+    await board
+      .getByRole("gridcell", {
+        name: new RegExp(attempt.to + ", legal destination"),
+      })
+      .click();
+    const showReply = rook.getByRole("button", {
+      name: "Next move",
+      exact: true,
+    });
+    await expect(showReply).toBeEnabled();
+    const toast = rook.getByRole("status", { name: "Practice update" });
+    // The notice waits for the reply so it doesn't answer Rook's question.
+    await expect(toast).toBeEmpty();
+    await showReply.click();
+    await expect(toast).toContainText("Saved " + attempt.san + " to Practice");
+    await expect(toast).toBeInViewport({ ratio: 1 });
+    await page.screenshot({
+      path: test.info().outputPath("cpu-review-save-toast.png"),
+    });
+    const [stage, skill] = (
+      await toast.locator(".rook-practice-toast__path").innerText()
+    ).split(" › ");
+    if (!stage || !skill)
+      throw new Error("Expected a stage and skill in the save confirmation");
+
+    await page
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Practice", exact: true })
+      .click();
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+    });
+    await context.setOffline(true);
+    await page.reload();
+    await page
+      .getByRole("region", { name: stage, exact: true })
+      .getByRole("button", { name: new RegExp("^" + skill) })
+      .click();
+    const drill = page.getByRole("grid");
+    await drill
+      .getByRole("gridcell", { name: new RegExp("on " + best.from) })
+      .click();
+    await drill
+      .getByRole("gridcell", {
+        name: new RegExp(best.to + ", legal destination"),
+      })
+      .click();
+    await expect(page.getByText("Good move", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Back to Practice" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Skill tree", exact: true }),
+    ).toBeVisible();
+  });
+}

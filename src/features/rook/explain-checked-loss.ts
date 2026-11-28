@@ -40,6 +40,15 @@ function lostDefense(
     : null;
 }
 
+// Sentences that name no concrete board fact. Rook adds the reply's own
+// explanation after these.
+const GENERIC_LOSS =
+  /^(?:The checked line leaves you with less material|Stockfish preferred|The checked continuation gives)/;
+
+export function isGenericLoss(text: string): boolean {
+  return GENERIC_LOSS.test(text);
+}
+
 export function explainCheckedLoss(
   attempt: Move,
   checkedReply: ReviewReply,
@@ -136,6 +145,22 @@ export function explainCheckedLoss(
       if (first && first.type !== "k")
         return `${opponent} can put your ${pieceNames[first.type]} on ${first.square} under attack.`;
     }
+    // A fork can still work when the forking piece can be taken, because the
+    // capture costs something else. Name it when the checked line loses
+    // material.
+    const forked = targets.filter(
+      ({ type, square }) =>
+        type !== "k" &&
+        type !== "p" &&
+        !beforeReply.attackers(square, reply.color).includes(reply.from),
+    );
+    const [first, second] = forked;
+    const sign = attempt.color === "w" ? 1 : -1;
+    const lineEnd = attemptLine.at(-1)?.after ?? reply.after;
+    const lineLoss =
+      (materialBalance(attempt.before) - materialBalance(lineEnd)) * sign;
+    if (first && second && lineLoss > 0)
+      return `${opponent}’s ${reply.san} attacks your ${pieceNames[first.type]} on ${first.square} and ${pieceNames[second.type]} on ${second.square} at once, and the checked line leaves you with less material.`;
     if (afterReply.isCheck()) return "Your king can be put in check.";
   }
 
@@ -162,5 +187,8 @@ export function explainCheckedLoss(
     isMateScore(checkedAlternative.evaluationCpFromSideToMove)
   )
     return "That gives up your forced mate.";
-  return "Stockfish found a stronger move from the previous position.";
+  const strongerMove = alternativeLine[0];
+  return strongerMove && strongerMove.lan !== attempt.lan
+    ? `Stockfish preferred ${strongerMove.san} from the same position.`
+    : "The checked continuation gives your opponent a better position.";
 }

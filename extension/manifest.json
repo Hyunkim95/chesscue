@@ -2,12 +2,12 @@
   "manifest_version": 3,
   "name": "ChessCue",
   "version": "0.1.1",
-  "description": "Explore moves with Rook, an on-device chess coach for completed Lichess games.",
+  "description": "Explore finished chess games with Rook, an on-device chess coach.",
   "action": {
     "default_title": "Open ChessCue",
     "default_icon": "chesscue.png"
   },
-  "host_permissions": ["https://lichess.org/*"],
+  "host_permissions": ["https://lichess.org/*", "https://api.chess.com/*"],
   "background": {
     "service_worker": "action.js",
     "type": "module"
@@ -16,6 +16,15 @@
     {
       "matches": ["https://lichess.org/*"],
       "js": ["lichess-page.js"]
+    },
+    {
+      "matches": [
+        "https://www.chess.com/game/*",
+        "https://www.chess.com/analysis/game/live/*",
+        "https://www.chess.com/analysis/game/daily/*",
+        "https://www.chess.com/play/online*"
+      ],
+      "js": ["chess-com-page.js"]
     }
   ],
   "content_security_policy": {

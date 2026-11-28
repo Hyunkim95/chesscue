@@ -47,7 +47,6 @@ export function GameDebrief({
   compact = false,
   title,
   source,
-  navigation,
   frames,
   orientation,
   strongPly,
@@ -61,7 +60,6 @@ export function GameDebrief({
   readonly compact?: boolean;
   readonly title: string;
   readonly source?: ReactNode;
-  readonly navigation?: ReactNode;
   readonly frames: readonly ReplayFrame[];
   readonly orientation: PlayerColor;
   readonly strongPly: number | undefined;
@@ -173,12 +171,13 @@ export function GameDebrief({
           type="button"
           className="review-action"
           aria-label="Previous move"
+          title="Previous move"
           disabled={frame.ply === 0}
           onClick={() => {
             navigate(frame.ply - 1);
           }}
         >
-          ‹
+          <span aria-hidden="true">‹</span>
         </button>
         <span>
           Position {frame.ply} of {frames.length - 1}
@@ -187,12 +186,13 @@ export function GameDebrief({
           type="button"
           className="review-action"
           aria-label="Next move"
+          title="Next move"
           disabled={frame.ply === frames.length - 1}
           onClick={() => {
             navigate(frame.ply + 1);
           }}
         >
-          ›
+          <span aria-hidden="true">›</span>
         </button>
       </div>
       <input
@@ -258,7 +258,6 @@ export function GameDebrief({
           compact ? "game-review__header review-matchup" : "game-review__header"
         }
       >
-        {navigation}
         <h2 id="game-review-title">{title}</h2>
         {source}
       </header>

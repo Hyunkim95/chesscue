@@ -1,5 +1,6 @@
 import { Chess } from "chess.js";
 
+import { opponent, staticExchange } from "./board-relations";
 import type { LearningTheme } from "./types";
 
 export interface ThemeClassificationInput {
@@ -36,10 +37,11 @@ export function classifyLearningTheme(
     return "premature-central-exchange";
   }
 
-  const opponent = move.color === "w" ? "b" : "w";
-  const attackers = chess.attackers(move.to, opponent).length;
-  const defenders = chess.attackers(move.to, move.color).length;
-  if (input.impactCp >= 250 && attackers > defenders) return "hanging-piece";
+  if (
+    input.impactCp >= 250 &&
+    staticExchange(chess, move.to, opponent(move.color)) > 0
+  )
+    return "hanging-piece";
   if (input.impactCp >= 150) return "one-move-threat";
 
   const startingKingSquare = move.color === "w" ? "e1" : "e8";

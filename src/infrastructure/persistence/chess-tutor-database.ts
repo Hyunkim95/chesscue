@@ -4,13 +4,15 @@ import type { AnalysisRecord } from "../../application/ports/analysis-repository
 import type { ReviewEvidenceRecord } from "../../application/ports/review-evidence-repository";
 import type { LearningTheme } from "../../domain/analysis/types";
 import type { GameRecord } from "../../domain/game/types";
+import type { MomentAttemptRecord } from "../../domain/progress/types";
 
 import type { ReviewMistake } from "../../domain/analysis/review-mistake";
 
-export const DATABASE_VERSION = 4;
+export const DATABASE_VERSION = 5;
 export const GAME_STORE = "games";
 export const ANALYSIS_STORE = "analyses";
 export const REVIEW_EVIDENCE_STORE = "reviewEvidence";
+export const MOMENT_ATTEMPT_STORE = "momentAttempts";
 
 export interface ChessTutorDatabase extends DBSchema {
   guestClaims: { key: string; value: { uid: string; copied: boolean } };
@@ -28,6 +30,7 @@ export interface ChessTutorDatabase extends DBSchema {
     indexes: { "by-game-id": string };
   };
   reviewMistakes: { key: string; value: ReviewMistake };
+  momentAttempts: { key: string; value: MomentAttemptRecord };
   reviewEvidence: {
     key: string;
     value: ReviewEvidenceRecord;
@@ -49,6 +52,9 @@ export const openChessTutorDatabase = (
 ): Promise<IDBPDatabase<ChessTutorDatabase>> =>
   openDB<ChessTutorDatabase>(databaseName, DATABASE_VERSION, {
     upgrade(database, oldVersion) {
+      if (oldVersion < 5) {
+        database.createObjectStore(MOMENT_ATTEMPT_STORE, { keyPath: "id" });
+      }
       if (oldVersion < 4) {
         database.createObjectStore("reviewMistakes", { keyPath: "id" });
       }

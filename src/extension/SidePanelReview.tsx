@@ -1,8 +1,17 @@
+import type { GameSite } from "./external-game";
+import {
+  GameImportSources,
+  GamesEmptyIntro,
+  type GameSource,
+} from "../features/import-games/GamesEmpty";
+import { LoadingMark, LoadingState } from "../shared/loading/LoadingState";
 import { EmptyState } from "../shared/empty-state/EmptyState";
 import { ScreenHeader } from "../shared/navigation/ScreenHeader";
-import { useEffect, useState } from "react";
+import { Button, Pill } from "../shared/ui/primitives";
+import { useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
 
+import type { GameId } from "../domain/game/types";
 import type { GameRepository } from "../application/ports/game-repository";
 import { reviewGameList } from "./review-game-list";
 
@@ -32,7 +41,7 @@ async function readActiveGame(): Promise<Context> {
     const url = new URL(tab.url);
     const gameId =
       url.origin === "https://lichess.org"
-        ? /^\/([a-zA-Z0-9]{8})(?:[a-zA-Z0-9]{4})?(?:\/(?:white|black))?\/?$/.exec(
+        ? /^\/(?:game\/)?([a-zA-Z0-9]{8})(?:[a-zA-Z0-9]{4})?(?:\/(?:white|black))?\/?$/.exec(
             url.pathname,
           )?.[1]
         : undefined;
@@ -54,21 +63,38 @@ async function readActiveGame(): Promise<Context> {
 }
 
 export function SidePanelReview({
+  boardFirst = false,
   repository,
+  watchLichess = true,
   historyRevision,
-  lastReview,
   openGame,
-  resumeReview,
+  openSavedGame,
   importPgn,
+  importFrom,
+  usernameImport,
+  pendingAnalysis,
+  momentCounts,
 }: {
+  readonly boardFirst?: boolean;
+  readonly watchLichess?: boolean;
   readonly repository: GameRepository;
   readonly historyRevision: number;
-  readonly lastReview: string | null;
   readonly openGame: (route: string) => void;
-  readonly resumeReview: (route: string) => void;
+  readonly openSavedGame: (route: string) => void;
   readonly importPgn: () => void;
+  readonly importFrom: (site: GameSite) => void;
+  readonly usernameImport?: ReactNode;
+  readonly pendingAnalysis?: ReadonlySet<GameId>;
+  // Board-first: the chances taken and missed that each checked game's
+  // replay stops at.
+  readonly momentCounts?: ReadonlyMap<
+    GameId,
+    { readonly wins: number; readonly misses: number }
+  >;
 }) {
-  const [context, setContext] = useState<Context>({ status: "checking" });
+  const [context, setContext] = useState<Context>({
+    status: watchLichess ? "checking" : "none",
+  });
 
   const [library, setLibrary] = useState<Library>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -88,6 +114,7 @@ export function SidePanelReview({
   }, [repository, historyRevision, attempt]);
 
   useEffect(() => {
+    if (!watchLichess) return;
     let revision = 0;
     const refresh = () => {
       const request = ++revision;
@@ -125,20 +152,168 @@ export function SidePanelReview({
       chrome.tabs.onUpdated.removeListener(onTabUpdated);
       chrome.runtime.onMessage.removeListener(onMessage);
     };
-  }, []);
+  }, [watchLichess]);
 
   const showEmpty =
     library.status === "ready" &&
     library.games.length === 0 &&
-    context.status === "none" &&
-    !lastReview;
+    context.status === "none";
+  const retry = () => {
+    setLibrary({ status: "loading" });
+    setAttempt((n) => n + 1);
+  };
+  // Board-first: games waiting for Rook's check can be watched at once; the
+  // first in the queue is the one being checked.
+  const queue = boardFirst ? [...(pendingAnalysis ?? [])] : [];
+  const gameList = library.status === "ready" && library.games.length > 0 && (
+    <ol
+      className={boardFirst ? "games-history" : "review-history"}
+      aria-label="Completed games"
+    >
+      {library.games.map(({ id, title, result, resultMark, source, stamp }) => {
+        const pending = pendingAnalysis?.has(id) ?? false;
+        const counts = pending ? undefined : momentCounts?.get(id);
+        return (
+          <li key={id}>
+            <button
+              type="button"
+              disabled={pending && !boardFirst}
+              aria-busy={pending || undefined}
+              onClick={() => {
+                openSavedGame("#review/" + encodeURIComponent(id));
+              }}
+            >
+              {boardFirst ? (
+                <>
+                  <span className="games-history__details">
+                    <strong title={title}>{title}</strong>
+                    <small>
+                      {pending ? (
+                        queue[0] === id ? (
+                          "Checking now · you can watch it"
+                        ) : (
+                          "Waiting to be checked · you can watch it"
+                        )
+                      ) : (
+                        <>
+                          {source}
+                          <span aria-hidden="true"> · </span>
+                          <time dateTime={stamp.dateTime} title={stamp.label}>
+                            {stamp.shortLabel}
+                          </time>
+                        </>
+                      )}
+                    </small>
+                  </span>
+                  <span className="games-history__result" data-result={result}>
+                    <span aria-hidden="true">{resultMark}</span>
+                    <span className="ui-visually-hidden">{result}</span>
+                  </span>
+                  {counts && counts.wins + counts.misses > 0 && (
+                    <span className="games-history__counts">
+                      {counts.wins > 0 && (
+                        <span className="games-history__count games-history__count--win">
+                          <span aria-hidden="true">★ {counts.wins}</span>
+                          <span className="ui-visually-hidden">
+                            {counts.wins === 1
+                              ? "1 chance taken"
+                              : `${String(counts.wins)} chances taken`}
+                          </span>
+                        </span>
+                      )}
+                      {counts.misses > 0 && (
+                        <span className="games-history__count games-history__count--miss">
+                          <span aria-hidden="true">{counts.misses}</span>
+                          <span className="ui-visually-hidden">
+                            {`${String(counts.misses)} missed`}
+                          </span>
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <strong>{title}</strong>
+                  <span className="review-history__result">{result}</span>
+                  <time dateTime={stamp.dateTime}>{stamp.label}</time>
+                </>
+              )}
+              {pending && !boardFirst && (
+                <span className="games-history__pending">
+                  <LoadingMark />
+                  <span className="ui-visually-hidden">Analysis pending</span>
+                </span>
+              )}
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
+  const loading = library.status === "loading" && (
+    <LoadingState shape="list">Loading games…</LoadingState>
+  );
+  const activeGame = context.status === "active" && (
+    <p role="status">Finish your Lichess game to review it with Rook.</p>
+  );
+
+  if (boardFirst) {
+    function addFrom(source: GameSource) {
+      if (source === "pgn") importPgn();
+      else importFrom(source === "chess-com" ? "chesscom" : source);
+    }
+
+    const importForm = usernameImport && (
+      <>
+        {usernameImport}
+        <div>
+          <Pill onClick={importPgn}>Import PGN</Pill>
+        </div>
+      </>
+    );
+
+    return (
+      <div className="games-state">
+        <h1 className="games-state__title">Your games</h1>
+        {showEmpty && <GamesEmptyIntro />}
+        {context.status === "finished" && (
+          <Button
+            wide
+            onClick={() => {
+              openGame(context.route);
+            }}
+          >
+            Review this Lichess game
+          </Button>
+        )}
+        {importForm ?? <GameImportSources onAdd={addFrom} />}
+        {activeGame}
+        {loading}
+        {queue.length > 0 && (
+          <p className="games-queue" role="status">
+            <LoadingMark />
+            {queue.length === 1
+              ? "Checking 1 game on your device"
+              : `Checking ${String(queue.length)} games on your device`}
+          </p>
+        )}
+        {library.status === "failed" && (
+          <div className="games-state__notice">
+            <p role="alert">Your saved games could not be loaded.</p>
+            <Pill onClick={retry}>Try again</Pill>
+          </div>
+        )}
+        {gameList}
+      </div>
+    );
+  }
+
   const importButton = (
     <button
       type="button"
       className={
-        lastReview || context.status === "finished"
-          ? "review-action"
-          : "primary-link"
+        context.status === "finished" ? "review-action" : "primary-link"
       }
       onClick={importPgn}
     >
@@ -159,22 +334,7 @@ export function SidePanelReview({
           Review this Lichess game
         </button>
       )}
-      {context.status === "active" && (
-        <p role="status">Finish your Lichess game to review it with Rook.</p>
-      )}
-      {lastReview && (
-        <button
-          type="button"
-          className={
-            context.status !== "finished" ? "primary-link" : "review-action"
-          }
-          onClick={() => {
-            resumeReview(lastReview);
-          }}
-        >
-          Resume last review
-        </button>
-      )}
+      {activeGame}
       {showEmpty ? (
         <EmptyState
           art="review"
@@ -186,41 +346,42 @@ export function SidePanelReview({
       ) : (
         importButton
       )}
-      {library.status === "loading" && <p role="status">Loading games…</p>}
-      {library.status === "failed" && (
-        <div role="alert">
-          <p>Your saved games could not be loaded.</p>
+      {usernameImport ?? (
+        <div
+          className="username-import__sources"
+          aria-label="Import by username"
+          role="group"
+        >
           <button
             type="button"
             className="review-action"
             onClick={() => {
-              setLibrary({ status: "loading" });
-              setAttempt((n) => n + 1);
+              importFrom("lichess");
             }}
           >
+            Import from Lichess
+          </button>
+          <button
+            type="button"
+            className="review-action"
+            onClick={() => {
+              importFrom("chesscom");
+            }}
+          >
+            Import from Chess.com
+          </button>
+        </div>
+      )}
+      {loading}
+      {library.status === "failed" && (
+        <div role="alert">
+          <p>Your saved games could not be loaded.</p>
+          <button type="button" className="review-action" onClick={retry}>
             Try again
           </button>
         </div>
       )}
-      {library.status === "ready" &&
-        (library.games.length ? (
-          <ol className="review-history" aria-label="Completed games">
-            {library.games.map(({ id, title, result, stamp }) => (
-              <li key={id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    resumeReview("#review/" + encodeURIComponent(id));
-                  }}
-                >
-                  <strong>{title}</strong>
-                  <span className="review-history__result">{result}</span>
-                  <time dateTime={stamp.dateTime}>{stamp.label}</time>
-                </button>
-              </li>
-            ))}
-          </ol>
-        ) : null)}
+      {gameList}
     </main>
   );
 }

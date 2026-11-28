@@ -2,8 +2,13 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithCredential,
   signOut,
 } from "firebase/auth";
+import {
+  requestGoogleAccessToken,
+  usesExtensionGoogleSignIn,
+} from "./extension-google";
 import { initializeFirebaseClient } from "./firebase-client";
 import { createRaceStore } from "./race-store";
 import { startAccountSync } from "./account-sync";
@@ -16,8 +21,11 @@ export interface AccountIdentity {
   email: string | null;
 }
 export function openAccountSession() {
+  const nativeGoogle = usesExtensionGoogleSignIn();
   const firebase = initializeFirebaseClient({
-    enableAppCheck: true,
+    // The Chrome account adapter uses Firebase Auth and owner-scoped Firestore.
+    // The web App Check provider cannot load its remote script in the extension.
+    enableAppCheck: !nativeGoogle,
     appCheckDebug:
       import.meta.env.DEV &&
       import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG === "true",
@@ -39,6 +47,25 @@ export function openAccountSession() {
       });
     },
     async signIn() {
+      if (nativeGoogle) {
+        const token = await requestGoogleAccessToken();
+        try {
+          await signInWithCredential(
+            auth,
+            GoogleAuthProvider.credential(null, token),
+          );
+        } catch (error) {
+          try {
+            await chrome.identity.removeCachedAuthToken({ token });
+          } catch {
+            // Keep Firebase's original failure as the cause.
+          }
+          throw new Error("Could not finish Google sign-in. Try again.", {
+            cause: error,
+          });
+        }
+        return;
+      }
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
       await signInWithPopup(auth, provider);

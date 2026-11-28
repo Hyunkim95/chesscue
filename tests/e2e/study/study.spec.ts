@@ -11,10 +11,7 @@ test("saves a sourced roadmap, then changes and plays a position offline", async
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
-  await page
-    .getByRole("button", { name: "Training plan", exact: true })
-    .click({ timeout: 2000 });
-  await page.getByRole("button", { name: /Rook endings.*Explore/ }).click();
+  await page.goto("/#study/rook");
 
   await page.getByText("More options", { exact: true }).click();
   await page.getByRole("button", { name: "Open generated roadmap" }).click();
@@ -24,19 +21,15 @@ test("saves a sourced roadmap, then changes and plays a position offline", async
   await page.getByRole("button", { name: "Save for offline study" }).click();
   await context.setOffline(true);
   await page.reload();
-  await page
-    .getByRole("button", { name: "Training plan", exact: true })
-    .click();
-  await page.getByRole("button", { name: /Rook endings.*Explore/ }).click();
   await page.getByText("More options", { exact: true }).click();
   await page.getByRole("button", { name: "Open saved Rook endings" }).click();
   await page
     .getByRole("button", { name: "Explore position", exact: true })
     .click();
-  await expect(
-    page.getByRole("heading", { name: "Rook", exact: true }),
-  ).toBeVisible();
-  const chat = page.getByRole("textbox", { name: "Message Rook" });
+  const chat = page
+    .getByRole("region", { name: "Discuss with Rook" })
+    .getByRole("textbox", { name: "Message Rook" });
+  await expect(chat).toBeVisible();
   await chat.fill(
     "Set up white king on a2, white rook on h1, white pawn on h2, black king on g7, black rook on d6, black pawn on g5",
   );
@@ -79,16 +72,8 @@ test("opens lessons and position practice inside a skill on mobile", async ({
 }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/");
-  const menu = page.getByRole("navigation", { name: "Primary navigation" });
-  const training = menu.getByRole("button", { name: "Training plan" });
-  await training.click();
-  await page.getByRole("button", { name: /Threats.*Explore/ }).click();
-  await expect(
-    page.getByRole("heading", { name: "Training plan" }),
-  ).toBeVisible();
-  const panel = page.locator(".skill-detail");
-  await expect(panel.getByRole("grid", { name: /Preview of/ })).toHaveCount(0);
-  const play = panel.getByRole("button", {
+  await page.goto("/#study/threats");
+  const play = page.getByRole("button", {
     name: "Play " + courses.attack.lessons[0].title,
     exact: true,
   });
@@ -108,29 +93,17 @@ test("opens rook lessons from the plan and returns to its skills", async ({
   page,
 }) => {
   await page.goto("/#skill-tree");
-  await page.getByRole("button", { name: /Rook endings.*Explore/ }).click();
-  await expect(
-    page.getByRole("button", {
-      name: "Play " + courses.rook.lessons[0].title,
-      exact: true,
-    }),
-  ).toBeVisible();
-  const panelBox = await page.locator(".skill-detail").boundingBox();
-  expect(panelBox?.height).toBeLessThanOrEqual(480);
-  expect(panelBox?.width).toBeLessThanOrEqual(660);
-
-  await expect(
-    page.getByRole("heading", { name: "Rook endings", exact: true }).last(),
-  ).toBeVisible();
-  await expect(
-    page.getByText(courses.rook.lessons[0].title, { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Study positions", exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Your plan", exact: true }),
-  ).toHaveCount(0);
+  const skill = page.getByRole("button", {
+    name: "Convert or defend a rook ending",
+    exact: true,
+  });
+  await skill.click();
+  await page
+    .getByRole("button", { name: "Back to Practice", exact: true })
+    .click();
+  await expect(skill).toBeFocused();
+  await page.getByLabel("More for this skill").click();
+  await page.getByRole("button", { name: "Lessons", exact: true }).click();
   await page
     .getByRole("button", {
       name: "Play " + courses.rook.lessons[0].title,
@@ -140,27 +113,13 @@ test("opens rook lessons from the plan and returns to its skills", async ({
   await expect(
     page.getByRole("grid", { name: "Challenge board" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: /Back to challenges/ }).click();
-  await page.getByRole("button", { name: /Threats.*Explore/ }).click();
-  await expect(
-    page.getByRole("heading", {
-      name: courses.attack.lessons[0].title,
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Rook endings", exact: true }),
-  ).toHaveCount(0);
-  await page.getByRole("button", { name: /Piece safety.*Explore/ }).click();
   await page
-    .getByRole("button", { name: "Practice this skill", exact: true })
+    .getByRole("button", { name: "Back to challenges", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Back to training plan", exact: true })
+    .getByRole("button", { name: "Back to Skill tree", exact: true })
     .click();
-  await expect(
-    page.getByRole("button", { name: /Piece safety.*Explore/ }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(skill).toBeVisible();
 });
 
 test("studies the player's recorded moves from imported and rated games offline", async ({
@@ -181,8 +140,9 @@ test("studies the player's recorded moves from imported and rated games offline"
   await expect(page.getByRole("region", { name: "Your Elo" })).toBeVisible();
   await page
     .getByRole("navigation", { name: "Primary navigation" })
-    .getByRole("button", { name: "Import games", exact: true })
+    .getByRole("button", { name: "Review", exact: true })
     .click();
+  await page.getByRole("button", { name: "Import PGN", exact: true }).click();
   await page
     .getByLabel("Paste completed PGN games")
     .fill('[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1');
@@ -192,13 +152,9 @@ test("studies the player's recorded moves from imported and rated games offline"
     .getByRole("button", { name: "Import games", exact: true })
     .click();
   await expect(page).toHaveURL(/#review\//);
-  await page
-    .getByRole("navigation", { name: "Primary navigation" })
-    .getByRole("button", { name: "Training plan", exact: true })
-    .click();
+  await page.goto("/#study/vision");
   await context.setOffline(true);
   await page.reload();
-  await page.getByRole("button", { name: /Board vision/ }).click();
   const games = page.getByLabel("Choose a game");
   await expect(games.locator("option:checked")).toContainText("Imported game");
   await expect(

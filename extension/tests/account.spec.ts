@@ -1,7 +1,7 @@
 import { chromium, expect, test } from "@playwright/test";
 import { resolve } from "node:path";
 
-test("keeps the account action easy to reach in the side panel", async () => {
+test("shows player rank before sync in the side panel", async () => {
   const context = await chromium.launchPersistentContext("", {
     channel: "chromium",
     viewport: { width: 320, height: 760 },
@@ -16,20 +16,40 @@ test("keeps the account action easy to reach in the side panel", async () => {
       path: resolve("extension/dist"),
     });
     const page = await context.newPage();
-    await page.goto("chrome-extension://" + id + "/index.html?panel=1");
-    await page.getByRole("button", { name: "Account", exact: true }).click();
+    await page.goto(
+      "chrome-extension://" + id + "/index.html?panel=1&ui=classic",
+    );
+    const profile = page.getByRole("button", { name: "Account", exact: true });
+    await expect(profile).toHaveText("");
+    await expect(profile.locator("svg")).toBeVisible();
+    for (const width of [320, 420]) {
+      await page.setViewportSize({ width, height: 760 });
+      const target = await profile.boundingBox();
+      expect(target?.width).toBeGreaterThanOrEqual(44);
+      expect(target?.height).toBeGreaterThanOrEqual(44);
+    }
+    await profile.focus();
+    await profile.press("Enter");
+    await expect(profile).toHaveAttribute("aria-current", "page");
     const account = page.getByRole("main");
     const sync = account.getByRole("button", { name: "Continue with Google" });
     const rank = account.getByRole("region", { name: "Your Elo" });
     await expect(sync).toBeVisible();
     await expect(rank).toBeVisible();
+    await expect(
+      account.getByRole("region", { name: "Your training profile" }),
+    ).toHaveCount(0);
 
     for (const width of [320, 420]) {
       await page.setViewportSize({ width, height: 760 });
       const syncBox = await sync.boundingBox();
       const rankBox = await rank.boundingBox();
       if (!syncBox || !rankBox) throw new Error("Missing account controls.");
-      expect(syncBox.y + syncBox.height).toBeLessThan(rankBox.y);
+      expect(rankBox.y + rankBox.height).toBeLessThan(syncBox.y);
+      await expect(
+        rank.getByRole("heading", { name: "Unranked" }),
+      ).toBeInViewport();
+      await expect(rank.getByText("5 placement games left")).toBeInViewport();
       expect(syncBox.height).toBeGreaterThanOrEqual(44);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),

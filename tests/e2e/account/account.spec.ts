@@ -1,3 +1,5 @@
+import { skillLocation } from "../../../src/domain/material/installed-curriculum";
+import { unitForExercise } from "../../../src/domain/curriculum/recommend-unit";
 import { googleLogin } from "./google-login";
 import { generatedTransferRegistry } from "../../../src/domain/transfer";
 
@@ -16,10 +18,12 @@ test("opens Account without requiring a guest to leave their game behind", async
   await page
     .getByRole("button", { name: "Account", exact: true })
     .click({ timeout: 2000 });
-  await expect(page.getByRole("heading", { name: "Account" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Guest player" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Your training profile" }),
-  ).toBeVisible({ timeout: 2000 });
+  ).toHaveCount(0);
   await page
     .getByRole("region", { name: "Your Elo" })
     .getByRole("button", { name: "View rank path" })
@@ -54,10 +58,14 @@ test("merges guest history by consent, restores it on another device, and isolat
   ).toHaveCount(2);
   await page.getByRole("button", { name: "Resign game" }).click();
   await page.getByRole("button", { name: "Review this game" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Game debrief" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Explore the turning point" }).click();
+  const rook = page.getByRole("region", { name: "Explore with Rook" });
+  await expect(rook.getByLabel("Ask Rook")).toBeVisible();
+  await rook
+    .getByText(/^Replay the (?:full game|game and saved coach notes)$/)
+    .click();
+  await rook
+    .getByRole("button", { name: "Practice the turning point", exact: true })
+    .click();
   await page.getByRole("gridcell", { name: "White pawn on d2" }).click();
   await page.getByRole("gridcell", { name: /Empty d4/ }).click();
   await page.clock.setFixedTime(new Date(Date.now() - 7 * 86400000));
@@ -66,32 +74,62 @@ test("merges guest history by consent, restores it on another device, and isolat
     page.getByText("Review complete", { exact: true }),
   ).toBeVisible();
   await page.clock.setFixedTime(new Date());
+  await page.getByRole("button", { name: "Back to Rook", exact: true }).click();
   await page.getByRole("button", { name: "Back to game result" }).click();
-  await page.reload();
-  await page.getByRole("button", { name: "Training plan" }).click();
-  const practice = page.getByRole("button", { name: /^Practice / });
-  await expect(practice).toHaveCount(1);
-  const theme = (await practice.innerText())
-    .replace(/^Practice /, "")
-    .replaceAll(" ", "-");
-  const move = generatedTransferRegistry.find(
-    (e) => e.theme === theme && e.difficulty === "unlabeled",
-  )?.verification.bestMoveUci;
-  if (!move) throw new Error("Expected a due exercise with a verified move");
-  await practice.click();
+  const evidence = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const open = indexedDB.open("adaptive-chess-tutor");
+      open.onsuccess = () => {
+        resolve(open.result);
+      };
+      open.onerror = () => {
+        reject(open.error ?? new Error("Game history unavailable"));
+      };
+    });
+    try {
+      return await new Promise<unknown>((resolve, reject) => {
+        const request = database
+          .transaction("reviewEvidence")
+          .objectStore("reviewEvidence")
+          .getAll();
+        request.onsuccess = () => {
+          const records: unknown[] = request.result;
+          resolve(records[0]);
+        };
+        request.onerror = () => {
+          reject(request.error ?? new Error("Review evidence unavailable"));
+        };
+      });
+    } finally {
+      database.close();
+    }
+  });
+  if (!evidence || typeof evidence !== "object" || !("theme" in evidence))
+    throw new Error("Expected review evidence");
+  const exercise = generatedTransferRegistry.find(
+    (entry) =>
+      entry.theme === evidence.theme && entry.difficulty === "unlabeled",
+  );
+  if (!exercise)
+    throw new Error("Expected a due exercise with a verified move");
+  const [, skill] = skillLocation(unitForExercise(exercise)).split(" › ");
+  if (!skill) throw new Error("Expected a practice skill");
+  const move = exercise.verification.bestMoveUci;
+  await page
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("button", { name: "Practice", exact: true })
+    .click();
+  await page.getByRole("button", { name: new RegExp("^" + skill) }).click();
   await page
     .getByRole("gridcell", { name: new RegExp(move.slice(0, 2) + "$") })
     .click();
   await page
     .getByRole("gridcell", { name: new RegExp(move.slice(2, 4) + "(,|$)") })
     .click();
-  await page.getByRole("button", { name: "Back to training plan" }).click();
-  const checked = page.getByText(/1 of 1 completed game analyzed/);
-  await expect(checked).toBeVisible();
-  const skills = await page
-    .getByRole("group", { name: "Chess skills" })
-    .getByRole("button")
-    .allTextContents();
+  await expect(page.getByText("Good move", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Back to Practice", exact: true })
+    .click();
   const completion = await page.evaluate(() =>
     Object.keys(localStorage).find(
       (k) =>
@@ -101,9 +139,6 @@ test("merges guest history by consent, restores it on another device, and isolat
   );
   if (!completion) throw new Error("Guest practice completion missing");
   await page.getByRole("button", { name: "Account", exact: true }).click();
-  const mastery = await page
-    .getByRole("region", { name: "Your training profile" })
-    .innerText();
   await googleLogin(page, email);
   await page.getByRole("button", { name: "Add guest games" }).click();
   await expect(page.getByText(/^Last game synced/)).toBeVisible({
@@ -128,26 +163,19 @@ test("merges guest history by consent, restores it on another device, and isolat
       timeout: 20000,
     });
     await b.getByRole("button", { name: "Account", exact: true }).click();
+    await expect(
+      b.getByRole("heading", { name: "ChessCue Tester" }),
+    ).toBeVisible();
     await expect(b.getByRole("region", { name: "Your Elo" })).toContainText(
-      "Placement · 1 of 5",
+      "4 placement games left",
     );
-    await expect
-      .poll(
-        () =>
-          b.getByRole("region", { name: "Your training profile" }).innerText(),
-        { timeout: 15000 },
-      )
-      .toBe(mastery);
-    await b.getByRole("button", { name: "Training plan" }).click();
-    await expect(b.getByText(/1 of 1 completed game analyzed/)).toBeVisible();
-    await expect
-      .poll(() =>
-        b
-          .getByRole("group", { name: "Chess skills" })
-          .getByRole("button")
-          .allTextContents(),
-      )
-      .toEqual(skills);
+    await b
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Review", exact: true })
+      .click();
+    await expect(
+      b.getByRole("list", { name: "Completed games" }).getByRole("button"),
+    ).toHaveCount(1);
     await expect
       .poll(() =>
         b.evaluate(
@@ -228,7 +256,7 @@ test("merges guest history by consent, restores it on another device, and isolat
     await other.setOffline(false);
     await page.getByRole("button", { name: "Account", exact: true }).click();
     await expect(page.getByRole("region", { name: "Your Elo" })).toContainText(
-      "Placement · 2 of 5",
+      "3 placement games left",
       { timeout: 20000 },
     );
     await expect(b.getByText("Some records need attention")).toBeVisible({
@@ -241,7 +269,7 @@ test("merges guest history by consent, restores it on another device, and isolat
     ).toBeVisible();
     await b.getByRole("button", { name: "Account", exact: true }).click();
     await expect(b.getByRole("region", { name: "Your Elo" })).toContainText(
-      "Placement · 0 of 5",
+      "5 placement games left",
     );
     await b.getByRole("button", { name: "Play", exact: true }).click();
     await expect(
@@ -255,7 +283,7 @@ test("merges guest history by consent, restores it on another device, and isolat
     ).toHaveCount(0);
     await page.getByRole("button", { name: "Account", exact: true }).click();
     await expect(page.getByRole("region", { name: "Your Elo" })).toContainText(
-      "Placement · 0 of 5",
+      "5 placement games left",
     );
   } finally {
     await other.close();

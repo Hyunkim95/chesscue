@@ -5,9 +5,6 @@ import type { AnalysisEngine } from "../../application/analyze-game/analysis-eng
 import type { HistoricalProof } from "../../domain/material/verified";
 import { reflectionSchema } from "../../domain/material/reflection";
 import {
-  AIError,
-  Schema,
-  FunctionCallingMode,
   getAI,
   getGenerativeModel,
   GoogleAIBackend,
@@ -34,10 +31,18 @@ import {
   type StudyIntent,
 } from "../../domain/study/position";
 import { initializeFirebaseClient } from "../firebase/firebase-client";
+import { playerGemini } from "./player-gemini";
 
 import { err, ok, type Result } from "../../shared/result/result";
 
-type ResearchFailure = "app-check" | "quota" | "unavailable" | "unverified";
+type ResearchFailure =
+  | "no-key"
+  | "key-rejected"
+  | "quota"
+  | "unavailable"
+  | "unverified";
+
+const RESEARCH_MODEL = "gemini-3.5-flash-lite";
 
 export interface StudyAI {
   research(
@@ -95,60 +100,6 @@ export function createStudyAI(
   });
   if (client.status !== "ready") return null;
   const ai = getAI(client.services.app, { backend: new GoogleAIBackend() });
-  const cloud = getGenerativeModel(
-    ai,
-    {
-      mode: InferenceMode.ONLY_IN_CLOUD,
-      inCloudParams: {
-        model: "gemini-3.5-flash-lite",
-        tools: [
-          {
-            functionDeclarations: [
-              {
-                name: "searchChessArchive",
-                description:
-                  "Search a live master-game score archive for a game and the exact move that illustrates the study goal.",
-                parameters: Schema.object({
-                  properties: {
-                    white: Schema.string({
-                      description: "White player's surname only",
-                    }),
-                    black: Schema.string({
-                      description: "Black player's surname only",
-                    }),
-                    year: Schema.integer(),
-                  },
-                }),
-              },
-              {
-                name: "openVerifiedPosition",
-                description:
-                  "Open the board before one of the exact moves returned by the archive.",
-                parameters: Schema.object({
-                  properties: {
-                    gameIndex: Schema.integer(),
-                    question: Schema.string({
-                      description:
-                        "One open-ended question about the learner’s reasoning. Avoid chess claims, answer hints, squares and notation.",
-                    }),
-                    notation: Schema.string({
-                      description:
-                        "Copy a full, numbered move label verbatim from the supplied score.",
-                    }),
-                  },
-                }),
-              },
-            ],
-          },
-        ],
-        toolConfig: {
-          functionCallingConfig: { mode: FunctionCallingMode.ANY },
-        },
-        systemInstruction: instruction,
-      },
-    },
-    { timeout: 45000 },
-  );
   const nano = getGenerativeModel(ai, {
     mode: InferenceMode.ONLY_ON_DEVICE,
     onDeviceParams: {
@@ -182,84 +133,103 @@ export function createStudyAI(
     },
   });
   return {
+    // Cloud research runs on the player's own key (owner decision,
+    // 28 November 2026): a game locator, then one recorded move, each as
+    // checked JSON. Code finds and verifies the score and the position.
     async research(goal, signal) {
-      try {
-        const generated = await cloud.generateContent(
-          {
-            toolConfig: {
-              functionCallingConfig: {
-                mode: FunctionCallingMode.ANY,
-                allowedFunctionNames: ["searchChessArchive"],
-              },
+      const locate = playerGemini({
+        model: RESEARCH_MODEL,
+        system: instruction,
+        schema: {
+          type: "object",
+          properties: {
+            white: {
+              type: "string",
+              description: "White player's surname only",
             },
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    type: "text",
-                    text: JSON.stringify({
-                      task: "Find a well-documented historical master game illustrating this learner's goal. Call searchChessArchive with the actual players and year. The position immediately before the move should illustrate the goal. Do not invent a score or variation.",
-                      learningGoal: goal.slice(0, 350),
-                    }),
-                  },
-                ],
-              },
-            ],
+            black: {
+              type: "string",
+              description: "Black player's surname only",
+            },
+            year: { type: "integer" },
           },
-          { signal },
+          required: ["white", "black", "year"],
+        },
+        timeoutMs: 45_000,
+      });
+      const choose = playerGemini({
+        model: RESEARCH_MODEL,
+        system: instruction,
+        schema: {
+          type: "object",
+          properties: {
+            gameIndex: { type: "integer" },
+            question: {
+              type: "string",
+              description:
+                "One open-ended question about the learner’s reasoning. Avoid chess claims, answer hints, squares and notation.",
+            },
+            notation: {
+              type: "string",
+              description:
+                "Copy a full, numbered move label verbatim from the supplied score.",
+            },
+          },
+          required: ["gameIndex", "question", "notation"],
+        },
+        timeoutMs: 45_000,
+      });
+      if (!locate || !choose) return err("no-key");
+      const failure = (
+        status: "quota" | "rejected" | "failed",
+      ): Result<never, ResearchFailure> =>
+        err(
+          status === "quota"
+            ? "quota"
+            : status === "rejected"
+              ? "key-rejected"
+              : "unavailable",
         );
-        if (generated.response.inferenceSource !== InferenceSource.IN_CLOUD)
-          return err("unverified");
-        const call = generated.response
-          .functionCalls()
-          ?.find((item) => item.name === "searchChessArchive");
-        const locator = gameLocatorSchema.safeParse(call?.args);
+      const json = (text: string): unknown => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return undefined;
+        }
+      };
+      try {
+        const located = await locate.request(
+          JSON.stringify({
+            task: "Find a well-documented historical master game illustrating this learner's goal. Return the actual players and year. The position immediately before the move should illustrate the goal. Do not invent a score or variation.",
+            learningGoal: goal.slice(0, 350),
+          }),
+          signal,
+        );
+        if (located.status !== "ok") return failure(located.status);
+        const locator = gameLocatorSchema.safeParse(json(located.text));
         if (!locator.success) return err("unverified");
         const archived = await findArchivedGame(locator.data, signal);
         if (!archived) return err("unverified");
-        const selected = await cloud.generateContent(
-          {
-            toolConfig: {
-              functionCallingConfig: {
-                mode: FunctionCallingMode.ANY,
-                allowedFunctionNames: ["openVerifiedPosition"],
-              },
-            },
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    type: "text",
-                    text: JSON.stringify({
-                      task: "Choose the recorded position that best illustrates the learning goal. Author a short open-ended question about the learner’s decision. Copy its gameIndex and numbered move notation exactly. The board will open just before that move.",
-                      goal: goal.slice(0, 350),
-                      scores: archived.scores.map((score, gameIndex) => ({
-                        gameIndex,
-                        title: score.title,
-                        moves: score.moves.map(moveNotation),
-                      })),
-                    }),
-                  },
-                ],
-              },
-            ],
-          },
-          { signal },
+        const selected = await choose.request(
+          JSON.stringify({
+            task: "Choose the recorded position that best illustrates the learning goal. Author a short open-ended question about the learner’s decision. Copy its gameIndex and numbered move notation exactly. The board will open just before that move.",
+            goal: goal.slice(0, 350),
+            scores: archived.scores.map((score, gameIndex) => ({
+              gameIndex,
+              title: score.title,
+              moves: score.moves.map(moveNotation),
+            })),
+          }),
+          signal,
         );
-        if (selected.response.inferenceSource !== InferenceSource.IN_CLOUD)
-          return err("unverified");
-        const selection = selected.response
-          .functionCalls()
-          ?.find((item) => item.name === "openVerifiedPosition");
+        if (selected.status !== "ok") return failure(selected.status);
         const choice = z
           .object({
             gameIndex: z.number().int().nonnegative(),
             question: reflectionSchema,
             notation: z.string().max(30),
           })
-          .safeParse(selection?.args);
+          .safeParse(json(selected.text));
         if (!choice.success) return err("unverified");
         const score = archived.scores[choice.data.gameIndex];
         const position =
@@ -279,18 +249,8 @@ export function createStudyAI(
           signal,
         );
         return item ? ok(item) : err("unverified");
-      } catch (error) {
+      } catch {
         signal.throwIfAborted();
-        if (error instanceof AIError) {
-          const status = error.customErrorData?.status;
-          if (status === 429) return err("quota");
-          if (
-            (status === 401 || status === 403) &&
-            /app check/i.test(error.message)
-          )
-            return err("app-check");
-          return err("unavailable");
-        }
         return err("unverified");
       }
     },

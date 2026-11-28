@@ -19,11 +19,9 @@ import {
   type OnDeviceCapability,
 } from "./on-device-capability";
 
-const DEFAULT_CLOUD_MODEL = "gemini-3.5-flash-lite";
 const MAX_PROMPT_CHARACTERS = 12_000;
-const DEFAULT_MAX_OUTPUT_TOKENS = 512;
 export const ON_DEVICE_INFERENCE_TIMEOUT_MS = 120_000;
-const CLOUD_REQUEST_TIMEOUT_MS = 10_000;
+const MODEL_REQUEST_TIMEOUT_MS = 10_000;
 
 const systemInstruction = [
   "You personalize one step in a deterministic chess lesson playbook.",
@@ -71,8 +69,6 @@ export interface HybridInferenceClient {
 
 export interface FirebaseHybridProviderOptions {
   readonly timeoutMs: number;
-  readonly cloudModel?: string;
-  readonly maxOutputTokens?: number;
   readonly capabilityDetector?: () => Promise<OnDeviceCapability>;
 }
 
@@ -151,19 +147,6 @@ const validateOptions = (options: FirebaseHybridProviderOptions): void => {
       `Firebase hybrid lesson timeout must be between 1000 and ${ON_DEVICE_INFERENCE_TIMEOUT_MS.toString()} ms.`,
     );
   }
-  if (options.cloudModel?.trim().length === 0) {
-    throw new Error("Firebase hybrid cloud model must not be empty.");
-  }
-  if (
-    options.maxOutputTokens !== undefined &&
-    (!Number.isInteger(options.maxOutputTokens) ||
-      options.maxOutputTokens < 64 ||
-      options.maxOutputTokens > 1024)
-  ) {
-    throw new Error(
-      "Firebase hybrid maximum output tokens must be between 64 and 1024.",
-    );
-  }
 };
 
 export class FirebaseHybridLessonContentProvider implements LessonContentProvider {
@@ -240,22 +223,13 @@ export const createFirebaseHybridLessonContentProvider = (
   options: CreateFirebaseHybridProviderOptions,
 ): FirebaseHybridLessonContentProvider => {
   validateOptions(options);
-  const maxOutputTokens = options.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
-  const cloudModel = options.cloudModel ?? DEFAULT_CLOUD_MODEL;
   const ai = getAI(options.firebaseApp, { backend: new GoogleAIBackend() });
   const model = getGenerativeModel(
     ai,
     {
-      mode: InferenceMode.PREFER_ON_DEVICE,
-      inCloudParams: {
-        model: cloudModel,
-        systemInstruction,
-        generationConfig: {
-          maxOutputTokens,
-          responseMimeType: "application/json",
-          responseSchema: lessonContentResponseSchema,
-        },
-      },
+      // On the device only: ChessCue pays for no cloud AI (owner decision,
+      // 28 November 2026). Without Nano, verified cached content is used.
+      mode: InferenceMode.ONLY_ON_DEVICE,
       onDeviceParams: {
         createOptions: {
           expectedInputs: [{ type: "text", languages: ["en"] }],
@@ -272,7 +246,7 @@ export const createFirebaseHybridLessonContentProvider = (
         },
       },
     },
-    { timeout: Math.min(options.timeoutMs, CLOUD_REQUEST_TIMEOUT_MS) },
+    { timeout: Math.min(options.timeoutMs, MODEL_REQUEST_TIMEOUT_MS) },
   );
 
   const client: HybridInferenceClient = {

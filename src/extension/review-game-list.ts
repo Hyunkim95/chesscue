@@ -10,15 +10,32 @@ const momentFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
   timeStyle: "short",
 });
+const localDayFormat = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+});
+const resultMarks = {
+  Win: "W",
+  Loss: "L",
+  Draw: "½",
+  "White won": "1–0",
+  "Black won": "0–1",
+} as const;
 
 function displayStamp(value: string, imported = false) {
   const order = Date.parse(value);
   if (!Number.isFinite(order))
-    return { order: -Infinity, dateTime: undefined, label: "Date unavailable" };
+    return {
+      order: -Infinity,
+      dateTime: undefined,
+      label: "Date unavailable",
+      shortLabel: "Date unavailable",
+    };
+  const prefix = imported ? "Imported " : "";
   return {
     order,
     dateTime: value,
-    label: (imported ? "Imported " : "") + momentFormat.format(order),
+    label: prefix + momentFormat.format(order),
+    shortLabel: prefix + localDayFormat.format(order),
   };
 }
 
@@ -34,15 +51,25 @@ function pgnStamp(tags: Map<string, string>, importedAt: string) {
     utcDay ?? isoDay.safeParse(tags.get("Date")?.replaceAll(".", "-")).data;
   if (day) {
     const order = Date.parse(day);
-    return { order, dateTime: day, label: dayFormat.format(order) };
+    const label = dayFormat.format(order);
+    return { order, dateTime: day, label, shortLabel: label };
   }
   return displayStamp(importedAt, true);
+}
+
+function pgnSource(site: string | undefined) {
+  if (site && /^(?:https?:\/\/)?(?:www\.)?lichess\.org(?:\/|$)/i.test(site))
+    return "Lichess";
+  if (site && /^(?:https?:\/\/)?(?:www\.)?chess\.com(?:\/|$)/i.test(site))
+    return "Chess.com";
+  return "PGN";
 }
 
 export function reviewGameSummary(game: GameRecord) {
   if (!game.completedAt || !game.result) return null;
   let opponent: string | undefined;
   let title: string;
+  let source = "ChessCue";
   let stamp = displayStamp(game.completedAt);
   if (game.origin.type === "tutor") {
     const elo = game.origin.beginnerOpponent?.target ?? game.origin.opponentElo;
@@ -53,7 +80,7 @@ export function reviewGameSummary(game: GameRecord) {
     const tagSection = game.pgn.split(/\r?\n\s*\r?\n/, 1)[0] ?? "";
     const tags = new Map<string, string>();
     for (const match of tagSection.matchAll(
-      /^\[(White|Black|UTCDate|UTCTime|Date|Event) "(.+)"\]\r?$/gm,
+      /^\[(White|Black|UTCDate|UTCTime|Date|Event|Site) "(.+)"\]\r?$/gm,
     )) {
       const [, key, raw] = match;
       if (key && raw && raw !== "?")
@@ -66,6 +93,7 @@ export function reviewGameSummary(game: GameRecord) {
       ? "vs. " + opponent
       : (tags.get("Event") ?? "Imported game");
     stamp = pgnStamp(tags, game.completedAt);
+    source = pgnSource(tags.get("Site"));
   }
   const result =
     game.result === "draw"
@@ -77,7 +105,15 @@ export function reviewGameSummary(game: GameRecord) {
         : game.result === "white-win"
           ? "White won"
           : "Black won";
-  return { id: game.id, title, opponent, result, stamp };
+  return {
+    id: game.id,
+    title,
+    opponent,
+    source,
+    result,
+    resultMark: resultMarks[result],
+    stamp,
+  };
 }
 
 export function reviewGameList(games: readonly GameRecord[]) {

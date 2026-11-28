@@ -5,10 +5,13 @@ import type { VerifiedGameDrill } from "../../domain/curriculum/game-drill";
 import { transferExercisesForTheme } from "../../domain/transfer";
 import { draftCloudFollowUp, draftOfflineCue } from "./skill-training-gemini";
 
-const { generate, model } = vi.hoisted(() => ({
+const { generate, model, cloud, cloudGenerate } = vi.hoisted(() => ({
   generate: vi.fn(),
   model: vi.fn(),
+  cloud: vi.fn(),
+  cloudGenerate: vi.fn(),
 }));
+vi.mock("./player-gemini", () => ({ playerGemini: cloud }));
 vi.mock("../firebase/firebase-client", () => ({
   initializeFirebaseClient: () => ({ status: "ready", services: { app: {} } }),
 }));
@@ -38,6 +41,7 @@ vi.mock("./study-gemini", () => ({ createStudyAI: () => null }));
 beforeEach(() => {
   vi.resetAllMocks();
   model.mockReturnValue({ generateContent: generate });
+  cloud.mockReturnValue({ generate: cloudGenerate });
 });
 
 function answer(inferenceSource: string, content: unknown) {
@@ -62,24 +66,37 @@ it("accepts a new on-device reflection and checks inference provenance", async (
 });
 
 it("accepts only a checked follow-up from cloud and omits raw game data", async () => {
-  answer("in_cloud", {
-    followUpId: exercise.id,
-    question: "What were you considering here?",
-  });
+  cloudGenerate.mockResolvedValueOnce(
+    JSON.stringify({
+      followUpId: exercise.id,
+      question: "What were you considering here?",
+    }),
+  );
   await expect(draftCloudFollowUp(drill, 3, signal)).resolves.toMatchObject({
     exercise: { fen: exercise.fen, authorship: { route: "cloud" } },
     question: "What were you considering here?",
   });
-  expect(model.mock.calls[0]?.[1]).toMatchObject({ mode: "only_in_cloud" });
-  expect(generate).toHaveBeenCalledWith(
-    expect.not.stringContaining(drill.exercise.fen),
-    expect.anything(),
-  );
-  answer("in_cloud", {
-    followUpId: "invented-position",
-    question: "Which option did you consider?",
+  expect(cloud.mock.calls[0]?.[0]).toMatchObject({
+    model: "gemini-3.5-flash-lite",
   });
+  expect(cloudGenerate).toHaveBeenCalledWith(
+    expect.not.stringContaining(drill.exercise.fen),
+    signal,
+  );
+  cloudGenerate.mockResolvedValueOnce(
+    JSON.stringify({
+      followUpId: "invented-position",
+      question: "Which option did you consider?",
+    }),
+  );
   await expect(draftCloudFollowUp(drill, 3, signal)).rejects.toThrow(
     /Unverified/,
+  );
+});
+
+it("drafts no cloud follow-up without the player's own key", async () => {
+  cloud.mockReturnValue(undefined);
+  await expect(draftCloudFollowUp(drill, 3, signal)).rejects.toThrow(
+    /Gemini key/,
   );
 });

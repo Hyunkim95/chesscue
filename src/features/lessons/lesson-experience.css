@@ -100,7 +100,7 @@
   min-height: 52px;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--cue-line);
-  border-radius: 12px;
+  border-radius: var(--cue-radius-control);
   outline: none;
   background: var(--cue-canvas);
   color: var(--cue-ink);
@@ -115,7 +115,7 @@
 .lesson-secondary {
   min-height: 48px;
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: var(--cue-radius-control);
   cursor: pointer;
   font-weight: 850;
 }
@@ -151,7 +151,7 @@
   padding: clamp(1.5rem, 6vw, 4rem);
   place-content: center;
   border: 1px solid var(--cue-line);
-  border-radius: 20px;
+  border-radius: var(--cue-radius-card);
   background: var(--cue-paper);
   text-align: center;
 }

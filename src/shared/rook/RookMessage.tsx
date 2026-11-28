@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import portrait from "../../assets/brand/rook.webp";
+import { BusyButton } from "../ui/primitives";
 import "./rook.css";
 
 const messageTime = new Intl.DateTimeFormat(undefined, {
@@ -64,21 +65,99 @@ export function RookMessage({
   );
 }
 
-export function RookChatHeader({
-  context,
-  children,
-}: {
-  context: string;
-  children?: ReactNode;
-}) {
+export function RookChatHeader({ children }: { children?: ReactNode }) {
   return (
     <header className="rook-chat__header">
-      <div>
-        <h2>Rook</h2>
-        <p>{context}</p>
-      </div>
+      <h2 className="rook-chat__title">Rook</h2>
       {children}
     </header>
+  );
+}
+
+export function RookConversationButton({
+  expanded,
+  onClick,
+  buttonRef,
+  unread = false,
+  label = expanded ? "Hide conversation" : "Discuss position",
+}: {
+  expanded: boolean;
+  onClick: () => void;
+  buttonRef?: Ref<HTMLButtonElement>;
+  unread?: boolean;
+  label?: string;
+}) {
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      className="rook-conversation-button board-action--quiet"
+      aria-label={unread ? label + ", new learning moment" : label}
+      title={label}
+      aria-expanded={expanded}
+      onClick={onClick}
+    >
+      <span className="rook-conversation-icon" aria-hidden="true" />
+      {unread && <span className="rook-toggle__dot" aria-hidden="true" />}
+    </button>
+  );
+}
+
+export function RookBoardShelf({
+  open,
+  guidance,
+  conversation,
+  composer,
+  actions,
+  inputStatus,
+  notes,
+}: {
+  open: boolean;
+  guidance?: ReactNode;
+  conversation: ReactNode;
+  composer: ReactNode;
+  actions?: ReactNode;
+  inputStatus?: ReactNode;
+  notes?: ReactNode;
+}) {
+  return (
+    <div className="rook-board-shelf">
+      <div className="rook-board-shelf__context">
+        <div className="rook-board-shelf__guidance">{guidance}</div>
+        <div className="rook-board-shelf__transcript" hidden={!open}>
+          {conversation}
+        </div>
+      </div>
+      <div className="rook-board-shelf__composer">
+        {actions}
+        <div className="rook-board-shelf__dock">
+          {inputStatus}
+          {composer}
+        </div>
+      </div>
+      <div className="rook-board-shelf__notes">{notes}</div>
+    </div>
+  );
+}
+
+export function HandsFreeIcon() {
+  return (
+    <svg
+      className="rook-hands-free-icon"
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
+      <rect x="3" y="14" width="4" height="6" rx="1.5" />
+      <rect x="17" y="14" width="4" height="6" rx="1.5" />
+    </svg>
   );
 }
 
@@ -103,15 +182,22 @@ export function SendIcon() {
 
 export function RookComposer({
   value,
+  inputRef,
+  onFocus,
   onChange,
   onSend,
   disabled,
+  busy = false,
   children,
 }: {
   value: string;
+  inputRef?: Ref<HTMLInputElement>;
+  onFocus?: (() => void) | undefined;
   onChange: (value: string) => void;
   onSend: () => void;
   disabled: boolean;
+  // While Rook answers: the send button spins.
+  busy?: boolean;
   children?: ReactNode;
 }) {
   return (
@@ -123,8 +209,10 @@ export function RookComposer({
       }}
     >
       <input
+        ref={inputRef}
+        onFocus={onFocus}
         aria-label="Message Rook"
-        placeholder="Ask Rook…"
+        placeholder="Ask Rook"
         maxLength={500}
         value={value}
         disabled={disabled}
@@ -133,15 +221,16 @@ export function RookComposer({
         }}
       />
       {children}
-      <button
+      <BusyButton
         className="rook-chat__send rook-send-icon"
         aria-label="Send"
         title="Send message"
         type="submit"
-        disabled={disabled || !value.trim()}
+        busy={busy}
+        disabled={!busy && (disabled || !value.trim())}
       >
         <SendIcon />
-      </button>
+      </BusyButton>
     </form>
   );
 }

@@ -55,6 +55,7 @@ export function HistoricalStudy({
           question={found.lesson.question}
           orientation={found.orientation}
           backLabel="Back to historical search"
+          backVisible={view !== "personal"}
           onBack={onBack}
           replay
           alternateBoard={
@@ -157,6 +158,7 @@ export function HistoricalStudy({
             }}
             question={found.lesson.question}
             backLabel="Back to historical board"
+            backVisible={view === "personal"}
             onBack={() => {
               returnToParent(() => {
                 setView("historical");

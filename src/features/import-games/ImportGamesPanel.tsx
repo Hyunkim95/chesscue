@@ -1,3 +1,5 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
 import { useLayoutEffect, useRef, useState, type SyntheticEvent } from "react";
 
 import type {
@@ -306,13 +308,18 @@ export function ImportGamesPanel({
 
         <p id="pgn-sharing">{PGN_SHARING_NOTICE}</p>
         <div className="import-panel__actions">
-          <button
+          <BusyButton
             aria-describedby="pgn-sharing"
             type="submit"
-            disabled={busy || text.trim().length === 0 || playerColor === null}
+            busy={view.status === "importing"}
+            disabled={
+              view.status === "reading-file" ||
+              text.trim().length === 0 ||
+              playerColor === null
+            }
           >
-            {view.status === "importing" ? "Checking games..." : "Import games"}
-          </button>
+            Import games
+          </BusyButton>
           <span className="import-panel__source">
             Source: {sourceLabel(source)}
           </span>
@@ -320,7 +327,9 @@ export function ImportGamesPanel({
       </form>
 
       {view.status === "reading-file" ? (
-        <p role="status">Reading {view.fileName}...</p>
+        <p role="status">
+          <LoadingText>Reading {view.fileName}...</LoadingText>
+        </p>
       ) : null}
       {view.status === "failed" ? <p role="alert">{view.message}</p> : null}
     </section>

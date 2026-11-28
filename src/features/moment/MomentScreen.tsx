@@ -1,0 +1,3133 @@
+import { Chess, SQUARES, type Square } from "chess.js";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+
+import type {
+  CheckedTry,
+  CheckFailure,
+  MomentPosition,
+} from "../../application/run-moment/check-try";
+import type {
+  QuestionOutcome,
+  RoutedAction,
+} from "../../application/route-question/route-question";
+import type {
+  AnalysisEngineFailure,
+  PositionAnalysis,
+} from "../../application/analyze-game/analysis-engine";
+import type { VoiceContext } from "../../application/route-question/question-router";
+import type { AssessPosition } from "../../application/analyze-game/assess-position";
+import type { BoardArrow } from "../../domain/analysis/board-move-cues";
+import {
+  alternativeFrame,
+  isQuietMove,
+  lineStoryboard,
+  payoffFrame,
+  pointStoryboard,
+  refutationStoryboard,
+  tacticFrame,
+  type StoryFrame,
+  type StoryGoal,
+} from "../../domain/analysis/line-storyboard";
+import { PIECE_NAME } from "../../domain/analysis/board-relations";
+import { scanHint } from "../../domain/analysis/forcing-moves";
+import type { WhyInput } from "../../domain/analysis/why-packet";
+import {
+  sacrificeStoryboard,
+  sacrificeThreat,
+  takeBack,
+  type SacrificeThreat,
+} from "../../domain/analysis/sacrifice-threat";
+import {
+  describedMoves,
+  mentionedMove,
+  movesInWords,
+} from "../../domain/game/exploration-intent";
+import type { MomentAttemptRecord } from "../../domain/progress/types";
+import { attemptXp } from "../../domain/progress/xp";
+import { chipsFor, type SanMove } from "../../domain/session/chips";
+import type { MomentGoal } from "../../domain/session/moment-goal";
+import type { DangerReading } from "../../application/route-question/read-danger";
+import {
+  advanceSpot,
+  dangerMarks,
+  spotHint,
+  spotLine,
+  spotting,
+  startSpot,
+  type DangerMoment,
+  type SpotState,
+} from "../../domain/session/spot-danger";
+import {
+  advanceSession,
+  sessionResult,
+  startSession,
+  type MomentSession,
+  type SessionEvent,
+} from "../../domain/session/session";
+import type {
+  Attempt,
+  Chip,
+  FeedbackTier,
+  MomentResult,
+} from "../../domain/session/types";
+import type { Result } from "../../shared/result/result";
+import type { HintPick } from "../../application/route-question/pick-hint";
+import { AskBar } from "../../shared/rook/AskBar";
+import { useRookNarration } from "../../shared/rook/use-rook-narration";
+import { echoOf } from "../../shared/rook/echo";
+import { voiceMoves, voiceNotation } from "./voice-move";
+import { useRookSpeech } from "../../shared/rook/use-rook-speech";
+import { RookSpeechStatus } from "../../shared/rook/RookSpeechStatus";
+import { RookBubble, RookSays } from "../../shared/rook/RookBubble";
+import { RookCharacter, type RookMood } from "../../shared/rook/RookCharacter";
+import {
+  Button,
+  ChipRow,
+  CountUp,
+  Modal,
+  Pill,
+  Ring,
+  Sheet,
+} from "../../shared/ui/primitives";
+import { ChessBoard, type BoardOutline } from "../board/ChessBoard";
+import { departureBadges } from "../board/departure-badges";
+import { useEvalBar } from "../board/use-eval-bar";
+import {
+  checksAnswer,
+  captureReasonFromBoard,
+  replyReason,
+  rookMoveReason,
+  sacrificeSentence,
+  temperReason,
+  STANDING_AFTER,
+  threatsAnswer,
+  tierLine,
+  type BoardAnswer,
+} from "./moment-copy";
+import "./moment.css";
+
+export interface MomentSpec extends MomentPosition {
+  readonly id: string;
+  // "Your game vs Ahmed · Tuesday", or "A position like ones from your games".
+  readonly sourceLabel: string;
+  readonly playedInGame?: SanMove | undefined;
+  // Who the game was against and the day it finished, for "You found Nc7+
+  // against Ahmed on Tuesday, and again today."
+  readonly game?:
+    | { readonly opponent: string; readonly day: string | undefined }
+    | undefined;
+  readonly bestNonSolution?: SanMove | undefined;
+  // What the player is working towards, stated before they move.
+  readonly goal: MomentGoal;
+  // The idea, named only after it is found.
+  readonly ideaName: string | undefined;
+  readonly unitId: string | undefined;
+  readonly source: MomentAttemptRecord["source"];
+  // Spot the danger: the player first finds what their game move left in
+  // trouble, then the moment loop asks for a safe move.
+  readonly danger?: DangerMoment | undefined;
+  // The opponent's move that led to this position, with the position before
+  // it, so a "why" can tell a move that only takes back a piece.
+  readonly previousMove?:
+    | { readonly fen: string; readonly uci: string }
+    | undefined;
+}
+
+interface BoardView {
+  readonly fen: string;
+  readonly lastMoveUci?: string | undefined;
+  readonly animate?: boolean;
+  readonly arrows: readonly BoardArrow[];
+  readonly outlines: readonly BoardOutline[];
+  readonly previewTag?: string | undefined;
+  readonly spot?: Square | undefined;
+  readonly control?: StoryFrame["control"];
+  // The piece a "Why does it work?" storyboard is heading for.
+  readonly goal?: StoryGoal | undefined;
+}
+
+interface Say {
+  readonly text: ReactNode;
+  readonly mood: RookMood;
+  readonly understood?: string | undefined;
+}
+
+// A line the player steps through one captioned frame at a time.
+interface Story {
+  // The position before the first frame.
+  readonly start: string;
+  readonly frames: readonly StoryFrame[];
+  readonly step: number;
+  readonly mood: RookMood;
+  // The moves of a line the player can branch from at their own turns:
+  // frame i plays moves[i].
+  readonly moves?: readonly string[] | undefined;
+  // A refutation goes back to the step the player branched from.
+  readonly back?: Story | "start" | undefined;
+  // For a branch about another move: the move really played from its start.
+  readonly played?: string | undefined;
+}
+
+// A position in a line where the player may try their own move.
+// "X is better than Y" from a position, for the side to move there.
+interface Claim {
+  readonly fen: string;
+  readonly better: string;
+  readonly worse: string;
+}
+
+// How much better, in words, from a difference in centipawns.
+function marginWords(cp: number): string | undefined {
+  if (cp < 35) return undefined;
+  if (cp < 100) return "a little better";
+  if (cp < 300) return "clearly better";
+  return "much better";
+}
+
+// A point in a line where Rook is to move: the move he played there.
+interface RookTurn {
+  readonly fen: string;
+  readonly chosen: string;
+  readonly back: Story | "start";
+}
+
+interface Branch {
+  readonly fen: string;
+  // The line's move here and the rest of the line from it.
+  readonly line: readonly string[];
+  readonly back: Story | "start";
+}
+
+const GHOST: Record<Exclude<FeedbackTier, "best">, BoardArrow["kind"]> = {
+  missed: "ghost-missed",
+  worse: "ghost-worse",
+  costly: "ghost-costly",
+};
+
+const TRIES_CHIP: Record<Exclude<FeedbackTier, "best">, string> = {
+  missed: "level, chance missed",
+  worse: "now worse",
+  costly: "now losing",
+};
+
+function uciMove(uci: string) {
+  return {
+    from: uci.slice(0, 2),
+    to: uci.slice(2, 4),
+    ...(uci.length > 4 ? { promotion: uci.slice(4) } : {}),
+  };
+}
+
+function sanFor(fen: string, uci: string | undefined): string | undefined {
+  if (uci === undefined) return undefined;
+  try {
+    return new Chess(fen).move(uciMove(uci)).san;
+  } catch {
+    return undefined;
+  }
+}
+
+function square(name: string): Square | undefined {
+  return SQUARES.find((candidate) => candidate === name);
+}
+
+function arrow(uci: string, kind: BoardArrow["kind"]): BoardArrow[] {
+  const from = square(uci.slice(0, 2));
+  const to = square(uci.slice(2, 4));
+  return from && to ? [{ from, to, kind }] : [];
+}
+
+function legalTargets(fen: string, from: Square): Square[] {
+  try {
+    return new Chess(fen)
+      .moves({ square: from, verbose: true })
+      .map(({ to }) => to);
+  } catch {
+    return [];
+  }
+}
+
+function ghostArrows(attempts: readonly Attempt[]): BoardArrow[] {
+  return attempts.flatMap(({ uci, tier }) =>
+    tier === "best" ? [] : arrow(uci, GHOST[tier]),
+  );
+}
+
+function frameView(frame: StoryFrame): BoardView {
+  return {
+    fen: frame.fen,
+    lastMoveUci: frame.moveUci,
+    animate: true,
+    arrows: frame.arrows,
+    outlines: frame.goal
+      ? [
+          ...frame.outlines.filter(
+            ({ square }) => square !== frame.goal?.square,
+          ),
+          // Rook's goal is what the player stands to lose: coral.
+          {
+            square: frame.goal.square,
+            tone: frame.goal.rook ? "coral" : "brass",
+          },
+        ]
+      : frame.outlines,
+    control: frame.control,
+    goal: frame.goal,
+  };
+}
+
+// "Step 2 of 3" while a storyboard heads for its goal, then "Result", with
+// the goal named on every frame. Other stories count their frames.
+function stepLabel(story: Story): {
+  readonly step: string;
+  readonly goal?: string;
+  readonly rook?: boolean;
+} {
+  const steps = story.frames.filter(({ goal }) => goal !== undefined).length;
+  const goal = story.frames.find((frame) => frame.goal !== undefined)?.goal;
+  const frame = story.frames[story.step];
+  const count = `${String(story.step + 1)} / ${String(story.frames.length)}`;
+  if (!goal || !frame) return { step: count };
+  // Short enough for one line at 320 px; the board marks the square.
+  const named = goal.rook
+    ? goal.piece === "king"
+      ? "Rook wants mate"
+      : `Rook wants your ${goal.piece}`
+    : goal.piece === "king"
+      ? "Goal: mate the king"
+      : `Goal: the ${goal.piece} on ${goal.square}`;
+  const rook = goal.rook === true;
+  if (frame.goal)
+    return {
+      step: `Step ${String(story.step + 1)} of ${String(steps)}`,
+      goal: named,
+      rook,
+    };
+  return story.step === steps
+    ? { step: "Result", goal: named, rook }
+    : { step: count };
+}
+
+// The position a frame's move was played from.
+function beforeFrame(story: Story, index: number): string {
+  return index === 0 ? story.start : (story.frames[index - 1]?.fen ?? "");
+}
+
+// The moves the frames play, named, for questions about one of them.
+// The player's move just before a frame, from the position it was played in.
+function previousMove(story: Story, index: number) {
+  const frame = index > 0 ? story.frames[index - 1] : undefined;
+  return frame?.moveUci
+    ? { fen: beforeFrame(story, index - 1), uci: frame.moveUci }
+    : undefined;
+}
+
+// The type of the piece a move takes, if any.
+function capturedBy(fen: string, uci: string): string | undefined {
+  try {
+    return new Chess(fen).move(uciMove(uci)).captured;
+  } catch {
+    return undefined;
+  }
+}
+
+// The moves after a frame, for reasons that depend on where the line goes.
+function restOf(story: Story, index: number): string[] {
+  return story.frames
+    .slice(index + 1)
+    .map(({ moveUci }) => moveUci)
+    .filter((uci) => uci !== "");
+}
+
+function storyMoves(story: Story): (SanMove & {
+  readonly index: number;
+  readonly captured: string | undefined;
+})[] {
+  return story.frames.flatMap((frame, index) => {
+    const before = beforeFrame(story, index);
+    const san = frame.moveUci ? sanFor(before, frame.moveUci) : undefined;
+    return san
+      ? [
+          {
+            uci: frame.moveUci,
+            san,
+            index,
+            captured: capturedBy(before, frame.moveUci),
+          },
+        ]
+      : [];
+  });
+}
+
+function voiceLabel(text: string) {
+  return (
+    voiceNotation(text)
+      .replace(/[’']/g, "")
+      .match(/[a-z0-9]+/g)
+      ?.join(" ") ?? ""
+  );
+}
+
+const voiceAliases: Readonly<Record<string, readonly string[]>> = {
+  "next step": ["next", "next move", "forward", "go on", "continue"],
+  "previous step": ["previous", "back", "go back", "previous move"],
+  reset: ["start again", "start over"],
+  done: ["finish", "im done"],
+  "play it on the board": ["play it"],
+  "show it on the board": ["show it"],
+  "show me the answer": ["show me"],
+  "mark it for me": ["hint"],
+};
+
+// A reason only a Stockfish search can give.
+const SEARCH = Symbol("search");
+// SLO-013: a complete verified explanation within 20 seconds.
+const WHY_BUDGET_MS = 20_000;
+
+// The one option a reply to "Which move?" names, if exactly one fits.
+function pickedChoice<T extends { readonly move: SanMove }>(
+  text: string,
+  options: readonly T[],
+): T | undefined {
+  const bare = (san: string) => san.replace(/[+#]/g, "").toLowerCase();
+  const words = text.toLowerCase();
+  const tokens = words.match(/[a-z0-9=+#-]+/g) ?? [];
+  const bySan = options.filter(({ move }) =>
+    tokens.some((token) => bare(token) === bare(move.san)),
+  );
+  if (bySan.length === 1) return bySan[0];
+  const squares = words.match(/\b[a-h][1-8]\b/g) ?? [];
+  const bySquare = options.filter(({ move }) =>
+    squares.some(
+      (square) =>
+        move.uci.slice(0, 2) === square || move.uci.slice(2, 4) === square,
+    ),
+  );
+  if (bySquare.length === 1) return bySquare[0];
+  const described = describedMoves(
+    text,
+    options.map(({ move }) => move),
+  );
+  const [only] = described;
+  return described.length === 1 && only
+    ? options.find(({ move }) => move.uci === only.uci)
+    : undefined;
+}
+
+// The legal moves the words mean at a position, read by code.
+function inWords(
+  text: string,
+  fen: string,
+): (SanMove & { readonly captured: string | undefined })[] {
+  return movesInWords(text, fen).map((move) => ({
+    san: move.san,
+    uci: move.lan,
+    captured: move.captured,
+  }));
+}
+
+// "What if…" about another move, played out once the move is known.
+const WHAT_IF_QUESTION =
+  /^\s*(?:(?:wh?at|and) if|what about|what happens if|how about|why not|could (?:you|i) (?:have )?)/i;
+
+// Questions asking for a reason, answered by code once the move is known.
+const WHY_QUESTION =
+  /^\s*(?:why|how come|explain|what(?:'s| is| was) the point)\b/i;
+
+// What Rook can answer, said when a question does not reach a move.
+const ANSWERABLE =
+  "I can explain a move. Name it, like “why Qxg5?”, or describe it, like “why would the queen take?”";
+
+function legalMoves(
+  fen: string,
+): (SanMove & { readonly captured: string | undefined })[] {
+  try {
+    return new Chess(fen)
+      .moves({ verbose: true })
+      .map(({ lan, san, captured }) => ({ uci: lan, san, captured }));
+  } catch {
+    return [];
+  }
+}
+
+// Questions whose answer would change the position on screen. Typed, they
+// are answered in place and offered as a button.
+function movesBoard(action: RoutedAction): boolean {
+  return (
+    action.kind === "show-me" ||
+    action.kind === "scan" ||
+    action.kind === "why" ||
+    action.kind === "what-if"
+  );
+}
+
+// Before the answer is known, a refutation stops before any move of the
+// player's that matches the answer, so it never shows it.
+function withoutAnswer(
+  line: readonly string[],
+  bestUci: string,
+): readonly string[] {
+  const at = line.findIndex((uci, index) => index > 0 && uci === bestUci);
+  return at === -1 ? line : line.slice(0, at);
+}
+
+export function MomentScreen({
+  moment,
+  online,
+  checkMove,
+  checkFrom,
+  analyzePosition,
+  askRook,
+  routeVoice,
+  onComplete,
+  onContinue,
+  dailyGoal,
+  trackProgress = true,
+  openingFrames = [],
+  readsAloud = false,
+  readDanger,
+  pickHint,
+  explainWhy,
+  assessPosition,
+}: {
+  readonly moment: MomentSpec;
+  readonly online: boolean;
+  readonly checkMove: (
+    uci: string,
+    signal: AbortSignal,
+  ) => Promise<Result<CheckedTry, CheckFailure>>;
+  // Checks a move the player tries at another point of the line, once the
+  // position is solved or shown. Never recorded as a try.
+  readonly checkFrom: (
+    position: MomentPosition,
+    uci: string,
+    signal: AbortSignal,
+  ) => Promise<Result<CheckedTry, CheckFailure>>;
+  // Stockfish's top lines for a position, used to find Rook's other defences.
+  readonly analyzePosition: (
+    fen: string,
+    multiPv: number,
+    signal: AbortSignal,
+  ) => Promise<Result<PositionAnalysis, AnalysisEngineFailure>>;
+  readonly askRook: (
+    question: {
+      text: string;
+      fen: string;
+      boardMoveUci?: string | undefined;
+      boardMoveSan?: string | undefined;
+    },
+    signal: AbortSignal,
+  ) => Promise<QuestionOutcome>;
+  readonly routeVoice?: (
+    context: VoiceContext,
+    signal: AbortSignal,
+  ) => Promise<string | undefined>;
+  // Called once with the finished result, to record it.
+  readonly onComplete: (result: MomentResult) => void | Promise<void>;
+  readonly onContinue: () => void;
+  readonly trackProgress?: boolean;
+  // Today's goal, which fills on the celebration.
+  readonly dailyGoal?:
+    | { readonly done: number; readonly target: number }
+    | undefined;
+  // The game's opening as board frames, when this position comes from it.
+  readonly openingFrames?: readonly StoryFrame[] | undefined;
+  // The player's "Rook reads aloud" setting.
+  readonly readsAloud?: boolean;
+  // Spot the danger: the on-device model matches typed words to the checked
+  // danger facts. Absent when no on-device model is ready.
+  readonly readDanger?:
+    | ((text: string, signal: AbortSignal) => Promise<DangerReading>)
+    | undefined;
+  // Hints that fit the player's answer: the on-device model picks one of the
+  // hints code built for the position. Absent without an on-device model.
+  readonly pickHint?:
+    | ((text: string, signal: AbortSignal) => Promise<HintPick | undefined>)
+    | undefined;
+  // Online: why the move is good, written from checked facts and checked
+  // again before it is returned. undefined keeps the code caption.
+  readonly explainWhy?:
+    | ((input: WhyInput, signal: AbortSignal) => Promise<string | undefined>)
+    | undefined;
+  // Stockfish's reading of a position, for the bar beside the board. The bar
+  // waits until the moment is solved or shown, so it never hints the answer.
+  readonly assessPosition?: AssessPosition | undefined;
+}) {
+  const danger = moment.danger;
+  const start: BoardView = {
+    fen: moment.fen,
+    lastMoveUci: danger?.lastMoveUci,
+    arrows: [],
+    outlines: [],
+  };
+  const [session, setSession] = useState<MomentSession>(startSession);
+  const [view, setView] = useState<BoardView>(start);
+  const [spot, setSpot] = useState<SpotState>(startSpot);
+  // Until the player hands over to finding a safe move, taps and typed words
+  // answer "Is something of yours in trouble?".
+  const spotActive = danger !== undefined && spot.kind !== "finding";
+  const looking = danger !== undefined && spotting(spot);
+  const [say, setSay] = useState<Say>({
+    text: danger
+      ? spotLine(danger, moment.fen, startSpot)
+      : "Take your time. Look for checks, captures and threats.",
+    mood: "idle",
+  });
+  const [story, setStory] = useState<Story | undefined>();
+  const [selected, setSelected] = useState<Square | undefined>();
+  const [busy, setBusy] = useState(false);
+  // The chip whose tap started the running work, which shows the spinner.
+  const [busyChip, setBusyChip] = useState<string | undefined>();
+  const pressedChip = useRef<string | undefined>(undefined);
+  // Slow work (Stockfish, a model) with the controls marked busy. Busy is
+  // always cleared, even when the work fails.
+  async function whileBusy<T>(work: Promise<T>): Promise<T> {
+    setBusyChip(pressedChip.current);
+    setBusy(true);
+    try {
+      return await work;
+    } finally {
+      setBusy(false);
+      setBusyChip(undefined);
+    }
+  }
+  const [reply, setReply] = useState<SanMove | undefined>();
+  // Stockfish's line after each try, for "Why not {move}?".
+  const [tryLines, setTryLines] = useState<
+    ReadonlyMap<string, readonly string[]>
+  >(new Map());
+  const [confirm, setConfirm] = useState<
+    Extract<QuestionOutcome, { kind: "confirm" }> | undefined
+  >();
+  // Moves to choose from when a question describes more than one.
+  const [choices, setChoices] = useState<
+    | readonly {
+        readonly label: string;
+        readonly move: SanMove;
+        readonly run: () => void;
+      }[]
+    | undefined
+  >();
+  const [voiceOffer, setVoiceOffer] = useState<{
+    readonly view: BoardView;
+    readonly move: SanMove;
+  }>();
+  const [sheet, setSheet] = useState<"celebrate" | "missed" | undefined>();
+  const [saveError, setSaveError] = useState(false);
+  // The last "X is better than Y" Rook said, for "How sure?".
+  const [claim, setClaim] = useState<Claim | undefined>();
+  // Created in the effect so StrictMode's mount, unmount and remount leaves a
+  // live controller.
+  const controller = useRef(new AbortController());
+  useEffect(() => {
+    const current = new AbortController();
+    controller.current = current;
+    return () => {
+      current.abort();
+    };
+  }, []);
+
+  const kind = session.state.kind;
+  const solving =
+    kind === "before" || kind === "tried" || kind === "second-miss";
+  const atStart = view.fen === moment.fen;
+  const exploringMiss = solving && kind !== "before" && !atStart;
+  const attempts =
+    session.state.kind === "before" || session.state.kind === "done"
+      ? []
+      : session.state.attempts;
+  const result = sessionResult(session);
+  const spottedThreat =
+    result?.outcome === "spotted" && result.attempts.length === 0;
+  // The line the player solved it with: Rook's main line, or the player's own
+  // good move and Stockfish's answer to it, followed by Rook's move and what
+  // it adds.
+  const [solvedLine, setSolvedLine] = useState<readonly string[]>(
+    moment.solutionLine,
+  );
+  const solvedUci = solvedLine[0] ?? moment.bestUci;
+  // Solved with the move the player found in the real game.
+  const gameMove = moment.playedInGame;
+  const foundInGame =
+    moment.game && gameMove?.uci === solvedUci
+      ? { ...moment.game, san: gameMove.san }
+      : undefined;
+  const alternative = alternativeFrame(moment.fen, solvedUci, moment.bestUci);
+  // "Why does it work?" opens on the point and plays only until it lands. A
+  // quiet line has no point: one frame shows the move and what it does.
+  const point = pointStoryboard(moment.fen, solvedLine);
+  const [quietFirst] = point ? [] : lineStoryboard(moment.fen, solvedLine);
+  const [opening, ...told] = point
+    ? point.frames
+    : quietFirst
+      ? [
+          {
+            ...quietFirst,
+            // Never for a capture, a check or an offered piece.
+            caption: isQuietMove(moment.fen, quietFirst.moveUci)
+              ? `${quietFirst.caption} No tactic here, just a useful move.`
+              : quietFirst.caption,
+          },
+        ]
+      : [];
+  // Online, the opening frame says why the move is good in the checked
+  // words of the writer; the board keeps the frame's arrows and outlines.
+  const [why, setWhy] = useState<
+    { readonly uci: string; readonly text: string } | undefined
+  >();
+  const whyText = why?.uci === solvedUci ? why.text : undefined;
+  // A sacrifice the line declines, whose take-back runs into a mate threat:
+  // "Why does it work?" plays the take-back line, with the mate square
+  // outlined.
+  const [sacrifice, setSacrifice] = useState<
+    { readonly uci: string; readonly threat: SacrificeThreat } | undefined
+  >();
+  // Only when the line declines the sacrifice: when it takes back, what
+  // it wins is the point.
+  const threat = sacrifice?.uci === solvedUci ? sacrifice.threat : undefined;
+  const threatFrames = threat ? sacrificeStoryboard(moment.fen, threat) : [];
+  const storyboard = [
+    ...(threatFrames.length > 0
+      ? threatFrames
+      : opening
+        ? [whyText ? { ...opening, caption: whyText } : opening, ...told]
+        : []),
+    ...(alternative ? [alternative] : []),
+  ];
+  const answerStory: Story = {
+    start: moment.fen,
+    frames: storyboard,
+    step: 0,
+    mood: "happy",
+    moves:
+      threat && threatFrames.length > 0
+        ? threat.line
+        : point
+          ? point.moves
+          : solvedLine,
+  };
+  const afterSolution = (() => {
+    try {
+      return new Chess(moment.fen).move(uciMove(solvedUci)).after;
+    } catch {
+      return undefined;
+    }
+  })();
+  const learnerColor = moment.fen.split(" ")[1] === "b" ? "b" : "w";
+
+  // Once solved, find Rook's best defence other than his main-line reply, for
+  // "What if you'd played …?". A forced reply has no alternative.
+  const [defence, setDefence] = useState<
+    (SanMove & { readonly line: readonly string[] }) | undefined
+  >();
+  const solved = kind === "solved" || kind === "shown";
+  useEffect(() => {
+    if (!solved || afterSolution === undefined) return;
+    if (new Chess(afterSolution).moves().length < 2) return;
+    const signal = controller.current.signal;
+    void analyzePosition(afterSolution, 2, signal).then((analysis) => {
+      if (!analysis.ok || signal.aborted) return;
+      const other = analysis.value.candidates.find(
+        ({ uci }) => uci !== solvedLine[1],
+      );
+      const san = other ? sanFor(afterSolution, other.uci) : undefined;
+      if (other && san)
+        setDefence({
+          uci: other.uci,
+          san,
+          line: [other.uci, ...other.principalVariation.slice(1)],
+        });
+    });
+  }, [solved, afterSolution, analyzePosition, solvedLine]);
+
+  // Once solved, a capture or check that can be taken back: read the line
+  // where the opponent takes back, for a mate threat.
+  useEffect(() => {
+    const uci = solvedLine[0];
+    if (!solved || uci === undefined) return;
+    const back = takeBack(moment.fen, uci);
+    if (back === undefined || solvedLine[1] === back) return;
+    const board = new Chess(moment.fen);
+    try {
+      board.move(uciMove(uci));
+      board.move(uciMove(back));
+    } catch {
+      return;
+    }
+    if (board.isGameOver()) return;
+    const local = new AbortController();
+    const signal = AbortSignal.any([controller.current.signal, local.signal]);
+    void analyzePosition(board.fen(), 1, signal).then((analysis) => {
+      if (!analysis.ok || signal.aborted) return;
+      const line = analysis.value.candidates[0]?.principalVariation ?? [];
+      const found = sacrificeThreat(moment.fen, [uci, back, ...line]);
+      if (found) setSacrifice({ uci, threat: found });
+    });
+    return () => {
+      local.abort();
+    };
+  }, [solved, solvedLine, moment.fen, analyzePosition]);
+  const bestSan = sanFor(moment.fen, moment.bestUci) ?? moment.bestUci;
+
+  // Once solved or shown, and online, ask for the checked "why" in the
+  // background, so it is usually ready before "Why does it work?" is tapped.
+  // A late answer replaces the opening caption only if it is still shown.
+  const codeCaption = opening?.caption;
+  useEffect(() => {
+    if (!solved || !online || !explainWhy || codeCaption === undefined) return;
+    const uci = solvedLine[0];
+    if (uci === undefined) return;
+    const local = new AbortController();
+    const signal = AbortSignal.any([
+      controller.current.signal,
+      local.signal,
+      AbortSignal.timeout(WHY_BUDGET_MS),
+    ]);
+    void explainWhy(
+      {
+        fen: moment.fen,
+        bestLine: solvedLine,
+        gameMoveUci: moment.playedInGame?.uci,
+        previous: moment.previousMove,
+      },
+      signal,
+    )
+      .catch(() => undefined)
+      .then((text) => {
+        if (text === undefined || signal.aborted) return;
+        setWhy({ uci, text });
+        setStory((current) => {
+          const [first, ...rest] = current?.frames ?? [];
+          return current?.start === moment.fen && first?.caption === codeCaption
+            ? { ...current, frames: [{ ...first, caption: text }, ...rest] }
+            : current;
+        });
+        setSay((current) =>
+          current.text === codeCaption ? { ...current, text } : current,
+        );
+      });
+    return () => {
+      local.abort();
+    };
+  }, [
+    solved,
+    online,
+    explainWhy,
+    codeCaption,
+    solvedLine,
+    moment.fen,
+    moment.playedInGame?.uci,
+    moment.previousMove,
+  ]);
+
+  // After the position is solved or shown, the player may try their own move
+  // at the start or at any of their turns in a line they are stepping
+  // through.
+  const branch: Branch | undefined = (() => {
+    if (!solved || view.previewTag) return undefined;
+    if (!story)
+      return view.fen === moment.fen && solvedLine.length > 0
+        ? { fen: moment.fen, line: solvedLine, back: "start" }
+        : undefined;
+    const frame = story.frames[story.step];
+    if (
+      !story.moves ||
+      !frame ||
+      frame.moveUci !== story.moves[story.step] ||
+      frame.fen.split(" ")[1] !== learnerColor
+    )
+      return undefined;
+    const line = story.moves.slice(story.step + 1);
+    return line.length > 0 ? { fen: frame.fen, line, back: story } : undefined;
+  })();
+
+  // On a step where Rook moves next, the player can play a different move
+  // for him and see why he did not.
+  const rookTurn: RookTurn | undefined = (() => {
+    if (!solved || view.previewTag || !story?.moves) return undefined;
+    const frame = story.frames[story.step];
+    if (
+      !frame ||
+      frame.moveUci !== story.moves[story.step] ||
+      frame.fen.split(" ")[1] === learnerColor
+    )
+      return undefined;
+    const chosen = story.moves[story.step + 1];
+    return chosen ? { fen: frame.fen, chosen, back: story } : undefined;
+  })();
+
+  function send(...events: SessionEvent[]) {
+    setSession((current) => events.reduce(advanceSession, current));
+  }
+
+  // The board answers the tap at once; Rook's reply follows once the engine
+  // has checked the move.
+  function showPlayed(uci: string, previewTag?: string, from = moment.fen) {
+    try {
+      const after = new Chess(from).move(uciMove(uci)).after;
+      setView({
+        fen: after,
+        lastMoveUci: uci,
+        arrows: [],
+        outlines: [],
+        previewTag,
+      });
+    } catch {
+      // An illegal move stays off the board; the check says so.
+    }
+  }
+
+  // Show, don't tell: one captioned frame of a line on the board. The player
+  // steps through it and it stays until Reset.
+  function openStory(next: Story, understood?: string) {
+    setConfirm(undefined);
+    setChoices(undefined);
+    const frame = next.frames[next.step];
+    if (!frame) {
+      setStory(undefined);
+      setSay({
+        text: `Stockfish rates ${bestSan} as the best move here.`,
+        mood: next.mood,
+        understood,
+      });
+      return;
+    }
+    setStory(next);
+    setSelected(undefined);
+    setView(frameView(frame));
+    setSay({ text: frame.caption, mood: next.mood, understood });
+  }
+
+  function stepTo(step: number) {
+    if (!story || busy) return;
+    const clamped = Math.max(0, Math.min(story.frames.length - 1, step));
+    if (clamped !== story.step) openStory({ ...story, step: clamped });
+  }
+
+  function onStepKey(event: KeyboardEvent<HTMLDivElement>) {
+    if (!story) return;
+    if (event.key === "ArrowLeft") stepTo(story.step - 1);
+    else if (event.key === "ArrowRight") stepTo(story.step + 1);
+    else return;
+    event.preventDefault();
+  }
+
+  function rewind(withScan: boolean) {
+    const scan = withScan ? scanHint(moment.fen) : undefined;
+    setStory(undefined);
+    setSelected(undefined);
+    setClaim(undefined);
+    setConfirm(undefined);
+    setChoices(undefined);
+    setView({
+      ...start,
+      arrows: [...ghostArrows(attempts), ...(scan?.arrows ?? [])],
+    });
+    setReply(undefined);
+    if (scan) {
+      send({ kind: "help" });
+      setSay({
+        text: (
+          <>
+            Let's scan.{" "}
+            {scan.rows.map((row) => `${row.label}: ${row.moves}.`).join(" ")}
+          </>
+        ),
+        mood: "hmm",
+      });
+    } else
+      setSay({
+        text: "Your move again. The faint arrows are your earlier tries.",
+        mood: "idle",
+      });
+  }
+
+  async function tryMove(uci: string) {
+    setSelected(undefined);
+    const before = view;
+    showPlayed(uci);
+    setSay({ text: "Let me see…", mood: "think" });
+    const checked = await whileBusy(checkMove(uci, controller.current.signal));
+    if (!checked.ok) {
+      setView(before);
+      setSay({
+        text: "I couldn't check that move just now. Try it again.",
+        mood: "hmm",
+      });
+      return;
+    }
+    const { attempt, afterFen, replyFen, replySan, line } = checked.value;
+    send({ kind: "try", attempt });
+    setTryLines((current) => new Map(current).set(attempt.uci, line));
+    if (attempt.tier === "best") {
+      setSolvedLine(line);
+      setView({
+        fen: afterFen,
+        lastMoveUci: attempt.uci,
+        arrows: [],
+        outlines: [],
+        spot: square(attempt.uci.slice(2, 4)),
+      });
+      // A chance the player took in the real game, found again.
+      const again =
+        attempt.uci === moment.playedInGame?.uci
+          ? `You found ${moment.playedInGame.san} in the game too. `
+          : "";
+      setSay({
+        text: `${again}Want to see why it works, or what I could have tried instead? Or tap Done.`,
+        mood: "happy",
+      });
+      return;
+    }
+    const tactic = attempt.replyUci
+      ? tacticFrame(afterFen, attempt.replyUci, learnerColor)?.frame
+      : undefined;
+    const shownTactic = tactic?.fen === replyFen ? tactic : undefined;
+    setReply(
+      attempt.replyUci && replySan
+        ? { uci: attempt.replyUci, san: replySan }
+        : undefined,
+    );
+    const moveUci =
+      replyFen && attempt.replyUci ? attempt.replyUci : attempt.uci;
+    const mood = attempt.tier === "missed" ? "warm" : "cool";
+    const frame: StoryFrame = {
+      fen: replyFen ?? afterFen,
+      moveUci,
+      by: replyFen ? "rook" : "learner",
+      arrows:
+        shownTactic?.arrows ??
+        (attempt.replyUci ? arrow(attempt.replyUci, "reply") : []),
+      outlines: shownTactic?.outlines ?? [],
+      control: [],
+      caption: tierLine({
+        tier: attempt.tier,
+        trySan: attempt.san,
+        replySan,
+        replyCaption: shownTactic?.caption,
+        preview: false,
+        plan: moment.goal.kind === "plan",
+      }),
+    };
+    setStory({
+      start: replyFen ? afterFen : moment.fen,
+      frames: [frame],
+      moves: [moveUci],
+      step: 0,
+      mood,
+    });
+    setView({ ...frameView(frame), animate: true });
+    setSay({ text: frame.caption, mood });
+    setClaim({ fen: moment.fen, better: moment.bestUci, worse: attempt.uci });
+  }
+
+  // A move of the player's own at a point of the line, once the answer is
+  // known: the line's move steps on; another is checked with Stockfish and
+  // either works too or plays out as Rook's refutation.
+  async function tryFrom(from: Branch, uci: string, understood?: string) {
+    setSelected(undefined);
+    const [lineUci] = from.line;
+    if (uci === lineUci) {
+      if (from.back === "start") openStory(answerStory, understood);
+      else openStory({ ...from.back, step: from.back.step + 1 }, understood);
+      return;
+    }
+    const san = sanFor(from.fen, uci);
+    if (lineUci === undefined || san === undefined) return;
+    send({ kind: "explore", key: `branch:${from.fen}:${uci}` });
+    const before = view;
+    showPlayed(uci, undefined, from.fen);
+    setSay({ text: "Let me see…", mood: "think", understood });
+    const signal = controller.current.signal;
+    const checked = await whileBusy(checkBranch(lineUci));
+    async function checkBranch(bestUci: string) {
+      const top = await analyzePosition(from.fen, 1, signal);
+      const bestCp = top.ok
+        ? top.value.candidates[0]?.evaluationCpFromSideToMove
+        : undefined;
+      return bestCp === undefined
+        ? undefined
+        : await checkFrom(
+            {
+              fen: from.fen,
+              bestUci,
+              bestCp,
+              solutionLine: from.line,
+              ...(moment.toleranceCp === undefined
+                ? {}
+                : { toleranceCp: moment.toleranceCp }),
+            },
+            uci,
+            signal,
+          );
+    }
+    if (signal.aborted) return;
+    if (!checked?.ok) {
+      setView(before);
+      setSay({
+        text: "I couldn't check that move just now. Try it again.",
+        mood: "hmm",
+        understood,
+      });
+      return;
+    }
+    const { attempt, line } = checked.value;
+    setClaim(
+      attempt.tier === "best"
+        ? undefined
+        : { fen: from.fen, better: lineUci, worse: uci },
+    );
+    if (attempt.tier === "best") {
+      const works = alternativeFrame(from.fen, lineUci, uci);
+      openStory(
+        {
+          start: from.fen,
+          frames: works ? [works] : [],
+          step: 0,
+          mood: "happy",
+          back: from.back,
+        },
+        understood,
+      );
+      if (!works) setSay({ text: `${san} works too.`, mood: "happy" });
+      return;
+    }
+    openStory(
+      {
+        start: from.fen,
+        frames: refutationStoryboard({
+          fen: from.fen,
+          line,
+          learner: learnerColor,
+          standing: STANDING_AFTER[attempt.tier],
+          instead: from.line,
+          answerKnown: true,
+        }),
+        step: 0,
+        mood: "cool",
+        back: from.back,
+      },
+      understood,
+    );
+  }
+
+  // "What if you had played X?" for one of Rook's moves: X, the player's
+  // best answer and the rest of Stockfish's line on the board, then how it
+  // compares with the move Rook played.
+  async function rookAlternative(
+    from: RookTurn,
+    uci: string,
+    understood?: string,
+  ) {
+    setSelected(undefined);
+    if (uci === from.chosen) {
+      if (from.back !== "start")
+        openStory({ ...from.back, step: from.back.step + 1 }, understood);
+      return;
+    }
+    const altSan = sanFor(from.fen, uci);
+    const chosenSan = sanFor(from.fen, from.chosen);
+    let afterFen: string;
+    try {
+      const board = new Chess(from.fen);
+      board.move(uciMove(uci));
+      afterFen = board.fen();
+    } catch {
+      return;
+    }
+    if (!altSan || !chosenSan) return;
+    send({ kind: "explore", key: `rook-alt:${from.fen}:${uci}` });
+    showPlayed(uci, undefined, from.fen);
+    setSay({ text: "Let me see…", mood: "think", understood });
+    const signal = AbortSignal.any([
+      controller.current.signal,
+      AbortSignal.timeout(8_000),
+    ]);
+    const [before, after] = await whileBusy(
+      Promise.all([
+        analyzePosition(from.fen, 1, signal),
+        analyzePosition(afterFen, 1, signal),
+      ]),
+    );
+    const best = before.ok ? before.value.candidates[0] : undefined;
+    const answer = after.ok ? after.value.candidates[0] : undefined;
+    const replySan = answer?.principalVariation[0]
+      ? sanFor(afterFen, answer.principalVariation[0])
+      : undefined;
+    if (!best || !answer || !replySan) {
+      setSay({
+        text: "I couldn't check that just now. Try it again.",
+        mood: "hmm",
+        understood,
+      });
+      return;
+    }
+    const loss =
+      best.evaluationCpFromSideToMove + answer.evaluationCpFromSideToMove;
+    setClaim(
+      loss >= 100
+        ? { fen: from.fen, better: from.chosen, worse: uci }
+        : undefined,
+    );
+    const line = [uci, ...answer.principalVariation];
+    const frames = lineStoryboard(from.fen, line, learnerColor);
+    const [first, ...rest] = frames;
+    const last = frames.at(-1);
+    if (!first || !last) return;
+    const payoff = payoffFrame(from.fen, frames);
+    const closing: StoryFrame = {
+      fen: (payoff ?? last).fen,
+      moveUci: "",
+      by: "rook",
+      arrows: [],
+      outlines: [],
+      control: [],
+      caption:
+        loss >= 100
+          ? `I'd be worse off than with ${chosenSan}, so I played that.`
+          : `${altSan} is about as good for me as ${chosenSan}.`,
+    };
+    openStory(
+      {
+        start: from.fen,
+        frames: [
+          { ...first, caption: `If I play ${altSan}, you answer ${replySan}.` },
+          ...rest,
+          ...(payoff ? [payoff] : []),
+          closing,
+        ],
+        step: 0,
+        mood: "cool",
+        back: from.back,
+        moves: line,
+        played: from.chosen,
+      },
+      understood,
+    );
+  }
+
+  // "How sure?": Stockfish scores both moves of the last comparison and Rook
+  // says, in words, how much better the better one is. Before the answer is
+  // found it never names the best move. If the two are about the same, he
+  // says he overstated it.
+  async function howSure() {
+    if (!claim) return;
+    const { fen, better, worse } = claim;
+    const scored = async (uci: string) => {
+      const board = new Chess(fen);
+      board.move(uciMove(uci));
+      const analysis = await analyzePosition(
+        board.fen(),
+        1,
+        AbortSignal.any([
+          controller.current.signal,
+          AbortSignal.timeout(8_000),
+        ]),
+      );
+      const top = analysis.ok ? analysis.value.candidates[0] : undefined;
+      return top ? -top.evaluationCpFromSideToMove : undefined;
+    };
+    setSay({ text: "Let me check both with Stockfish…", mood: "think" });
+    const [a, b] = await whileBusy(
+      Promise.all([
+        scored(better).catch(() => undefined),
+        scored(worse).catch(() => undefined),
+      ]),
+    );
+    const betterSan =
+      solving && better === moment.bestUci
+        ? "the best move"
+        : (sanFor(fen, better) ?? better);
+    const worseSan = sanFor(fen, worse) ?? worse;
+    if (a === undefined || b === undefined) {
+      setSay({ text: "I couldn't check that just now.", mood: "hmm" });
+      return;
+    }
+    const whose = fen.split(" ")[1] === learnerColor ? "you" : "me";
+    const margin = marginWords(a - b);
+    setSay({
+      text: margin
+        ? `Stockfish checked both: ${betterSan} is ${margin} than ${worseSan} for ${whose}.`
+        : `Stockfish checked both: ${betterSan} and ${worseSan} are about the same for ${whose}. I overstated it.`,
+      mood: margin ? "idle" : "hmm",
+    });
+  }
+
+  // After a miss or once the answer is known, either side can move from the
+  // position shown. Stockfish's best move there is the yardstick: the
+  // player's move gets "works too" or what it costs, Rook's gets how it
+  // compares, and the best move itself plays out its line.
+  async function exploreFrom(fen: string, uci: string) {
+    setSelected(undefined);
+    const back: Story | "start" = story ?? "start";
+    send({ kind: "explore", key: `explore:${fen}:${uci}` });
+    setSay({ text: "Let me see…", mood: "think" });
+    const signal = controller.current.signal;
+    const top = await whileBusy(
+      analyzePosition(
+        fen,
+        1,
+        AbortSignal.any([signal, AbortSignal.timeout(8_000)]),
+      ),
+    );
+    if (signal.aborted) return;
+    const best = top.ok ? top.value.candidates[0] : undefined;
+    if (!best) {
+      setSay({
+        text: "I couldn't check that just now. Try it again.",
+        mood: "hmm",
+      });
+      return;
+    }
+    const line = [best.uci, ...best.principalVariation.slice(1)];
+    if (uci === best.uci) {
+      const frames = lineStoryboard(fen, line, learnerColor);
+      const [first, ...rest] = frames;
+      if (!first) return;
+      openStory({
+        start: fen,
+        frames: [{ ...first, caption: `Best move. ${first.caption}` }, ...rest],
+        step: 0,
+        mood: "happy",
+        back,
+        moves: line,
+      });
+      return;
+    }
+    if (fen.split(" ")[1] === learnerColor)
+      void tryFrom({ fen, line, back }, uci);
+    else void rookAlternative({ fen, chosen: best.uci, back }, uci);
+  }
+
+  // "Why not {your move}?": the try, Rook's best answer and what it costs.
+  // Before the position is solved it never shows the answer.
+  function whyNot(tried: Attempt, understood?: string) {
+    const line = tryLines.get(tried.uci);
+    if (!line || tried.tier === "best") return false;
+    openStory(
+      {
+        start: moment.fen,
+        frames: refutationStoryboard({
+          fen: moment.fen,
+          line: solving ? withoutAnswer(line, moment.bestUci) : line,
+          learner: learnerColor,
+          standing: STANDING_AFTER[tried.tier],
+          instead: solvedLine,
+          answerKnown: !solving,
+        }),
+        step: 0,
+        mood: "cool",
+      },
+      understood,
+    );
+    return true;
+  }
+
+  // "Why {a move in the line}?": the frame where it was played, and what it
+  // does in that position.
+  function whyOnFrame(uci: string, understood?: string): boolean {
+    if (!story) return false;
+    const found = storyMoves(story).find((move) => move.uci === uci);
+    const frame = found ? story.frames[found.index] : undefined;
+    if (!found || !frame) return false;
+    const reason =
+      frame.by === "rook"
+        ? (rookMoveReason(
+            beforeFrame(story, found.index),
+            uci,
+            previousMove(story, found.index),
+            restOf(story, found.index),
+          ) ?? frame.caption)
+        : frame.caption;
+    setStory({ ...story, step: found.index });
+    setView(frameView(frame));
+    setSay({ text: reason, mood: "idle", understood });
+    return true;
+  }
+
+  async function preview(uci: string, understood?: string) {
+    // A what-if that names the answer while solving would solve it for the
+    // player: they commit every move (owner decision, 28 November 2026).
+    if (solving && uci === moment.bestUci) {
+      setStory(undefined);
+      setView({ ...start, arrows: ghostArrows(attempts), outlines: [] });
+      setSay({
+        text: "Play it on the board and I'll tell you how it does.",
+        mood: "idle",
+        understood,
+      });
+      return;
+    }
+    if (solving) send({ kind: "help" });
+    send({ kind: "explore", key: `preview:${uci}` });
+    setStory(undefined);
+    const before = view;
+    showPlayed(uci, "Preview · not played");
+    setSay({ text: "Let me see…", mood: "think", understood });
+    const checked = await whileBusy(checkMove(uci, controller.current.signal));
+    if (!checked.ok) {
+      setView(before);
+      setSay({
+        text:
+          checked.error.code === "illegal"
+            ? "That move isn't possible from the start. Tap ↺ Reset and play it on the board."
+            : "I couldn't check that move just now.",
+        mood: "hmm",
+        understood,
+      });
+      return;
+    }
+    const { attempt, afterFen, replyFen, replySan } = checked.value;
+    setView({
+      fen: replyFen ?? afterFen,
+      lastMoveUci: attempt.replyUci ?? attempt.uci,
+      previewTag: "Preview · not played",
+      animate: true,
+      arrows: [
+        ...arrow(attempt.uci, "preview"),
+        ...(attempt.replyUci ? arrow(attempt.replyUci, "reply") : []),
+      ],
+      outlines: [],
+    });
+    setSay({
+      text: tierLine({
+        tier: attempt.tier,
+        trySan: attempt.san,
+        replySan,
+        preview: true,
+        plan: moment.goal.kind === "plan",
+      }),
+      mood: attempt.tier === "best" ? "happy" : "warm",
+      understood,
+    });
+  }
+
+  function showAnswer(answer: BoardAnswer, understood?: string) {
+    setView((current) => ({
+      ...current,
+      arrows:
+        current.fen === moment.fen
+          ? [...ghostArrows(attempts), ...answer.arrows]
+          : answer.arrows,
+      outlines: answer.outlines,
+    }));
+    setSay({ text: answer.text, mood: "idle", understood });
+  }
+
+  // Spot the danger. Spotting is feedback only: nothing here is sent to the
+  // session, so only the safe move that follows counts.
+  function spotView(state: SpotState): BoardView {
+    if (!danger || state.kind !== "spotted") return start;
+    const marks = dangerMarks(danger, state.factId);
+    return {
+      ...start,
+      arrows: marks.arrows.map(({ from, to }) => ({ from, to, kind: "reply" })),
+      outlines: marks.targets.map((square) => ({ square, tone: "coral" })),
+    };
+  }
+
+  function showSpot(next: SpotState, understood?: string) {
+    if (!danger) return;
+    setSpot(next);
+    setStory(undefined);
+    setView(spotView(next));
+    setSay({
+      text: spotLine(danger, moment.fen, next),
+      mood:
+        next.kind === "spotted"
+          ? "happy"
+          : next.kind === "nudged"
+            ? "hmm"
+            : "idle",
+      understood,
+    });
+  }
+
+  async function readSpot(text: string) {
+    if (!danger) return;
+    const fallback = "Tap the piece you'd worry about and I'll check it.";
+    if (!readDanger) {
+      setSay({ text: fallback, mood: "hmm" });
+      return;
+    }
+    setSay({ text: "Let me think…", mood: "think" });
+    const signal = controller.current.signal;
+    const reading = await whileBusy(readDanger(text, signal));
+    if (signal.aborted) return;
+    if (reading.kind === "unrouted") {
+      setSay({ text: fallback, mood: "hmm" });
+      return;
+    }
+    const next = advanceSpot(danger, moment.fen, spot, {
+      kind: "read",
+      factId: reading.factId,
+    });
+    // An answer that misses the danger gets the hint that fits it best.
+    const hint =
+      next.kind === "nudged" && pickHint
+        ? await pickHint(text, signal).catch(() => undefined)
+        : undefined;
+    if (!hint) {
+      showSpot(next, reading.understood);
+      return;
+    }
+    setSpot(next);
+    setStory(undefined);
+    setView({
+      ...start,
+      arrows: hint.option.arrows.map(([from, to]) => ({
+        from,
+        to,
+        kind: "reply",
+      })),
+      outlines: hint.option.outlined.map((square) => ({
+        square,
+        tone: "coral",
+      })),
+    });
+    setSay({
+      text: hint.option.text,
+      mood: "hmm",
+      understood: hint.understood,
+    });
+  }
+
+  function spotHintOnBoard() {
+    if (!danger) return;
+    const hint = spotHint(danger, moment.fen);
+    setStory(undefined);
+    setView({
+      ...start,
+      outlines: hint ? [{ square: hint.square, tone: "coral" }] : [],
+    });
+    setSay({
+      text: hint?.text ?? spotLine(danger, moment.fen, spot),
+      mood: "idle",
+    });
+  }
+
+  // Hands over to the moment loop on the bare position.
+  function findSafeMove() {
+    if (!danger) return;
+    const next = advanceSpot(danger, moment.fen, spot, { kind: "find" });
+    setSpot(next);
+    setStory(undefined);
+    setView(start);
+    setSay({ text: spotLine(danger, moment.fen, next), mood: "idle" });
+  }
+
+  function showWhatHappened() {
+    if (!danger) return;
+    openStory({
+      start: moment.fen,
+      frames: lineStoryboard(moment.fen, danger.gameLine, learnerColor),
+      step: 0,
+      mood: "cool",
+    });
+  }
+
+  function reset() {
+    setClaim(undefined);
+    if (spotActive) {
+      showSpot(spot);
+      return;
+    }
+    setReply(undefined);
+    setStory(undefined);
+    setSelected(undefined);
+    setView(
+      solving
+        ? { ...start, arrows: ghostArrows(attempts), outlines: [] }
+        : start,
+    );
+    setSay({
+      text: solving
+        ? "Back to the start. Your move."
+        : "Back to the start. Play any move and I'll show you what happens.",
+      mood: "idle",
+    });
+  }
+
+  function goBack(back: Story | "start") {
+    if (back === "start") reset();
+    else openStory(back);
+  }
+
+  // The answer opens on the board; the player steps through it, can ask
+  // about it and taps Done when ready.
+  function showMe() {
+    send({ kind: "show" });
+    openStory({ ...answerStory, mood: "warm" });
+  }
+
+  async function finish(kind: "finish" | "finish-spot"): Promise<boolean> {
+    if (busy || (kind === "finish-spot" && spot.kind !== "spotted"))
+      return false;
+    const next = advanceSession(session, { kind });
+    if (next === session || next.state.kind !== "done") return false;
+    setSaveError(false);
+    const signal = controller.current.signal;
+    try {
+      if (trackProgress)
+        await whileBusy(Promise.resolve(onComplete(next.state.result)));
+    } catch {
+      if (!signal.aborted) setSaveError(true);
+      return false;
+    }
+    if (signal.aborted) return false;
+    setSession(next);
+    return true;
+  }
+
+  async function celebrate(kind: "finish" | "finish-spot") {
+    if (await finish(kind)) setSheet("celebrate");
+  }
+
+  function legalAt(fen: string, uci: string): boolean {
+    return sanFor(fen, uci) !== undefined;
+  }
+
+  function act(action: RoutedAction, understood?: string) {
+    setConfirm(undefined);
+    setChoices(undefined);
+    const fen = view.fen;
+    const key = `ask:${action.kind}${"uci" in action ? `:${action.uci}` : ""}`;
+    if (action.kind !== "done" && action.kind !== "something-else")
+      send({ kind: "explore", key });
+    switch (action.kind) {
+      case "threats":
+        showAnswer(threatsAnswer(fen, learnerColor), understood);
+        return;
+      case "checks":
+        showAnswer(checksAnswer(fen), understood);
+        return;
+      case "scan": {
+        send({ kind: "help" });
+        const scan = scanHint(moment.fen);
+        setStory(undefined);
+        setView({
+          ...start,
+          arrows: [...ghostArrows(attempts), ...(scan?.arrows ?? [])],
+        });
+        setSay({
+          text: scan
+            ? scan.rows.map((row) => `${row.label}: ${row.moves}.`).join(" ")
+            : "Look at every check, capture and threat.",
+          mood: "idle",
+          understood,
+        });
+        return;
+      }
+      case "why":
+      case "what-if": {
+        if (action.uci === moment.bestUci && !solving) {
+          if (action.kind === "why" || !whyOnFrame(action.uci, understood))
+            openStory(answerStory, understood);
+          return;
+        }
+        if (
+          action.kind === "what-if" &&
+          action.uci === defence?.uci &&
+          afterSolution
+        ) {
+          openStory(
+            {
+              start: afterSolution,
+              frames: lineStoryboard(afterSolution, defence.line, learnerColor),
+              step: 0,
+              mood: "idle",
+              moves: defence.line,
+            },
+            understood,
+          );
+          return;
+        }
+        if (whyOnFrame(action.uci, understood)) return;
+        const tried = attempts.find(({ uci }) => uci === action.uci);
+        if (tried && whyNot(tried, understood)) return;
+        if (action.kind === "why" && action.uci === reply?.uci) {
+          const beforeReply = new Chess(moment.fen);
+          const last = attempts.at(-1);
+          try {
+            if (last) beforeReply.move(uciMove(last.uci));
+          } catch {
+            // The reason falls back to a request to play the move.
+          }
+          setSay({
+            text: replyReason(
+              beforeReply.fen(),
+              action.uci,
+              last ? { fen: moment.fen, uci: last.uci } : undefined,
+            ),
+            mood: "idle",
+            understood,
+          });
+          return;
+        }
+        if (branch && legalAt(branch.fen, action.uci)) {
+          void tryFrom(branch, action.uci, understood);
+          return;
+        }
+        void preview(action.uci, understood);
+        return;
+      }
+      case "show-line":
+        openStory(answerStory, understood);
+        return;
+      case "show-me":
+        if (solving) showMe();
+        else openStory(answerStory, understood);
+        return;
+      case "opening": {
+        // The frames are separate positions, not one line, so there is
+        // nothing to branch from.
+        const [first] = openingFrames;
+        if (first)
+          openStory(
+            { start: first.fen, frames: openingFrames, step: 0, mood: "warm" },
+            understood,
+          );
+        return;
+      }
+      case "plan":
+        setSay({
+          text: online ? "Plans are coming soon." : "Plans need internet.",
+          mood: "idle",
+        });
+        return;
+      case "something-else":
+        setSay({
+          text: "Tap a chip, or play a move on the board and I'll show you what happens.",
+          mood: "idle",
+        });
+        return;
+      case "done":
+        if (kind === "shown") {
+          setSheet("missed");
+          return;
+        }
+        void celebrate("finish");
+        return;
+    }
+  }
+
+  // Why a move is played, said about the position on screen without moving
+  // anything. Before the answer is found, the answer is never explained.
+  // Where Rook played a move, for reasons that need the position before it,
+  // the player's move just before and the rest of the line.
+  function rookMoveContext(uci: string):
+    | {
+        readonly before: string;
+        readonly previous:
+          | { readonly fen: string; readonly uci: string }
+          | undefined;
+        readonly rest: readonly string[];
+      }
+    | undefined {
+    const last = attempts.at(-1);
+    const lastTry =
+      uci === reply?.uci && last
+        ? { fen: moment.fen, uci: last.uci }
+        : undefined;
+    const afterTry = lastTry
+      ? new Chess(lastTry.fen).move(uciMove(lastTry.uci)).after
+      : undefined;
+    const lines = [story, solving ? undefined : answerStory].filter(
+      (line): line is Story => line !== undefined,
+    );
+    for (const line of lines) {
+      const inLine = storyMoves(line).find((move) => move.uci === uci);
+      const frame = inLine ? line.frames[inLine.index] : undefined;
+      if (!inLine || frame?.by !== "rook") continue;
+      const before = beforeFrame(line, inLine.index);
+      return {
+        before,
+        previous:
+          previousMove(line, inLine.index) ??
+          (before === afterTry ? lastTry : undefined),
+        rest: restOf(line, inLine.index),
+      };
+    }
+    if (afterTry) return { before: afterTry, previous: lastTry, rest: [] };
+    if (legalAt(view.fen, uci) && view.fen.split(" ")[1] !== learnerColor)
+      return { before: view.fen, previous: undefined, rest: [] };
+    return undefined;
+  }
+
+  // Why a move is played, said about the position on screen without moving
+  // anything. Before the answer is found, the answer is never explained. A
+  // capture of Rook's that gives up material returns SEARCH: only Stockfish
+  // can say why.
+  function reasonInPlace(uci: string): string | typeof SEARCH | undefined {
+    if (solving && uci === moment.bestUci)
+      return "Play it on the board and I'll tell you how it does.";
+    const rook = rookMoveContext(uci);
+    if (rook) {
+      const tactic = tacticFrame(rook.before, uci, learnerColor);
+      if (tactic?.frame.fen === view.fen) return tactic.frame.caption;
+      const captures = capturedBy(rook.before, uci) !== undefined;
+      if (captures)
+        return (
+          captureReasonFromBoard(rook.before, uci, rook.previous, rook.rest) ??
+          SEARCH
+        );
+      return (
+        rookMoveReason(rook.before, uci, rook.previous, rook.rest) ??
+        lineStoryboard(rook.before, [uci], learnerColor)[0]?.caption
+      );
+    }
+    for (const line of [story, solving ? undefined : answerStory]) {
+      if (!line) continue;
+      const inLine = storyMoves(line).find((move) => move.uci === uci);
+      const frame = inLine ? line.frames[inLine.index] : undefined;
+      if (frame) return frame.caption;
+    }
+    const tried = attempts.find((attempt) => attempt.uci === uci);
+    if (tried)
+      return `${sanFor(moment.fen, uci) ?? uci} was one of your tries. I can play out what goes wrong.`;
+    if (legalAt(view.fen, uci))
+      return lineStoryboard(view.fen, [uci], learnerColor)[0]?.caption;
+    return undefined;
+  }
+
+  // When no search is possible: what the capture takes, honestly.
+  function captureFallback(uci: string): string {
+    const rook = rookMoveContext(uci);
+    return (
+      (rook && sacrificeSentence(rook.before, [uci, ...rook.rest])) ??
+      "I can't check that right now. Step through the line to see what follows."
+    );
+  }
+
+  // Why Rook gave up material, from a search: what goes wrong with his best
+  // other move, then what the capture costs and wins. "If my queen runs with
+  // Qd2, you answer Nd3+ and I'm much worse off. Taking your bishop costs me
+  // a queen, but I get a bishop and a knight for her."
+  async function searchedReason(
+    uci: string,
+  ): Promise<{ readonly text: string; readonly story?: Story } | undefined> {
+    const rook = rookMoveContext(uci);
+    if (!rook) return undefined;
+    // A search that never answers must not leave Rook busy for good.
+    const analysis = await analyzePosition(
+      rook.before,
+      4,
+      AbortSignal.any([controller.current.signal, AbortSignal.timeout(8_000)]),
+    );
+    if (!analysis.ok) return undefined;
+    const { candidates } = analysis.value;
+    const chosen = candidates.find((candidate) => candidate.uci === uci);
+    const from = uci.slice(0, 2);
+    const others = candidates.filter((candidate) => candidate.uci !== uci);
+    const alternative =
+      others.find((candidate) => candidate.uci.slice(0, 2) === from) ??
+      others[0];
+    const reply = alternative?.principalVariation[1];
+    const score =
+      chosen?.evaluationCpFromSideToMove ??
+      candidates[0]?.evaluationCpFromSideToMove;
+    if (!alternative || !reply || score === undefined) return undefined;
+    if (score - alternative.evaluationCpFromSideToMove < 100) return undefined;
+    setClaim({ fen: rook.before, better: uci, worse: alternative.uci });
+    const altSan = sanFor(rook.before, alternative.uci);
+    let replySan: string | undefined;
+    try {
+      const after = new Chess(rook.before);
+      after.move(uciMove(alternative.uci));
+      replySan = sanFor(after.fen(), reply);
+    } catch {
+      return undefined;
+    }
+    if (!altSan || !replySan) return undefined;
+    const fromSquare = SQUARES.find((square) => square === from);
+    const piece = fromSquare
+      ? new Chess(rook.before).get(fromSquare)
+      : undefined;
+    const runs =
+      alternative.uci.slice(0, 2) === from && piece
+        ? `If my ${PIECE_NAME[piece.type]} runs with ${altSan}`
+        : `If I play ${altSan} instead`;
+    const cost = sacrificeSentence(rook.before, [uci, ...rook.rest]);
+    const text = `${runs}, you answer ${replySan} and I'm much worse off.${cost ? ` ${cost}` : ""}`;
+    // Show, don't tell: the escape plays on the board as a branch, then what
+    // it costs, then why the capture is better.
+    const escape = [
+      alternative.uci,
+      ...alternative.principalVariation.slice(1),
+    ];
+    const frames = lineStoryboard(rook.before, escape, learnerColor);
+    const [first, ...rest] = frames;
+    const last = frames.at(-1);
+    if (!first || !last) return { text };
+    const payoff = payoffFrame(rook.before, frames);
+    const closing: StoryFrame = {
+      fen: (payoff ?? last).fen,
+      moveUci: "",
+      by: "rook",
+      arrows: [],
+      outlines: [],
+      control: [],
+      caption:
+        cost ?? `So I take your ${capturedName(rook.before, uci)} instead.`,
+    };
+    return {
+      text,
+      story: {
+        start: rook.before,
+        frames: [
+          {
+            ...first,
+            caption: `${runs}, you answer ${replySan} and I'm much worse off.`,
+          },
+          ...rest,
+          ...(payoff ? [payoff] : []),
+          closing,
+        ],
+        step: 0,
+        mood: "cool",
+        back: story ?? "start",
+        moves: escape,
+        played: uci,
+      },
+    };
+  }
+
+  function capturedName(fen: string, uci: string): string {
+    const piece = capturedBy(fen, uci);
+    return piece === "p" ||
+      piece === "n" ||
+      piece === "b" ||
+      piece === "r" ||
+      piece === "q" ||
+      piece === "k"
+      ? PIECE_NAME[piece]
+      : "piece";
+  }
+
+  // A typed question is answered where the player is looking. Anything that
+  // would move the board is offered as a button instead of done.
+  function answerInPlace(action: RoutedAction, understood: string) {
+    const offer = (label: string, text: string) => {
+      setChoices(undefined);
+      setConfirm({ kind: "confirm", action, label, understood });
+      setSay({ text, mood: "idle", understood });
+    };
+    switch (action.kind) {
+      case "show-me":
+        offer(
+          "Show me the answer",
+          "I can play the answer for you. That ends this try.",
+        );
+        return;
+      case "scan":
+        offer(
+          "Mark it for me",
+          "I can mark every check, capture and threat for you.",
+        );
+        return;
+      case "why":
+      case "what-if": {
+        const found = reasonInPlace(action.uci);
+        if (found === SEARCH) {
+          setChoices(undefined);
+          setConfirm(undefined);
+          setSay({
+            text: "Let me check what else I could do…",
+            mood: "think",
+            understood,
+          });
+          const uci = action.uci;
+          void whileBusy(searchedReason(uci))
+            .catch(() => undefined)
+            .then((found) => {
+              if (found?.story) {
+                openStory(found.story, understood);
+                return;
+              }
+              setSay({
+                text: found?.text ?? captureFallback(uci),
+                mood: "idle",
+                understood,
+              });
+            });
+          return;
+        }
+        const reason = found;
+        // A causal capture reason is checked against Stockfish's score at
+        // the end of the line before Rook says it.
+        const rook = rookMoveContext(action.uci);
+        if (
+          reason &&
+          rook &&
+          rook.rest.length > 0 &&
+          /for free|so I take it|come out ahead|I win/.test(reason)
+        ) {
+          const end = (() => {
+            try {
+              const board = new Chess(rook.before);
+              for (const uci of [action.uci, ...rook.rest])
+                board.move(uciMove(uci));
+              return board.fen();
+            } catch {
+              return undefined;
+            }
+          })();
+          if (end) {
+            setSay({ text: "Let me check that…", mood: "think", understood });
+            void whileBusy(
+              analyzePosition(
+                end,
+                1,
+                AbortSignal.any([
+                  controller.current.signal,
+                  AbortSignal.timeout(8_000),
+                ]),
+              ),
+            )
+              .catch(() => undefined)
+              .then((analysis) => {
+                const top = analysis?.ok
+                  ? analysis.value.candidates[0]
+                  : undefined;
+                const rookToMove = end.split(" ")[1] !== learnerColor;
+                const score =
+                  top === undefined
+                    ? 0
+                    : rookToMove
+                      ? top.evaluationCpFromSideToMove
+                      : -top.evaluationCpFromSideToMove;
+                setSay({
+                  text: temperReason(reason, score),
+                  mood: "idle",
+                  understood,
+                });
+              });
+            return;
+          }
+        }
+        const onScreen =
+          action.kind === "why" && view.lastMoveUci === action.uci;
+        if (
+          (solving && action.uci === moment.bestUci) ||
+          (onScreen && reason)
+        ) {
+          setSay({ text: reason ?? "", mood: "idle", understood });
+          return;
+        }
+        offer(
+          action.kind === "why"
+            ? "Show it on the board"
+            : "Play it on the board",
+          reason ?? "I can show that on the board.",
+        );
+        return;
+      }
+      default:
+        act(action, understood);
+    }
+  }
+
+  // "What if the queen moves next to the king?": the moves the words
+  // describe, from the position on screen back through the line, at the
+  // first position where any fit. Rook's turns become his alternatives; the
+  // player's become branches.
+  // Several moves fit the words: show them where they would be played, as
+  // arrows with the landing squares outlined, and let the player pick one.
+  function offerMoves(
+    fen: string,
+    options: readonly SanMove[],
+    play: (move: SanMove) => void,
+  ) {
+    setStory(undefined);
+    setView({
+      fen,
+      arrows: options.flatMap((move) => {
+        const from = SQUARES.find((sq) => sq === move.uci.slice(0, 2));
+        const to = SQUARES.find((sq) => sq === move.uci.slice(2, 4));
+        return from && to ? [{ from, to, kind: "preview" as const }] : [];
+      }),
+      // A one-square arrow is hard to see: outline where each lands.
+      outlines: options.flatMap((move) => {
+        const to = SQUARES.find((sq) => sq === move.uci.slice(2, 4));
+        return to ? [{ square: to, tone: "jade" as const }] : [];
+      }),
+    });
+    setChoices(
+      options.map((move) => ({
+        label: `What if ${move.san}?`,
+        move,
+        run: () => {
+          play(move);
+        },
+      })),
+    );
+    setSay({
+      text: `Which one: ${options.map(({ san }) => san).join(" or ")}? They're drawn on the board.`,
+      mood: "hmm",
+    });
+  }
+
+  function whatIf(text: string):
+    | {
+        readonly fen: string;
+        readonly moves: readonly SanMove[];
+        readonly play: (uci: string) => void;
+      }
+    | undefined {
+    if (!story?.moves) return undefined;
+    const line = story.moves;
+    for (let index = story.step; index >= -1; index -= 1) {
+      const frame = index >= 0 ? story.frames[index] : undefined;
+      if (index >= 0 && frame?.moveUci !== line[index]) continue;
+      const fen = frame ? frame.fen : story.start;
+      const moves = inWords(text, fen);
+      if (moves.length === 0) continue;
+      const chosen =
+        index === -1 && story.played ? story.played : line[index + 1];
+      // Back returns to the step the player asked from.
+      const back: Story = story;
+      const rookToMove = fen.split(" ")[1] !== learnerColor;
+      return {
+        fen,
+        moves,
+        play: (uci) => {
+          if (rookToMove && chosen)
+            void rookAlternative({ fen, chosen, back }, uci);
+          else if (!rookToMove && chosen)
+            void tryFrom({ fen, line: line.slice(index + 1), back }, uci);
+        },
+      };
+    }
+    return undefined;
+  }
+
+  async function ask(text: string) {
+    setVoiceOffer(undefined);
+    // A reply to "Which move?" is read against the options first: the move,
+    // either of its squares, or the words, among those options only.
+    if (choices) {
+      const picked = pickedChoice(text, choices);
+      if (picked) {
+        setChoices(undefined);
+        picked.run();
+        return;
+      }
+      if (!WHY_QUESTION.test(text) && !WHAT_IF_QUESTION.test(text)) {
+        setSay({
+          text: `Which one: ${choices.map(({ move }) => move.san).join(" or ")}? Tap it, or name the square it goes to.`,
+          mood: "hmm",
+        });
+        return;
+      }
+    }
+    // A new question replaces any offer or choice left from the last one.
+    setConfirm(undefined);
+    setChoices(undefined);
+    // While the danger is unspotted, words are an answer, never a question
+    // that could draw the threat.
+    if (looking) {
+      await readSpot(text);
+      return;
+    }
+    // On a frame, a question is about the position shown. The move it is
+    // about comes from code, never the model: one it names from the line,
+    // one it describes in words ("why would the queen take") from the line
+    // or the board, or else the frame's own move.
+    const frame = story?.frames[story.step];
+    const played = story ? storyMoves(story) : [];
+    const currentMove = frame?.moveUci;
+    const tacticalQuestion = /\b(pin(?:ned|ning)?|fork(?:ed|ing)?)s?\b/i
+      .exec(text)?.[1]
+      ?.toLowerCase();
+    if (
+      story &&
+      currentMove &&
+      tacticalQuestion &&
+      !WHAT_IF_QUESTION.test(text)
+    ) {
+      const tactic = tacticFrame(
+        beforeFrame(story, story.step),
+        currentMove,
+        learnerColor,
+      );
+      if (
+        tactic &&
+        tacticalQuestion.startsWith(tactic.kind) &&
+        tactic.frame.fen === view.fen
+      ) {
+        showAnswer({ ...tactic.frame, text: tactic.frame.caption });
+        return;
+      }
+    }
+    if (
+      exploringMiss &&
+      /\b(?:threat(?:en(?:ing|s)?)?s?|what can you take)\b/i.test(text) &&
+      !WHAT_IF_QUESTION.test(text) &&
+      !WHY_QUESTION.test(text)
+    ) {
+      act({ kind: "threats" });
+      return;
+    }
+    const named = mentionedMove(text, played);
+    const inLine = named ? [] : describedMoves(text, played);
+    const candidates = named
+      ? [named]
+      : inLine.length > 0
+        ? inLine
+        : describedMoves(text, legalMoves(view.fen));
+    const onFrame = played.find((move) => move.uci === currentMove);
+    // A bare "why?" on a step asks about the move on screen.
+    const resolved =
+      candidates.find((move) => move.uci === currentMove) ??
+      (candidates.length === 1 ? candidates[0] : undefined) ??
+      (candidates.length === 0 && WHY_QUESTION.test(text)
+        ? onFrame
+        : undefined);
+    if (exploringMiss && WHAT_IF_QUESTION.test(text)) {
+      const fen = view.fen;
+      const moves = inWords(text, fen);
+      const [only] = moves;
+      if (only && moves.length === 1) {
+        void exploreFrom(fen, only.uci);
+        return;
+      }
+      if (moves.length > 1 && moves.length <= 3) {
+        offerMoves(fen, moves, ({ uci }) => {
+          void exploreFrom(fen, uci);
+        });
+        return;
+      }
+    }
+    // While solving, a "what if" is played out at once from the start as a
+    // preview, never a try (owner, 28 November 2026): typed or spoken, the
+    // player never has to make the move on the board first.
+    if (solving && !danger && WHAT_IF_QUESTION.test(text)) {
+      const moves = inWords(text, moment.fen);
+      const [only] = moves;
+      if (only && moves.length === 1) {
+        act(
+          { kind: "what-if", uci: only.uci },
+          `Rook understood · what-if · ${only.san}`,
+        );
+        return;
+      }
+      if (moves.length > 1 && moves.length <= 3) {
+        offerMoves(moment.fen, moves, (move) => {
+          act(
+            { kind: "what-if", uci: move.uci },
+            `Rook understood · what-if · ${move.san}`,
+          );
+        });
+        return;
+      }
+    }
+    if (!solving && WHAT_IF_QUESTION.test(text)) {
+      const found = whatIf(text);
+      const [only] = found?.moves ?? [];
+      if (found && only && found.moves.length === 1) {
+        found.play(only.uci);
+        return;
+      }
+      if (found && found.moves.length > 1) {
+        offerMoves(found.fen, found.moves.slice(0, 3), (move) => {
+          found.play(move.uci);
+        });
+        return;
+      }
+    }
+    if (WHY_QUESTION.test(text)) {
+      if (resolved) {
+        answerInPlace(
+          { kind: "why", uci: resolved.uci },
+          `Rook understood · why · ${resolved.san}`,
+        );
+        return;
+      }
+      if (candidates.length > 1) {
+        const options = candidates.slice(0, 3);
+        setConfirm(undefined);
+        setChoices(
+          options.map((move) => ({
+            // "why not take the pawn" keeps its "why not".
+            label: `${/^\s*why not\b/i.test(text) ? "Why not" : "Why"} ${move.san}?`,
+            move,
+            // Answered like the typed question it came from, so it never
+            // gives the answer away while the player is still solving.
+            run: () => {
+              answerInPlace(
+                { kind: "why", uci: move.uci },
+                `Rook understood · why · ${move.san}`,
+              );
+            },
+          })),
+        );
+        setSay({
+          text: `Which move: ${options.map(({ san }) => san).join(" or ")}?`,
+          mood: "hmm",
+        });
+        return;
+      }
+    }
+    setSay({ text: "Let me think…", mood: "think" });
+    const boardMove = resolved ?? onFrame;
+    const outcome = await whileBusy(
+      askRook(
+        {
+          text,
+          fen: view.fen,
+          boardMoveUci: boardMove?.uci,
+          boardMoveSan: boardMove?.san,
+        },
+        controller.current.signal,
+      ),
+    );
+    switch (outcome.kind) {
+      case "act":
+        if (movesBoard(outcome.action)) {
+          answerInPlace(outcome.action, outcome.understood);
+          return;
+        }
+        act(outcome.action, outcome.understood);
+        return;
+      case "confirm":
+        if (outcome.action.kind === "something-else") {
+          setSay({ text: ANSWERABLE, mood: "hmm" });
+          return;
+        }
+        // Answering never moves the board, so only ending the moment is
+        // confirmed; anything that would move the board becomes a button.
+        if (outcome.action.kind !== "done") {
+          if (movesBoard(outcome.action))
+            answerInPlace(outcome.action, outcome.understood);
+          else act(outcome.action, outcome.understood);
+          return;
+        }
+        setConfirm(outcome);
+        setSay({
+          text: `Did you mean: ${outcome.label}`,
+          mood: "hmm",
+          understood: outcome.understood,
+        });
+        return;
+      case "play-it-on-the-board":
+        setSay({
+          text: "Play the move on the board and I'll show you what happens.",
+          mood: "idle",
+          understood: outcome.understood,
+        });
+        return;
+      case "unrouted":
+        setSay({ text: ANSWERABLE, mood: "hmm" });
+    }
+  }
+
+  // Once the danger is spotted, the board waits for "Find a safe move".
+  // After a miss, moves in the resulting position are exploratory until
+  // the player returns to the start for another scored try.
+  const boardFen =
+    busy || (spotActive && !looking)
+      ? undefined
+      : solving
+        ? atStart && !view.previewTag
+          ? moment.fen
+          : exploringMiss
+            ? view.fen
+            : undefined
+        : (branch?.fen ?? rookTurn?.fen ?? view.fen);
+
+  function commitBoardMove(fen: string, uci: string) {
+    setVoiceOffer(undefined);
+    if (solving && fen === moment.fen) void tryMove(uci);
+    else if (branch) void tryFrom(branch, uci);
+    else if (rookTurn) void rookAlternative(rookTurn, uci);
+    else void exploreFrom(fen, uci);
+  }
+
+  function selectSquare(target: Square) {
+    if (boardFen === undefined) return;
+    if (danger && looking) {
+      showSpot(
+        advanceSpot(danger, moment.fen, spot, { kind: "tap", square: target }),
+      );
+      return;
+    }
+    if (selected && legalTargets(boardFen, selected).includes(target)) {
+      const piece = new Chess(boardFen).get(selected);
+      const promotes =
+        piece?.type === "p" && (target.endsWith("8") || target.endsWith("1"));
+      const uci = `${selected}${target}${promotes ? "q" : ""}`;
+      commitBoardMove(boardFen, uci);
+      return;
+    }
+    const piece = new Chess(boardFen).get(target);
+    const turn = boardFen.split(" ")[1];
+    setSelected(piece?.color === turn ? target : undefined);
+  }
+
+  const lastMiss = attempts.findLast(({ tier }) => tier !== "best");
+  const chips: readonly Chip[] = confirm
+    ? []
+    : chipsFor(kind, {
+        fen: view.fen,
+        bestUci: moment.bestUci,
+        playedInGame: moment.playedInGame,
+        reply,
+        bestNonSolution: moment.bestNonSolution,
+        bestDefence: defence,
+        tried:
+          lastMiss && tryLines.has(lastMiss.uci)
+            ? { uci: lastMiss.uci, san: lastMiss.san }
+            : undefined,
+        quiet: false,
+        online,
+        opening: openingFrames.length > 0,
+        spotTheDanger: danger !== undefined,
+      });
+  const turn = view.fen.split(" ")[1] === "w" ? "White" : "Black";
+  // Try again is the reset after a not-best move; Reset covers everything
+  // else that changed the board: previews, answers and storyboards.
+  // Neither shows while a played move waits on the engine.
+  const tryAgain = !busy && exploringMiss;
+  const showReset =
+    !busy &&
+    kind !== "done" &&
+    sheet === undefined &&
+    !tryAgain &&
+    // The spotted danger is itself the frame Reset would return to.
+    (spot.kind !== "spotted" || story !== undefined) &&
+    (!atStart ||
+      story !== undefined ||
+      view.outlines.length > 0 ||
+      view.arrows.length > ghostArrows(attempts).length);
+  const stepper = story && story.frames.length > 1 ? story : undefined;
+  const stepText = stepper ? stepLabel(stepper) : undefined;
+  const back = story?.back;
+  const missed = attempts.filter((attempt) => attempt.tier !== "best");
+  const xp = result ? attemptXp(result) : 0;
+  // A plan's goal marks its pieces on the bare starting board while the
+  // player is solving; any answer drawn on the board replaces them.
+  // Spot the danger draws only what the player found.
+  const goalMarks =
+    moment.goal.kind === "plan" &&
+    !danger &&
+    solving &&
+    atStart &&
+    !view.previewTag &&
+    view.outlines.length === 0 &&
+    view.arrows.length === ghostArrows(attempts).length
+      ? moment.goal
+      : undefined;
+
+  async function continueMoment() {
+    if (sheet === "missed" && !(await finish("finish"))) return;
+    onContinue();
+  }
+
+  const voiceControls = useRef<HTMLDivElement>(null);
+  const voiceRequest = useRef<AbortController | null>(null);
+  const [interpretingVoice, setInterpretingVoice] = useState(false);
+  const offeredMove =
+    boardFen && voiceOffer?.view === view ? voiceOffer.move : undefined;
+  useLayoutEffect(
+    () => () => {
+      voiceRequest.current?.abort();
+    },
+    [
+      boardFen,
+      busy,
+      claim,
+      choices,
+      confirm,
+      kind,
+      say,
+      selected,
+      sheet,
+      spot,
+      story,
+      view,
+      voiceOffer,
+    ],
+  );
+
+  async function followVoice(text: string) {
+    const said = voiceLabel(text);
+    if (sheet && said === "continue") {
+      void continueMoment();
+      return;
+    }
+    const controls = sheet
+      ? []
+      : Array.from(
+          voiceControls.current?.querySelectorAll<HTMLButtonElement>(
+            "[data-voice-controls] button, .ui-chip-row button",
+          ) ?? [],
+        ).filter(
+          (button) =>
+            !button.disabled && button.getAttribute("aria-disabled") !== "true",
+        );
+    const label = (button: HTMLButtonElement) =>
+      voiceLabel(button.getAttribute("aria-label") ?? button.textContent);
+    if (said === "move") {
+      const next =
+        controls.find((button) => label(button) === "next step") ??
+        controls.find((button) => label(button) === "play it on the board");
+      if (next) {
+        next.click();
+        return;
+      }
+    }
+    const exact = controls.filter((button) => label(button) === said);
+    const matches = exact.length
+      ? exact
+      : controls.filter((button) =>
+          voiceAliases[label(button)]?.includes(said),
+        );
+    if (matches.length === 1) {
+      matches[0]?.click();
+      return;
+    }
+    if (boardFen && !sheet) {
+      const tap = /^(?:tap|select) ([a-h][1-8])$/.exec(
+        voiceNotation(text)
+          .trim()
+          .replace(/[.!]+$/, ""),
+      );
+      const target = square(tap?.[1] ?? "");
+      if (target) {
+        selectSquare(target);
+        return;
+      }
+      if (!looking) {
+        const moves = voiceMoves(text, boardFen);
+        const [move] = moves;
+        if (move && moves.length === 1) {
+          commitBoardMove(boardFen, move.lan);
+          return;
+        }
+        if (move && moves.length > 1) {
+          setSay({
+            text: moves.every(
+              ({ from, to }) => from === move.from && to === move.to,
+            )
+              ? "Which promotion piece? Say the move in chess notation, including the piece."
+              : "Which piece? Say its starting square and destination.",
+            mood: "hmm",
+          });
+          return;
+        }
+      }
+    }
+    if (routeVoice && said !== "move") {
+      const options = sheet
+        ? [{ id: "continue", label: "Continue" }]
+        : controls.map((button, index) => ({
+            id: `control-${String(index)}`,
+            label: button.getAttribute("aria-label") ?? button.textContent,
+          }));
+      const moveFen = !sheet && !looking ? boardFen : undefined;
+      const notation = voiceNotation(text);
+      const squares = Array.from(
+        notation.matchAll(/\b(?:[kqrbn][a-h]?[1-8]?x?|[a-h]x)?([a-h][1-8])\b/g),
+        ([, target]) => target,
+      );
+      const castling = /\bcastl/i.test(text);
+      const named =
+        moveFen &&
+        !WHAT_IF_QUESTION.test(text) &&
+        !WHY_QUESTION.test(text) &&
+        (squares.length > 0 || castling)
+          ? inWords(notation, moveFen)
+          : [];
+      // The router decides whether the player asked to play a move. The
+      // words must already identify one legal move before Rook can offer it.
+      const [only] = named;
+      const candidates =
+        only &&
+        named.length === 1 &&
+        (squares.includes(only.uci.slice(2, 4)) || castling)
+          ? [{ id: `move-${only.uci}`, san: only.san, uci: only.uci }]
+          : [];
+      if (options.length || moveFen) {
+        const request = new AbortController();
+        const signal = AbortSignal.any([
+          request.signal,
+          controller.current.signal,
+          AbortSignal.timeout(4_000),
+        ]);
+        voiceRequest.current?.abort();
+        voiceRequest.current = request;
+        setInterpretingVoice(true);
+        const choice = await routeVoice(
+          {
+            text,
+            caption:
+              typeof say.text === "string" && say.mood !== "think"
+                ? say.text
+                : "",
+            controls: options,
+            boardCanMove: moveFen !== undefined,
+            moves: candidates,
+          },
+          signal,
+        ).catch(() => undefined);
+        if (
+          voiceRequest.current !== request ||
+          controller.current.signal.aborted
+        )
+          return;
+        voiceRequest.current = null;
+        setInterpretingVoice(false);
+        if (request.signal.aborted) return;
+        if (!signal.aborted) {
+          const index = options.findIndex(({ id }) => id === choice);
+          if (sheet && index === 0) {
+            await continueMoment();
+            return;
+          }
+          const button = controls[index];
+          if (
+            button?.isConnected &&
+            !button.disabled &&
+            button.getAttribute("aria-disabled") !== "true"
+          ) {
+            button.click();
+            return;
+          }
+          const move = candidates.find(({ id }) => id === choice);
+          if (move) {
+            setConfirm(undefined);
+            setChoices(undefined);
+            setVoiceOffer({ view, move });
+            setSay({ text: `Did you mean ${move.san}?`, mood: "hmm" });
+            return;
+          }
+          if (choice === "clarify-move" && moveFen) {
+            setVoiceOffer(undefined);
+            setSay({
+              text: "Which move? Say the piece and destination, or both squares.",
+              mood: "hmm",
+            });
+            return;
+          }
+        }
+      }
+    }
+    if (sheet) return;
+    if (said === "move" || /^(?:move|play)\b/i.test(text.trim())) {
+      setSay({
+        text:
+          boardFen && !looking
+            ? said === "move"
+              ? "Which move? Say the piece and destination, or both squares."
+              : "I couldn’t match that move. Say the piece and destination, or both squares."
+            : "Choose one of the actions on screen.",
+        mood: "hmm",
+      });
+      return;
+    }
+    void ask(text);
+  }
+
+  const [handsFree, setHandsFree] = useState(false);
+  const [heardTurn, setHeardTurn] = useState(0);
+  const speechMode = useRef<"local" | "online">("local");
+  const narration = useRookNarration();
+  const heard = useRef<(text: string) => void>(() => undefined);
+  const voice = useRookSpeech(
+    (text) => {
+      heard.current(text);
+    },
+    { handsFree },
+  );
+  const listening = voice.state.status === "listening";
+  const listen = useRef(voice.start);
+  const stopListening = useRef(voice.cancel);
+  const lastRead = useRef("");
+  useEffect(() => {
+    listen.current = voice.start;
+    stopListening.current = voice.cancel;
+    heard.current = (text) => {
+      if (busy) return;
+      if (handsFree) setHeardTurn((turn) => turn + 1);
+      if (echoOf(text, lastRead.current)) return;
+      const message = text.trim().slice(0, 400);
+      if (handsFree) void followVoice(message);
+      else void ask(message);
+    };
+  });
+
+  const { readAloud, cancel: stopReading } = narration;
+  const spoken =
+    say.mood !== "think" && typeof say.text === "string" ? say.text : "";
+  useEffect(() => {
+    if (busy || interpretingVoice || (!handsFree && !readsAloud)) return;
+    const resume = () => {
+      if (handsFree && !document.hidden)
+        void listen.current(speechMode.current);
+    };
+    if (!sheet && spoken && spoken !== lastRead.current) {
+      // Close the microphone before narration so Rook cannot command itself.
+      stopListening.current();
+      lastRead.current = spoken;
+      readAloud(spoken, resume);
+      return stopReading;
+    }
+    resume();
+  }, [
+    spoken,
+    handsFree,
+    readsAloud,
+    readAloud,
+    stopReading,
+    busy,
+    interpretingVoice,
+    sheet,
+    heardTurn,
+  ]);
+  useEffect(() => {
+    if (!handsFree || busy || !["silent", "ready"].includes(voice.state.status))
+      return;
+    const retry = window.setTimeout(() => {
+      if (!document.hidden) void listen.current(speechMode.current);
+    }, 250);
+    return () => {
+      window.clearTimeout(retry);
+    };
+  }, [handsFree, busy, voice.state.status]);
+  useEffect(() => {
+    if (busy) stopListening.current();
+  }, [busy]);
+
+  function toggleHandsFree() {
+    voiceRequest.current?.abort();
+    setHandsFree(!handsFree);
+    speechMode.current = "local";
+    lastRead.current = "";
+    narration.cancel();
+    voice.cancel();
+    if (!handsFree) narration.prepare();
+  }
+
+  const reading = useEvalBar(view.fen, solved ? assessPosition : undefined);
+  const balance = assessPosition ? (reading ?? "reserved") : undefined;
+
+  return (
+    <div className="moment board-split">
+      <div className="board-split__main">
+        {danger ? (
+          <h1 className="moment__prompt moment__prompt--danger">
+            <small>
+              {turn} to move · {moment.sourceLabel}
+            </small>
+            {spot.kind === "spotted"
+              ? "Spotted it."
+              : looking
+                ? danger.question
+                : exploringMiss
+                  ? "Try a move here or ask Rook."
+                  : "Your move. Keep everything safe."}
+          </h1>
+        ) : (
+          <>
+            <h1 className="moment__prompt">
+              {turn} to move
+              <small>{moment.sourceLabel}</small>
+            </h1>
+            <p className={`moment__goal moment__goal--${moment.goal.kind}`}>
+              {exploringMiss
+                ? "Try a move here or ask Rook."
+                : moment.goal.prompt}
+            </p>
+          </>
+        )}
+        <ChessBoard
+          fen={view.fen}
+          label={`${turn} to move. ${moment.sourceLabel}`}
+          orientation={learnerColor === "w" ? "white" : "black"}
+          lastMoveUci={view.lastMoveUci}
+          // Every change of position slides, including Reset.
+          animateMove={view.animate ?? true}
+          selectedSquare={selected ?? null}
+          legalTargets={
+            selected && boardFen ? legalTargets(boardFen, selected) : []
+          }
+          onSquareSelect={selectSquare}
+          disabled={boardFen === undefined}
+          extraArrows={
+            goalMarks ? [...goalMarks.arrows, ...view.arrows] : view.arrows
+          }
+          outlines={goalMarks ? goalMarks.outlines : view.outlines}
+          previewTag={view.previewTag}
+          badges={[
+            ...departureBadges(view.arrows),
+            ...(view.goal
+              ? [
+                  {
+                    square: view.goal.square,
+                    text: "GOAL",
+                    tone: view.goal.rook
+                      ? ("coral" as const)
+                      : ("brass" as const),
+                    label: `Goal: the ${view.goal.piece}`,
+                  },
+                ]
+              : []),
+          ]}
+          spotSquare={view.spot}
+          balance={balance}
+          controlChanges={
+            view.control && view.control.length > 0
+              ? new Map(
+                  view.control.map(({ square, change }) => [square, change]),
+                )
+              : undefined
+          }
+        />
+      </div>
+      <div className="board-split__aside" ref={voiceControls}>
+        <RookSays>
+          <RookCharacter
+            mood={busy || interpretingVoice ? "think" : say.mood}
+          />
+          <RookBubble understood={say.understood}>{say.text}</RookBubble>
+        </RookSays>
+        {stepper && (
+          <div
+            className="moment__stepper"
+            role="group"
+            aria-label="Step through the line"
+            data-voice-controls
+            onKeyDown={onStepKey}
+          >
+            {/* aria-disabled keeps focus on a button that reaches the end of
+                the line, so the arrow keys keep working. */}
+            <Pill
+              aria-label="Previous step"
+              onClick={() => {
+                stepTo(stepper.step - 1);
+              }}
+              aria-disabled={busy || stepper.step === 0}
+            >
+              ◀
+            </Pill>
+            <span
+              className={`moment__step${stepText?.goal ? " moment__step--goal" : ""}`}
+            >
+              {stepText?.step}
+              {stepText?.goal && (
+                <small
+                  className={`moment__goal${stepText.rook ? " moment__goal--rook" : ""}`}
+                >
+                  {stepText.goal}
+                </small>
+              )}
+            </span>
+            <Pill
+              aria-label="Next step"
+              onClick={() => {
+                stepTo(stepper.step + 1);
+              }}
+              aria-disabled={busy || stepper.step === stepper.frames.length - 1}
+            >
+              ▶
+            </Pill>
+          </div>
+        )}
+        {((solving && (!spotActive || looking)) || showReset || back) && (
+          <div className="moment__tools" data-voice-controls>
+            {back && (
+              <Pill
+                onClick={() => {
+                  goBack(back);
+                }}
+                disabled={busy}
+              >
+                {back === "start"
+                  ? "◀ Back to the start"
+                  : solving
+                    ? "◀ Back to the position"
+                    : "◀ Back to the answer"}
+              </Pill>
+            )}
+            {tryAgain && (
+              <Button
+                onClick={() => {
+                  rewind(kind === "second-miss");
+                }}
+                disabled={busy}
+              >
+                ↺ Try again
+              </Button>
+            )}
+            {claim && !busy && (
+              <Pill
+                onClick={() => {
+                  void howSure();
+                }}
+              >
+                How sure?
+              </Pill>
+            )}
+            {showReset && (
+              <Pill onClick={reset} disabled={busy}>
+                ↺ Reset
+              </Pill>
+            )}
+            {looking && (
+              <Pill onClick={spotHintOnBoard} disabled={busy}>
+                Hint
+              </Pill>
+            )}
+            {solving && !spotActive && (
+              <>
+                <Pill
+                  onClick={() => {
+                    act({ kind: "scan" });
+                  }}
+                  disabled={busy}
+                >
+                  Hint
+                </Pill>
+                <Pill onClick={showMe} disabled={busy}>
+                  Show me
+                </Pill>
+              </>
+            )}
+          </div>
+        )}
+        {missed.length > 0 && (
+          <ul className="moment__tries" aria-label="Your tries">
+            {missed.map(({ uci, san, tier }, index) => (
+              <li
+                key={`${uci}-${String(index)}`}
+                className={`moment__try moment__try--${tier}`}
+              >
+                {san} · {tier === "best" ? "" : TRIES_CHIP[tier]}
+              </li>
+            ))}
+          </ul>
+        )}
+        {spotActive ? (
+          spot.kind === "spotted" &&
+          kind !== "done" && (
+            <div className="ui-chip-row" role="group" aria-label="Rook offers">
+              <Button
+                busy={busy}
+                onClick={() => {
+                  void celebrate("finish-spot");
+                }}
+              >
+                Done ✓
+              </Button>
+              <button
+                type="button"
+                className="ui-chip"
+                disabled={busy}
+                onClick={findSafeMove}
+              >
+                Find a safe move
+              </button>
+              <button
+                type="button"
+                className="ui-chip"
+                disabled={busy}
+                onClick={showWhatHappened}
+              >
+                Show what happened
+              </button>
+            </div>
+          )
+        ) : offeredMove || confirm || choices ? (
+          <div
+            className="ui-chip-row"
+            role="group"
+            aria-label={choices ? "Which move" : "Rook offers"}
+          >
+            {offeredMove && boardFen ? (
+              <button
+                type="button"
+                className="ui-chip ui-chip--primary"
+                disabled={busy}
+                onClick={() => {
+                  commitBoardMove(boardFen, offeredMove.uci);
+                }}
+              >
+                Play {offeredMove.san}
+              </button>
+            ) : confirm ? (
+              <button
+                type="button"
+                className="ui-chip ui-chip--primary"
+                disabled={busy}
+                onClick={() => {
+                  act(confirm.action, confirm.understood);
+                }}
+              >
+                {confirm.label}
+              </button>
+            ) : (
+              (choices ?? []).map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  className="ui-chip ui-chip--primary"
+                  disabled={busy}
+                  onClick={() => {
+                    setChoices(undefined);
+                    option.run();
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))
+            )}
+            <button
+              type="button"
+              className="ui-chip"
+              disabled={busy}
+              onClick={() => {
+                setVoiceOffer(undefined);
+                setConfirm(undefined);
+                setChoices(undefined);
+                setSay({ text: ANSWERABLE, mood: "idle" });
+              }}
+            >
+              Never mind
+            </button>
+          </div>
+        ) : (
+          <ChipRow
+            chips={chips}
+            disabled={busy}
+            busyId={busy ? busyChip : undefined}
+            onSelect={(chip) => {
+              // Read by whileBusy when the chip's action starts slow work.
+              pressedChip.current = chip.id;
+              act(chip.action);
+              pressedChip.current = undefined;
+            }}
+          />
+        )}
+        {kind !== "done" && spot.kind !== "spotted" && (
+          <AskBar
+            mode={online ? "online" : "offline"}
+            placeholder={
+              looking && readDanger ? "Tell Rook what you see…" : undefined
+            }
+            onAsk={(text) => {
+              void ask(text);
+            }}
+            onMic={() => {
+              if (listening) {
+                voice.stop();
+                return;
+              }
+              narration.cancel();
+              void voice.start();
+            }}
+            listening={listening}
+            handsFree={handsFree}
+            onHandsFree={toggleHandsFree}
+            disabled={busy}
+          />
+        )}
+        {saveError && sheet === undefined && (
+          <p role="alert">Couldn’t save this position. Try Done again.</p>
+        )}
+        <RookSpeechStatus
+          voice={handsFree ? { ...voice, cancel: toggleHandsFree } : voice}
+          onOnline={() => {
+            speechMode.current = "online";
+          }}
+        />
+      </div>
+      <Modal
+        celebrate
+        open={sheet === "celebrate"}
+        title={
+          spottedThreat
+            ? "Threat spotted"
+            : result?.outcome === "spotted"
+              ? "You spotted it! ✨"
+              : "Found it on a retry"
+        }
+      >
+        {moment.ideaName && !spottedThreat && (
+          <div className="moment__idea-card">
+            <b>
+              {foundInGame
+                ? `${moment.ideaName} · played it in a real game`
+                : moment.ideaName}
+            </b>
+            {trackProgress && (
+              <small>
+                {foundInGame
+                  ? `You found ${foundInGame.san} against ${foundInGame.opponent}${foundInGame.day ? ` on ${foundInGame.day}` : ""}, and again today.`
+                  : result?.outcome === "spotted"
+                    ? `Added to your collection · ${moment.sourceLabel}`
+                    : "Spot it on the first try to light its star"}
+              </small>
+            )}
+          </div>
+        )}
+        {trackProgress && (
+          <div className="moment__reward">
+            <p className="moment__xp">
+              <CountUp
+                value={xp}
+                format={(gained) => `+${String(gained)} XP`}
+              />
+            </p>
+            {dailyGoal && (
+              <span className="moment__goal-ring">
+                <Ring
+                  countUp
+                  size="sm"
+                  done={dailyGoal.done}
+                  target={dailyGoal.target}
+                  label={`Today: ${String(Math.min(dailyGoal.done, dailyGoal.target))} of ${String(dailyGoal.target)} positions`}
+                />
+                <small aria-hidden="true">today</small>
+              </span>
+            )}
+          </div>
+        )}
+        <Button
+          wide
+          onClick={() => {
+            void continueMoment();
+          }}
+        >
+          Continue
+        </Button>
+      </Modal>
+      <Sheet open={sheet === "missed"} title="Not this time" tone="calm">
+        <p className="moment__sheet-line">
+          {moment.ideaName ? `The idea: ${moment.ideaName}. ` : ""}
+          {trackProgress
+            ? "It will come back, and you’ll know what to look for."
+            : "You can review this position again any time."}
+        </p>
+        {saveError && (
+          <p role="alert">Couldn’t save this position. Try Continue again.</p>
+        )}
+        <Button
+          wide
+          busy={busy}
+          onClick={() => {
+            void continueMoment();
+          }}
+        >
+          Continue
+        </Button>
+      </Sheet>
+    </div>
+  );
+}

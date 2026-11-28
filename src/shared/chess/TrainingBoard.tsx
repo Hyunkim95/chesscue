@@ -4,6 +4,7 @@ import type { PlayerColor } from "../../domain/game/types";
 import { BoardBalance } from "../../features/board/BoardBalance";
 import { ChessBoard } from "../../features/board/ChessBoard";
 import { pieceNames } from "../../features/board/board-pieces";
+import { PromotionPiece } from "../../features/board/PromotionPiece";
 
 export function TrainingBoard({
   fen,
@@ -58,11 +59,17 @@ export function TrainingBoard({
             <button
               key={move.lan}
               type="button"
+              className="piece-choice"
+              aria-label={pieceNames[move.promotion ?? "q"]}
+              title={pieceNames[move.promotion ?? "q"]}
               onClick={() => {
                 onPromote(move);
               }}
             >
-              {pieceNames[move.promotion ?? "q"]}
+              <PromotionPiece
+                piece={move.promotion ?? "q"}
+                color={move.color}
+              />
             </button>
           ))}
         </div>

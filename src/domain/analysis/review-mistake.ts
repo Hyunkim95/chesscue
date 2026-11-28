@@ -23,6 +23,7 @@ export type ReviewMistakeEvidence = z.infer<typeof evidence>;
 export const reviewMistakeSchema = evidence
   .extend({
     version: z.literal(1),
+    unitId: z.string().min(1).optional(),
     id: z.string(),
     gameId: z.string().min(1),
     savedAt: z.iso.datetime(),

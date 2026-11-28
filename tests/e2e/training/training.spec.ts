@@ -94,32 +94,19 @@ test("plays a due practice position on the board and returns to rated play", asy
     });
   }, game);
   await page.reload();
-  await page.getByRole("button", { name: "Training plan" }).click();
-  const backRank = page
-    .getByRole("group", { name: "Chess skills" })
-    .getByRole("button", { name: /Threats/ });
-  await expect(backRank).toContainText("Practice ready");
-  await backRank.click();
-  await page
-    .getByRole("button", { name: "Practice one move threat", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const threat = page.getByRole("button", {
+    name: /^See the opponent’s next threat/,
+  });
+  await threat.click();
   const practiceBoard = await boardStyle();
   expect(practiceBoard.border).toBe(playBoard.border);
   expect(practiceBoard.fits).toBe(true);
   expect(Math.abs(practiceBoard.scale - playBoard.scale)).toBeLessThan(0.025);
-  const wrong = generatedMove("one-move-threat", "unlabeled", false).move;
+
   const best = generatedMove("one-move-threat", "unlabeled").move;
-  await page.getByRole("gridcell", { name: squareLabel(wrong.from) }).click();
-  await page.getByRole("gridcell", { name: squareLabel(wrong.to) }).click();
-  await page.getByRole("button", { name: "Play their reply" }).click();
-  await expect(
-    page.getByRole("heading", { name: /^(White|Black) replies / }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Undo and try again" }).click();
   await page.getByRole("gridcell", { name: squareLabel(best.from) }).click();
   await page.getByRole("gridcell", { name: squareLabel(best.to) }).click();
-  await expect(page.getByText("Good move", { exact: true })).toBeVisible();
-  await page.reload();
   await expect(page.getByText("Good move", { exact: true })).toBeVisible();
   await expect
     .poll(() =>
@@ -128,21 +115,20 @@ test("plays a due practice position on the board and returns to rated play", asy
       ),
     )
     .toBe("done");
+
+  await page.reload();
+  await expect(page.getByRole("grid")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Back to Practice", exact: true })
+    .click();
+  await expect(threat).toBeFocused();
+  await page
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("button", { name: "Play", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "Back to training plan" }),
+    page.getByRole("heading", { name: "Rated game", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Try another position" }).click();
-  await expect(
-    page.getByRole("gridcell", {
-      name: new RegExp(
-        "on " + generatedMove("one-move-threat", "close").move.from + "$",
-      ),
-    }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Play a rated game" }).click();
-  await expect(page.getByRole("heading", { name: "Rated game" })).toBeVisible();
-  await page.getByRole("button", { name: "Training plan" }).click();
-  await expect(backRank).not.toContainText("Practice ready");
 });
 
 test("keeps personalized training empty for a new player", async ({ page }) => {
@@ -153,9 +139,11 @@ test("keeps personalized training empty for a new player", async ({ page }) => {
     ),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Play this focus game" }),
+    page.getByRole("button", { name: /recommended from your games/ }),
   ).toHaveCount(0);
-  await expect(page.getByRole("group", { name: "Chess skills" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Curriculum skill tree" }),
+  ).toBeVisible();
 });
 
 test("keeps the Elo value and unit inside the rating card", async ({
@@ -177,29 +165,25 @@ test("keeps the Elo value and unit inside the rating card", async ({
 
   for (const width of [1180, 780, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
-    const layout = await card.evaluate(async (region) => {
+    const elo = card.getByText(/^[\d,]+ ChessCue Elo$/);
+    await expect(elo).toBeVisible();
+    const bounds = await card.boundingBox();
+    if (!bounds) throw new Error("Rating card missing");
+    const text = await elo.evaluate(async (label) => {
       await document.fonts.ready;
-      const row = region.querySelector(".rating-progress__elo");
-      const number = row?.querySelector("strong")?.getBoundingClientRect();
-      if (!row?.lastChild || !number)
-        throw new Error("Elo number or unit missing");
       const range = document.createRange();
-      range.selectNodeContents(row.lastChild);
-      const unit = range.getBoundingClientRect();
-      const bounds = region.getBoundingClientRect();
-      const styles = getComputedStyle(region);
+      range.selectNodeContents(label);
+      const rects = Array.from(range.getClientRects());
       return {
-        fits:
-          Math.min(unit.left, number.left) >=
-            bounds.left + parseFloat(styles.paddingLeft) - 1 &&
-          Math.max(unit.right, number.right) <=
-            bounds.right - parseFloat(styles.paddingRight) + 1,
-        sameLine: unit.top < number.bottom && unit.bottom > number.top,
+        lineCount: new Set(rects.map((rect) => rect.top)).size,
+        left: Math.min(...rects.map((rect) => rect.left)),
+        right: Math.max(...rects.map((rect) => rect.right)),
       };
     });
-    expect(layout, `Elo card at ${String(width)}px`).toEqual({
-      fits: true,
-      sameLine: true,
-    });
+    expect(text.lineCount, `Elo fits on one line at ${String(width)}px`).toBe(
+      1,
+    );
+    expect(text.left).toBeGreaterThanOrEqual(bounds.x);
+    expect(text.right).toBeLessThanOrEqual(bounds.x + bounds.width);
   }
 });

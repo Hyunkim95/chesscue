@@ -3,6 +3,7 @@ import {
   FOCUS_OPENING_POLICY_VERSION,
 } from "../../domain/curriculum/focus-opening-policy";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -78,15 +79,21 @@ describe("PlayGameScreen", () => {
   it("lets the player move and shows the CPU reply without coaching", async () => {
     const repository = new MemoryRepository();
     const engine = new ReadyEngine();
+    const analyzeCoachMove = vi.fn();
     render(
       <PlayGameScreen
         engine={engine}
+        analyzeCoachMove={analyzeCoachMove}
         repository={repository}
         createGameId={() => gameId("game-1")}
         createPositionId={() => positionId("position-1")}
       />,
     );
     await screen.findByText("Your move");
+    expect(
+      screen.queryByRole("button", { name: "Next move" }),
+    ).not.toBeInTheDocument();
+    expect(analyzeCoachMove).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("gridcell", { name: "White pawn on e2" }));
     fireEvent.click(screen.getByRole("gridcell", { name: "Empty e4" }));
@@ -116,6 +123,67 @@ describe("PlayGameScreen", () => {
       trainingFocus: "development",
       openingPolicyVersion: FOCUS_OPENING_POLICY_VERSION,
     });
+  });
+
+  it("offers progressive hints and previews without making the coached move", async () => {
+    const repository = new MemoryRepository();
+    const engine = new ReadyEngine();
+    interface Preview {
+      line: string[];
+      evaluationCpFromSideToMove: number;
+    }
+    let resolvePreview: (result: Preview) => void = () => {
+      throw new Error("Preview promise was not initialized");
+    };
+    const preview = new Promise<Preview>((resolve) => {
+      resolvePreview = resolve;
+    });
+    const analyzeCoachMove = vi.fn(() => preview);
+    render(
+      <PlayGameScreen
+        mode="coached"
+        engine={engine}
+        analyzeCoachMove={analyzeCoachMove}
+        repository={repository}
+        createGameId={() => gameId("game-hints")}
+        createPositionId={() => positionId("position-hints")}
+      />,
+    );
+    const hint = await screen.findByRole("button", { name: "Hint" });
+    expect(analyzeCoachMove).not.toHaveBeenCalled();
+    fireEvent.click(hint);
+    expect(hint).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Next move" })).toBeDisabled();
+    await act(async () => {
+      resolvePreview({ line: ["e2e4"], evaluationCpFromSideToMove: 45 });
+      await preview;
+    });
+    expect(
+      screen.getAllByRole("gridcell", { name: /Rook hint/ }).length,
+    ).toBeGreaterThan(0);
+    const more = screen.getByRole("button", { name: "More hint" });
+    expect(more).toBeEnabled();
+    expect(document.querySelector("[data-move-cue-arrow]")).toBeNull();
+    fireEvent.click(more);
+    expect(
+      screen.getByRole("gridcell", {
+        name: /White pawn on e2.*Rook highlight/,
+      }),
+    ).toBeVisible();
+    const next = screen.getByRole("button", { name: "Next move" });
+    expect(next).toBeEnabled();
+    fireEvent.click(next);
+    expect(screen.getByText(/Rook suggests e4/)).toBeVisible();
+    expect(
+      document.querySelector('[data-move-cue-arrow="e2:e4"]'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("gridcell", { name: /White pawn on e2/ }),
+    ).toBeVisible();
+    expect(screen.getByRole("gridcell", { name: "Empty e4" })).toBeVisible();
+    expect(repository.records.at(-1)?.moves).toHaveLength(0);
+    expect(engine.request).toBeNull();
+    expect(analyzeCoachMove).toHaveBeenCalledTimes(1);
   });
 
   it("preserves the terminal resignation state", async () => {
@@ -165,6 +233,42 @@ describe("PlayGameScreen", () => {
       </StrictMode>,
     );
     expect(onGameCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts one game on a double tap of Start another game, with a spinner while it saves", async () => {
+    const repository = new MemoryRepository();
+    let ids = 0;
+    render(
+      <PlayGameScreen
+        engine={new ReadyEngine()}
+        repository={repository}
+        createGameId={() => gameId(`game-${String((ids += 1))}`)}
+        createPositionId={() => positionId("position")}
+        now={() => "2026-11-24T12:00:00Z"}
+      />,
+    );
+    await screen.findByText("Your move");
+    fireEvent.click(screen.getByRole("button", { name: "Resign game" }));
+    const start = await screen.findByRole("button", {
+      name: "Start another game",
+    });
+    // The next save waits, so the second tap lands while it runs.
+    let release: () => void = () => undefined;
+    const put = repository.put.bind(repository);
+    vi.spyOn(repository, "put").mockImplementation(
+      (record) =>
+        new Promise((resolve) => {
+          release = () => {
+            resolve(put(record));
+          };
+        }),
+    );
+    fireEvent.click(start);
+    expect(start).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(start);
+    release();
+    await screen.findByText("Your move");
+    expect(new Set(repository.records.map(({ id }) => id)).size).toBe(2);
   });
 
   it("keeps the saved terminal state when the completion callback throws", async () => {

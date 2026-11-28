@@ -4,13 +4,14 @@ import type { ReviewReply } from "../../application/analyze-game/analyze-review-
 import type { AnalyzeReply } from "./GuidedMoveFeedback";
 import { Chess } from "chess.js";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CompletedGameAnalysis } from "../../application/analyze-game/analyze-completed-game";
 import type { ReviewTrainingLog } from "../../domain/analysis/review-training";
@@ -27,7 +28,27 @@ import type { LessonContentProvider } from "../../infrastructure/ai/lesson-conte
 import { ReviewContinuation } from "./ReviewContinuation";
 import { GameReviewExperience } from "./GameReviewExperience";
 
-afterEach(cleanup);
+const originalScroll = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  "scrollIntoView",
+);
+beforeEach(() => {
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: vi.fn(),
+  });
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  if (originalScroll)
+    Object.defineProperty(
+      HTMLElement.prototype,
+      "scrollIntoView",
+      originalScroll,
+    );
+  else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+});
 
 function reviewFixture(theme: LearningTheme = "one-move-threat"): {
   readonly game: GameRecord;
@@ -125,6 +146,37 @@ function reviewFixture(theme: LearningTheme = "one-move-threat"): {
   };
 }
 
+// Answers Stockfish checks for White's moves from the turning point, keyed by
+// the position each move reaches.
+function scoredReplies(
+  { game }: ReturnType<typeof reviewFixture>,
+  scores: Readonly<Record<string, number>>,
+  // White's score at the turning point itself, with d4 as the best move.
+  start?: number,
+): AnalyzeReply {
+  const turningPoint = game.moves[1]?.fenAfter ?? game.initialFen;
+  const byPosition = new Map(
+    Object.entries(scores).map(([san, score]) => {
+      const board = new Chess(turningPoint);
+      board.move(san);
+      return [board.fen(), score];
+    }),
+  );
+  return vi.fn<AnalyzeReply>((fen) => {
+    if (fen === turningPoint && start !== undefined)
+      return Promise.resolve({
+        line: ["d2d4"],
+        evaluationCpFromSideToMove: start,
+      });
+    const score = byPosition.get(fen);
+    return Promise.resolve(
+      score === undefined
+        ? null
+        : { line: ["b8c6"], evaluationCpFromSideToMove: score },
+    );
+  });
+}
+
 const playBoardMove = (fromLabel: RegExp, toLabel: RegExp): void => {
   const explore = screen.queryByRole("button", {
     name: "Explore the turning point",
@@ -143,7 +195,437 @@ const playOriginalBest = (): void => {
   playBoardMove(/White pawn on d2/, /Empty d4, legal destination/);
 };
 
+it("shows the recorded move beside the focused replay controls", () => {
+  const fixture = reviewFixture();
+  const onExploreNextMove = vi.fn();
+  const { rerender } = render(
+    <GameReviewExperience
+      game={fixture.game}
+      compact
+      replayOnly
+      onExploreNextMove={onExploreNextMove}
+    />,
+  );
+  const controls = screen.getByRole("group", { name: "Replay controls" });
+  const previous = within(controls).getByRole("button", {
+    name: "Previous move",
+  });
+  const next = within(controls).getByRole("button", { name: "Play game move" });
+
+  expect(screen.getByText("Starting position")).toBeVisible();
+  expect(previous).toBeDisabled();
+  fireEvent.click(next);
+  expect(screen.getByText("e4", { exact: true })).toBeVisible();
+  expect(
+    screen.getByRole("gridcell", { name: /White pawn on e4/ }),
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: /^Analyze next move$/ }));
+  expect(onExploreNextMove).toHaveBeenCalledWith(
+    fixture.game.moves[0]?.fenAfter,
+    "white",
+  );
+  expect(screen.getByText("e4", { exact: true })).toBeVisible();
+  rerender(
+    <GameReviewExperience
+      {...fixture}
+      compact
+      replayOnly
+      onExploreNextMove={onExploreNextMove}
+    />,
+  );
+  expect(screen.getByText("e4", { exact: true })).toBeVisible();
+  fireEvent.click(screen.getByText("Jump to position", { exact: true }));
+  const slider = screen.getByRole("slider", { name: "Move through the game" });
+  fireEvent.change(slider, { target: { value: "4" } });
+  expect(screen.getByText("Nc6", { exact: true })).toBeVisible();
+  expect(next).toBeDisabled();
+});
+
 describe("GameReviewExperience transfer set", () => {
+  it("replays recorded moves on the same board and hands over before the critical move", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false })),
+    );
+    vi.useFakeTimers();
+    try {
+      const analyzeReply = vi.fn<AnalyzeReply>();
+      render(
+        <GameReviewExperience
+          {...reviewFixture()}
+          compact
+          analyzeReply={analyzeReply}
+        />,
+      );
+      const board = screen.getByRole("grid", {
+        name: "Training board, White side",
+      });
+      const d2 = within(board).getByRole("gridcell", {
+        name: /White pawn on d2/,
+      });
+      const challenge = screen.queryByText(
+        "You missed a better move here. Can you find it?",
+      );
+      expect(challenge).not.toBeInTheDocument();
+      expect(d2).toBeDisabled();
+      expect(
+        within(board).getByRole("gridcell", { name: /White pawn on e2/ }),
+      ).toBeVisible();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(450);
+      });
+      expect(
+        within(board).getByRole("gridcell", { name: /White pawn on e4/ }),
+      ).toBeVisible();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(450);
+      });
+      expect(
+        within(board).getByRole("gridcell", { name: /Black pawn on e5/ }),
+      ).toBeVisible();
+      expect(
+        within(board).getByRole("gridcell", { name: /White knight on g1/ }),
+      ).toBeVisible();
+      expect(d2).toBeEnabled();
+      expect(
+        screen.getByText("You missed a better move here. Can you find it?"),
+      ).toBeVisible();
+      const d4 = within(board).getByRole("gridcell", { name: "Empty d4" });
+      expect(d4).not.toHaveAccessibleName(/legal destination/);
+      fireEvent.click(d2);
+      expect(d4).toHaveAccessibleName(/legal destination/);
+      expect(
+        screen.queryByRole("button", { name: "Skip replay" }),
+      ).not.toBeInTheDocument();
+      expect(analyzeReply).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("skips the opening playback and immediately enables the critical position", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false })),
+    );
+    try {
+      render(
+        <GameReviewExperience
+          {...reviewFixture()}
+          compact
+          analyzeReply={vi.fn<AnalyzeReply>()}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Skip replay" }));
+      expect(
+        screen.getByRole("gridcell", { name: /Black pawn on e5/ }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole("gridcell", { name: /White knight on g1/ }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole("button", { name: "Skip replay" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("opens the critical position directly with reduced motion", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: true })),
+    );
+    try {
+      render(
+        <GameReviewExperience
+          {...reviewFixture()}
+          compact
+          analyzeReply={vi.fn<AnalyzeReply>()}
+        />,
+      );
+      expect(
+        screen.getByRole("gridcell", { name: /Black pawn on e5/ }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole("button", { name: "Skip replay" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("says when a move beats the game move but still trails the best move", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    const fixture = reviewFixture();
+    // Scores from Black's side after each White move.
+    const analyzeReply = scoredReplies(fixture, {
+      Nf3: 135,
+      Bc4: 0,
+      d4: -400,
+    });
+    render(
+      <GameReviewExperience {...fixture} compact analyzeReply={analyzeReply} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Skip replay" }));
+    const board = within(
+      screen.getByRole("grid", { name: "Training board, White side" }),
+    );
+    fireEvent.click(
+      board.getByRole("gridcell", { name: /White bishop on f1/ }),
+    );
+    fireEvent.click(board.getByRole("gridcell", { name: /Empty c4/ }));
+    await screen.findByText(
+      "Bc4 beats your game move Nf3, but d4 keeps more of your advantage. Try another move.",
+    );
+    expect(screen.queryByText("You found a better move.")).toBeNull();
+    // The undone try stays marked on the board until the next move.
+    expect(
+      screen
+        .getByRole("grid", { name: "Training board, White side" })
+        .querySelector('[data-move-cue-arrow="f1:c4"]'),
+    ).toBeInTheDocument();
+    expect(
+      board.getByRole("gridcell", { name: /White bishop on f1/ }),
+    ).toBeEnabled();
+  });
+
+  it("answers statements at the turning point and asks about a try when the player asks why", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    const fixture = reviewFixture();
+    const analyzeReply = scoredReplies(
+      fixture,
+      { Nf3: 135, Bc4: 0, d4: -400 },
+      400,
+    );
+    render(
+      <GameReviewExperience {...fixture} compact analyzeReply={analyzeReply} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Skip replay" }));
+    const board = within(
+      screen.getByRole("grid", { name: "Training board, White side" }),
+    );
+    fireEvent.click(
+      board.getByRole("gridcell", { name: /White bishop on f1/ }),
+    );
+    fireEvent.click(board.getByRole("gridcell", { name: /Empty c4/ }));
+    await screen.findByText(/^Bc4 beats your game move Nf3/);
+    const chat = screen.getByRole("textbox", { name: "Ask Rook" });
+    fireEvent.change(chat, { target: { value: "move the bishop to c4" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Ask$/ }));
+    expect(
+      await screen.findByText(
+        "Play the move you have in mind on the board and I’ll check it.",
+      ),
+    ).toBeVisible();
+
+    fireEvent.change(chat, { target: { value: "why?" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Ask$/ }));
+    await screen.findByText("What were you trying to do with Bc4?");
+    fireEvent.change(chat, { target: { value: "develop the bishop to c4" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Ask$/ }));
+    expect(
+      await within(screen.getByRole("log")).findByText((text) =>
+        text.startsWith("You played Bc4. "),
+      ),
+    ).toBeVisible();
+  });
+
+  it("keeps the board ready after a close or weaker move and confirms a clear improvement", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    const fixture = reviewFixture();
+    const analyzeReply = scoredReplies(fixture, {
+      Nf3: 135,
+      Nc3: 100,
+      a3: 180,
+      d4: 99,
+    });
+    render(
+      <GameReviewExperience {...fixture} compact analyzeReply={analyzeReply} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Skip replay" }));
+    const trainingBoard = screen.getByRole("grid", {
+      name: "Training board, White side",
+    });
+    const board = within(trainingBoard);
+    fireEvent.click(
+      board.getByRole("gridcell", { name: /White knight on b1/ }),
+    );
+    fireEvent.click(board.getByRole("gridcell", { name: /Empty c3/ }));
+    await screen.findByText(
+      "Nc3 is close to your game move Nf3. Try another move.",
+    );
+    expect(
+      board.getByRole("gridcell", { name: /White knight on b1/ }),
+    ).toBeEnabled();
+
+    fireEvent.click(board.getByRole("gridcell", { name: /White pawn on a2/ }));
+    fireEvent.click(board.getByRole("gridcell", { name: /Empty a3/ }));
+    await screen.findByText(
+      "a3 is weaker than your game move Nf3. Try another move.",
+    );
+    expect(
+      board.getByRole("gridcell", { name: /White pawn on a2/ }),
+    ).toBeEnabled();
+
+    fireEvent.click(board.getByRole("gridcell", { name: /White pawn on d2/ }));
+    fireEvent.click(board.getByRole("gridcell", { name: /Empty d4/ }));
+    await screen.findByText("You found a better move.");
+    const explanation = within(screen.getByRole("log")).getByText(
+      /0\.36-point edge over Nf3/,
+    );
+    expect(explanation).toHaveTextContent(
+      "The pawn takes space in the center on d4.",
+    );
+    expect(explanation).toHaveTextContent("The knight develops from g1 to f3.");
+    expect(
+      board.getByRole("gridcell", { name: /White pawn on d4/ }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Compare moves" }));
+    const comparison = within(
+      screen.getByRole("group", { name: "Move comparison" }),
+    );
+    expect(
+      comparison.getByRole("button", { name: "Better · d4" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(comparison.getByText("+ d4 only")).toBeVisible();
+    expect(comparison.getByText("− Nf3 only")).toBeVisible();
+    const c5 = board.getByRole("gridcell", {
+      name: /Empty c5.*control gained by the better move/,
+    });
+    fireEvent.click(c5);
+    expect(c5).toHaveAttribute("aria-selected", "true");
+    expect(
+      trainingBoard.querySelector('[data-control-arrow="d4:c5"]'),
+    ).toBeInTheDocument();
+    expect(
+      trainingBoard.querySelector('[data-control-arrow="f8:c5"]'),
+    ).toBeInTheDocument();
+    const inspection = within(
+      screen.getByRole("status", { name: "Square control" }),
+    );
+    expect(inspection.getByText("Control of c5")).toBeVisible();
+    expect(
+      inspection.getByRole("img", { name: "White pawn on d4" }),
+    ).toBeVisible();
+    expect(
+      inspection.getAllByRole("img", { name: "Black bishop on f8" }),
+    ).toHaveLength(2);
+    expect(
+      board.getByRole("gridcell", { name: /White pawn on d4.*controls c5/ }),
+    ).toBeVisible();
+    expect(
+      board.getByRole("gridcell", { name: /Black bishop on f8.*controls c5/ }),
+    ).toBeVisible();
+    expect(
+      board.getByRole("gridcell", { name: "Black pawn on e5" }),
+    ).toBeDisabled();
+    expect(
+      board.getAllByRole("gridcell", { name: /control gained/ }),
+    ).toHaveLength(5);
+    expect(
+      board.getAllByRole("gridcell", { name: /control lost/ }),
+    ).toHaveLength(1);
+    expect(
+      board.queryAllByRole("gridcell", { name: /last move ended here/ }),
+    ).toHaveLength(0);
+    expect(
+      board.getByRole("gridcell", { name: /Black knight on b8/ }),
+    ).toBeVisible();
+    fireEvent.click(comparison.getByRole("button", { name: "Original · Nf3" }));
+    expect(
+      board.getByRole("gridcell", { name: /White knight on f3/ }),
+    ).toBeVisible();
+    expect(c5).toHaveAttribute("aria-selected", "true");
+    expect(
+      trainingBoard.querySelector('[data-control-arrow="d4:c5"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      trainingBoard.querySelector('[data-control-arrow="f8:c5"]'),
+    ).toBeInTheDocument();
+    expect(inspection.getByText("Control of c5")).toBeVisible();
+    expect(
+      board.getByRole("gridcell", { name: /Black bishop on f8.*controls c5/ }),
+    ).toBeVisible();
+    expect(
+      board.queryByRole("gridcell", { name: /White.*controls c5/ }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      board.getByRole("gridcell", {
+        name: /Empty h4.*control lost by the better move/,
+      }),
+    );
+    expect(inspection.getByText("Control of h4")).toBeVisible();
+    expect(
+      board.getByRole("gridcell", { name: /White knight on f3.*controls h4/ }),
+    ).toBeVisible();
+    expect(
+      board.getAllByRole("gridcell", { name: /control gained/ }),
+    ).toHaveLength(5);
+    expect(
+      board.getAllByRole("gridcell", { name: /control lost/ }),
+    ).toHaveLength(1);
+    fireEvent.click(comparison.getByRole("button", { name: "Better · d4" }));
+    expect(
+      board.getByRole("gridcell", { name: /White pawn on d4/ }),
+    ).toBeVisible();
+    fireEvent.click(comparison.getByRole("button", { name: "Done" }));
+    expect(
+      screen.queryByRole("status", { name: "Square control" }),
+    ).not.toBeInTheDocument();
+    expect(
+      board.getByRole("gridcell", { name: /Black knight on c6/ }),
+    ).toBeEnabled();
+    expect(
+      trainingBoard.querySelector("[data-control-arrow]"),
+    ).not.toBeInTheDocument();
+    // Nf3 is checked once; d4's position is scored for each weaker try.
+    expect(analyzeReply).toHaveBeenCalledTimes(6);
+  });
+
+  it("does not call a close opening evaluation a missed opportunity", () => {
+    const { game, analysis } = reviewFixture();
+    const [fact] = analysis.facts;
+    if (!fact) throw new Error("Missing review fact.");
+    render(
+      <GameReviewExperience
+        game={game}
+        analysis={{
+          ...analysis,
+          facts: [{ ...fact, evaluationAfterCp: 5, impactCp: 20 }],
+        }}
+        compact
+        analyzeReply={vi.fn<AnalyzeReply>()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Skip replay" }));
+    expect(
+      screen.queryByText("You missed a better move here. Can you find it?"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("gridcell", { name: /Black pawn on e5/ }),
+    ).toBeEnabled();
+  });
+
   it("shows the debrief before opening the critical position without revealing the engine move", () => {
     render(<GameReviewExperience {...reviewFixture()} />);
     expect(screen.getByRole("heading", { name: "Game debrief" })).toBeVisible();

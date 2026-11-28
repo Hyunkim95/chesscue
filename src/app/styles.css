@@ -21,24 +21,6 @@
   --cue-shadow: 0 12px 28px #02080680;
   --cue-radius-control: 6px;
   --cue-radius-card: 10px;
-  --cue-cut: polygon(
-    14px 0,
-    calc(100% - 14px) 0,
-    100% 14px,
-    100% calc(100% - 14px),
-    calc(100% - 14px) 100%,
-    14px 100%,
-    0 calc(100% - 14px),
-    0 14px
-  );
-  --cue-button-cut: polygon(
-    8px 0,
-    100% 0,
-    100% calc(100% - 8px),
-    calc(100% - 8px) 100%,
-    0 100%,
-    0 8px
-  );
   --cue-display: "Newsreader", Georgia, serif;
   --cue-chess-font:
     "Arial Unicode MS", "Segoe UI Symbol", "Noto Sans Symbols 2", serif;
@@ -148,7 +130,7 @@
   margin-inline: auto;
   padding: clamp(1.25rem, 4vw, 2.5rem);
   border: 1px solid var(--cue-line);
-  border-radius: 16px;
+  border-radius: var(--cue-radius-card);
   background: var(--cue-paper);
 }
 
@@ -168,6 +150,7 @@
 }
 
 .game-mode-choice {
+  border-radius: var(--cue-radius-control);
   display: grid;
   grid-template-columns: 3.5rem 1fr auto;
   column-gap: 1rem;
@@ -192,12 +175,34 @@
 .game-mode-choice--coached::before {
   background-image: url("../assets/brand/rook.webp");
 }
+.game-mode-choice--next-move::before {
+  content: "♞";
+  display: grid;
+  place-items: center;
+  color: var(--cue-gold);
+  font:
+    2.6rem / 1 "Arial Unicode MS",
+    "Segoe UI Symbol",
+    "Noto Sans Symbols 2",
+    serif;
+}
 .game-mode-choice strong {
   font: 600 1.7rem/1.15 var(--cue-display);
 }
-.game-mode-choice span {
+.game-mode-copy {
   grid-column: 2;
   color: var(--cue-muted);
+}
+.game-mode-resume {
+  display: block;
+  width: fit-content;
+  margin-block-start: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #254737;
+  color: var(--cue-pine-dark);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 .game-mode-choice::after {
   content: "›";
@@ -255,9 +260,9 @@ button {
   position: absolute;
   z-index: -1;
   inset: 0 0 auto;
-  height: min(56rem, max(100svh, 38rem));
+  height: min(24rem, 52svh);
   background:
-    linear-gradient(180deg, #0715131a, #07151347 48%, var(--cue-canvas)),
+    linear-gradient(180deg, #07151324, #0715138c 55%, var(--cue-canvas)),
     url("../assets/brand/observatory.webp") center 42% / cover no-repeat;
   content: "";
   pointer-events: none;
@@ -277,27 +282,40 @@ button {
   backdrop-filter: blur(16px);
 }
 
-.brand {
-  display: inline-flex;
-  width: max-content;
+.app-bar__profile {
+  display: flex;
+  grid-column: -2 / -1;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.brand,
+.board-back,
+.account-button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
-  align-items: center;
-  gap: 0.38rem;
   border: 0;
+  border-radius: var(--cue-radius-control);
   background: transparent;
   cursor: pointer;
-  text-align: left;
 }
 
-.brand-mark {
+:is(.brand, .board-back, .account-button):hover,
+.account-button[aria-current="page"] {
+  background: var(--cue-paper-deep);
+}
+
+.app-bar__board-back-slot:empty,
+.app-bar__board-back-slot:not(:empty) + .app-bar__leading-default {
+  display: none;
+}
+
+.board-back {
   color: var(--cue-gold);
-  font: 400 1.15rem/1 var(--cue-chess-font);
-}
-
-.brand strong {
-  font-family: var(--cue-display);
-  font-size: clamp(1.2rem, 3vw, 1.75rem);
-  font-weight: 700;
+  font-size: 1.25rem;
 }
 
 .app-bar nav {
@@ -489,7 +507,7 @@ button {
   margin-top: 0.4rem;
   padding: 0.65rem 1rem;
   border: 1px solid var(--cue-line);
-  border-radius: 999px;
+  border-radius: var(--cue-radius-control);
   background: transparent;
   color: var(--cue-pine-dark);
   cursor: pointer;
@@ -525,7 +543,7 @@ button {
   place-content: center;
   gap: 0.9rem;
   border: 1px solid var(--cue-line);
-  border-radius: 18px;
+  border-radius: var(--cue-radius-card);
   background: var(--cue-paper);
   text-align: center;
 }
@@ -627,9 +645,89 @@ button {
 .account-home {
   max-width: 68rem;
 }
-.account-home > h1 {
-  margin: 0 0 1.25rem;
-  font: 600 clamp(2.4rem, 5vw, 3.5rem)/1.1 var(--cue-display);
+.account-home > .screen-header {
+  margin: 0 0 1rem;
+}
+.account-home .screen-header h1 {
+  overflow-wrap: anywhere;
+  margin: 0.25rem 0 0;
+  font: 600 clamp(1.45rem, 4vw, 2.1rem)/1.1 var(--cue-display);
+}
+.profile-rank {
+  overflow: hidden;
+  padding: 0 0 0.85rem;
+  text-align: center;
+  border: 1px solid var(--cue-line);
+  border-top-color: var(--cue-gold);
+  border-radius: var(--cue-radius-card);
+  background: var(--cue-paper);
+}
+.profile-rank__hero {
+  display: grid;
+  justify-items: center;
+  padding: clamp(1rem, 4vw, 2rem) 0.75rem 1rem;
+  background:
+    linear-gradient(to bottom, #08181099, var(--cue-paper) 98%),
+    url("../assets/brand/observatory.webp") center 35% / cover;
+}
+.profile-rank__badge {
+  display: grid;
+  place-items: center;
+  width: clamp(4.8rem, 14vw, 7.25rem);
+  aspect-ratio: 1;
+  margin-bottom: 0.85rem;
+  border: 1px solid #cfb27b99;
+  outline: 1px solid #bfa78255;
+  outline-offset: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 30%, #384b3d, #0e211a 80%);
+  color: var(--cue-muted);
+}
+.profile-rank__badge img {
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
+}
+.profile-rank__badge span {
+  font: 3rem/1 var(--cue-chess-font);
+}
+.profile-rank__hero h2 {
+  margin: 0.35rem 0 0.2rem;
+  font: 600 clamp(2.7rem, 7vw, 4rem)/1 var(--cue-display);
+}
+.profile-rank__hero p {
+  margin: 0;
+}
+.profile-rank__rating {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.profile-rank__placements {
+  display: flex;
+  gap: 4px;
+  margin-top: 0.65rem;
+}
+.profile-rank__placements i {
+  width: 1.7rem;
+  height: 0.3rem;
+  background: #456053;
+}
+.profile-rank__placements [data-complete="true"] {
+  background: var(--cue-gold);
+}
+.profile-rank figure {
+  max-width: 20rem;
+  margin: 0 auto 1rem;
+  padding-inline: 1rem;
+  color: var(--cue-muted);
+  font-size: 0.85rem;
+}
+.profile-rank svg {
+  display: block;
+  width: 100%;
+}
+.profile-rank button {
+  min-height: 44px;
 }
 .account-columns {
   display: grid;
@@ -639,13 +737,6 @@ button {
 }
 .account-progress {
   min-width: 0;
-}
-.account-progress .profile-overview {
-  border-top: 1px solid var(--cue-line);
-  padding-top: 1rem;
-}
-.account-progress .profile-overview h2 {
-  font: 600 1.75rem/1.1 var(--cue-display);
 }
 .account-columns .account-panel {
   width: 100%;
@@ -680,16 +771,7 @@ button {
   grid-column: -2 / -1;
   grid-row: 1;
   justify-self: end;
-  border: 1px solid var(--cue-line);
-  background: var(--cue-paper);
   color: var(--cue-ink);
-  border-radius: 2px;
-  padding: 0.55rem 1rem;
-  font: inherit;
-  cursor: pointer;
-}
-.account-button[aria-current="page"] {
-  background: var(--cue-paper-deep);
 }
 
 :is(
@@ -700,29 +782,10 @@ button {
   .lesson-outcome,
   .game-review__prompt
 ) {
-  position: relative;
-  isolation: isolate;
-  border-color: transparent;
-  border-radius: 0;
-  background: none;
+  border: 1px solid var(--cue-line);
+  border-radius: var(--cue-radius-card);
+  background: var(--cue-paper);
   box-shadow: none;
-}
-
-:is(
-  .play-mode-setup,
-  .review-page__state,
-  .import-panel,
-  .lesson-feedback,
-  .lesson-outcome,
-  .game-review__prompt
-)::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  clip-path: var(--cue-cut);
-  border-block: 1px solid #ae9366a3;
-  background: radial-gradient(ellipse at 12% 0%, #23392f, var(--cue-paper) 74%);
-  content: "";
 }
 
 .game-review__prompt {
@@ -745,30 +808,16 @@ button {
 .game-review button.game-review__primary,
 .game-review button.game-review__practice,
 .import-panel button[type="submit"] {
-  position: relative;
-  isolation: isolate;
   border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--cue-action-ink);
-}
-
-:is(.primary-link, .primary-action, .lesson-primary)::before,
-.game-review button.game-review__primary::before,
-.game-review button.game-review__practice::before,
-.import-panel button[type="submit"]::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  clip-path: var(--cue-button-cut);
+  border-radius: var(--cue-radius-control);
   background: var(--cue-action-fill);
-  content: "";
+  color: var(--cue-action-ink);
 }
 
 :is(.review-action, .quiet-action, .lesson-secondary),
 .game-review button:not(.chess-board__square),
-.import-panel button {
-  border-radius: 2px;
+.import-panel button:not(.ui-pill) {
+  border-radius: var(--cue-radius-control);
 }
 
 @media (min-width: 56.01rem) {
@@ -813,41 +862,199 @@ button {
   padding: 0.1875rem 0.75rem;
 }
 
-.chesscue-sidebar .app-bar .brand,
-.chesscue-sidebar .app-command__icon,
-.chesscue-sidebar .app-bar nav::before,
-.chesscue-sidebar .app-bar nav::after,
-.chesscue-sidebar .app-command::before,
-.chesscue-sidebar .app-command::after {
+.chesscue-sidebar {
+  --panel-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
+  --panel-board-max-size: max(
+    9rem,
+    calc(100dvh - clamp(25rem, 34rem - 30dvw, 28rem))
+  );
+  --panel-board-size: min(calc(100dvw - 1rem), var(--panel-board-max-size));
+  scroll-padding-bottom: var(--panel-nav-height);
+}
+.chesscue-sidebar .app-frame {
+  padding-bottom: var(--panel-nav-height);
+}
+.chesscue-sidebar .app-bar {
+  position: static;
+}
+.chesscue-sidebar:has(.app-bar .board-back) {
+  --panel-nav-height: env(safe-area-inset-bottom, 0px);
+  --panel-board-header-height: 52px;
+}
+.chesscue-sidebar .app-bar:has(.board-back) {
+  position: sticky;
+}
+.chesscue-sidebar:has(.app-bar .board-back) .panel-tabs {
   display: none;
 }
-
-.chesscue-sidebar .app-bar nav {
-  grid-area: 1 / 1;
-  justify-self: stretch;
-  gap: 0.25rem;
-  padding: 0;
-  filter: none;
+.panel-tabs {
+  position: fixed;
+  z-index: 24;
+  inset: auto 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: var(--panel-nav-height);
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--cue-line);
+  background: var(--cue-paper);
 }
-
-.chesscue-sidebar .app-command,
-.chesscue-sidebar .app-bar .account-button {
-  padding: 0 0.5rem;
-  font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 650;
+.panel-tabs button {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 3px;
+  border: 0;
+  border-top: 2px solid transparent;
+  background: transparent;
+  color: var(--cue-muted);
   line-height: 1.2;
-  white-space: normal;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.panel-tabs button[aria-current="page"] {
+  border-color: var(--cue-gold);
+  color: var(--cue-gold);
+  background: var(--cue-paper-deep);
+}
+.panel-tabs button:focus-visible {
+  outline: 2px solid var(--cue-pine);
+  outline-offset: -4px;
+}
+.chesscue-sidebar .screen-header > h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 600 1.8rem/1.1 var(--cue-display);
+  text-align: start;
+}
+.chesscue-sidebar .screen-header {
+  margin-block: 0 0.75rem;
+}
+.chesscue-sidebar .screen-header:has(.section-kicker) h1 {
+  margin-top: 0.25rem;
+}
+.chesscue-sidebar
+  .app-frame
+  > :is(.training-header, .race-view, .play-mode-page) {
+  padding: 0.875rem 0.75rem;
+}
+.chesscue-sidebar .play-mode-page {
+  display: flex;
 }
 
-.chesscue-sidebar .app-command[aria-current="page"] {
-  box-shadow: inset 0 -2px var(--cue-gold);
+.chesscue-sidebar .play-mode-page .play-mode-setup {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  width: 100%;
 }
 
-.chesscue-sidebar .app-bar .account-button {
-  min-height: 40px;
+.chesscue-sidebar .game-mode-choices {
+  flex: 1;
+  grid-template-rows: repeat(2, minmax(8rem, 1fr)) auto;
+  gap: 0.65rem;
 }
 
+.chesscue-sidebar .game-mode-choice {
+  border-color: transparent;
+  background:
+    radial-gradient(ellipse at 50% 15%, var(--game-mode-tint), transparent 72%),
+    var(--cue-paper);
+}
+
+.chesscue-sidebar .game-mode-choice--rated {
+  --game-mode-tint: #63473568;
+}
+
+.chesscue-sidebar .game-mode-choice--coached {
+  --game-mode-tint: #315d4c88;
+}
+
+@media (min-height: 521px) {
+  .chesscue-sidebar .game-mode-choice {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    align-content: center;
+    row-gap: 0.35rem;
+    text-align: center;
+  }
+
+  .chesscue-sidebar .game-mode-choice::before {
+    grid-row: auto;
+    width: min(45%, 9rem);
+    height: clamp(3rem, 15dvh, 8rem);
+    margin-block-end: 0.35rem;
+  }
+
+  .chesscue-sidebar .game-mode-copy {
+    grid-column: 1;
+  }
+
+  .chesscue-sidebar .game-mode-resume {
+    margin-inline: auto;
+  }
+
+  .chesscue-sidebar .game-mode-choice::after {
+    position: absolute;
+    grid-area: auto;
+    inset-inline-end: 1rem;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+  }
+}
+
+@media (max-height: 520px) {
+  .chesscue-sidebar .game-mode-choices {
+    grid-template-rows: repeat(2, minmax(5.5rem, 1fr)) auto;
+  }
+}
+
+/* The Next move tool is a tool, not a game mode: a compact row under the
+   two game cards, so all three fit above the tabs. */
+.chesscue-sidebar .game-mode-choice.game-mode-choice--next-move {
+  position: static;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  justify-items: start;
+  align-content: center;
+  row-gap: 0;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
+  text-align: left;
+}
+
+.chesscue-sidebar .game-mode-choice.game-mode-choice--next-move::before {
+  grid-row: 1 / span 2;
+  width: auto;
+  height: auto;
+  margin: 0;
+  font-size: 1.9rem;
+}
+
+.chesscue-sidebar .game-mode-choice.game-mode-choice--next-move strong {
+  font-size: 1.2rem;
+}
+
+.chesscue-sidebar
+  .game-mode-choice.game-mode-choice--next-move
+  .game-mode-copy {
+  grid-column: 2;
+}
+
+.chesscue-sidebar .game-mode-choice.game-mode-choice--next-move::after {
+  position: static;
+  grid-area: 1 / 3 / span 2;
+  translate: none;
+}
+.chesscue-sidebar .app-frame > :is(.content-shell, .play-shell) {
+  min-height: calc(100dvh - 52px - var(--panel-nav-height));
+}
+.chesscue-sidebar .side-panel-review .screen-header {
+  margin-bottom: 0;
+}
 .chesscue-sidebar .play-shell,
 .chesscue-sidebar .content-shell {
   padding: 0.5rem;
@@ -857,38 +1064,23 @@ button {
   padding: 0.875rem 0.75rem 1.25rem;
 }
 
-.chesscue-sidebar .account-home > h1 {
-  margin: 0 0 0.75rem;
-  font-size: 1.8rem;
-}
-
 .chesscue-sidebar .account-columns {
   grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
-.chesscue-sidebar .account-panel,
-.chesscue-sidebar .account-progress .rating-progress {
+.chesscue-sidebar .account-panel {
   padding: 0.875rem;
   border: 1px solid var(--cue-line);
-  border-radius: 0.5rem;
+  border-radius: var(--cue-radius-card);
   background: var(--cue-paper);
 }
 
-.chesscue-sidebar .account-panel::before {
-  content: none;
-}
-
-.chesscue-sidebar .account-panel h2,
-.chesscue-sidebar
-  .account-progress
-  :is(.rating-progress, .profile-overview)
-  h2 {
+.chesscue-sidebar .account-panel h2 {
   font-size: 1.4rem;
 }
 
-.chesscue-sidebar .account-panel p,
-.chesscue-sidebar .account-progress p {
+.chesscue-sidebar .account-panel p {
   margin-block: 0.4rem 0.7rem;
   line-height: 1.45;
 }
@@ -902,7 +1094,7 @@ button {
   margin-top: 0;
 }
 
-.chesscue-sidebar .account-panel > .primary-link {
+.chesscue-sidebar .account-panel > .review-action {
   display: flex;
   width: 100%;
   justify-content: center;
@@ -923,24 +1115,67 @@ button {
   justify-self: start;
 }
 
-.chesscue-sidebar .account-progress .profile-overview {
-  margin: 0;
-  padding: 0.75rem 0 0;
-}
-
-.chesscue-sidebar .account-progress .profile-overview > h2 {
-  margin: 0;
-}
-
-.chesscue-sidebar .account-progress .profile-overview__empty {
-  border: 0;
-  padding: 0;
-  color: var(--cue-muted);
-}
-
 .chesscue-sidebar .play-shell {
   --play-board-limit: 34rem;
   --play-gap: 1rem;
+}
+
+.chesscue-sidebar .play-shell,
+.chesscue-sidebar .content-shell:has(.study-board-position, .lesson-challenge) {
+  padding-block-start: 0.75rem;
+}
+
+.chesscue-sidebar .content-shell.study-board-position {
+  padding: 0;
+}
+
+.chesscue-sidebar
+  .content-shell:has(.study-board-position, .lesson-challenge)
+  > .lesson-back {
+  display: none;
+}
+
+.chesscue-sidebar .study-board .study-board__title {
+  order: 0;
+  margin: 0.65rem 0 0;
+  color: var(--cue-muted);
+  font:
+    650 0.875rem/1.35 "DM Sans",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+}
+
+.chesscue-sidebar
+  :is(
+    .play-board-stage .play-board,
+    .study-board > .chess-board,
+    .lesson-challenge__board > .chess-board,
+    .rook-exploration--compact .game-review__board-stage .review-board
+  ) {
+  display: block;
+  max-width: var(--panel-board-max-size);
+  margin-inline: auto;
+}
+
+/* A board with the Stockfish bar lays the bar and the squares side by side. */
+.chesscue-sidebar
+  .rook-exploration--compact
+  .game-review__board-stage
+  .review-board.chess-board--bar {
+  display: grid;
+}
+
+.chesscue-sidebar .lesson-challenge__board {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  max-width: none;
+  order: -1;
+}
+
+.chesscue-sidebar .lesson-challenge__opponent {
+  order: 1;
 }
 
 .chesscue-sidebar .play-header {
@@ -954,12 +1189,145 @@ button {
 }
 
 .chesscue-sidebar .play-board-meta {
-  margin-bottom: 0.5rem;
+  margin-block: 0.25rem 0;
+}
+
+.chesscue-sidebar .play-shell .game-layout {
+  row-gap: 0.25rem;
+}
+
+.chesscue-sidebar .study-workbench {
+  gap: 0.25rem;
+}
+
+.chesscue-sidebar .board-action-row.board-action-row--anchored {
+  margin-block: 0.5rem 0;
+  row-gap: 0.15rem;
+}
+
+.chesscue-sidebar .board-action-row--anchored > button {
+  margin-block: 0;
+}
+
+.chesscue-sidebar .board-action-row--anchored > .board-turn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: 1.25rem;
+  line-height: 1.25rem;
+}
+
+.chesscue-sidebar .rook-board-shelf {
+  --rook-shelf-size: clamp(
+    3rem,
+    calc(
+      100dvh - var(--panel-board-header-height, 52px) -
+        var(--panel-board-size) - 9rem
+    ),
+    16rem
+  );
+  display: grid;
+  grid-template:
+    "context" var(--rook-shelf-size)
+    "composer" auto
+    "notes" auto / minmax(0, 1fr);
+  margin-block-start: 0.25rem;
+  overflow-anchor: none;
+}
+
+.rook-board-shelf__context {
+  grid-area: context;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.rook-board-shelf__guidance {
+  max-block-size: min(7rem, var(--rook-shelf-size));
+  overflow-y: auto;
+}
+
+.rook-board-shelf__guidance:has(
+  .rook-opening-feedback .rook-chat__turn,
+  .rook-reply-challenge
+) {
+  max-block-size: var(--rook-shelf-size);
+}
+
+.rook-board-shelf__guidance .rook-chat__message {
+  padding-block: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.rook-board-shelf__transcript {
+  min-height: 0;
+}
+
+.rook-board-shelf__composer {
+  grid-area: composer;
+}
+
+html:has(.chesscue-sidebar .rook-board-shelf__dock form:not([hidden])) {
+  scroll-padding-block-end: calc(3.375rem + env(safe-area-inset-bottom, 0px));
+}
+
+.chesscue-sidebar .app-frame:has(.rook-board-shelf__dock form:not([hidden])) {
+  padding-block-end: calc(var(--panel-nav-height) + 3.375rem);
+}
+
+.chesscue-sidebar .rook-board-shelf__dock:has(form:not([hidden])) {
+  position: fixed;
+  z-index: 19;
+  inset-inline: 0;
+  inset-block-end: var(--panel-nav-height);
+  padding: 0.25rem 0.5rem;
+  background: var(--cue-paper);
+}
+
+.chesscue-sidebar .rook-board-shelf__dock .rook-chat__composer {
+  margin: 0;
+}
+
+.rook-board-shelf__notes {
+  grid-area: notes;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.rook-board-shelf__transcript
+  > :is(.rook-chat__messages, .rook-exploration__chat-drawer) {
+  block-size: 100%;
+  max-block-size: none;
+  overflow-anchor: none;
+}
+
+.rook-board-shelf__transcript > .rook-chat__messages > * {
+  flex: none;
+}
+
+.rook-board-shelf__transcript > .rook-chat__messages > :first-child {
+  margin-block-start: auto;
+}
+
+.chesscue-sidebar .rook-board-shelf__transcript .rook-chat__message {
+  gap: 0.125rem;
+  padding-block: 0.3rem;
+  font-size: 0.9375rem;
+  line-height: 1.32;
+}
+
+.chesscue-sidebar .rook-board-shelf__transcript .rook-exploration__turns {
+  gap: 0.4rem;
+}
+
+.chesscue-sidebar .lesson-challenge__layout .lesson-challenge__actions {
+  order: 0;
 }
 
 .chesscue-sidebar .play-header h1,
-.chesscue-sidebar .review-page h1,
-.chesscue-sidebar .training-header h1 {
+.chesscue-sidebar .review-page h1 {
   font-size: 1.6rem;
 }
 
@@ -967,6 +1335,17 @@ button {
 .chesscue-sidebar .review-page__experience {
   gap: 0.75rem;
   padding-block: 0.75rem;
+}
+
+.chesscue-sidebar .review-page__experience:has(.rook-exploration--compact) {
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+.chesscue-sidebar
+  .review-page:has(.rook-exploration--compact)
+  > .review-page__notice {
+  order: 1;
 }
 
 .chesscue-sidebar .game-review__training-layout,
@@ -1185,7 +1564,7 @@ button {
 }
 
 .chesscue-sidebar .rook-exploration .game-review__training-layout {
-  gap: 0.65rem;
+  gap: 0.25rem;
 }
 
 .chesscue-sidebar .rook-exploration__heading {
@@ -1196,6 +1575,7 @@ button {
   margin: 0;
 }
 
+.chesscue-sidebar .rook-exploration__heading :is(h2, p),
 .chesscue-sidebar .rook-exploration__heading p {
   color: var(--cue-muted);
   font-size: 0.875rem;
@@ -1208,11 +1588,6 @@ button {
 
 .chesscue-sidebar .rook-exploration__transport-button {
   padding-inline: 0.55rem;
-}
-
-.chesscue-sidebar .side-panel-puzzle-source {
-  color: var(--cue-muted);
-  margin-block-start: 0.75rem;
 }
 
 .review-mistake-queue ul {
@@ -1249,4 +1624,267 @@ button {
 }
 .practice-puzzles button {
   width: 100%;
+}
+
+.board-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.board-action-row > .board-turn {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--cue-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+button.board-action--quiet,
+.game-review button.board-action--quiet:not(.chess-board__square) {
+  min-height: 44px;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: var(--cue-radius-control);
+  background: transparent;
+  color: var(--cue-ink);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+button.board-action--quiet:hover:not(:disabled) {
+  background: var(--cue-paper-deep);
+}
+
+button.board-action--quiet:disabled {
+  cursor: default;
+}
+
+.board-reference {
+  min-width: 0;
+  color: var(--cue-muted);
+  font-size: 0.8125rem;
+}
+
+.board-reference > summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+}
+
+.board-reference > summary:focus-visible {
+  outline: 2px solid var(--cue-gold);
+}
+
+.panel-disclosure {
+  min-width: 0;
+  border-top: 1px solid var(--cue-line);
+}
+
+.panel-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 44px;
+  color: var(--cue-muted);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.panel-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-disclosure > summary::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline-end: 0.25rem;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg);
+}
+
+.panel-disclosure[open] > summary::after {
+  transform: rotate(45deg);
+}
+
+.play-details > :not(summary) {
+  margin-block-end: 0.5rem;
+}
+
+.chesscue-sidebar .side-panel-review {
+  gap: 0.75rem;
+}
+
+button.graphic-control {
+  display: inline-grid;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  place-items: center;
+}
+
+.graphic-control > span {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.app-bar > .panel-tabs--header {
+  position: relative;
+  inset: auto;
+  height: auto;
+  justify-self: center;
+  border: 0;
+  background: transparent;
+}
+
+.panel-tabs--header button {
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding-inline: clamp(0.5rem, 1.8vw, 1rem);
+  border-top: 0;
+  border-bottom: 2px solid transparent;
+  font-size: 0.85rem;
+}
+
+.panel-tabs--header button[aria-current="page"] {
+  border-bottom-color: var(--cue-gold);
+}
+
+.app-frame--desktop .side-panel-review {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  max-width: 52rem;
+}
+
+.app-frame--desktop .side-panel-review > button {
+  justify-self: start;
+}
+
+.app-frame--desktop .account-button {
+  display: inline-grid;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  place-items: center;
+}
+
+@media (max-width: 430px) {
+  .panel-tabs--header button {
+    grid-auto-flow: row;
+    padding-inline: 0.55rem;
+    font-size: 0.75rem;
+  }
+}
+
+.app-frame--desktop .training-header {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+}
+
+.app-frame--desktop .training-header > .training-empty {
+  margin-block: 1rem;
+}
+
+@media (min-width: 56.01rem) {
+  .app-frame--desktop .training-header:has(> .training-empty) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 21rem);
+    column-gap: clamp(1rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .app-frame--desktop .training-header > .screen-header {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Board-first redesign: the new tab bar on the screens it has not replaced
+   yet, so Today stays one tap away. */
+.board-first-tabs {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 20;
+}
+
+.board-first-tabs .tab-bar {
+  position: static;
+}
+
+.app-frame:has(.board-first-tabs) {
+  padding-bottom: 84px;
+}
+
+/* A focus screen with a back button gets the whole panel, as in the classic
+   layout. */
+@media (max-width: 719.98px) {
+  .app-frame:has(.app-bar .board-back) .board-first-tabs {
+    display: none;
+  }
+
+  .app-frame:has(.board-first-tabs):has(.app-bar .board-back) {
+    padding-bottom: 0;
+  }
+}
+
+/* On wide screens the wrapper becomes the left rail, so it never covers the
+   board. */
+@media (min-width: 720px) {
+  .app-frame:has(.board-first-tabs) {
+    padding-bottom: 0;
+    padding-left: 88px;
+  }
+
+  .board-first-tabs {
+    inset: 0 auto 0 0;
+    width: 88px;
+  }
+
+  .board-first-tabs .tab-bar {
+    height: 100%;
+  }
+}
+
+@media (min-width: 1100px) {
+  .app-frame:has(.board-first-tabs) {
+    padding-left: 220px;
+  }
+
+  .board-first-tabs {
+    width: 220px;
+  }
+}
+
+/* The next-move tool: focus mode in the side panel, the left rail on wide
+   screens. */
+.next-move-page__rail {
+  display: none;
+}
+
+@media (min-width: 720px) {
+  .next-move-page {
+    padding-left: 88px;
+  }
+
+  .next-move-page__rail {
+    display: block;
+  }
+}
+
+@media (min-width: 1100px) {
+  .next-move-page {
+    padding-left: 220px;
+  }
 }

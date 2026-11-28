@@ -1,3 +1,6 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
+import { ScreenHeader } from "../../shared/navigation/ScreenHeader";
 import { useEffect, useState, type ReactNode } from "react";
 import type {
   AccountIdentity,
@@ -13,7 +16,6 @@ import type { GameRecord } from "../../domain/game/types";
 
 interface Props {
   children: ReactNode;
-  compact: boolean;
   user: AccountIdentity | null;
   session: AccountSession | null;
   error: string | null;
@@ -29,10 +31,13 @@ export function AccountPanel({
   sync,
   merged,
   children,
-  compact,
 }: Props) {
   const [games, setGames] = useState<readonly GameRecord[]>([]);
-  const [busy, setBusy] = useState(false);
+  // The action whose work is running; its button shows the spinner.
+  const [pending, setPending] = useState<
+    "sign-in" | "add" | "keep" | "sign-out" | undefined
+  >();
+  const busy = pending !== undefined;
   const [message, setMessage] = useState("");
   useEffect(() => {
     let active = true;
@@ -55,17 +60,22 @@ export function AccountPanel({
       active = false;
     };
   }, [user, history]);
-  async function act(action: () => Promise<void> | void, failure: string) {
-    setBusy(true);
+  async function act(
+    id: NonNullable<typeof pending>,
+    action: () => Promise<void> | void,
+    failure: string,
+  ) {
+    setPending(id);
     setMessage("");
     try {
       await action();
     } catch {
       setMessage(failure);
     } finally {
-      setBusy(false);
+      setPending(undefined);
     }
   }
+  const displayName = user?.name?.trim() ?? "";
   const settings = (
     <section className="account-panel play-mode-setup">
       {user === null ? (
@@ -75,24 +85,25 @@ export function AccountPanel({
             Your games are saved in this browser. Sign in to bring your games
             and training progress to another device.
           </p>
-          <button
-            type="button"
-            className="primary-link"
-            disabled={!session || busy}
+          <BusyButton
+            className="review-action"
+            busy={pending === "sign-in"}
+            disabled={!session || (busy && pending !== "sign-in")}
             onClick={() => {
               if (session)
                 void act(
+                  "sign-in",
                   () => session.signIn(),
                   "Sign-in did not finish. Your guest games are here when you return to Play.",
                 );
             }}
           >
             Continue with Google
-          </button>
+          </BusyButton>
         </>
       ) : (
         <>
-          <h2>{user.name ?? "Google account"}</h2>
+          <h2>Account settings</h2>
           <p>{user.email}</p>
           {games.length > 0 && (
             <section>
@@ -103,48 +114,65 @@ export function AccountPanel({
                 stays in guest play.
               </p>
               <div className="account-actions">
-                <button
+                <BusyButton
                   className="primary-link"
-                  disabled={busy}
+                  busy={pending === "add"}
+                  disabled={busy && pending !== "add"}
                   onClick={() =>
-                    void act(async () => {
-                      const failed = await copyGuestGames(history, games);
-                      setGames(
-                        games.filter((game) => failed.includes(game.id)),
-                      );
-                      if (failed.length)
-                        setMessage(
-                          "Some games could not be added. Their guest copies are safe. Retry to add the remaining games.",
+                    void act(
+                      "add",
+                      async () => {
+                        const failed = await copyGuestGames(history, games);
+                        setGames(
+                          games.filter((game) => failed.includes(game.id)),
                         );
-                      merged();
-                    }, "Could not finish adding games. Your originals are safe. Try again.")
+                        if (failed.length)
+                          setMessage(
+                            "Some games could not be added. Their guest copies are safe. Retry to add the remaining games.",
+                          );
+                        merged();
+                      },
+                      "Could not finish adding games. Your originals are safe. Try again.",
+                    )
                   }
                 >
                   Add guest games
-                </button>
-                <button
+                </BusyButton>
+                <BusyButton
                   className="review-action"
-                  disabled={busy}
+                  busy={pending === "keep"}
+                  disabled={busy && pending !== "keep"}
                   onClick={() =>
-                    void act(() => {
-                      for (const game of games)
-                        localStorage.setItem(
-                          history.key("keep-guest:" + game.id),
-                          "1",
-                        );
-                      setGames([]);
-                    }, "Could not save your choice.")
+                    void act(
+                      "keep",
+                      () => {
+                        for (const game of games)
+                          localStorage.setItem(
+                            history.key("keep-guest:" + game.id),
+                            "1",
+                          );
+                        setGames([]);
+                      },
+                      "Could not save your choice.",
+                    )
                   }
                 >
                   Keep guest-only
-                </button>
+                </BusyButton>
               </div>
             </section>
           )}
           <section>
             <h2>Sync</h2>
             <p>Games are saved on this device.</p>
-            <p role="status">{sync.message}</p>
+            <p role="status">
+              {sync.message === "Checking saved games" ||
+              sync.message === "Connecting to cloud" ? (
+                <LoadingText>{sync.message}</LoadingText>
+              ) : (
+                sync.message
+              )}
+            </p>
             {sync.lastAck !== null && (
               <p>Last game synced {new Date(sync.lastAck).toLocaleString()}</p>
             )}
@@ -160,17 +188,27 @@ export function AccountPanel({
               </details>
             )}
           </section>
-          <button
+          <BusyButton
             className="review-action"
-            disabled={busy}
+            busy={pending === "sign-out"}
+            disabled={busy && pending !== "sign-out"}
             onClick={() => {
               if (session)
-                void act(session.signOut, "Could not sign out. Try again.");
+                void act(
+                  "sign-out",
+                  session.signOut,
+                  "Could not sign out. Try again.",
+                );
             }}
           >
             Sign out
-          </button>
+          </BusyButton>
         </>
+      )}
+      {user && busy && (
+        <p role="status">
+          <LoadingText>Updating account…</LoadingText>
+        </p>
       )}
       {(message || error) && <p role="alert">{message || error}</p>}
     </section>
@@ -178,11 +216,13 @@ export function AccountPanel({
 
   return (
     <main className="content-shell account-home">
-      <h1>Account</h1>
+      <ScreenHeader
+        eyebrow="Player profile"
+        title={displayName || (user ? "ChessCue player" : "Guest player")}
+      />
       <div className="account-columns">
-        {compact && settings}
         {children}
-        {!compact && settings}
+        {settings}
       </div>
     </main>
   );

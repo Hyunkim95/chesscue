@@ -1,3 +1,4 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
 import { Chess, type Color, type PieceSymbol } from "chess.js";
 import { useEffect, useId, useMemo, useState } from "react";
 
@@ -158,7 +159,13 @@ function PositionReadout({
         aria-live="polite"
       >
         Position{" "}
-        <strong>{search ? "Checking…" : positionLabel(assessment)}</strong>
+        <strong>
+          {search ? (
+            <LoadingText>Checking…</LoadingText>
+          ) : (
+            positionLabel(assessment)
+          )}
+        </strong>
       </span>
     </>
   );

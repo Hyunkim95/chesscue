@@ -1,3 +1,5 @@
+import { LoadingState } from "../../shared/loading/LoadingState";
+import { BusyButton } from "../../shared/ui/primitives";
 import type { AssessPosition } from "../../application/analyze-game/assess-position";
 import type { AnalyzeReply } from "../review/GuidedMoveFeedback";
 import { starterPack } from "../../domain/material/pack";
@@ -32,6 +34,7 @@ import type { MovePattern } from "../../domain/curriculum/playing-snapshot";
 import { studyOrigin } from "../../domain/study/study-connection";
 import { HistoricalStudy } from "./HistoricalStudy";
 import { LessonChallenge } from "./LessonChallenge";
+import { ChessBoard } from "../board/ChessBoard";
 import "./study.css";
 
 type RequestState =
@@ -193,12 +196,11 @@ export function StudyScreen({
       }
       const messages = {
         quota:
-          "Gemini search has reached its usage limit. Try again later or browse the offline examples.",
-        "app-check":
-          import.meta.env.DEV &&
-          import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG === "true"
-            ? "Firebase could not verify this browser. Register its App Check debug token, then reload and retry."
-            : "Firebase could not verify this browser. Reload and try again or browse the offline examples.",
+          "Your Gemini key has reached its usage limit. Try again later or browse the offline examples.",
+        "no-key":
+          "Add your Gemini key in Profile to search master games, or browse the offline examples.",
+        "key-rejected":
+          "Google did not accept your Gemini key. Check it in Profile, or browse the offline examples.",
         unavailable:
           "Gemini Cloud is unavailable. Try again later or browse the offline examples.",
         unverified:
@@ -298,7 +300,7 @@ export function StudyScreen({
         className="content-shell study-shell"
         aria-label="Lessons and position practice"
       >
-        <p role="status">Opening your games…</p>
+        <LoadingState shape="list">Opening your games…</LoadingState>
       </section>
     );
   if (!library && games.length > 0)
@@ -362,15 +364,17 @@ export function StudyScreen({
             </p>
           )}
           <div className="study-actions">
-            <button
+            <BusyButton
               className="primary-link"
-              disabled={!ai || !searchGoal || state.status === "researching"}
+              busy={state.status === "researching"}
+              disabled={!ai || !searchGoal}
               onClick={() => void research()}
             >
-              {state.status === "researching"
-                ? "Finding and verifying a game…"
-                : "Find game with Gemini"}
-            </button>
+              Find game with Gemini
+            </BusyButton>
+            {state.status === "researching" && (
+              <p role="status">Finding and verifying a game…</p>
+            )}
             <button
               className="review-action"
               onClick={() => {
@@ -418,9 +422,24 @@ export function StudyScreen({
       <ol className="skill-challenge-list">
         {course.lessons.map((step, index) => (
           <li key={step.title}>
+            <div className="skill-challenge-list__diagram" aria-hidden="true">
+              <ChessBoard
+                fen={step.fen}
+                orientation={step.fen.split(" ")[1] === "b" ? "black" : "white"}
+                label="Challenge starting position"
+              />
+            </div>
             <div>
               <h3>{step.title}</h3>
-              <p>{roadmap.questions[index]}</p>
+              <p
+                className={
+                  roadmap.questions[index] === step.question
+                    ? "skill-challenge-list__accessible-objective"
+                    : undefined
+                }
+              >
+                {roadmap.questions[index]}
+              </p>
             </div>
             <button
               type="button"
@@ -428,6 +447,7 @@ export function StudyScreen({
                 index === roadmap.startAt ? "primary-link" : "review-action"
               }
               aria-label={"Play " + step.title}
+              title={"Play " + step.title}
               onClick={() => {
                 enterStudy("challenge-" + String(index));
                 if (!draft) open(roadmap);
@@ -435,7 +455,7 @@ export function StudyScreen({
                 setLesson(index);
               }}
             >
-              Play <span aria-hidden="true">▸</span>
+              <span aria-hidden="true">▶</span>
             </button>
           </li>
         ))}

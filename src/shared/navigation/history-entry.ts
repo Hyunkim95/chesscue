@@ -65,6 +65,26 @@ export function useStudyNavigation() {
     if (owner) enterPage("#study/" + skill + "/" + step, owner, true, replace);
   };
 }
+export function writeEntryValues(
+  owner: string,
+  values: Record<string, unknown>,
+) {
+  const entry = currentEntry() ?? {
+    owner,
+    hash: location.hash,
+    parents: [],
+    values: {},
+  };
+  if (entry.owner !== owner) return;
+  try {
+    window.history.replaceState(
+      { ...entry, values: { ...entry.values, ...values } },
+      "",
+    );
+  } catch {
+    // Navigation remains available when the browser cannot store view state.
+  }
+}
 export function useEntryState<T>(
   key: string,
   schema: z.ZodType<T>,
@@ -84,28 +104,8 @@ export function useEntryState<T>(
     return initial instanceof Function ? initial() : initial;
   });
   useLayoutEffect(() => {
-    const entry = currentEntry() ?? {
-      owner,
-      hash: location.hash,
-      parents: [],
-      values: {},
-    };
-    if (owner && entry.owner === owner) {
-      try {
-        window.history.replaceState(
-          {
-            ...entry,
-            values: {
-              ...entry.values,
-              [key]: serialize ? serialize(value) : value,
-            },
-          },
-          "",
-        );
-      } catch {
-        /* The current board remains usable if browser history storage is full. */
-      }
-    }
+    if (owner)
+      writeEntryValues(owner, { [key]: serialize ? serialize(value) : value });
   }, [owner, key, value, serialize]);
   return [value, setValue] as const;
 }

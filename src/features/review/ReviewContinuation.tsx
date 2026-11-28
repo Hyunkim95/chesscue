@@ -1,3 +1,4 @@
+import { LoadingText } from "../../shared/loading/LoadingState";
 import { z } from "zod";
 import { useEntryState } from "../../shared/navigation/history-entry";
 import { Chess, type Square } from "chess.js";
@@ -196,7 +197,11 @@ export function ReviewContinuation({
     <div className="game-review__training-layout game-review__continuation">
       <div className="game-review__board-stage">
         <p className="game-review__turn" role="status">
-          {turnLabel}
+          {cpuTurn && !unavailable ? (
+            <LoadingText>{turnLabel}</LoadingText>
+          ) : (
+            turnLabel
+          )}
         </p>
         <TrainingBoard
           fen={fen}

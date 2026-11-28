@@ -1,0 +1,153 @@
+.recap-screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+  inline-size: 100%;
+  max-inline-size: 28rem;
+  margin-inline: auto;
+}
+
+.recap-screen h1 {
+  margin: 0;
+  font: 600 30px/1.08 var(--ui-font-display);
+}
+
+.recap-screen .rook-character--lg {
+  inline-size: clamp(62px, 23vw, 94px);
+}
+
+.recap-screen .rook-says {
+  align-items: center;
+  margin-block: 0 4px;
+}
+
+.recap-screen .rook-bubble::before {
+  bottom: auto;
+  top: calc(50% - 9px);
+}
+
+.recap-screen .ui-stat-tile {
+  padding-inline: 5px;
+}
+
+.recap-stat--ideas {
+  color: var(--ui-color-jade);
+}
+
+.recap-stat--streak {
+  color: var(--ui-color-flame);
+}
+
+.recap-stat--xp {
+  color: var(--ui-color-brass);
+}
+
+.recap-collection h2 {
+  margin: 0 0 10px;
+  color: var(--ui-color-muted);
+  font: 700 13px/1.2 var(--ui-font-body);
+}
+
+.recap-collection__strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recap-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-block-size: 100px;
+  padding: 8px 4px;
+  border: 2px solid transparent;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-card);
+  font-size: 12px;
+  line-height: 1.17;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.recap-card strong {
+  max-inline-size: 100%;
+}
+
+.recap-card img,
+.recap-card--locked span {
+  display: block;
+  inline-size: 38px;
+  block-size: 38px;
+  margin-bottom: 2px;
+  object-fit: contain;
+}
+
+.recap-card small {
+  margin-top: auto;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+}
+
+.recap-card--new {
+  border-color: var(--ui-color-brass);
+  animation: recap-card-pop var(--ui-motion-slow) var(--ui-motion-spring);
+}
+
+@keyframes recap-card-pop {
+  from {
+    transform: scale(0.87) translateY(4px);
+  }
+}
+
+.recap-card--new small {
+  color: var(--ui-color-brass);
+}
+
+.recap-card--locked span {
+  display: grid;
+  place-items: center;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-color-deep);
+  color: var(--ui-color-muted);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.recap-actions {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.recap-actions__quiet {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin-top: 9px;
+}
+
+.recap-actions__quiet .ui-button {
+  min-block-size: var(--ui-space-target);
+  padding-inline: 10px;
+  color: var(--ui-color-muted);
+  box-shadow: none;
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recap-card--new {
+    animation: none;
+  }
+}
+
+@media (min-width: 960px) {
+  .recap-screen {
+    max-inline-size: 40rem;
+  }
+}

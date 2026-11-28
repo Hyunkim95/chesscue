@@ -12,7 +12,7 @@ export function rookCaptureAnswer(
   question: string,
   position: Chess,
   hiddenReply?: Move,
-): string | undefined {
+): { readonly text: string; readonly captures?: readonly Move[] } | undefined {
   const mentioned =
     /\b(?:takes?|captures?)\s+(?:(?:the|a|my|your|our|white|black)\s+)*(pawn|knight|bishop|rook|queen)\b/i.exec(
       question,
@@ -26,7 +26,9 @@ export function rookCaptureAnswer(
   const turn = position.turn();
   const side = turn === "w" ? "White" : "Black";
   if (subject && subject !== side.toLowerCase()) {
-    return `It’s ${side}’s turn. ${subject === "white" ? "White" : "Black"} can only make that capture on their turn.`;
+    return {
+      text: `It’s ${side}’s turn. ${subject === "white" ? "White" : "Black"} can only make that capture on their turn.`,
+    };
   }
   const targetSide = turn === "w" ? "Black" : "White";
   const target = /^\s+(?:on|at)\s+([a-h][1-8])\b/i
@@ -40,14 +42,22 @@ export function rookCaptureAnswer(
     );
   const first = captures[0];
   if (!first)
-    return `${side} can’t legally capture a ${targetSide} ${name} from this position.`;
+    return {
+      text: `${side} can’t legally capture a ${targetSide} ${name} from this position.`,
+    };
   if (hiddenReply) {
     const found = captures.some(({ lan }) => lan === hiddenReply.lan);
-    return found
-      ? `Yes. Stockfish found a ${name} capture for ${side}. Try it on the board.`
-      : `${side} can take the ${name}. Stockfish found a different reply. Try the capture or use Show reply to compare.`;
+    return {
+      text: found
+        ? `Yes. Stockfish found a ${name} capture for ${side}. Try it on the board.`
+        : `${side} can take the ${name}. Stockfish found a different reply. Try the capture or use Show reply to compare.`,
+    };
   }
-  return captures.length === 1
-    ? `Yes. ${side} can take the ${name} on ${first.to} with ${first.san}.`
-    : `Yes. ${side} can take a ${name} with ${captures.map(({ san }) => san).join(" or ")}.`;
+  return {
+    text:
+      captures.length === 1
+        ? `Yes. ${side} can take the ${name} on ${first.to} with ${first.san}.`
+        : `Yes. ${side} can take a ${name} with ${captures.map(({ san }) => san).join(" or ")}.`,
+    captures,
+  };
 }

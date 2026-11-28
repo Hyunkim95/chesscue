@@ -1,0 +1,213 @@
+.loading-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.loading-mark {
+  position: relative;
+  box-sizing: border-box;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.55em;
+  aspect-ratio: 1;
+  vertical-align: -0.25em;
+  overflow: hidden;
+  border: 1px solid var(--cue-gold);
+  border-radius: 0.25em;
+  background: conic-gradient(
+      #375c4b 25%,
+      #203b30 0 50%,
+      #375c4b 0 75%,
+      #203b30 0
+    )
+    0 0 / 50% 50%;
+}
+
+.loading-mark--large {
+  width: clamp(3.5rem, 14vw, 5rem);
+  border-radius: 0.55rem;
+  box-shadow: 0 0 1.5rem #dfc39736;
+}
+
+.loading-mark img {
+  width: 64%;
+  height: 64%;
+  object-fit: contain;
+  animation: loading-rook-move 1.45s ease-in-out infinite alternate;
+}
+
+@keyframes loading-rook-move {
+  0%,
+  12% {
+    transform: translate(-24%, 24%);
+  }
+  44%,
+  56% {
+    transform: translate(24%, 24%);
+  }
+  88%,
+  100% {
+    transform: translate(24%, -24%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-mark img {
+    animation: none;
+  }
+}
+
+/* SLO-014 skeletons. They fade in after 120 ms so a fast load never
+   flashes, and still land inside the 200 ms acknowledgement budget. */
+.skeleton-screen {
+  animation: skeleton-appear 160ms ease-out 120ms both;
+}
+
+.skeleton-screen--page,
+.skeleton-screen--list {
+  display: block;
+  width: 100%;
+  padding-block: 0.5rem;
+}
+
+.skeleton {
+  display: block;
+  border-radius: var(--ui-radius-pill, 999px);
+  background:
+    linear-gradient(
+        100deg,
+        transparent 30%,
+        color-mix(in srgb, var(--ui-color-ink, #f9efda) 7%, transparent) 50%,
+        transparent 70%
+      )
+      0 0 / 220% 100%,
+    var(--ui-color-deep, #16302a);
+  animation: skeleton-shimmer 1.4s linear infinite;
+}
+
+.skeleton--line {
+  height: 0.7rem;
+}
+
+.skeleton--title {
+  width: 52%;
+  height: 1.6rem;
+}
+
+.skeleton--card {
+  height: 7.5rem;
+  border-radius: var(--ui-radius-card, 16px);
+}
+
+.skeleton--card-short {
+  height: 4.5rem;
+}
+
+.skeleton--thumb {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--ui-radius-control, 10px);
+}
+
+.skeleton--board {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background:
+    linear-gradient(
+        100deg,
+        transparent 30%,
+        color-mix(in srgb, var(--ui-color-ink, #f9efda) 6%, transparent) 50%,
+        transparent 70%
+      )
+      0 0 / 220% 100%,
+    conic-gradient(
+        var(--ui-color-deep, #16302a) 25%,
+        var(--ui-color-surface, #10231f) 0 50%,
+        var(--ui-color-deep, #16302a) 0 75%,
+        var(--ui-color-surface, #10231f) 0
+      )
+      0 0 / 25% 25%;
+  box-shadow: inset 0 0 0 1px var(--ui-color-line, #2c4a41);
+}
+
+.skeleton-page {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.skeleton-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.skeleton-list__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--ui-space-target, 44px);
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--ui-radius-control, 10px);
+  box-shadow: inset 0 0 0 1px var(--ui-color-line, #2c4a41);
+}
+
+.skeleton-list__text {
+  display: grid;
+  flex: 1;
+  gap: 0.45rem;
+}
+
+.skeleton-lines {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 8rem;
+  padding-block: 0.25rem;
+}
+
+.skeleton-board-card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  background: var(--ui-color-surface);
+  border-radius: var(--ui-radius-card);
+  box-shadow: inset 0 0 0 1px var(--ui-color-line);
+}
+
+.skeleton-bubble {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 10rem;
+  padding-block: 0.3rem;
+}
+
+.skeleton-bubble .skeleton {
+  background-color: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position-x: 110%;
+  }
+  to {
+    background-position-x: -110%;
+  }
+}
+
+@keyframes skeleton-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  .skeleton-screen {
+    animation-duration: 1ms;
+  }
+}

@@ -87,4 +87,6 @@ Run `pnpm build:extension`, open `chrome://extensions`, enable Developer mode, a
 
 For a hackathon cloud demo, configure the Firebase web variables in `.env.local` and set `VITE_FIREBASE_APP_CHECK_DEBUG=true` before building. In the dedicated demo Chrome profile, open a review, then register the Firebase-generated debug token from the extension page's DevTools console under **Firebase Console → App Check → web app → Manage debug tokens**. Keep the token private and revoke it after filming. Registration is per profile and extension ID. Production attestation for a public store release remains outstanding. In review, try a move and expand **Why this matters** to see the coaching source.
 
+For Google sign-in in the side panel, create a **Chrome Extension** OAuth client in the Google Cloud project that backs Firebase Auth. Use the ChessCue extension ID shown at `chrome://extensions` as its Item ID. Set the resulting client ID in `VITE_CHROME_EXTENSION_GOOGLE_CLIENT_ID`, rebuild and reload ChessCue. The next sign-in from Social uses Chrome’s Google prompt and returns to the current race.
+
 `pnpm test:extension` builds the unpacked extension and tests the Lichess handoff, repeat visits, active-game rejection and offline play using Chromium.

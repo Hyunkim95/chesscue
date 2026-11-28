@@ -126,6 +126,25 @@ export async function startTutorGame(
     : err({ code: "storage", cause: persisted.error, session });
 }
 
+export async function findUnfinishedTutorGame(
+  repository: GameRepository,
+  mode?: TutorGameMode,
+  gameId?: GameId,
+): Promise<Result<GameRecord | null, RepositoryFailure>> {
+  if (gameId !== undefined) {
+    const requested = await repository.get(gameId);
+    if (!requested.ok) return requested;
+    if (
+      requested.value !== null &&
+      requested.value.completedAt === null &&
+      requested.value.result === null &&
+      tutorGameMode(requested.value) === mode
+    )
+      return requested;
+  }
+  return repository.getLatestInProgress(mode);
+}
+
 export function resumeTutorGame(
   record: GameRecord,
 ): Result<PlaySession, PlayFailure> {

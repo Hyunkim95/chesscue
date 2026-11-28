@@ -26,24 +26,38 @@ it("keeps a completed review retry complete after the same position is tried aga
   };
   try {
     await expect(
-      saveReviewMistake(database, "game", {
-        ...evidence,
-        after: { ...evidence.after, line: ["d8d1"] },
-      }),
+      saveReviewMistake(
+        database,
+        "game",
+        {
+          ...evidence,
+          after: { ...evidence.after, line: ["d8d1"] },
+        },
+        "see-the-threat",
+      ),
     ).rejects.toThrow();
-    await Promise.all([
-      saveReviewMistake(database, "game", evidence),
-      saveReviewMistake(database, "game", evidence),
+    const results = await Promise.all([
+      saveReviewMistake(database, "game", evidence, "see-the-threat"),
+      saveReviewMistake(database, "game", evidence, "see-the-threat"),
     ]);
+    expect(new Set(results)).toEqual(new Set([true, false]));
     const id = reviewMistakeId("game", evidence.fen);
+    expect(await listReviewMistakes(database)).toEqual([
+      expect.objectContaining({
+        id,
+        completed: false,
+        unitId: "see-the-threat",
+      }),
+    ]);
     const [mistake] = await listReviewMistakes(database);
-    expect(mistake).toMatchObject({ id, completed: false });
     if (!mistake) throw new Error("Expected a saved review mistake");
     expect(reviewMistakePractice(mistake)?.exercise.theme).toBe(
       "one-move-threat",
     );
     await completeReviewMistake(database, id);
-    await saveReviewMistake(database, "game", evidence);
+    await expect(
+      saveReviewMistake(database, "game", evidence, "see-the-threat"),
+    ).resolves.toBe(false);
     expect(await listReviewMistakes(database)).toEqual([
       expect.objectContaining({ id, completed: true }),
     ]);

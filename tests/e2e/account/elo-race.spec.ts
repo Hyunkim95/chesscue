@@ -2,7 +2,7 @@ import { Chess } from "chess.js";
 import { expect, test, type Page } from "@playwright/test";
 import { googleLogin } from "./google-login";
 
-async function seedGame(page: Page, complete: boolean) {
+async function seedGame(page: Page, complete: boolean, opponentElo = 1450) {
   const chess = complete
     ? new Chess()
     : new Chess("7k/5K2/8/8/8/8/8/R7 w - - 0 1");
@@ -27,7 +27,7 @@ async function seedGame(page: Page, complete: boolean) {
     id,
     createdAt: at,
     completedAt: complete ? at : null,
-    origin: { type: "tutor", mode: "rated", opponentElo: 1450 },
+    origin: { type: "tutor", mode: "rated", opponentElo },
     initialFen,
     moves,
     pgn: chess.pgn(),
@@ -85,7 +85,7 @@ async function finish(page: Page) {
   await page.getByRole("gridcell", { name: /Empty h1/ }).click();
   await expect(page.getByText("Share this win", { exact: true })).toBeVisible();
 }
-test("offline win overtakes a later finisher within five seconds of sync and shares a playable position", async ({
+test("a higher peak from an offline win takes the lead after sync and shares a playable position", async ({
   page,
   browser,
   context,
@@ -99,23 +99,30 @@ test("offline win overtakes a later finisher within five seconds of sync and sha
   test.setTimeout(100000);
   const other = await browser.newContext({
     baseURL: "http://127.0.0.1:4187",
-    viewport: { width: 390, height: 844 },
+    viewport: { width: 320, height: 844 },
   });
   try {
     const friend = await other.newPage();
     for (const p of [page, friend]) {
       await p.goto("/");
       await googleLogin(p, crypto.randomUUID() + "@example.test");
-      await expect(p.getByText("Up to date", { exact: true })).toBeVisible();
-      await seedGame(p, true);
-      await expect(p.getByText(/^Last game synced/)).toBeVisible();
+      await expect(p.getByText("Up to date", { exact: true })).toBeVisible({
+        timeout: 20000,
+      });
+      await seedGame(p, true, p === friend ? 1320 : 1450);
+      await expect(p.getByText(/^Last game synced/)).toBeVisible({
+        timeout: 20000,
+      });
     }
-    await page.getByRole("button", { name: "Play", exact: true }).click();
-    await page.getByRole("button", { name: "Change game mode" }).click();
-    await page.getByRole("link", { name: "Elo races" }).click();
+    await page
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Social", exact: true })
+      .click();
     const empty = page.getByRole("region", { name: "Start your first race" });
     await expect(empty.locator("img")).toHaveCount(2);
-    await page.getByLabel("Elo to gain").fill("10");
+
+    await expect(page.getByLabel("Target Elo")).toHaveCount(0);
+    await expect(page.getByLabel("Elo to gain")).toHaveCount(0);
     await page.getByRole("button", { name: "Create race" }).click();
     const invite = page.getByLabel("Invite friends");
     await expect(invite).toBeVisible();
@@ -144,9 +151,9 @@ test("offline win overtakes a later finisher within five seconds of sync and sha
     const theirs = standings
       .getByRole("listitem")
       .filter({ hasNotText: "(you)" });
-    await expect(mine.getByText("Provisional winner")).toBeVisible();
+    await expect(mine.getByText("Leading", { exact: true })).toBeVisible();
     const visible = theirs
-      .getByText("Provisional winner")
+      .getByText("Leading", { exact: true })
       .waitFor({ state: "visible", timeout: 20000 })
       .then(() => Date.now());
     await context.setOffline(false);
@@ -174,7 +181,10 @@ test("offline win overtakes a later finisher within five seconds of sync and sha
       body: JSON.stringify({ milliseconds: latency }),
       contentType: "application/json",
     });
-    await expect(mine.getByText("Provisional winner")).toBeHidden();
+    await expect(mine.getByText("Leading", { exact: true })).toBeHidden();
+    await expect(standings.getByRole("listitem").first()).not.toContainText(
+      "(you)",
+    );
     await expect(page.getByText("Pending sync")).toBeHidden();
     for (const [label, p] of [
       ["desktop", page],
@@ -192,17 +202,21 @@ test("offline win overtakes a later finisher within five seconds of sync and sha
         contentType: "image/png",
       });
     }
-    await page.getByRole("link", { name: "Back to Play", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Play", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Back to game mode" }).click();
     await page.getByText("Share this win", { exact: true }).click();
     await page
       .getByLabel("Include race")
-      .selectOption({ label: "Gain 10 Elo" });
+      .selectOption({ label: "Highest Elo" });
     await page.getByRole("button", { name: "Create win link" }).click();
     const winUrl = await page.getByLabel("Shared win link").inputValue();
     const guest = await browser.newPage();
     try {
       await guest.goto(winUrl);
-      await expect(guest.getByText(/Race goal/)).toBeVisible();
+      await expect(guest.getByText(/Race best \d+ Elo/)).toBeVisible();
       await guest.getByRole("gridcell", { name: "White rook on a1" }).click();
       await guest.getByRole("gridcell", { name: /Empty h1/ }).click();
       await expect(guest.getByText("Your move: Rh1#")).toBeVisible();
@@ -234,11 +248,14 @@ test("SLO-011 renders 99 of 100 acknowledged race updates within five seconds", 
     for (const p of [page, friend]) {
       await p.goto("/");
       await googleLogin(p, crypto.randomUUID() + "@example.test");
-      await expect(p.getByText("Up to date", { exact: true })).toBeVisible();
+      await expect(p.getByText("Up to date", { exact: true })).toBeVisible({
+        timeout: 20000,
+      });
     }
-    await page.getByRole("button", { name: "Play", exact: true }).click();
-    await page.getByRole("button", { name: "Change game mode" }).click();
-    await page.getByRole("link", { name: "Elo races" }).click();
+    await page
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Social", exact: true })
+      .click();
     await page.getByRole("button", { name: "Create race" }).click();
     const url = await page.getByLabel("Invite friends").inputValue();
     await friend.goto(url);

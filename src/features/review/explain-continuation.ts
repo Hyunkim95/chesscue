@@ -1,9 +1,22 @@
 import { Chess, SQUARES, type Move, type Square } from "chess.js";
+import { isMateScore } from "../../domain/analysis/classify-experiment";
+import {
+  openedPawnExchange,
+  openedPieceLine,
+  pawnTargetAfterMove,
+} from "../../domain/analysis/board-move-cues";
 import { materialBalance } from "../../domain/game/board-balance";
 import { pieceNames } from "../board/board-pieces";
 
 const center: readonly Square[] = ["e4", "d4", "e5", "d5"];
 const priority = { k: 0, q: 5, r: 4, b: 3, n: 3, p: 1 };
+
+export function explainOpenedPawnExchange(
+  move: Move,
+  exchange: NonNullable<ReturnType<typeof openedPawnExchange>>,
+) {
+  return `${move.to} challenges ${exchange.target}. If ${exchange.capture.san}, ${exchange.recapture.san} takes the pawn back.`;
+}
 
 function materialSummary(position: Chess): string {
   const balance = materialBalance(position.fen());
@@ -201,23 +214,21 @@ export function explainContinuation(
   );
   if (protectedPiece)
     return `The attacked ${pieceNames[protectedPiece.type]} on ${protectedPiece.square} now has support. It was undefended before this move.`;
-  const opened = pieces.find(
-    (target) =>
-      target.color === move.color &&
-      ["q", "b", "r"].includes(target.type) &&
-      target.square !== move.to &&
-      after.attackers(move.from, move.color).includes(target.square) &&
-      SQUARES.some(
-        (sq) =>
-          !after.get(sq) &&
-          after.attackers(sq, move.color).includes(target.square) &&
-          !before.attackers(sq, move.color).includes(target.square),
-      ),
-  );
-  if (opened)
-    return `Vacating ${move.from} opens a line for the ${pieceNames[opened.type]} on ${opened.square}, giving it more room along that line.`;
+  const opened = openedPieceLine(after, move, before);
+  if (opened) {
+    const exchange = openedPawnExchange(after, move, opened);
+    if (exchange) return explainOpenedPawnExchange(move, exchange);
+    const target = pawnTargetAfterMove(after, move);
+    const attack = target ? `${move.to} attacks ${target.square}. ` : "";
+    if (opened.guardsMove)
+      return `${attack}Clearing ${move.from} opens the line from the ${pieceNames[opened.piece.type]} on ${opened.piece.square} toward ${move.to}.`;
+    return `${attack}Vacating ${move.from} opens a line for the ${pieceNames[opened.piece.type]} on ${opened.piece.square}, giving it more room along that line.`;
+  }
   const gained = [...center, ...SQUARES].find(
     (sq) =>
+      // A piece never attacks its own square, so the square it left would
+      // otherwise always count as newly covered.
+      sq !== move.from &&
       after.attackers(sq, move.color).includes(move.to) &&
       !before.attackers(sq, move.color).includes(move.from),
   );
@@ -229,4 +240,137 @@ export function explainContinuation(
     return `From ${move.to}, the ${piece} now covers ${gained}. That square was outside its reach on ${move.from}.`;
   }
   return `The ${piece} on ${move.to} ${after.isAttacked(move.to, move.color) ? "has support from another piece" : "has no defender"}. ${materialSummary(after)}`;
+}
+
+function openingEffect(move: Move): string | undefined {
+  if (move.piece === "p" && center.includes(move.to))
+    return `The pawn takes space in the center on ${move.to}.`;
+
+  const homeRank = move.color === "w" ? "1" : "8";
+  const file = move.from.charAt(0);
+  const homeMinor =
+    (move.piece === "n" && (file === "b" || file === "g")) ||
+    (move.piece === "b" && (file === "c" || file === "f"));
+  if (homeMinor && move.from.endsWith(homeRank) && !move.to.endsWith(homeRank))
+    return `The ${pieceNames[move.piece]} develops from ${move.from} to ${move.to}.`;
+
+  return undefined;
+}
+
+// Compare positions at the same point in each checked line so that a capture
+// followed by a recapture is not mistaken for a lasting material gain.
+export function explainComparedMove(
+  move: Move,
+  otherMove: Move,
+  checkedReply?: Move | null,
+  checkedScores?: { readonly selected: number; readonly other: number },
+): string {
+  const after = new Chess(move.after);
+  const other = new Chess(otherMove.after);
+  const newCenterTarget = center.find(
+    (square) =>
+      after.attackers(square, move.color).includes(move.to) &&
+      !other.isAttacked(square, move.color),
+  );
+  const opponent = move.color === "w" ? "Black" : "White";
+  const opponentHasMate = (score: number) => score > 0 && isMateScore(score);
+  const mateContrast =
+    checkedReply && checkedScores
+      ? opponentHasMate(checkedScores.selected)
+        ? `Stockfish finds a forced mate for ${opponent} after ${move.san}, starting with ${checkedReply.san}.`
+        : opponentHasMate(checkedScores.other)
+          ? `This search found no forced mate for ${opponent} after ${move.san}. Checked reply: ${checkedReply.san}.`
+          : null
+      : null;
+  const captured = move.captured;
+  const recaptured = checkedReply?.captured;
+  if (captured && checkedReply && recaptured && checkedReply.to === move.to) {
+    const square = move.isEnPassant()
+      ? move.to.charAt(0) + move.from.charAt(1)
+      : move.to;
+    const target = newCenterTarget ? ` and attacks ${newCenterTarget}` : "";
+    const exchange = `${move.san} takes the ${pieceNames[captured]} on ${square}${target}. ${opponent}’s ${pieceNames[checkedReply.piece]} can take your ${pieceNames[recaptured]} back with ${checkedReply.san}.`;
+    return mateContrast ? `${exchange} ${mateContrast}` : exchange;
+  }
+
+  if (checkedReply?.san.endsWith("#")) {
+    return `After ${move.san}, ${checkedReply.san} is checkmate. ${explainContinuation(checkedReply, new Chess(checkedReply.after), move)}`;
+  }
+  if (mateContrast) return mateContrast;
+
+  const effect = newCenterTarget
+    ? `${move.san} adds an attack on ${newCenterTarget}.`
+    : explainContinuation(move, after);
+  return checkedReply
+    ? `${effect} Checked reply: ${checkedReply.san}.`
+    : effect;
+}
+
+export function explainBetterMove({
+  played,
+  found,
+  playedLine,
+  foundLine,
+  playedReplyScore,
+  foundReplyScore,
+  gain,
+  opening,
+}: {
+  readonly played: Move;
+  readonly found: Move;
+  readonly playedLine: readonly Move[];
+  readonly foundLine: readonly Move[];
+  readonly playedReplyScore: number;
+  readonly foundReplyScore: number;
+  readonly gain: number;
+  readonly opening: boolean;
+}): string {
+  const intro = `You played ${found.san}.`;
+  if (foundReplyScore < 0 && isMateScore(foundReplyScore))
+    return `${intro} Stockfish sees a forced mate for you after ${found.san}. ${explainContinuation(found, new Chess(found.after))}`;
+  if (playedReplyScore > 0 && isMateScore(playedReplyScore)) {
+    const reply = playedLine[0]?.san;
+    const start = reply ? `, starting with ${reply}` : "";
+    return `${intro} Stockfish sees a forced mate against ${played.san}${start}. It didn’t find a forced mate against your new move in this search.`;
+  }
+
+  const summary = `${intro} Stockfish gives it a ${(gain / 100).toFixed(2)}-point edge over ${played.san}.`;
+  const depth = Math.min(playedLine.length, foundLine.length);
+  const afterPlayed = new Chess(playedLine[depth - 1]?.after ?? played.after);
+  const afterFound = new Chess(foundLine[depth - 1]?.after ?? found.after);
+  const side = found.color === "w" ? 1 : -1;
+  const materialGain =
+    (materialBalance(afterFound.fen()) - materialBalance(afterPlayed.fen())) *
+    side;
+  if (materialGain > 0) {
+    const amount =
+      materialGain === 1
+        ? "one pawn’s worth"
+        : `${String(materialGain)} pawns’ worth`;
+    return `${summary} The checked line leaves you ${amount} of material ahead of the game line.`;
+  }
+
+  if (opening) {
+    const gained = center.filter(
+      (square) =>
+        afterFound.isAttacked(square, found.color) &&
+        !afterPlayed.isAttacked(square, found.color),
+    );
+    const conceded = center.some(
+      (square) =>
+        afterPlayed.isAttacked(square, found.color) &&
+        !afterFound.isAttacked(square, found.color),
+    );
+    if (gained.length > 0 && !conceded)
+      return `${summary} In the checked line, your pieces cover ${gained.join(" and ")} as well as the central squares you covered after ${played.san}.`;
+  }
+
+  const moveEffect =
+    (opening ? openingEffect(found) : undefined) ??
+    explainContinuation(found, new Chess(found.after));
+  const gameEffect =
+    (opening ? openingEffect(played) : undefined) ??
+    explainContinuation(played, new Chess(played.after));
+  if (moveEffect === gameEffect) return `${summary} ${moveEffect}`;
+  return `${summary} ${moveEffect} In the game you played ${played.san}. ${gameEffect}`;
 }

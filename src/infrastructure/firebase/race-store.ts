@@ -68,8 +68,7 @@ export function createRaceStore({ auth, firestore }: FirebaseClientServices) {
     });
   }
   return {
-    create: (goal: RaceGoal) =>
-      enroll(crypto.randomUUID(), goalSchema.parse(goal)),
+    create: () => enroll(crypto.randomUUID(), { kind: "highest" }),
     join: (id: string) => enroll(id),
     async share(gameId: string, ply: number, race: string | null) {
       const { uid, name } = player();
@@ -103,7 +102,10 @@ export function createRaceStore({ auth, firestore }: FirebaseClientServices) {
           const goal = raceSchema.parse((await tx.get(ref)).data()).goal;
           const progress = raceProgress(history, member, goal);
           target = progress.target;
-          raceElo = progress.current;
+          raceElo =
+            goal.kind === "highest"
+              ? (progress.peak ?? null)
+              : progress.current;
         }
         const id = crypto.randomUUID();
         const win = winSchema.parse({

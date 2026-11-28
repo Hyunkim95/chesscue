@@ -1,0 +1,137 @@
+import { describe, expect, it } from "vitest";
+
+import { chipsFor, type ChipContext } from "./chips";
+import type { SessionKind } from "./types";
+
+// Ng5+ forks the king and queen; Black's rook on b5 can take on c5.
+const FORK: ChipContext = {
+  fen: "2r5/5k2/4q3/1rBp2p1/p2P1p2/PpR1PNPp/1P2KP1P/2R5 w - - 0 35",
+  bestUci: "f3g5",
+  playedInGame: { uci: "g3f4", san: "gxf4" },
+  reply: { uci: "f7g8", san: "Kg8" },
+  bestNonSolution: { uci: "e3f4", san: "exf4" },
+  bestDefence: { uci: "f7g6", san: "Kg6" },
+  quiet: false,
+  online: false,
+};
+
+const labels = (kind: SessionKind, context: ChipContext = FORK) =>
+  chipsFor(kind, context).map(({ label }) => label);
+
+describe("chipsFor", () => {
+  it("offers the design's chips for each state", () => {
+    expect(labels("before")).toEqual([
+      "What are you threatening?",
+      "Any checks for me?",
+      "Why not gxf4?",
+    ]);
+    expect(labels("tried")).toEqual(["Why Kg8?", "Your threats now?"]);
+    expect(labels("second-miss")).toEqual(["Scan for me", "What if exf4?"]);
+    expect(labels("solved")).toEqual([
+      "Why does it work?",
+      "What if you'd played Kg6?",
+      "Done ✓",
+    ]);
+    // After Show me the player can still ask about the answer.
+    expect(labels("shown")).toEqual([
+      "Why does it work?",
+      "What if you'd played Kg6?",
+      "Done ✓",
+    ]);
+    expect(labels("done")).toEqual([]);
+  });
+
+  it("asks why not the player's own try, within three questions", () => {
+    const tried: ChipContext = { ...FORK, tried: { uci: "c3c5", san: "Rxc5" } };
+    expect(labels("tried", tried)).toEqual([
+      "Why not Rxc5?",
+      "Why Kg8?",
+      "Your threats now?",
+    ]);
+    expect(labels("second-miss", tried)).toEqual([
+      "Scan for me",
+      "Why not Rxc5?",
+      "What if exf4?",
+    ]);
+    expect(labels("shown", tried)).toEqual([
+      "Why does it work?",
+      "What if you'd played Kg6?",
+      "Why not Rxc5?",
+      "Done ✓",
+    ]);
+    expect(chipsFor("tried", tried)[0]?.action).toEqual({
+      kind: "why",
+      uci: "c3c5",
+    });
+  });
+
+  it("offers the opening only once the position is solved or shown", () => {
+    const opening = { ...FORK, opening: true };
+    for (const kind of ["before", "tried", "second-miss", "done"] as const)
+      expect(labels(kind, opening)).not.toContain("About this opening");
+    expect(labels("solved", opening)).toEqual([
+      "Why does it work?",
+      "What if you'd played Kg6?",
+      "About this opening",
+      "Done ✓",
+    ]);
+    expect(labels("shown", opening)).toContain("About this opening");
+    expect(labels("solved")).not.toContain("About this opening");
+    // A wrong try keeps "Why not", and "What if" gives way to the opening.
+    expect(
+      labels("shown", {
+        ...opening,
+        tried: { uci: "c3c5", san: "Rxc5" },
+      }),
+    ).toEqual([
+      "Why does it work?",
+      "Why not Rxc5?",
+      "About this opening",
+      "Done ✓",
+    ]);
+  });
+
+  it("never names the best move before the position is solved", () => {
+    const leaky: ChipContext = {
+      ...FORK,
+      playedInGame: { uci: "f3g5", san: "Ng5+" },
+      reply: { uci: "f3g5", san: "Ng5+" },
+      bestNonSolution: { uci: "f3g5", san: "Ng5+" },
+    };
+    for (const kind of ["before", "tried", "second-miss"] as const)
+      for (const chip of chipsFor(kind, leaky)) {
+        expect(chip.label).not.toContain("Ng5");
+        expect("uci" in chip.action && chip.action.uci).not.toBe("f3g5");
+      }
+  });
+
+  it("never asks about threats in the spot-the-danger format", () => {
+    const danger: ChipContext = {
+      ...FORK,
+      spotTheDanger: true,
+      tried: { uci: "c3c5", san: "Rxc5" },
+    };
+    expect(labels("before", danger)).toEqual([
+      "Any checks for me?",
+      "Why not gxf4?",
+    ]);
+    expect(labels("tried", danger)).toEqual(["Why not Rxc5?", "Why Kg8?"]);
+    for (const kind of ["before", "tried", "second-miss"] as const)
+      expect(
+        chipsFor(kind, danger).some(({ action }) => action.kind === "threats"),
+      ).toBe(false);
+  });
+
+  it("hides chips whose condition does not hold", () => {
+    const quietStart: ChipContext = {
+      fen: "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+      bestUci: "e1e2",
+      quiet: true,
+      online: false,
+    };
+    expect(labels("before", quietStart)).toEqual([]);
+    expect(labels("before", { ...quietStart, online: true })).toEqual([
+      "What's the plan?",
+    ]);
+  });
+});

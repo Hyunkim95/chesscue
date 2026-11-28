@@ -1,0 +1,211 @@
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.result__card {
+  padding: 10px;
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-color-surface);
+  box-shadow:
+    0 5px 0 var(--ui-color-shade),
+    inset 0 0 0 2px color-mix(in srgb, var(--ui-color-brass) 25%, transparent);
+}
+
+.result__head {
+  display: grid;
+  gap: 2px;
+  padding: 10px 4px 4px;
+}
+
+.result__title {
+  margin: 0;
+  font: 600 24px/1.15 var(--ui-font-display);
+  color: var(--ui-color-ink);
+}
+
+.result__rank {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 0;
+  font: 700 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.result__detail--quiet {
+  font: 700 15px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+/* The game's opening, under the result: tapping it plays its frames. */
+.result__opening {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--ui-space-target);
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-color-deep);
+  color: var(--ui-color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.result__opening:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  outline-offset: 2px;
+}
+
+.result__opening-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.result__opening-label {
+  font: 700 11px var(--ui-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-color-muted);
+}
+
+.result__opening-name {
+  font: 700 15px/1.25 var(--ui-font-body);
+  overflow-wrap: anywhere;
+}
+
+.result__opening-summary {
+  font: 600 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.result__opening-chevron {
+  font: 700 22px var(--ui-font-body);
+  color: var(--ui-color-brass);
+}
+
+.result__steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.result__steps .ui-pill {
+  min-width: var(--ui-space-target);
+}
+
+.result__step-count {
+  flex: 1;
+  min-width: 4em;
+  text-align: center;
+  font: 700 13px var(--ui-font-body);
+  color: var(--ui-color-muted);
+}
+
+.result__found {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 12px;
+  font: 600 20px/1.2 var(--ui-font-display);
+  color: var(--ui-color-ink);
+}
+
+.result__found-group {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  justify-items: start;
+  margin-bottom: 12px;
+}
+
+.result__found-group .result__found {
+  margin: 0;
+}
+
+/* What the player did well: a quiet jade line under Rook's moments. */
+.result__good {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ui-space-target);
+  margin: 0 -8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--ui-radius-control);
+  background: none;
+  font: 700 15px var(--ui-font-body);
+  color: var(--ui-color-jade);
+  text-align: left;
+  cursor: pointer;
+}
+
+.result__good:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  outline-offset: 2px;
+}
+
+.result__good-chevron {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.result__good-label {
+  margin: 8px 4px 0;
+  font: 700 13px var(--ui-font-body);
+  color: var(--ui-color-jade);
+}
+
+.result__steps--good {
+  justify-content: flex-end;
+}
+
+.result__actions {
+  display: grid;
+  gap: 12px;
+}
+
+/* The existing Share this win disclosure, quiet under the actions. */
+.result__share .share-win {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  color: var(--ui-color-ink);
+}
+
+.result__share .share-win summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--ui-space-target);
+  font: 700 14px var(--ui-font-body);
+  color: var(--ui-color-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.result__share .share-win summary::-webkit-details-marker {
+  display: none;
+}
+
+.result__share .share-win summary:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  border-radius: var(--ui-radius-control);
+}
+
+.result__share .share-win select {
+  min-height: var(--ui-space-target);
+  color: var(--ui-color-ink);
+  background: var(--ui-color-deep);
+  border: 1px solid var(--ui-color-line);
+  border-radius: var(--ui-radius-control);
+}

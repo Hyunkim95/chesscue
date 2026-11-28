@@ -1,8 +1,12 @@
+import { BoardBack } from "../../shared/navigation/BoardBack";
+import { isSidePanel } from "../../shared/navigation/side-panel";
 import { starterPack } from "../../domain/material/pack";
 import { z } from "zod";
 import { useEntryState } from "../../shared/navigation/history-entry";
 import { Chess, type Square } from "chess.js";
 import {
+  useCallback,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -35,15 +39,18 @@ import {
   getThemeFeedback,
   type ReviewTrainingLog,
 } from "../../domain/analysis/review-training";
+import { moveLossCp } from "../../domain/analysis/classify-experiment";
 import { observedGameMoves } from "../../domain/curriculum/game-drill";
-import type { GameRecord } from "../../domain/game/types";
+import type { GameRecord, PlayerColor } from "../../domain/game/types";
 import { savedCoachMoments } from "../../domain/game/coach-moments";
 import type { LessonContentProvider } from "../../infrastructure/ai/lesson-content-provider";
 import { BoardBalance } from "../board/BoardBalance";
+import { barFor, usePositionAssessment } from "../board/use-eval-bar";
+import { Button, Pill } from "../../shared/ui/primitives";
 import { ReviewContinuation } from "./ReviewContinuation";
 import { ReviewBoard } from "./ReviewBoard";
 import { GameDebrief, type DebriefSelection } from "./GameDebrief";
-import { RookExploration } from "../rook/RookExploration";
+import { RookExploration, type PracticeSave } from "../rook/RookExploration";
 import {
   GuidedMoveFeedback,
   ReviewExplanation,
@@ -132,29 +139,39 @@ function restoreProgress(
 }
 export interface GameReviewExperienceProps {
   readonly game: GameRecord;
-  readonly analysis: CompletedGameAnalysis;
+  readonly analysis?: CompletedGameAnalysis;
   readonly coachProvider?: LessonContentProvider | null;
   readonly analyzeReply?: AnalyzeReply | null;
   readonly assessPosition?: AssessPosition | null;
   readonly onTrainingComplete?: ((log: ReviewTrainingLog) => void) | null;
   readonly now?: () => string;
   readonly compact?: boolean;
-  readonly reviewBack?: ReactNode;
+  readonly replayOnly?: boolean;
+  readonly onExploreNextMove?: (fen: string, orientation: PlayerColor) => void;
   readonly reviewTitle?: string | undefined;
   readonly reviewSource?: ReactNode;
-  readonly onMistake?: ((evidence: ReviewMistakeEvidence) => void) | undefined;
+  readonly onMistake?:
+    | ((evidence: ReviewMistakeEvidence) => Promise<PracticeSave | null>)
+    | undefined;
 }
+
+const replayWithoutAnalysis: CompletedGameAnalysis = {
+  facts: [],
+  moments: [],
+  analyzedPlayerMoves: 0,
+};
 
 export function GameReviewExperience({
   game,
-  analysis,
+  analysis = replayWithoutAnalysis,
   coachProvider = null,
   analyzeReply = null,
   assessPosition = null,
   onTrainingComplete = null,
   now = () => new Date().toISOString(),
   compact = false,
-  reviewBack,
+  replayOnly = false,
+  onExploreNextMove,
   reviewTitle,
   reviewSource,
   onMistake,
@@ -204,23 +221,36 @@ export function GameReviewExperience({
     z.boolean(),
     false,
   );
-  const [rookFrame, setRookFrame] = useState<ReplayFrame | null>(() => {
+  const [exploredFrame, setExploredFrame] = useState<ReplayFrame | null>(null);
+  const turningPly = session?.primaryFact.ply;
+  const reviewStart = useMemo(() => {
     if (!compact || !analyzeReply || !replay.ok) return null;
     const side = game.playerColor === "black" ? "b" : "w";
     const canPlay = ({ fen }: ReplayFrame) => {
       const position = new Chess(fen);
       return position.turn() === side && !position.isGameOver();
     };
-    const turningPoint = session
-      ? replay.frames[session.primaryFact.ply - 1]
-      : undefined;
+    const turningPoint =
+      turningPly === undefined ? undefined : replay.frames[turningPly - 1];
     if (turningPoint && canPlay(turningPoint)) return turningPoint;
-    return (
-      replay.frames.slice(0, -1).findLast(canPlay) ??
-      replay.frames.findLast(canPlay) ??
-      null
-    );
-  });
+    return replay.frames.findLast(canPlay) ?? null;
+  }, [analyzeReply, compact, game.playerColor, replay, turningPly]);
+  const rookFrame = compact ? reviewStart : exploredFrame;
+  const [introPlayed, setIntroPlayed] = useEntryState(
+    "review.introPlayed",
+    z.boolean(),
+    false,
+  );
+  const finishIntro = useCallback(() => {
+    setIntroPlayed(true);
+  }, [setIntroPlayed]);
+  const introFrames = useMemo(
+    () =>
+      compact && !introPlayed && rookFrame && replay.ok
+        ? replay.frames.slice(Math.max(0, rookFrame.ply - 4), rookFrame.ply + 1)
+        : undefined,
+    [compact, introPlayed, replay, rookFrame],
+  );
   const [debriefSelection, setDebriefSelection] =
     useEntryState<DebriefSelection>(
       "review.debriefFinding",
@@ -234,7 +264,7 @@ export function GameReviewExperience({
   const coachNotes = useMemo(() => savedCoachMoments(game), [game]);
 
   function closeRook() {
-    setRookFrame(null);
+    setExploredFrame(null);
   }
   useLayoutEffect(() => {
     if (!practiceOpen && !compact) return;
@@ -277,46 +307,7 @@ export function GameReviewExperience({
     </p>
   );
 
-  const reviewNavigation = reviewBack ? (
-    <nav
-      className={
-        rookFrame
-          ? "review-navigation review-navigation--exploring"
-          : "review-navigation"
-      }
-      aria-label="Game review controls"
-    >
-      {reviewBack}
-      {rookFrame && (
-        <>
-          {matchup}
-          <button
-            type="button"
-            className="review-navigation__icon"
-            aria-label="Game summary"
-            title="Game summary"
-            onClick={closeRook}
-          >
-            <span aria-hidden="true">▤</span>
-          </button>
-        </>
-      )}
-    </nav>
-  ) : null;
-
-  function withReviewNavigation(content: ReactNode) {
-    if (!reviewNavigation) return content;
-    return (
-      <>
-        {reviewNavigation}
-        {!rookFrame && matchup}
-        {content}
-      </>
-    );
-  }
-
-  if (!replay.ok)
-    return withReviewNavigation(<p role="alert">{replay.message}</p>);
+  if (!replay.ok) return <p role="alert">{replay.message}</p>;
   const fullReplay = (
     <ReplayDetails
       game={game}
@@ -328,24 +319,56 @@ export function GameReviewExperience({
       reviewMarkers={reviewMarkers}
       expanded={replayExpanded}
       setExpanded={setReplayExpanded}
-    />
+      replayOnly={
+        replayOnly || (compact && !rookFrame && (!practiceOpen || !session))
+      }
+      focusLayout={replayOnly}
+      onExploreNextMove={onExploreNextMove}
+      context={compact ? matchup : null}
+    >
+      {compact && rookFrame && mistake && !practiceOpen && (
+        <button
+          type="button"
+          className="game-review__quiet-action"
+          onClick={() => {
+            setReplayExpanded(false);
+            setPracticeOpen(true);
+          }}
+        >
+          Practice the turning point
+        </button>
+      )}
+    </ReplayDetails>
   );
-  if (rookFrame && analyzeReply) {
-    const prior = replay.frames[rookFrame.ply - 1];
-    const before = prior ? new Chess(prior.fen) : null;
-    const caption =
-      before && rookFrame.lastMoveSan
-        ? "After " +
-          String(before.moveNumber()) +
-          (before.turn() === "w" ? ". " : "... ") +
-          rookFrame.lastMoveSan
-        : "Starting position";
-    return withReviewNavigation(
+  if (replayOnly) return fullReplay;
+  if (rookFrame && analyzeReply && (!compact || !practiceOpen || !session)) {
+    const recordedFrame = mistake && replay.frames[mistake.ply];
+    const best = mistake?.candidates[0];
+    const openingChallenge =
+      compact &&
+      mistake &&
+      best &&
+      recordedFrame &&
+      mistake.fenBefore === rookFrame.fen &&
+      recordedFrame.lastMoveUci === mistake.playedMoveUci &&
+      best.uci !== mistake.playedMoveUci &&
+      moveLossCp(best.evaluationCp, -mistake.evaluationAfterCp) >
+        REVIEW_MOVE_TOLERANCE_CP
+        ? {
+            recordedFen: recordedFrame.fen,
+            recordedMove: mistake.playedMoveUci,
+            opening: mistake.phase === "opening",
+            bestBefore: {
+              line: best.principalVariation.slice(0, 3),
+              evaluationCpFromSideToMove: best.evaluationCp,
+            },
+          }
+        : undefined;
+    return (
       <RookExploration
         key={rookFrame.ply}
         fen={rookFrame.fen}
         originMoveUci={rookFrame.lastMoveUci}
-        originCaption={caption}
         orientation={game.playerColor ?? "white"}
         analyzeReply={analyzeReply}
         assessPosition={assessPosition}
@@ -353,24 +376,34 @@ export function GameReviewExperience({
           ? { topic: mistake.theme }
           : {})}
         compact={compact}
+        openingChallenge={openingChallenge}
         onMistake={onMistake}
+        forcingScanHint
+        introFrames={introFrames}
+        onIntroComplete={finishIntro}
+        reviewTools={compact && !isSidePanel ? fullReplay : undefined}
         closeLabel="Back to game debrief"
-        onClose={reviewBack ? undefined : closeRook}
-      />,
+        onClose={compact ? undefined : closeRook}
+      />
     );
   }
 
   if (!practiceOpen || session === null) {
+    if (compact)
+      return (
+        <section className="game-review" aria-label="Full game replay">
+          <h2>Full game replay</h2>
+          {fullReplay}
+        </section>
+      );
     return (
       <section
         className="game-review game-review--debrief"
         aria-labelledby="game-review-title"
       >
         <GameDebrief
-          compact={compact}
-          title={reviewTitle ?? (compact ? "Review" : "Game debrief")}
+          title={reviewTitle ?? "Game debrief"}
           source={reviewSource}
-          navigation={reviewNavigation}
           frames={replay.frames}
           orientation={game.playerColor ?? "white"}
           strongPly={strength?.ply}
@@ -378,7 +411,7 @@ export function GameReviewExperience({
           selection={debriefSelection}
           onSelect={setDebriefSelection}
           coachNotes={coachNotes}
-          onExplore={analyzeReply ? setRookFrame : undefined}
+          onExplore={analyzeReply ? setExploredFrame : undefined}
           onPractice={
             mistake
               ? () => {
@@ -450,20 +483,17 @@ export function GameReviewExperience({
     clearMoveSelection();
   };
 
-  return withReviewNavigation(
+  return (
     <section className="game-review" aria-labelledby="game-review-title">
+      <BoardBack
+        label={compact ? "Back to Rook" : "Back to game debrief"}
+        onBack={() => {
+          setPracticeOpen(false);
+        }}
+      />
       <header className="game-review__header">
         <div>
           <h2 id="game-review-title">Your game, rewound</h2>
-          <button
-            type="button"
-            className="game-review__quiet-action"
-            onClick={() => {
-              setPracticeOpen(false);
-            }}
-          >
-            Back to game debrief
-          </button>
         </div>
       </header>
 
@@ -616,7 +646,7 @@ export function GameReviewExperience({
         <TrainingSummary session={session} />
       ) : null}
 
-      {fullReplay}
+      {!isSidePanel && fullReplay}
 
       {session.stage === "original-feedback" ||
       session.stage === "close-feedback" ||
@@ -649,7 +679,7 @@ export function GameReviewExperience({
           </dl>
         </details>
       ) : null}
-    </section>,
+    </section>
   );
 }
 
@@ -763,8 +793,20 @@ function ReplayDetails({
   reviewMarkers,
   expanded,
   setExpanded,
+  replayOnly = false,
+  focusLayout = false,
+  onExploreNextMove,
+  context,
+  children,
 }: {
   readonly game: GameRecord;
+  readonly children?: ReactNode;
+  readonly replayOnly?: boolean;
+  readonly focusLayout?: boolean;
+  readonly onExploreNextMove?:
+    | ((fen: string, orientation: PlayerColor) => void)
+    | undefined;
+  readonly context?: ReactNode;
   readonly expanded: boolean;
   readonly setExpanded: (expanded: boolean) => void;
   readonly assessPosition: AssessPosition | null;
@@ -778,12 +820,213 @@ function ReplayDetails({
   }[];
 }) {
   const moments = useMemo(() => savedCoachMoments(game), [game]);
-  const bounded = Math.min(replayPly, replayFrames.length - 1);
+  const sliderId = useId();
+  const [animatedPly, setAnimatedPly] = useState<number>();
+  const lastPly = replayFrames.length - 1;
+  const bounded = Math.min(replayPly, lastPly);
   const frame = replayFrames[bounded];
+  const knownScore = frame && reviewedScores.get(frame.fen);
+  const { now } = usePositionAssessment(
+    focusLayout ? frame?.fen : undefined,
+    undefined,
+    { known: focusLayout ? knownScore : undefined },
+  );
   if (frame === undefined) return null;
+  const orientation = game.playerColor ?? "white";
+  const balance = focusLayout
+    ? now.kind === "ready"
+      ? barFor(now, undefined)
+      : "reserved"
+    : undefined;
+  function goTo(ply: number, animate = false) {
+    setAnimatedPly(animate ? ply : undefined);
+    setReplayPly(ply);
+  }
+  const board = (
+    <ReviewBoard
+      fen={frame.fen}
+      orientation={orientation}
+      lastMoveUci={frame.lastMoveUci}
+      animateMove={focusLayout && animatedPly === bounded}
+      balance={balance}
+    />
+  );
+  const material = (expanded || replayOnly) && (
+    <BoardBalance
+      fen={frame.fen}
+      captures={frame.captures}
+      position={
+        focusLayout || assessPosition === null
+          ? undefined
+          : { assess: assessPosition, knownWhiteCentipawns: knownScore }
+      }
+    />
+  );
+  const timeline = (
+    <>
+      <label
+        className={focusLayout ? "ui-visually-hidden" : undefined}
+        htmlFor={sliderId}
+      >
+        Move through the game
+      </label>
+      <input
+        id={sliderId}
+        type="range"
+        min="0"
+        max={String(lastPly)}
+        value={String(bounded)}
+        onChange={(event) => {
+          goTo(Number(event.currentTarget.value));
+        }}
+      />
+    </>
+  );
+  const position = (
+    <span>
+      Position {String(bounded)} of {String(lastPly)}
+    </span>
+  );
+  const step = (
+    <div
+      className={
+        focusLayout ? "game-replay__step" : "game-review__line-controls"
+      }
+      aria-label="Replay controls"
+      role="group"
+    >
+      <button
+        className="graphic-control"
+        type="button"
+        aria-label="Previous move"
+        title="Previous move"
+        disabled={bounded === 0}
+        onClick={() => {
+          goTo(bounded - 1);
+        }}
+      >
+        <span aria-hidden="true">‹</span>
+        {focusLayout && "Previous"}
+      </button>
+      {focusLayout ? (
+        <Button
+          disabled={bounded === lastPly}
+          onClick={() => {
+            goTo(bounded + 1, true);
+          }}
+        >
+          Play game move
+        </Button>
+      ) : (
+        <button
+          className="graphic-control"
+          type="button"
+          aria-label="Next move"
+          title="Next move"
+          disabled={bounded === lastPly}
+          onClick={() => {
+            goTo(bounded + 1);
+          }}
+        >
+          <span aria-hidden="true">›</span>
+        </button>
+      )}
+    </div>
+  );
+  const markers = reviewMarkers.length > 0 && (
+    <div
+      className={
+        focusLayout ? "game-replay__markers" : "game-review__line-controls"
+      }
+      role="group"
+      aria-label="Review moments"
+    >
+      {reviewMarkers.map(({ ply, label }) => {
+        const jump = () => {
+          goTo(ply);
+        };
+        return focusLayout ? (
+          <Pill key={label} onClick={jump}>
+            {label}
+          </Pill>
+        ) : (
+          <button key={label} type="button" onClick={jump}>
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+  const notes = moments.length > 0 && (
+    <ul className="replay-coach-notes">
+      {moments.map((note) => (
+        <li key={note.ply}>
+          <button
+            className="review-action"
+            type="button"
+            onClick={() => {
+              goTo(note.replayPly);
+            }}
+          >
+            {note.title}
+          </button>
+          <p>{note.detail}</p>
+        </li>
+      ))}
+    </ul>
+  );
+  if (focusLayout)
+    return (
+      <div className="game-replay board-split">
+        <div className="board-split__main">{board}</div>
+        <div className="board-split__aside">
+          {context}
+          <div className="game-replay__timeline">
+            <div className="game-replay__current">
+              <strong aria-live="polite">
+                {frame.lastMoveSan ?? "Starting position"}
+              </strong>
+              {position}
+            </div>
+            {step}
+            {onExploreNextMove && (
+              <Pill
+                disabled={new Chess(frame.fen).isGameOver()}
+                onClick={() => {
+                  onExploreNextMove(frame.fen, orientation);
+                }}
+              >
+                Analyze next move
+              </Pill>
+            )}
+            <details className="game-replay__seek">
+              <summary>Jump to position</summary>
+              {timeline}
+            </details>
+          </div>
+          {material}
+          {markers}
+          {notes}
+        </div>
+      </div>
+    );
+  const content = (
+    <div className="game-review__replay-content">
+      {context}
+      {board}
+      {material}
+      {timeline}
+      <p>{position}</p>
+      {step}
+      {markers}
+      {notes}
+      {children}
+    </div>
+  );
+  if (replayOnly) return content;
   return (
     <details
-      className="game-review__replay"
+      className="board-reference game-review__replay"
       open={expanded}
       onToggle={(event) => {
         setExpanded(event.currentTarget.open);
@@ -794,102 +1037,7 @@ function ReplayDetails({
           ? "Replay the game and saved coach notes"
           : "Replay the full game"}
       </summary>
-      <div className="game-review__replay-content">
-        <ReviewBoard
-          fen={frame.fen}
-          orientation={game.playerColor ?? "white"}
-          lastMoveUci={frame.lastMoveUci}
-        />
-        {expanded ? (
-          <BoardBalance
-            fen={frame.fen}
-            captures={frame.captures}
-            position={
-              assessPosition === null
-                ? undefined
-                : {
-                    assess: assessPosition,
-                    knownWhiteCentipawns: reviewedScores.get(frame.fen),
-                  }
-            }
-          />
-        ) : null}
-        <label htmlFor="game-review-ply">Move through the game</label>
-        <input
-          id="game-review-ply"
-          type="range"
-          min="0"
-          max={String(Math.max(0, replayFrames.length - 1))}
-          value={String(bounded)}
-          onChange={(event) => {
-            setReplayPly(Number(event.currentTarget.value));
-          }}
-        />
-        <p>
-          Position {String(bounded)} of {String(replayFrames.length - 1)}
-        </p>
-        <div
-          className="game-review__line-controls"
-          aria-label="Replay controls"
-          role="group"
-        >
-          <button
-            type="button"
-            disabled={bounded === 0}
-            onClick={() => {
-              setReplayPly(bounded - 1);
-            }}
-          >
-            Previous move
-          </button>
-          <button
-            type="button"
-            disabled={bounded === replayFrames.length - 1}
-            onClick={() => {
-              setReplayPly(bounded + 1);
-            }}
-          >
-            Next move
-          </button>
-        </div>
-        {reviewMarkers.length > 0 && (
-          <div
-            className="game-review__line-controls"
-            role="group"
-            aria-label="Review moments"
-          >
-            {reviewMarkers.map(({ ply, label }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => {
-                  setReplayPly(ply);
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-        {moments.length > 0 ? (
-          <ul className="replay-coach-notes">
-            {moments.map((note) => (
-              <li key={note.ply}>
-                <button
-                  className="review-action"
-                  type="button"
-                  onClick={() => {
-                    setReplayPly(note.replayPly);
-                  }}
-                >
-                  {note.title}
-                </button>
-                <p>{note.detail}</p>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+      {expanded && content}
     </details>
   );
 }

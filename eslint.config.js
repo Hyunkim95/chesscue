@@ -10,15 +10,19 @@ export default tseslint.config(
       "coverage",
       "playwright-report",
       "test-results",
+      "research_notes/**",
       "public/stockfish/**",
       "eslint.config.js",
+      // Agent worktrees and the package store hold copies of the repository.
+      ".claude/**",
+      ".pnpm-store/**",
     ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
   {
-    files: ["scripts/material/*.mjs"],
+    files: ["scripts/**/*.mjs"],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
       globals: {

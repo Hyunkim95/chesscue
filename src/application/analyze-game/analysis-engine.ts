@@ -21,8 +21,14 @@ export type AnalysisEngineFailure =
 export interface AnalyzePositionRequest {
   readonly fen: string;
   readonly timeBudgetMs: number;
+  // Search to this depth from a cleared hash so repeated checks agree.
+  // timeBudgetMs still caps the search.
+  readonly depth?: number;
   readonly multiPv: number;
   readonly signal: AbortSignal;
+  // Called each time every line reported so far has reached the same depth,
+  // so a screen can show the search deepening. The result still resolves.
+  readonly onProgress?: (analysis: PositionAnalysis) => void;
 }
 
 export interface AnalysisEngine {

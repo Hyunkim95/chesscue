@@ -10,6 +10,12 @@ export interface ReviewReply {
 
 export const EXPLANATION_LINE_PLIES = 20;
 export const EXPLANATION_SEARCH_MS = 5_000;
+// Judging a learner's move searches every compared position to the same depth,
+// so the same move always gets the same verdict.
+export const JUDGEMENT_DEPTH = 16;
+export const JUDGEMENT_SEARCH_MS = 2_000;
+
+export type ReviewSearchPurpose = "explanation" | "judgement";
 
 function checkedContinuation(
   fen: string,
@@ -35,7 +41,7 @@ export async function evaluateReviewReply(
   fen: string,
   signal: AbortSignal,
   compareAlternatives = false,
-  purpose?: "explanation",
+  purpose?: ReviewSearchPurpose,
 ): Promise<ReviewReply | null> {
   const initialized = await engine.initialize(signal);
   if (!initialized.ok || signal.aborted) return null;
@@ -43,7 +49,13 @@ export async function evaluateReviewReply(
     fen,
     signal,
     multiPv: compareAlternatives ? 2 : 1,
-    timeBudgetMs: purpose === "explanation" ? EXPLANATION_SEARCH_MS : 350,
+    timeBudgetMs:
+      purpose === "explanation"
+        ? EXPLANATION_SEARCH_MS
+        : purpose === "judgement"
+          ? JUDGEMENT_SEARCH_MS
+          : 350,
+    ...(purpose === "judgement" && { depth: JUDGEMENT_DEPTH }),
   });
   if (!result.ok) return null;
   const checked = result.value.candidates.flatMap((candidate) => {
@@ -76,6 +88,41 @@ export async function evaluateReviewReply(
       alternativeEvaluationCp: alternative.evaluationCpFromSideToMove,
     }),
   };
+}
+
+type EvaluatePosition = (
+  fen: string,
+  signal: AbortSignal,
+  compareAlternatives?: boolean,
+  purpose?: ReviewSearchPurpose,
+) => Promise<ReviewReply | null>;
+
+// Scores the best move the way the learner's move was scored: by searching the
+// position after it. The best line is kept for explanations.
+export async function equalSearchReference(
+  evaluate: EvaluatePosition,
+  best: ReviewReply,
+  move: { readonly before: string; readonly lan: string },
+  signal: AbortSignal,
+): Promise<ReviewReply | null> {
+  const bestMove = best.line[0];
+  if (bestMove === undefined || bestMove === move.lan) return best;
+  const board = new Chess(move.before);
+  try {
+    board.move(bestMove);
+  } catch {
+    return null;
+  }
+  if (board.isCheckmate())
+    return { ...best, evaluationCpFromSideToMove: 99_999 };
+  if (board.isDraw()) return { ...best, evaluationCpFromSideToMove: 0 };
+  const reply = await evaluate(board.fen(), signal, false, "judgement");
+  return (
+    reply && {
+      ...best,
+      evaluationCpFromSideToMove: -reply.evaluationCpFromSideToMove,
+    }
+  );
 }
 
 export async function analyzeReviewReply(

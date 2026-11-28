@@ -1,5 +1,6 @@
 .chess-board {
   --board-ink: #192925;
+  position: relative;
   width: min(100%, 44rem);
   min-width: 0;
   border: 3px solid #ac8e5b;
@@ -11,6 +12,7 @@
 }
 
 .chess-board__grid {
+  position: relative;
   display: grid;
   aspect-ratio: 1;
   grid-template-rows: repeat(8, minmax(0, 1fr));
@@ -79,6 +81,141 @@ button.chess-board__square:not(:disabled) {
   pointer-events: none;
 }
 
+.chess-board__square--control-gained {
+  box-shadow: inset 0 0 0 2px #23594a;
+}
+
+.chess-board__square--control-lost {
+  box-shadow: inset 0 0 0 2px #994e36;
+}
+
+button.chess-board__square--control-inspected {
+  outline: 3px solid var(--cue-action-fill);
+  outline-offset: -4px;
+}
+
+.chess-board__control-mark {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  display: grid;
+  width: clamp(12px, 4.5cqw, 17px);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--cue-action-ink);
+  font-size: clamp(10px, 4cqw, 15px);
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.chess-board__square--control-gained .chess-board__control-mark {
+  background: var(--cue-pine);
+}
+
+.chess-board__square--control-lost .chess-board__control-mark {
+  background: var(--cue-coral);
+}
+
+.chess-board__control-arrows {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.chess-board__cue-arrow {
+  --board-arrow: #ad331f;
+  opacity: 0.58;
+}
+
+.chess-board__cue-arrow--control {
+  --board-arrow: #835016;
+}
+
+.chess-board__cue-arrow--tried {
+  --board-arrow: #1c2621;
+  opacity: 0.8;
+}
+
+.chess-board__cue-shaft {
+  stroke: var(--board-arrow);
+  stroke-width: 0.072;
+  stroke-linecap: round;
+}
+
+.chess-board__cue-arrow:not(.chess-board__cue-arrow--move)
+  .chess-board__cue-shaft {
+  stroke-width: 0.06;
+  stroke-dasharray: 0.24 0.224;
+}
+
+.chess-board__cue-arrow.chess-board__cue-arrow--tried .chess-board__cue-shaft {
+  stroke-width: 0.08;
+}
+
+/* Checks, captures and threats scan: colour plus line style per kind. */
+.chess-board__cue-arrow--scan-check {
+  --board-arrow: #c2402a;
+  opacity: 0.85;
+}
+.chess-board__cue-arrow--scan-capture {
+  --board-arrow: #b7791f;
+  opacity: 0.85;
+}
+.chess-board__cue-arrow--scan-threat {
+  --board-arrow: #2f6db3;
+  opacity: 0.85;
+}
+.chess-board__cue-arrow.chess-board__cue-arrow--scan-check
+  .chess-board__cue-shaft {
+  stroke-width: 0.072;
+  stroke-dasharray: none;
+}
+.chess-board__cue-arrow.chess-board__cue-arrow--scan-threat
+  .chess-board__cue-shaft {
+  stroke-dasharray: 0.06 0.16;
+}
+
+.chess-board__cue-tip {
+  fill: var(--board-arrow);
+}
+
+.chess-board__piece--ghost {
+  opacity: 0.42;
+}
+
+.chess-board__hint-mark {
+  position: absolute;
+  inset: 7%;
+  z-index: 2;
+  border: 2px dashed #873c2f;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.chess-board__cue-mark {
+  position: absolute;
+  z-index: 4;
+  inset-block-end: 2px;
+  inset-inline-end: 2px;
+  display: grid;
+  min-width: clamp(13px, 4.5cqw, 17px);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 3px;
+  background: #6f3125;
+  color: #fff2d4;
+  font-size: clamp(9px, 3cqw, 13px);
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .chess-board__piece {
   font-family: var(--cue-chess-font);
   font-size: 10.2cqw;
@@ -92,23 +229,265 @@ button.chess-board__square:not(:disabled) {
   paint-order: stroke fill;
 }
 
-.chess-board__coordinate {
+.chess-board__piece--sliding {
+  position: relative;
+  z-index: 4;
+  animation: chess-board-slide var(--ui-motion-slide, 240ms) ease-out both;
+}
+
+/* A captured piece coming back, as on Reset. */
+.chess-board__piece--appearing {
+  animation: chess-board-appear var(--ui-motion-slide, 240ms) ease-out both;
+}
+
+@keyframes chess-board-slide {
+  to {
+    translate: 0 0;
+  }
+}
+
+@keyframes chess-board-appear {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chess-board__piece--sliding,
+  .chess-board__piece--appearing {
+    animation-duration: 1ms;
+  }
+}
+
+/* Coordinates on the edges only, like most boards: ranks down the left,
+   files along the bottom, large enough to read, in the colour of the other
+   square so they stand out on both. */
+.chess-board__edge-coordinate {
   position: absolute;
-  right: 4px;
-  bottom: 2px;
-  font-size: clamp(0.45rem, 2.1cqw, 0.68rem);
+  z-index: 2;
+  color: #4f7a62;
+  font-size: clamp(0.85rem, 4.2cqw, 1.1rem);
   font-weight: 800;
+  line-height: 1;
   pointer-events: none;
 }
 
-@media (max-width: 520px) {
-  .chess-board__coordinate {
-    display: none;
-  }
+.chess-board__square--dark .chess-board__edge-coordinate {
+  color: #f1e6cf;
+}
+
+.chess-board__edge-coordinate--rank {
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+}
+
+.chess-board__edge-coordinate--file {
+  inset-block-end: 2px;
+  inset-inline-end: 2px;
 }
 
 .chess-board__square--focus {
   box-shadow:
     inset 0 0 0 3px #ffc86a,
     inset 0 0 0 5px #49330d;
+}
+
+button.piece-choice {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.35rem;
+}
+
+.promotion-piece {
+  display: inline-block;
+  font: 1.6rem/1 var(--cue-chess-font);
+}
+
+/* Board-first moment overlays (design §3.2). Earlier tries are faint dashed
+   arrows in their tier colour; the tries list repeats the tier in words. */
+.chess-board__cue-arrow--ghost-missed {
+  --board-arrow: var(--ui-color-tier-missed);
+  opacity: 0.55;
+}
+
+.chess-board__cue-arrow--ghost-worse {
+  --board-arrow: var(--ui-color-tier-worse);
+  opacity: 0.55;
+}
+
+.chess-board__cue-arrow--ghost-costly {
+  --board-arrow: var(--ui-color-tier-costly);
+  opacity: 0.6;
+}
+
+.chess-board__cue-arrow--ghost-missed .chess-board__cue-shaft,
+.chess-board__cue-arrow--ghost-worse .chess-board__cue-shaft,
+.chess-board__cue-arrow--ghost-costly .chess-board__cue-shaft {
+  stroke-dasharray: 0.14 0.12;
+}
+
+.chess-board__cue-arrow--preview {
+  --board-arrow: var(--ui-color-jade);
+  opacity: 0.9;
+}
+
+/* The next-move tool: the best move solid brass, the other top moves jade. */
+.chess-board__cue-arrow--engine-best {
+  --board-arrow: var(--ui-color-brass);
+  opacity: 0.95;
+}
+
+.chess-board__cue-arrow.chess-board__cue-arrow--engine-best
+  .chess-board__cue-shaft {
+  stroke-width: 0.11;
+  stroke-dasharray: none;
+}
+
+.chess-board__cue-arrow--engine-line {
+  --board-arrow: var(--ui-color-jade);
+  opacity: 0.8;
+}
+
+.chess-board__cue-arrow.chess-board__cue-arrow--engine-line
+  .chess-board__cue-shaft {
+  stroke-width: 0.08;
+  stroke-dasharray: none;
+}
+
+.chess-board__cue-arrow--reply {
+  --board-arrow: var(--ui-color-coral);
+  opacity: 0.9;
+}
+
+.chess-board__square--outline-coral {
+  box-shadow: inset 0 0 0 3px var(--ui-color-coral);
+}
+
+.chess-board__square--outline-brass {
+  box-shadow:
+    inset 0 0 0 3px var(--ui-color-brass),
+    inset 0 0 0 5px #122119aa;
+}
+
+.chess-board__square--outline-jade {
+  box-shadow: inset 0 0 0 3px var(--ui-color-jade);
+}
+
+.chess-board__square--spot {
+  animation: chess-board-spot 1.4s ease-out;
+}
+
+.chess-board__badge {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+  padding: 1px 4px;
+  border-radius: 5px;
+  font: 800 clamp(9px, 3cqw, 12px) / 1.1 var(--ui-font-body);
+  color: var(--ui-color-brass-ink);
+  pointer-events: none;
+  animation: chess-board-pop 0.5s;
+}
+
+.chess-board__badge--coral {
+  background: var(--ui-color-coral);
+}
+
+.chess-board__badge--jade {
+  background: var(--ui-color-jade);
+}
+
+.chess-board__badge--brass {
+  background: var(--ui-color-brass);
+}
+
+.chess-board__preview-tag {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: 6px;
+  inset-inline-start: 6px;
+  padding: 3px 8px;
+  border-radius: var(--ui-radius-pill);
+  font: 800 11px var(--ui-font-body);
+  letter-spacing: 0.3px;
+  color: var(--ui-color-ink);
+  background: color-mix(in srgb, var(--ui-color-canvas) 82%, transparent);
+  pointer-events: none;
+}
+
+@keyframes chess-board-spot {
+  30% {
+    box-shadow: inset 0 0 0 30px
+      color-mix(in srgb, var(--ui-color-gold) 80%, transparent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+
+@keyframes chess-board-pop {
+  40% {
+    transform: scale(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chess-board__square--spot {
+    animation: none;
+    box-shadow: inset 0 0 0 3px var(--ui-color-gold);
+  }
+
+  .chess-board__badge {
+    animation: none;
+  }
+}
+
+.chess-board__cue-arrow--attack {
+  --board-arrow: var(--ui-color-gold);
+  opacity: 0.85;
+}
+
+/* The Stockfish bar down the left edge, inside the frame: White's share
+   fills from White's side of the board. No number, only the fill. */
+.chess-board--bar {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  column-gap: 3px;
+  background: #ac8e5b;
+}
+
+.chess-board__bar {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #1d2b25;
+}
+
+.chess-board__bar-white {
+  position: absolute;
+  inset-inline: 0;
+  background: #f1e6cf;
+  transition: block-size 450ms ease-out;
+}
+
+.chess-board__bar--white .chess-board__bar-white {
+  inset-block-end: 0;
+}
+
+.chess-board__bar--black .chess-board__bar-white {
+  inset-block-start: 0;
+}
+
+@media (min-width: 720px) {
+  .chess-board--bar {
+    grid-template-columns: 14px minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chess-board__bar-white {
+    transition: none;
+  }
 }

@@ -9,10 +9,12 @@ export async function saveReviewMistake(
   database: string,
   gameId: string,
   evidence: ReviewMistakeEvidence,
+  unitId: string,
 ) {
   const record = reviewMistakeSchema.parse({
     ...evidence,
     version: 1,
+    unitId,
     id: reviewMistakeId(gameId, evidence.fen),
     gameId,
     savedAt: new Date().toISOString(),
@@ -21,9 +23,10 @@ export async function saveReviewMistake(
   const db = await openChessTutorDatabase(database);
   try {
     const transaction = db.transaction("reviewMistakes", "readwrite");
-    if ((await transaction.store.getKey(record.id)) === undefined)
-      await transaction.store.add(record);
+    const inserted = (await transaction.store.getKey(record.id)) === undefined;
+    if (inserted) await transaction.store.add(record);
     await transaction.done;
+    return inserted;
   } finally {
     db.close();
   }

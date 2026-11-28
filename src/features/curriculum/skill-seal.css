@@ -1,0 +1,13 @@
+.skill-seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  border: 1px solid #789181;
+  border-radius: 50%;
+  background: radial-gradient(at 38% 28%, #385d49, #11281f 75%);
+  color: #e2efdd;
+  box-shadow: 0 0 0 3px var(--cue-paper);
+  font: 1.7rem/1 var(--cue-chess-font, serif);
+}

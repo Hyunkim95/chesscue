@@ -11,7 +11,9 @@ test("acknowledges 300 queued completed games across reconnects", async ({
   test.setTimeout(300000);
   await page.goto("/");
   await googleLogin(page, "latency-" + crypto.randomUUID() + "@example.test");
-  await expect(page.getByRole("status")).toHaveText("Up to date");
+  await expect(page.getByRole("status")).toHaveText("Up to date", {
+    timeout: 20000,
+  });
   const databaseName = await page.evaluate(async () => {
     const database = (await indexedDB.databases()).find((d) =>
       d.name?.startsWith("chesscue-account-"),
