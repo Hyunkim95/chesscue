@@ -41,12 +41,27 @@ export function whyProblems(text: string, packet: WhyPacket): string[] {
   const pinners = (packet.bestMoveCaptures?.attackersThatArePinned ?? [])
     .map(({ pinnedBy }) => pinnedBy)
     .filter((pinnedBy) => pinnedBy !== null);
-  return problems(text, {
-    written: JSON.stringify(packet),
-    boards: [new Chess(packet.fen), after],
-    canTakeBack: packet.bestMoveCaptures?.canTakeBack.length ?? 1,
-    pinners,
-  });
+  return [
+    ...problems(text, {
+      written: JSON.stringify(packet),
+      boards: [new Chess(packet.fen), after],
+      canTakeBack: packet.bestMoveCaptures?.canTakeBack.length ?? 1,
+      pinners,
+    }),
+    ...skippedBestDefence(text, packet),
+  ];
+}
+
+// The defences come best first. Naming a weaker one, such as a blunder that
+// loses material, without the best one makes the move look better than it is.
+function skippedBestDefence(text: string, packet: WhyPacket): string[] {
+  const [best, ...weaker] = packet.opponentDefences;
+  if (!best) return [];
+  const named = new Set((text.match(MOVE) ?? []).map(bare));
+  if (named.has(bare(best.defence))) return [];
+  return weaker
+    .filter(({ defence }) => named.has(bare(defence)))
+    .map(({ defence }) => `defence ${defence} without ${best.defence}`);
 }
 
 // An answer to an open question: the same checks on the current board.

@@ -126,3 +126,46 @@ describe("whyProblems", () => {
     ).toContain("free");
   });
 });
+
+// Owner report, 28 November 2026 (Lichess OKF17V2X, move 10): Nxe5 was
+// accepted as a plan move, and the writer named White's worst reply as the
+// counter. fxe5 takes back and leaves White better.
+describe("a named defence must not skip the best one", () => {
+  const input: WhyInput = {
+    fen: "r2q1rk1/pbp2ppp/1pn1pn2/3pN3/3P1P2/2PB1Q2/PP1N1PPP/R3K2R b KQ - 0 12",
+    bestLine: ["c6e5", "f4e5", "f6e4", "d2e4", "d5e4"],
+  };
+  const lines = new Map<string, readonly (readonly string[])[]>([
+    [
+      "defences",
+      [
+        ["f4e5", "f6e4", "d2e4", "d5e4", "d3e4", "b7e4", "f3e4", "c7c5"],
+        ["d4e5", "f6d7", "f3h3", "h7h6", "d2f3", "f7f5", "d3c2", "d8e7"],
+        ["d3h7", "f6h7", "f4e5", "d8h4", "f3g3", "h4h5", "h2h4", "f7f6"],
+      ],
+    ],
+    ["threat", [["e5f3", "d2f3"]]],
+  ]);
+  const packet = whyPacket(input, lines);
+  if (!packet) throw new Error("no packet");
+
+  it("rejects an answer that names a weaker defence without the best", () => {
+    const worst = packet.opponentDefences[2];
+    if (!worst) throw new Error("no third defence");
+    expect(
+      whyProblems(
+        `Nxe5 takes the knight on e5 and attacks the queen on f3. Even if White counters with ${worst.defence}, taking back leaves you ahead.`,
+        packet,
+      ),
+    ).toContain(`defence ${worst.defence} without fxe5`);
+  });
+
+  it("allows the best defence on its own", () => {
+    expect(
+      whyProblems(
+        "Nxe5 takes the knight on e5, and White takes back with fxe5.",
+        packet,
+      ).filter((problem) => problem.startsWith("defence")),
+    ).toEqual([]);
+  });
+});

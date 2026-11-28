@@ -12,6 +12,7 @@ export const WHY_PROMPT = `You coach a club chess player who missed the best mov
 - Material: never compute a count yourself. Counts in the input are the player's balance, such as "3 points ahead", "1 point behind" or "level". When you state material, use one of those exactly, as in "you end up 3 points ahead" or "material is level".
 - If bestMoveCaptures.isRecapture is true, the best move only takes back a piece: say so, and explain why the other way of taking back (otherRecaptures, or yourGameMove) is worse, using its line.
 - Do not call anything unstoppable, forced or free unless the input shows it (a line ending in checkmate, or canTakeBack empty).
+- opponentDefences lists the opponent's replies, best first. If you name a defence, name the first one; never name only a weaker one.
 - Do not just list the line.`;
 
 export const WHY_MODEL = "gemini-3.8-flash";
