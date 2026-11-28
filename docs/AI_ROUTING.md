@@ -13,6 +13,12 @@ Chess.js establishes legality and board facts. Stockfish supplies candidate move
 
 Cloud can improve synthesis and retrieval. A stronger model still needs checked evidence to explain chess. If ChessCue can establish only that Stockfish prefers one move, show the comparison and describe which consequence the search established.
 
+## Why the best move is good: Flash phrases a checked packet
+
+Online, after a moment is solved or shown, "Why does it work?" opens on the point with two sentences from Gemini 3.8 Flash. Code first builds a reason packet with chess.js and Stockfish (`domain/analysis/why-packet.ts`): what the move takes and who can take back, pins and their pinning piece, what the move attacks or lines up, its threat if the opponent could pass, the top three defences, a recapture and the other way to take back, and what the game move allowed. Counts are the player's balance as fragments such as "3 points ahead". `domain/analysis/validate-why.ts` rejects moves, pieces and counts not in the packet, a wrong pinning piece, and "unstoppable", "forced" or "free" without support. Offline, on a timeout or on a rejection, the code caption stays. The whole answer must arrive within SLO-013's 20 seconds.
+
+Evidence, 28 November 2026 (`research_notes/why-explanations/scorecard.md`, 20 positions, two blind model graders): Flash gave a true answer with the real reason in 16 of 20 positions and no false claim. Code-only text scored 8 of 20 and Flash-Lite 7 of 20, with 3 false. Nano was not measured for this task.
+
 ## Use Nano for a single teaching turn
 
 The Firebase Web SDK exposes Nano as a single-turn generation route with structured text output. ChessCue owns the transcript and sends a bounded window of relevant turns when needed. This supports an ongoing conversation without assuming the SDK maintains native multi-turn chat. Include the exact position and the evidence behind the current claim. A compact prompt avoids context-window pressure and leaves room for a grounded answer. [Firebase hybrid Web capabilities](https://firebase.google.com/docs/ai-logic/hybrid/web/get-started) · [Chrome Prompt API](https://developer.chrome.com/docs/ai/prompt-api)

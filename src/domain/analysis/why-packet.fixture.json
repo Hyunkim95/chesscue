@@ -1,0 +1,4683 @@
+[
+  {
+    "id": "k1",
+    "input": {
+      "fen": "r1B5/2k1np2/1pnp2pq/2p1p1N1/4P3/pPNP4/P1PQ1PP1/2K5 w - - 0 20",
+      "bestLine": [
+        "g5e6",
+        "f7e6",
+        "d2h6",
+        "a8c8",
+        "f2f4",
+        "c7d7",
+        "f4e5",
+        "d6e5"
+      ],
+      "gameMoveUci": "c8h3",
+      "previous": {
+        "fen": "r1B2q2/2k1np2/1pnp2pR/2p1p1N1/4P3/pPNP4/P1PQ1PP1/2K5 b - - 0 19",
+        "uci": "f8h6"
+      }
+    },
+    "lines": {
+      "defences": [
+        [
+          "f7e6",
+          "d2h6",
+          "a8c8",
+          "f2f4",
+          "c6d4",
+          "f4e5",
+          "d6e5",
+          "c3a4",
+          "b6b5",
+          "a4c5"
+        ],
+        [
+          "c7c8",
+          "d2h6",
+          "f7e6",
+          "h6h8",
+          "c8b7",
+          "h8f6",
+          "b7a6",
+          "c3b1",
+          "c6b4",
+          "b1a3",
+          "b4a2"
+        ],
+        ["c7b8", "d2h6", "e7c8", "e6g5", "a8a7", "c1d2"]
+      ],
+      "game": [
+        [
+          "h6h4",
+          "c3b5",
+          "c7b8",
+          "g5f7",
+          "d6d5",
+          "e4d5",
+          "e7d5",
+          "c2c3",
+          "d5f4",
+          "f7d6",
+          "f4h3",
+          "g2h3",
+          "h4h3"
+        ]
+      ]
+    },
+    "expected": {
+      "fen": "r1B5/2k1np2/1pnp2pq/2p1p1N1/4P3/pPNP4/P1PQ1PP1/2K5 w - - 0 20",
+      "youAre": "White",
+      "materialNow": "2 points behind",
+      "previousMove": "Black Qxh6, taking the rook on h6",
+      "bestMove": "Ne6+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [
+        {
+          "piece": "queen on d2",
+          "attacks": "queen on h6"
+        }
+      ],
+      "bestMoveAttacks": [
+        {
+          "target": "king on c7"
+        }
+      ],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Ne6+", "fxe6", "Qxh6", "Rxc8", "f4", "Kd7", "fxe5", "dxe5"],
+        "steps": [
+          {
+            "move": "White Ne6+",
+            "check": true,
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black fxe6",
+            "takes": "the knight on e6",
+            "afterwards": "5 points behind"
+          },
+          {
+            "move": "White Qxh6",
+            "takes": "the queen on h6",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "Black Rxc8",
+            "takes": "the bishop on c8",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White f4",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Kd7",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White fxe5",
+            "takes": "the pawn on e5",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "Black dxe5",
+            "takes": "the pawn on e5",
+            "afterwards": "1 point ahead"
+          }
+        ],
+        "endsWith": "1 point ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "fxe6",
+          "line": [
+            {
+              "move": "Black fxe6",
+              "takes": "the knight on e6",
+              "afterwards": "5 points behind"
+            },
+            {
+              "move": "White Qxh6",
+              "takes": "the queen on h6",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Rxc8",
+              "takes": "the bishop on c8",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White f4",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black Nd4",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White fxe5",
+              "takes": "the pawn on e5",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black dxe5",
+              "takes": "the pawn on e5",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Na4",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black b5",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Nxc5",
+              "takes": "the pawn on c5",
+              "afterwards": "2 points ahead"
+            }
+          ],
+          "endsWith": "2 points ahead"
+        },
+        {
+          "defence": "Kxc8",
+          "line": [
+            {
+              "move": "Black Kxc8",
+              "takes": "the bishop on c8",
+              "afterwards": "5 points behind"
+            },
+            {
+              "move": "White Qxh6",
+              "takes": "the queen on h6",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black fxe6",
+              "takes": "the knight on e6",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Qh8+",
+              "check": true,
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black Kb7",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Qf6",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black Ka6",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Nb1",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black Nb4",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Nxa3",
+              "takes": "the pawn on a3",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Nxa2+",
+              "takes": "the pawn on a2",
+              "check": true,
+              "afterwards": "1 point ahead"
+            }
+          ],
+          "endsWith": "1 point ahead"
+        },
+        {
+          "defence": "Kb8",
+          "line": [
+            {
+              "move": "Black Kb8",
+              "afterwards": "2 points behind"
+            },
+            {
+              "move": "White Qxh6",
+              "takes": "the queen on h6",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Nxc8",
+              "takes": "the bishop on c8",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Ng5",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Ra7",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Kd2",
+              "afterwards": "4 points ahead"
+            }
+          ],
+          "endsWith": "4 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Bh3",
+        "line": [
+          {
+            "move": "White Bh3",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black Qh4",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "White Nb5+",
+            "check": true,
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black Kb8",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "White Nxf7",
+            "takes": "the pawn on f7",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black d5",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White exd5",
+            "takes": "the pawn on d5",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Nxd5",
+            "takes": "the pawn on d5",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White c3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Nf4",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Nfd6",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Nxh3",
+            "takes": "the bishop on h3",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "White gxh3",
+            "takes": "the knight on h3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Qxh3",
+            "takes": "the pawn on h3",
+            "afterwards": "2 points behind"
+          }
+        ],
+        "endsWith": "2 points behind"
+      }
+    }
+  },
+  {
+    "id": "k2",
+    "input": {
+      "fen": "3r1rk1/pp3ppp/2p1p3/7n/2BP1q2/2P4P/P1P1QP2/R3R2K w - - 2 23",
+      "bestLine": [
+        "e2h5",
+        "f4f2",
+        "e1e2",
+        "f2f4",
+        "h1g2",
+        "c6c5",
+        "h5e5",
+        "f4h4"
+      ],
+      "gameMoveUci": "e1g1",
+      "previous": {
+        "fen": "r4rk1/pp3ppp/2p1p3/7n/2BP1q2/2P4P/P1P1QP2/R3R2K b - - 1 22",
+        "uci": "a8d8"
+      }
+    },
+    "lines": {
+      "defences": [
+        ["f4f2", "e1e2", "f2g3", "c4d3", "g7g6", "h5h6"],
+        [
+          "c6c5",
+          "h1g2",
+          "c5d4",
+          "c4d3",
+          "g7g6",
+          "h5e5",
+          "f4e5",
+          "e1e5",
+          "d4c3"
+        ],
+        [
+          "b7b6",
+          "h5e2",
+          "c6c5",
+          "e2e3",
+          "f4e3",
+          "f2e3",
+          "f8e8",
+          "c4d3",
+          "e6e5",
+          "d4e5",
+          "e8e5"
+        ]
+      ],
+      "game": [["h5f6", "g1g3", "c6c5", "g3f3", "f4e4", "e2e4", "f6e4"]]
+    },
+    "expected": {
+      "fen": "3r1rk1/pp3ppp/2p1p3/7n/2BP1q2/2P4P/P1P1QP2/R3R2K w - - 2 23",
+      "youAre": "White",
+      "materialNow": "1 point behind",
+      "previousMove": "Black Rad8",
+      "bestMove": "Qxh5",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": {
+        "takes": "the knight on h5",
+        "isRecapture": false,
+        "canTakeBack": [],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Qxh5", "Qxf2", "Re2", "Qf4", "Kg2", "c5", "Qe5"],
+        "steps": [
+          {
+            "move": "White Qxh5",
+            "takes": "the knight on h5",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "Black Qxf2",
+            "takes": "the pawn on f2",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White Re2",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Qf4",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White Kg2",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black c5",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White Qe5",
+            "afterwards": "1 point ahead"
+          }
+        ],
+        "endsWith": "1 point ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Qxf2",
+          "line": [
+            {
+              "move": "Black Qxf2",
+              "takes": "the pawn on f2",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Re2",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black Qg3",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Bd3",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black g6",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Qh6",
+              "afterwards": "1 point ahead"
+            }
+          ],
+          "endsWith": "1 point ahead"
+        },
+        {
+          "defence": "c5",
+          "line": [
+            {
+              "move": "Black c5",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Kg2",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black cxd4",
+              "takes": "the pawn on d4",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Bd3",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black g6",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Qe5",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black Qxe5",
+              "takes": "the queen on e5",
+              "afterwards": "8 points behind"
+            },
+            {
+              "move": "White Rxe5",
+              "takes": "the queen on e5",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black dxc3",
+              "takes": "the pawn on c3",
+              "afterwards": "level"
+            }
+          ],
+          "endsWith": "level"
+        },
+        {
+          "defence": "b6",
+          "line": [
+            {
+              "move": "Black b6",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Qe2",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black c5",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Qe3",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Qxe3",
+              "takes": "the queen on e3",
+              "afterwards": "7 points behind"
+            },
+            {
+              "move": "White fxe3",
+              "takes": "the queen on e3",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Rfe8",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Bd3",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black e5",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White dxe5",
+              "takes": "the pawn on e5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Rxe5",
+              "takes": "the pawn on e5",
+              "afterwards": "2 points ahead"
+            }
+          ],
+          "endsWith": "2 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Rg1",
+        "line": [
+          {
+            "move": "White Rg1",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Nf6",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Rg3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black c5",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Rf3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Qe4",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Qxe4",
+            "takes": "the queen on e4",
+            "afterwards": "8 points ahead"
+          },
+          {
+            "move": "Black Nxe4",
+            "takes": "the queen on e4",
+            "afterwards": "1 point behind"
+          }
+        ],
+        "endsWith": "1 point behind"
+      }
+    }
+  },
+  {
+    "id": "k5",
+    "input": {
+      "fen": "4r1k1/1p2q1p1/2p3p1/2Ppn3/1p6/4P2P/2N2Q2/r1KR1BR1 w - - 2 27",
+      "bestLine": ["c2a1", "e7c5"],
+      "gameMoveUci": "c1d2",
+      "previous": {
+        "fen": "4r1k1/1p2q1p1/2p3p1/2Ppn3/1p6/r3P2P/2N2Q2/2KR1BR1 b - - 1 26",
+        "uci": "a3a1"
+      }
+    },
+    "lines": {
+      "defences": [
+        [
+          "e7c5",
+          "c1b1",
+          "b7b5",
+          "a1b3",
+          "c5c3",
+          "f2b2",
+          "c3e3",
+          "g1g2",
+          "e5c4",
+          "f1c4",
+          "b5c4"
+        ],
+        [
+          "e8a8",
+          "c1b1",
+          "b7b5",
+          "c5b6",
+          "b4b3",
+          "f2b2",
+          "e5c4",
+          "f1c4",
+          "d5c4",
+          "a1b3",
+          "c4b3"
+        ],
+        [
+          "e5d7",
+          "g1g4",
+          "e8a8",
+          "f2b2",
+          "a8a1",
+          "b2a1",
+          "e7e3",
+          "c1c2",
+          "d7c5",
+          "g4b4"
+        ]
+      ],
+      "game": [["a1a2", "d1a1", "a2a1", "c2a1"]]
+    },
+    "expected": {
+      "fen": "4r1k1/1p2q1p1/2p3p1/2Ppn3/1p6/4P2P/2N2Q2/r1KR1BR1 w - - 2 27",
+      "youAre": "White",
+      "materialNow": "level",
+      "previousMove": "Black Ra1+",
+      "bestMove": "Nxa1",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": {
+        "takes": "the rook on a1",
+        "isRecapture": false,
+        "canTakeBack": [],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Nxa1", "Qxc5+"],
+        "steps": [
+          {
+            "move": "White Nxa1",
+            "takes": "the rook on a1",
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "Black Qxc5+",
+            "takes": "the pawn on c5",
+            "check": true,
+            "afterwards": "4 points ahead"
+          }
+        ],
+        "endsWith": "4 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Qxc5+",
+          "line": [
+            {
+              "move": "Black Qxc5+",
+              "takes": "the pawn on c5",
+              "check": true,
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Kb1",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black b5",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Nb3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Qc3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Qb2",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Qxe3",
+              "takes": "the pawn on e3",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Rg2",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Nc4",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Bxc4",
+              "takes": "the knight on c4",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black bxc4",
+              "takes": "the bishop on c4",
+              "afterwards": "3 points ahead"
+            }
+          ],
+          "endsWith": "3 points ahead"
+        },
+        {
+          "defence": "Ra8",
+          "line": [
+            {
+              "move": "Black Ra8",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White Kb1",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black b5",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White cxb6",
+              "takes": "the pawn on b6",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black b3",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Qb2",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black Nc4",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Bxc4",
+              "takes": "the knight on c4",
+              "afterwards": "9 points ahead"
+            },
+            {
+              "move": "Black dxc4",
+              "takes": "the bishop on c4",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Nxb3",
+              "takes": "the pawn on b3",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black cxb3",
+              "takes": "the knight on b3",
+              "afterwards": "4 points ahead"
+            }
+          ],
+          "endsWith": "4 points ahead"
+        },
+        {
+          "defence": "Nd7",
+          "line": [
+            {
+              "move": "Black Nd7",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White Rg4",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black Ra8",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White Qb2",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black Rxa1+",
+              "takes": "the knight on a1",
+              "check": true,
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Qxa1",
+              "takes": "the rook on a1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Qxe3+",
+              "takes": "the pawn on e3",
+              "check": true,
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Kc2",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black Nxc5",
+              "takes": "the pawn on c5",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White Rxb4",
+              "takes": "the pawn on b4",
+              "afterwards": "6 points ahead"
+            }
+          ],
+          "endsWith": "6 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Kd2",
+        "line": [
+          {
+            "move": "White Kd2",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Ra2",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Ra1",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Rxa1",
+            "takes": "the rook on a1",
+            "afterwards": "5 points behind"
+          },
+          {
+            "move": "White Nxa1",
+            "takes": "the rook on a1",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      }
+    }
+  },
+  {
+    "id": "k6",
+    "input": {
+      "fen": "r1bq1rk1/ppp2ppp/2n2n2/3Pp1N1/2B5/2P5/PPP2PPP/R1BQK2R w KQ - 1 8",
+      "bestLine": [
+        "d5c6",
+        "d8e8",
+        "c6b7",
+        "c8b7",
+        "c1e3",
+        "a8d8",
+        "d1e2",
+        "e8c6"
+      ],
+      "gameMoveUci": "d1d3",
+      "previous": {
+        "fen": "r1bqk2r/ppp2ppp/2n2n2/3Pp1N1/2B5/2P5/PPP2PPP/R1BQK2R b KQkq - 0 7",
+        "uci": "e8g8"
+      }
+    },
+    "lines": {
+      "defences": [
+        ["d8e8", "e1g1", "c8g4", "d1e1", "e8c6", "c4e2", "g4e2", "e1e2"],
+        [
+          "d8d1",
+          "e1d1",
+          "c8f5",
+          "c1e3",
+          "f6g4",
+          "d1e1",
+          "g4e3",
+          "f2e3",
+          "f5c2",
+          "c6b7"
+        ],
+        ["d8e7", "d1e2", "h7h6", "g5f3", "f8d8", "c6b7", "c8b7"]
+      ],
+      "game": [["c6a5", "e1g1", "a5c4", "d3c4"]]
+    },
+    "expected": {
+      "fen": "r1bq1rk1/ppp2ppp/2n2n2/3Pp1N1/2B5/2P5/PPP2PPP/R1BQK2R w KQ - 1 8",
+      "youAre": "White",
+      "materialNow": "1 point ahead",
+      "previousMove": "Black O-O",
+      "bestMove": "dxc6",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": {
+        "takes": "the knight on c6",
+        "isRecapture": false,
+        "canTakeBack": ["pawn on b7"],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["dxc6", "Qe8", "cxb7", "Bxb7", "Be3", "Rd8", "Qe2"],
+        "steps": [
+          {
+            "move": "White dxc6",
+            "takes": "the knight on c6",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "Black Qe8",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "White cxb7",
+            "takes": "the pawn on b7",
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "Black Bxb7",
+            "takes": "the pawn on b7",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "White Be3",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "Black Rd8",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "White Qe2",
+            "afterwards": "4 points ahead"
+          }
+        ],
+        "endsWith": "4 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Qe8",
+          "line": [
+            {
+              "move": "Black Qe8",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White O-O",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Bg4",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Qe1",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Qxc6",
+              "takes": "the pawn on c6",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Be2",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Bxe2",
+              "takes": "the bishop on e2",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Qxe2",
+              "takes": "the bishop on e2",
+              "afterwards": "3 points ahead"
+            }
+          ],
+          "endsWith": "3 points ahead"
+        },
+        {
+          "defence": "Qxd1+",
+          "line": [
+            {
+              "move": "Black Qxd1+",
+              "takes": "the queen on d1",
+              "check": true,
+              "afterwards": "5 points behind"
+            },
+            {
+              "move": "White Kxd1",
+              "takes": "the queen on d1",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Bf5",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Be3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Ng4",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Ke1",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Nxe3",
+              "takes": "the bishop on e3",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White fxe3",
+              "takes": "the knight on e3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Bxc2",
+              "takes": "the pawn on c2",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White cxb7",
+              "takes": "the pawn on b7",
+              "afterwards": "4 points ahead"
+            }
+          ],
+          "endsWith": "4 points ahead"
+        },
+        {
+          "defence": "Qe7",
+          "line": [
+            {
+              "move": "Black Qe7",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Qe2",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black h6",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Nf3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Rd8",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White cxb7",
+              "takes": "the pawn on b7",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black Bxb7",
+              "takes": "the pawn on b7",
+              "afterwards": "4 points ahead"
+            }
+          ],
+          "endsWith": "4 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Qd3",
+        "line": [
+          {
+            "move": "White Qd3",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Na5",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White O-O",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Nxc4",
+            "takes": "the bishop on c4",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "White Qxc4",
+            "takes": "the knight on c4",
+            "afterwards": "1 point ahead"
+          }
+        ],
+        "endsWith": "1 point ahead"
+      }
+    }
+  },
+  {
+    "id": "k11",
+    "input": {
+      "fen": "1r3rk1/p2q1ppp/4bnn1/4p3/6P1/P1RP1P2/3QPNBP/1R4K1 b - - 0 22",
+      "bestLine": [
+        "b8b1",
+        "g2f1",
+        "d7e7",
+        "a3a4",
+        "f6d5",
+        "c3c1",
+        "b1c1",
+        "d2c1"
+      ],
+      "gameMoveUci": "g6f4",
+      "previous": {
+        "fen": "1r3rk1/p2q1ppp/4bnn1/4p3/6P1/P1pP1P2/3QPNBP/1RR3K1 w - - 0 22",
+        "uci": "c1c3"
+      }
+    },
+    "lines": {
+      "defences": [
+        ["c3c1", "b1c1", "d2c1", "f8c8", "c1e1", "d7d8"],
+        ["g2f1", "f6d5", "c3c2", "f8b8", "f2e4", "d7d8"],
+        [
+          "f2d1",
+          "b1d1",
+          "d2d1",
+          "d7d4",
+          "e2e3",
+          "d4c3",
+          "f3f4",
+          "e5f4",
+          "g4g5",
+          "f6h5",
+          "g2f3",
+          "f4e3",
+          "f3h5",
+          "c3c5",
+          "h5g6",
+          "c5g5",
+          "g1h1",
+          "g5g6"
+        ]
+      ],
+      "game": [["b1b8", "f8b8", "g2f1", "f4g6"]]
+    },
+    "expected": {
+      "fen": "1r3rk1/p2q1ppp/4bnn1/4p3/6P1/P1RP1P2/3QPNBP/1R4K1 b - - 0 22",
+      "youAre": "Black",
+      "materialNow": "2 points ahead",
+      "previousMove": "White Rxc3, taking the pawn on c3",
+      "bestMove": "Rxb1+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": {
+        "takes": "the rook on b1",
+        "isRecapture": false,
+        "canTakeBack": [],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "king on g1"
+        }
+      ],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Rxb1+", "Bf1", "Qe7", "a4", "Nd5", "Rc1", "Rxc1", "Qxc1"],
+        "steps": [
+          {
+            "move": "Black Rxb1+",
+            "takes": "the rook on b1",
+            "check": true,
+            "afterwards": "7 points ahead"
+          },
+          {
+            "move": "White Bf1",
+            "afterwards": "7 points ahead"
+          },
+          {
+            "move": "Black Qe7",
+            "afterwards": "7 points ahead"
+          },
+          {
+            "move": "White a4",
+            "afterwards": "7 points ahead"
+          },
+          {
+            "move": "Black Nd5",
+            "afterwards": "7 points ahead"
+          },
+          {
+            "move": "White Rc1",
+            "afterwards": "7 points ahead"
+          },
+          {
+            "move": "Black Rxc1",
+            "takes": "the rook on c1",
+            "afterwards": "12 points ahead"
+          },
+          {
+            "move": "White Qxc1",
+            "takes": "the rook on c1",
+            "afterwards": "7 points ahead"
+          }
+        ],
+        "endsWith": "7 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Rc1",
+          "line": [
+            {
+              "move": "White Rc1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Rxc1+",
+              "takes": "the rook on c1",
+              "check": true,
+              "afterwards": "12 points ahead"
+            },
+            {
+              "move": "White Qxc1",
+              "takes": "the rook on c1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Rc8",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "White Qe1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Qd8",
+              "afterwards": "7 points ahead"
+            }
+          ],
+          "endsWith": "7 points ahead"
+        },
+        {
+          "defence": "Bf1",
+          "line": [
+            {
+              "move": "White Bf1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Nd5",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "White Rc2",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Rfb8",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "White Ne4",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Qd8",
+              "afterwards": "7 points ahead"
+            }
+          ],
+          "endsWith": "7 points ahead"
+        },
+        {
+          "defence": "Nd1",
+          "line": [
+            {
+              "move": "White Nd1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Rxd1+",
+              "takes": "the knight on d1",
+              "check": true,
+              "afterwards": "10 points ahead"
+            },
+            {
+              "move": "White Qxd1",
+              "takes": "the rook on d1",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black Qd4+",
+              "check": true,
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White e3",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black Qxc3",
+              "takes": "the rook on c3",
+              "afterwards": "10 points ahead"
+            },
+            {
+              "move": "White f4",
+              "afterwards": "10 points ahead"
+            },
+            {
+              "move": "Black exf4",
+              "takes": "the pawn on f4",
+              "afterwards": "11 points ahead"
+            },
+            {
+              "move": "White g5",
+              "afterwards": "11 points ahead"
+            },
+            {
+              "move": "Black Nh5",
+              "afterwards": "11 points ahead"
+            },
+            {
+              "move": "White Bf3",
+              "afterwards": "11 points ahead"
+            },
+            {
+              "move": "Black fxe3",
+              "takes": "the pawn on e3",
+              "afterwards": "12 points ahead"
+            },
+            {
+              "move": "White Bxh5",
+              "takes": "the knight on h5",
+              "afterwards": "9 points ahead"
+            },
+            {
+              "move": "Black Qc5",
+              "afterwards": "9 points ahead"
+            },
+            {
+              "move": "White Bxg6",
+              "takes": "the knight on g6",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black Qxg5+",
+              "takes": "the pawn on g5",
+              "check": true,
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "White Kh1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Qxg6",
+              "takes": "the bishop on g6",
+              "afterwards": "10 points ahead"
+            }
+          ],
+          "endsWith": "10 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Nf4",
+        "line": [
+          {
+            "move": "Black Nf4",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "White Rxb8",
+            "takes": "the rook on b8",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "Black Rxb8",
+            "takes": "the rook on b8",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "White Bf1",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "Black Ng6",
+            "afterwards": "2 points ahead"
+          }
+        ],
+        "endsWith": "2 points ahead"
+      }
+    }
+  },
+  {
+    "id": "k12",
+    "input": {
+      "fen": "r3r1k1/1pq2pbp/p1pn2p1/P1Np1b2/Q2PB3/1P2P1P1/4NP1P/R1B2RK1 b - - 0 19",
+      "bestLine": [
+        "d6e4",
+        "c5e4",
+        "d5e4",
+        "g1g2",
+        "f5g4",
+        "e2g1",
+        "a8d8",
+        "h2h3"
+      ],
+      "gameMoveUci": "f5e4",
+      "previous": {
+        "fen": "r3r1k1/1pq2pbp/p1pn2p1/P1Np1b2/Q2Pn3/1P2P1P1/4NPBP/R1B2RK1 w - - 3 19",
+        "uci": "g2e4"
+      }
+    },
+    "lines": {
+      "defences": [
+        ["c5e4", "d5e4", "g1g2", "c7d7", "e2g1", "a8d8"],
+        ["a1a2", "f5h3", "f1d1", "h3g4", "c5e4", "d5e4"],
+        ["f2f3", "e4c5", "d4c5", "c7e7", "e2d4", "f5h3", "f1e1", "e7c5"]
+      ],
+      "recapture:e8e4": [["c5e4", "d5e4", "a1a2", "f5h3"]],
+      "recapture:d5e4": [
+        [
+          "g1g2",
+          "f5g4",
+          "e2g1",
+          "c7c8",
+          "h2h3",
+          "g4f3",
+          "g1f3",
+          "e4f3",
+          "g2f3",
+          "c8h3"
+        ]
+      ],
+      "recapture:f5e4": [
+        ["f2f3", "e4f5", "g3g4", "f5c8", "e2f4", "h7h5", "h2h3", "h5g4", "h3g4"]
+      ],
+      "game": [
+        ["f2f3", "e4f5", "g3g4", "f5c8", "e2f4", "h7h5", "h2h3", "h5g4", "h3g4"]
+      ]
+    },
+    "expected": {
+      "fen": "r3r1k1/1pq2pbp/p1pn2p1/P1Np1b2/Q2PB3/1P2P1P1/4NP1P/R1B2RK1 b - - 0 19",
+      "youAre": "Black",
+      "materialNow": "3 points behind",
+      "previousMove": "White Bxe4, taking the knight on e4",
+      "bestMove": "Nxe4",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": {
+        "takes": "the bishop on e4",
+        "isRecapture": true,
+        "canTakeBack": ["knight on c5"],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Nxe4", "Nxe4", "dxe4", "Kg2", "Bg4", "Ng1", "Rad8"],
+        "steps": [
+          {
+            "move": "Black Nxe4",
+            "takes": "the bishop on e4",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Nxe4",
+            "takes": "the knight on e4",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "Black dxe4",
+            "takes": "the knight on e4",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Kg2",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Bg4",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Ng1",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Rad8",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Nxe4",
+          "line": [
+            {
+              "move": "White Nxe4",
+              "takes": "the knight on e4",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black dxe4",
+              "takes": "the knight on e4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Kg2",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Qd7",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Ng1",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Rad8",
+              "afterwards": "level"
+            }
+          ],
+          "endsWith": "level"
+        },
+        {
+          "defence": "Ra2",
+          "line": [
+            {
+              "move": "White Ra2",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bh3",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Rd1",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bg4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nxe4",
+              "takes": "the knight on e4",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black dxe4",
+              "takes": "the knight on e4",
+              "afterwards": "level"
+            }
+          ],
+          "endsWith": "level"
+        },
+        {
+          "defence": "f3",
+          "line": [
+            {
+              "move": "White f3",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Nxc5",
+              "takes": "the knight on c5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White dxc5",
+              "takes": "the knight on c5",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Qe7",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nd4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bh3",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Re1",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Qxc5",
+              "takes": "the pawn on c5",
+              "afterwards": "1 point ahead"
+            }
+          ],
+          "endsWith": "1 point ahead"
+        }
+      ],
+      "otherRecaptures": [
+        {
+          "move": "Rxe4",
+          "line": [
+            {
+              "move": "Black Rxe4",
+              "takes": "the bishop on e4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nxe4",
+              "takes": "the rook on e4",
+              "afterwards": "5 points behind"
+            },
+            {
+              "move": "Black dxe4",
+              "takes": "the knight on e4",
+              "afterwards": "2 points behind"
+            },
+            {
+              "move": "White Ra2",
+              "afterwards": "2 points behind"
+            },
+            {
+              "move": "Black Bh3",
+              "afterwards": "2 points behind"
+            }
+          ],
+          "endsWith": "2 points behind"
+        },
+        {
+          "move": "dxe4",
+          "line": [
+            {
+              "move": "Black dxe4",
+              "takes": "the bishop on e4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Kg2",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bg4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Ng1",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Qc8",
+              "afterwards": "level"
+            },
+            {
+              "move": "White h3",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bf3+",
+              "check": true,
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nxf3",
+              "takes": "the bishop on f3",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black exf3+",
+              "takes": "the knight on f3",
+              "check": true,
+              "afterwards": "level"
+            },
+            {
+              "move": "White Kxf3",
+              "takes": "the pawn on f3",
+              "afterwards": "1 point behind"
+            },
+            {
+              "move": "Black Qxh3",
+              "takes": "the pawn on h3",
+              "afterwards": "level"
+            }
+          ],
+          "endsWith": "level"
+        },
+        {
+          "move": "Bxe4",
+          "line": [
+            {
+              "move": "Black Bxe4",
+              "takes": "the bishop on e4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White f3",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bf5",
+              "afterwards": "level"
+            },
+            {
+              "move": "White g4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bc8",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nf4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black h5",
+              "afterwards": "level"
+            },
+            {
+              "move": "White h3",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black hxg4",
+              "takes": "the pawn on g4",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White hxg4",
+              "takes": "the pawn on g4",
+              "afterwards": "level"
+            }
+          ],
+          "endsWith": "level"
+        }
+      ],
+      "yourGameMove": {
+        "move": "Bxe4",
+        "line": [
+          {
+            "move": "Black Bxe4",
+            "takes": "the bishop on e4",
+            "afterwards": "level"
+          },
+          {
+            "move": "White f3",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Bf5",
+            "afterwards": "level"
+          },
+          {
+            "move": "White g4",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Bc8",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Nf4",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black h5",
+            "afterwards": "level"
+          },
+          {
+            "move": "White h3",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black hxg4",
+            "takes": "the pawn on g4",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White hxg4",
+            "takes": "the pawn on g4",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      }
+    }
+  },
+  {
+    "id": "k20",
+    "input": {
+      "fen": "r1bq1rk1/ppp1n1b1/3p1Bpp/3Ppp2/4P3/1BN2N1P/PPP2PP1/R2QR1K1 b - - 0 13",
+      "bestLine": ["g7f6", "a2a4"],
+      "gameMoveUci": "f8f6",
+      "previous": {
+        "fen": "r1bq1rk1/ppp1n1b1/3p1npp/3PppB1/4P3/1BN2N1P/PPP2PP1/R2QR1K1 w - - 0 13",
+        "uci": "g5f6"
+      }
+    },
+    "lines": {
+      "defences": [
+        ["a2a4", "f5f4", "a4a5", "a7a6", "b3c4", "h6h5"],
+        ["b3c4", "g8h8", "a2a4", "a7a5", "a1a3", "f5f4"],
+        [
+          "f3d2",
+          "g8h8",
+          "a2a4",
+          "a7a5",
+          "a1b1",
+          "e7g8",
+          "b3c4",
+          "f6g5",
+          "b2b4",
+          "a5b4",
+          "b1b4"
+        ]
+      ],
+      "recapture:f8f6": [["f3e5", "f6f8", "e5f3", "f5e4", "e1e4"]],
+      "game": [["f3e5", "f6f8", "e5f3", "f5e4", "e1e4"]]
+    },
+    "expected": {
+      "fen": "r1bq1rk1/ppp1n1b1/3p1Bpp/3Ppp2/4P3/1BN2N1P/PPP2PP1/R2QR1K1 b - - 0 13",
+      "youAre": "Black",
+      "materialNow": "3 points behind",
+      "previousMove": "White Bxf6, taking the knight on f6",
+      "bestMove": "Bxf6",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": {
+        "takes": "the bishop on f6",
+        "isRecapture": true,
+        "canTakeBack": [],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Bxf6", "a4"],
+        "steps": [
+          {
+            "move": "Black Bxf6",
+            "takes": "the bishop on f6",
+            "afterwards": "level"
+          },
+          {
+            "move": "White a4",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      },
+      "opponentDefences": [
+        {
+          "defence": "a4",
+          "line": [
+            {
+              "move": "White a4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black f4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White a5",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black a6",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Bc4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black h5",
+              "afterwards": "level"
+            }
+          ],
+          "endsWith": "level"
+        },
+        {
+          "defence": "Bc4",
+          "line": [
+            {
+              "move": "White Bc4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Kh8",
+              "afterwards": "level"
+            },
+            {
+              "move": "White a4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black a5",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Ra3",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black f4",
+              "afterwards": "level"
+            }
+          ],
+          "endsWith": "level"
+        },
+        {
+          "defence": "Nd2",
+          "line": [
+            {
+              "move": "White Nd2",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Kh8",
+              "afterwards": "level"
+            },
+            {
+              "move": "White a4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black a5",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Rb1",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Ng8",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Bc4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bg5",
+              "afterwards": "level"
+            },
+            {
+              "move": "White b4",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black axb4",
+              "takes": "the pawn on b4",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Rxb4",
+              "takes": "the pawn on b4",
+              "afterwards": "level"
+            }
+          ],
+          "endsWith": "level"
+        }
+      ],
+      "otherRecaptures": [
+        {
+          "move": "Rxf6",
+          "line": [
+            {
+              "move": "Black Rxf6",
+              "takes": "the bishop on f6",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nxe5",
+              "takes": "the pawn on e5",
+              "afterwards": "1 point behind"
+            },
+            {
+              "move": "Black Rf8",
+              "afterwards": "1 point behind"
+            },
+            {
+              "move": "White Nf3",
+              "afterwards": "1 point behind"
+            },
+            {
+              "move": "Black fxe4",
+              "takes": "the pawn on e4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Rxe4",
+              "takes": "the pawn on e4",
+              "afterwards": "1 point behind"
+            }
+          ],
+          "endsWith": "1 point behind"
+        }
+      ],
+      "yourGameMove": {
+        "move": "Rxf6",
+        "line": [
+          {
+            "move": "Black Rxf6",
+            "takes": "the bishop on f6",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Nxe5",
+            "takes": "the pawn on e5",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Rf8",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Nf3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black fxe4",
+            "takes": "the pawn on e4",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Rxe4",
+            "takes": "the pawn on e4",
+            "afterwards": "1 point behind"
+          }
+        ],
+        "endsWith": "1 point behind"
+      }
+    }
+  },
+  {
+    "id": "k26",
+    "input": {
+      "fen": "2Rbr2k/8/p2P4/1p6/5p2/6Pp/6PP/5NK1 b - - 0 39",
+      "bestLine": [
+        "d8b6",
+        "f1e3",
+        "e8c8",
+        "g3f4",
+        "b6e3",
+        "g1f1",
+        "c8c1",
+        "f1e2"
+      ],
+      "gameMoveUci": "f4g3",
+      "previous": {
+        "fen": "2Rbr2k/8/p2P4/1p6/5p2/6pp/5PPP/5NK1 w - - 0 39",
+        "uci": "f2g3"
+      }
+    },
+    "lines": {
+      "defences": [
+        ["g1h1", "e8c8", "g3f4", "c8c1", "g2h3", "c1f1"],
+        ["f1e3", "e8c8", "g2h3", "f4e3", "g1f1", "c8f8"],
+        [
+          "c8c5",
+          "b6c5",
+          "f1e3",
+          "f4e3",
+          "g2h3",
+          "e3e2",
+          "g1g2",
+          "c5d6",
+          "h3h4",
+          "e2e1q"
+        ]
+      ],
+      "game": [
+        ["d6d7", "d8b6", "f1e3", "e8d8", "c8d8", "b6d8", "g2h3", "g3h2", "g1h2"]
+      ]
+    },
+    "expected": {
+      "fen": "2Rbr2k/8/p2P4/1p6/5p2/6Pp/6PP/5NK1 b - - 0 39",
+      "youAre": "Black",
+      "materialNow": "level",
+      "previousMove": "White fxg3, taking the pawn on g3",
+      "bestMove": "Bb6+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [
+        {
+          "piece": "rook on e8",
+          "attacks": "rook on c8"
+        }
+      ],
+      "bestMoveAttacks": [
+        {
+          "target": "king on g1"
+        }
+      ],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Bb6+", "Ne3", "Rxc8", "gxf4", "Bxe3+", "Kf1", "Rc1+"],
+        "steps": [
+          {
+            "move": "Black Bb6+",
+            "check": true,
+            "afterwards": "level"
+          },
+          {
+            "move": "White Ne3",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Rxc8",
+            "takes": "the rook on c8",
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "White gxf4",
+            "takes": "the pawn on f4",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "Black Bxe3+",
+            "takes": "the knight on e3",
+            "check": true,
+            "afterwards": "7 points ahead"
+          },
+          {
+            "move": "White Kf1",
+            "afterwards": "7 points ahead"
+          },
+          {
+            "move": "Black Rc1+",
+            "check": true,
+            "afterwards": "7 points ahead"
+          }
+        ],
+        "endsWith": "7 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Kh1",
+          "line": [
+            {
+              "move": "White Kh1",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Rxc8",
+              "takes": "the rook on c8",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White gxf4",
+              "takes": "the pawn on f4",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Rc1",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White gxh3",
+              "takes": "the pawn on h3",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Rxf1+",
+              "takes": "the knight on f1",
+              "check": true,
+              "afterwards": "6 points ahead"
+            }
+          ],
+          "endsWith": "6 points ahead"
+        },
+        {
+          "defence": "Ne3",
+          "line": [
+            {
+              "move": "White Ne3",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Rxc8",
+              "takes": "the rook on c8",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White gxh3",
+              "takes": "the pawn on h3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black fxe3",
+              "takes": "the knight on e3",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "White Kf1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Rf8+",
+              "check": true,
+              "afterwards": "7 points ahead"
+            }
+          ],
+          "endsWith": "7 points ahead"
+        },
+        {
+          "defence": "Rc5",
+          "line": [
+            {
+              "move": "White Rc5",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Bxc5+",
+              "takes": "the rook on c5",
+              "check": true,
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White Ne3",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black fxe3",
+              "takes": "the knight on e3",
+              "afterwards": "8 points ahead"
+            },
+            {
+              "move": "White gxh3",
+              "takes": "the pawn on h3",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black e2+",
+              "check": true,
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "White Kg2",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Bxd6",
+              "takes": "the pawn on d6",
+              "afterwards": "8 points ahead"
+            },
+            {
+              "move": "White h4",
+              "afterwards": "8 points ahead"
+            },
+            {
+              "move": "Black e1=Q",
+              "afterwards": "16 points ahead"
+            }
+          ],
+          "endsWith": "16 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "fxg3",
+        "line": [
+          {
+            "move": "Black fxg3",
+            "takes": "the pawn on g3",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White d7",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Bb6+",
+            "check": true,
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White Ne3",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Rd8",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White Rxd8+",
+            "takes": "the rook on d8",
+            "check": true,
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "Black Bxd8",
+            "takes": "the rook on d8",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White gxh3",
+            "takes": "the pawn on h3",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black gxh2+",
+            "takes": "the pawn on h2",
+            "check": true,
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White Kxh2",
+            "takes": "the pawn on h2",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      }
+    }
+  },
+  {
+    "id": "k27",
+    "input": {
+      "fen": "r3k3/1pp2p2/2np2rp/p1b1p3/2P4B/P2P1PPq/1P2BP1P/R2Q1RK1 b q - 2 15",
+      "bestLine": [
+        "h3h4",
+        "f3f4",
+        "e5f4",
+        "g1h1",
+        "h4f6",
+        "e2f3",
+        "e8f8",
+        "f3e4"
+      ],
+      "gameMoveUci": "e8d7",
+      "previous": {
+        "fen": "r3k3/1pp2p2/2np1Brp/p1b1p3/2P5/P2P1PPq/1P2BP1P/R2Q1RK1 w q - 1 15",
+        "uci": "f6h4"
+      }
+    },
+    "lines": {
+      "defences": [
+        [
+          "f3f4",
+          "e5f4",
+          "g1h1",
+          "h4f6",
+          "e2f3",
+          "e8f8",
+          "f3e4",
+          "g6g8",
+          "e4c6",
+          "b7c6",
+          "d1f3",
+          "a8e8",
+          "f3c6"
+        ],
+        [
+          "g1h1",
+          "h4g5",
+          "f3f4",
+          "e5f4",
+          "e2f3",
+          "e8f8",
+          "f3c6",
+          "b7c6",
+          "d1f3",
+          "a8e8",
+          "f3c6",
+          "g6e6",
+          "c6f3",
+          "c7c6",
+          "f3c6"
+        ],
+        ["g1g2", "h4f6", "d1a4", "e8f8", "b2b4", "c5d4", "a1b1", "c6d8", "b4a5"]
+      ],
+      "game": [["g1h1", "c6d4", "f1e1", "a8g8", "b2b4", "a5b4", "a3b4", "c5b4"]]
+    },
+    "expected": {
+      "fen": "r3k3/1pp2p2/2np2rp/p1b1p3/2P4B/P2P1PPq/1P2BP1P/R2Q1RK1 b q - 2 15",
+      "youAre": "Black",
+      "materialNow": "1 point behind",
+      "previousMove": "White Bh4",
+      "bestMove": "Qxh4",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": {
+        "takes": "the bishop on h4",
+        "isRecapture": false,
+        "canTakeBack": [],
+        "attackersThatArePinned": [
+          {
+            "piece": "pawn on g3",
+            "pinnedBy": "rook on g6"
+          }
+        ]
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Qxh4", "f4", "exf4", "Kh1", "Qf6", "Bf3", "Kf8"],
+        "steps": [
+          {
+            "move": "Black Qxh4",
+            "takes": "the bishop on h4",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "White f4",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "Black exf4",
+            "takes": "the pawn on f4",
+            "afterwards": "3 points ahead"
+          },
+          {
+            "move": "White Kh1",
+            "afterwards": "3 points ahead"
+          },
+          {
+            "move": "Black Qf6",
+            "afterwards": "3 points ahead"
+          },
+          {
+            "move": "White Bf3",
+            "afterwards": "3 points ahead"
+          },
+          {
+            "move": "Black Kf8",
+            "afterwards": "3 points ahead"
+          }
+        ],
+        "endsWith": "3 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "f4",
+          "line": [
+            {
+              "move": "White f4",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black exf4",
+              "takes": "the pawn on f4",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Kh1",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Qf6",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Bf3",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Kf8",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Be4",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Rg8",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Bxc6",
+              "takes": "the knight on c6",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black bxc6",
+              "takes": "the bishop on c6",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Qf3",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Re8",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Qxc6",
+              "takes": "the pawn on c6",
+              "afterwards": "2 points ahead"
+            }
+          ],
+          "endsWith": "2 points ahead"
+        },
+        {
+          "defence": "Kh1",
+          "line": [
+            {
+              "move": "White Kh1",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Qg5",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White f4",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black exf4",
+              "takes": "the pawn on f4",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Bf3",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Kf8",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Bxc6",
+              "takes": "the knight on c6",
+              "afterwards": "level"
+            },
+            {
+              "move": "Black bxc6",
+              "takes": "the bishop on c6",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Qf3",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Re8",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Qxc6",
+              "takes": "the pawn on c6",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Rge6",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Qf3",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black c6",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Qxc6",
+              "takes": "the pawn on c6",
+              "afterwards": "1 point ahead"
+            }
+          ],
+          "endsWith": "1 point ahead"
+        },
+        {
+          "defence": "Kg2",
+          "line": [
+            {
+              "move": "White Kg2",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Qf6",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Qa4",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Kf8",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White b4",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Bd4",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Rab1",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Nd8",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White bxa5",
+              "takes": "the pawn on a5",
+              "afterwards": "1 point ahead"
+            }
+          ],
+          "endsWith": "1 point ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Kd7",
+        "line": [
+          {
+            "move": "Black Kd7",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Kh1",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Nd4",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Re1",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Rag8",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White b4",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black axb4",
+            "takes": "the pawn on b4",
+            "afterwards": "level"
+          },
+          {
+            "move": "White axb4",
+            "takes": "the pawn on b4",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Bxb4",
+            "takes": "the pawn on b4",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      }
+    }
+  },
+  {
+    "id": "k29",
+    "input": {
+      "fen": "r1bq1bkr/pppp2pp/2n5/4p3/4N3/5Q2/PPPP1PPP/RNB1K2R w KQ - 2 8",
+      "bestLine": [
+        "e4g5",
+        "d8f6",
+        "f3d5",
+        "f6e6",
+        "g5e6",
+        "d7e6",
+        "d5e4",
+        "f8d6"
+      ],
+      "gameMoveUci": "f3b3",
+      "previous": {
+        "fen": "r1bq1b1r/pppp1kpp/2n5/4p3/4N3/5Q2/PPPP1PPP/RNB1K2R b KQ - 1 7",
+        "uci": "f7g8"
+      }
+    },
+    "lines": {
+      "threat": [["f3d5"]],
+      "defences": [
+        ["d8e7", "f3d5", "e7e6", "g5e6", "d7e6", "d5c4"],
+        ["d8f6", "f3d5", "f6e6", "g5e6", "d7e6", "d5c4"],
+        ["d8e8", "f3d5", "e8e6", "g5e6", "d7e6", "d5c4"]
+      ],
+      "game": [["d7d5", "c2c3", "d8d7", "e4g3"]]
+    },
+    "expected": {
+      "fen": "r1bq1bkr/pppp2pp/2n5/4p3/4N3/5Q2/PPPP1PPP/RNB1K2R w KQ - 2 8",
+      "youAre": "White",
+      "materialNow": "level",
+      "previousMove": "Black Kg8",
+      "bestMove": "Ng5",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": {
+        "move": "Qd5#",
+        "line": [
+          {
+            "move": "White Qd5#",
+            "check": true,
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "checkmate by White"
+      },
+      "bestLine": {
+        "san": ["Ng5", "Qf6", "Qd5+", "Qe6", "Nxe6", "dxe6", "Qe4"],
+        "steps": [
+          {
+            "move": "White Ng5",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Qf6",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Qd5+",
+            "check": true,
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Qe6",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Nxe6",
+            "takes": "the queen on e6",
+            "afterwards": "9 points ahead"
+          },
+          {
+            "move": "Black dxe6",
+            "takes": "the knight on e6",
+            "afterwards": "6 points ahead"
+          },
+          {
+            "move": "White Qe4",
+            "afterwards": "6 points ahead"
+          }
+        ],
+        "endsWith": "6 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Qe7",
+          "line": [
+            {
+              "move": "Black Qe7",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Qd5+",
+              "check": true,
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Qe6",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nxe6",
+              "takes": "the queen on e6",
+              "afterwards": "9 points ahead"
+            },
+            {
+              "move": "Black dxe6",
+              "takes": "the knight on e6",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Qc4",
+              "afterwards": "6 points ahead"
+            }
+          ],
+          "endsWith": "6 points ahead"
+        },
+        {
+          "defence": "Qf6",
+          "line": [
+            {
+              "move": "Black Qf6",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Qd5+",
+              "check": true,
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Qe6",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nxe6",
+              "takes": "the queen on e6",
+              "afterwards": "9 points ahead"
+            },
+            {
+              "move": "Black dxe6",
+              "takes": "the knight on e6",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Qc4",
+              "afterwards": "6 points ahead"
+            }
+          ],
+          "endsWith": "6 points ahead"
+        },
+        {
+          "defence": "Qe8",
+          "line": [
+            {
+              "move": "Black Qe8",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Qd5+",
+              "check": true,
+              "afterwards": "level"
+            },
+            {
+              "move": "Black Qe6",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Nxe6",
+              "takes": "the queen on e6",
+              "afterwards": "9 points ahead"
+            },
+            {
+              "move": "Black dxe6",
+              "takes": "the knight on e6",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Qc4",
+              "afterwards": "6 points ahead"
+            }
+          ],
+          "endsWith": "6 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Qb3+",
+        "line": [
+          {
+            "move": "White Qb3+",
+            "check": true,
+            "afterwards": "level"
+          },
+          {
+            "move": "Black d5",
+            "afterwards": "level"
+          },
+          {
+            "move": "White c3",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Qd7",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Ng3",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      }
+    }
+  },
+  {
+    "id": "f-0ZH1W",
+    "input": {
+      "fen": "3r4/6k1/5p2/1p1R2p1/pP1QP3/P7/B5P1/2q2R1K b - - 0 39",
+      "bestLine": ["c1f1", "h1h2", "d8h8", "h2g3", "f1f4"],
+      "gameMoveUci": "d8h8"
+    },
+    "lines": {
+      "defences": [
+        ["h1h2", "d8h8", "h2g3", "f1f4"],
+        ["d4g1", "d8h8"]
+      ],
+      "game": [["h1g1", "h8h1", "g1h1", "c1f1"]]
+    },
+    "expected": {
+      "fen": "3r4/6k1/5p2/1p1R2p1/pP1QP3/P7/B5P1/2q2R1K b - - 0 39",
+      "youAre": "Black",
+      "materialNow": "8 points behind",
+      "previousMove": null,
+      "bestMove": "Qxf1+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": {
+        "takes": "the rook on f1",
+        "isRecapture": false,
+        "canTakeBack": [],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "king on h1"
+        }
+      ],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Qxf1+", "Kh2", "Rh8+", "Kg3", "Qf4#"],
+        "steps": [
+          {
+            "move": "Black Qxf1+",
+            "takes": "the rook on f1",
+            "check": true,
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "White Kh2",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "Black Rh8+",
+            "check": true,
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "White Kg3",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "Black Qf4#",
+            "check": true,
+            "afterwards": "3 points behind"
+          }
+        ],
+        "endsWith": "checkmate by Black"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Kh2",
+          "line": [
+            {
+              "move": "White Kh2",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black Rh8+",
+              "check": true,
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "White Kg3",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black Qf4#",
+              "check": true,
+              "afterwards": "3 points behind"
+            }
+          ],
+          "endsWith": "checkmate by Black"
+        },
+        {
+          "defence": "Qg1",
+          "line": [
+            {
+              "move": "White Qg1",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black Rh8#",
+              "check": true,
+              "afterwards": "3 points behind"
+            }
+          ],
+          "endsWith": "checkmate by Black"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Rh8+",
+        "line": [
+          {
+            "move": "Black Rh8+",
+            "check": true,
+            "afterwards": "8 points behind"
+          },
+          {
+            "move": "White Kg1",
+            "afterwards": "8 points behind"
+          },
+          {
+            "move": "Black Rh1+",
+            "check": true,
+            "afterwards": "8 points behind"
+          },
+          {
+            "move": "White Kxh1",
+            "takes": "the rook on h1",
+            "afterwards": "13 points behind"
+          },
+          {
+            "move": "Black Qxf1+",
+            "takes": "the rook on f1",
+            "check": true,
+            "afterwards": "8 points behind"
+          }
+        ],
+        "endsWith": "8 points behind"
+      }
+    }
+  },
+  {
+    "id": "f-0Drhf",
+    "input": {
+      "fen": "r3k1nr/ppp2ppp/8/2bNP3/5p1q/3B1PP1/PPP1Q3/R1B2K1R b kq - 0 14",
+      "bestLine": ["h4h1"],
+      "gameMoveUci": "h4d8"
+    },
+    "lines": {
+      "defences": [],
+      "game": [["d5f4", "d8e7", "c1d2", "e8c8"]]
+    },
+    "expected": {
+      "fen": "r3k1nr/ppp2ppp/8/2bNP3/5p1q/3B1PP1/PPP1Q3/R1B2K1R b kq - 0 14",
+      "youAre": "Black",
+      "materialNow": "2 points behind",
+      "previousMove": null,
+      "bestMove": "Qxh1#",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": {
+        "takes": "the rook on h1",
+        "isRecapture": false,
+        "canTakeBack": [],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "king on f1"
+        }
+      ],
+      "bestMoveLinesUp": [
+        {
+          "front": "pawn on f3",
+          "behind": "knight on d5"
+        },
+        {
+          "front": "king on f1",
+          "behind": "bishop on c1"
+        }
+      ],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Qxh1#"],
+        "steps": [
+          {
+            "move": "Black Qxh1#",
+            "takes": "the rook on h1",
+            "check": true,
+            "afterwards": "3 points ahead"
+          }
+        ],
+        "endsWith": "checkmate by Black"
+      },
+      "opponentDefences": [],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Qd8",
+        "line": [
+          {
+            "move": "Black Qd8",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "White Nxf4",
+            "takes": "the pawn on f4",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "Black Qe7",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "White Bd2",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "Black O-O-O",
+            "afterwards": "3 points behind"
+          }
+        ],
+        "endsWith": "3 points behind"
+      }
+    }
+  },
+  {
+    "id": "f-0Og4O",
+    "input": {
+      "fen": "r2q1rk1/pp3pp1/7p/5n2/2PN4/P1B1P3/1P1Q2Pb/R3R2K b - - 1 20",
+      "bestLine": ["f5g3", "h1h2", "d8h4", "h2g1", "h4h1"],
+      "gameMoveUci": "f5d4"
+    },
+    "lines": {
+      "defences": [
+        [
+          "h1h2",
+          "d8h4",
+          "h2g1",
+          "h4h1",
+          "g1f2",
+          "g3e4",
+          "f2e2",
+          "h1g2",
+          "e2d3",
+          "e4d2",
+          "e1g1",
+          "g2e4",
+          "d3d2"
+        ]
+      ],
+      "game": [["d2d4", "d8d4", "e3d4", "h2f4"]]
+    },
+    "expected": {
+      "fen": "r2q1rk1/pp3pp1/7p/5n2/2PN4/P1B1P3/1P1Q2Pb/R3R2K b - - 1 20",
+      "youAre": "Black",
+      "materialNow": "level",
+      "previousMove": null,
+      "bestMove": "Ng3+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "king on h1"
+        }
+      ],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Ng3+", "Kxh2", "Qh4+", "Kg1", "Qh1+"],
+        "steps": [
+          {
+            "move": "Black Ng3+",
+            "check": true,
+            "afterwards": "level"
+          },
+          {
+            "move": "White Kxh2",
+            "takes": "the bishop on h2",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "Black Qh4+",
+            "check": true,
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "White Kg1",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "Black Qh1+",
+            "check": true,
+            "afterwards": "3 points behind"
+          }
+        ],
+        "endsWith": "3 points behind"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Kxh2",
+          "line": [
+            {
+              "move": "White Kxh2",
+              "takes": "the bishop on h2",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black Qh4+",
+              "check": true,
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "White Kg1",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black Qh1+",
+              "check": true,
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "White Kf2",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black Ne4+",
+              "check": true,
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "White Ke2",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "Black Qxg2+",
+              "takes": "the pawn on g2",
+              "check": true,
+              "afterwards": "2 points behind"
+            },
+            {
+              "move": "White Kd3",
+              "afterwards": "2 points behind"
+            },
+            {
+              "move": "Black Nxd2",
+              "takes": "the queen on d2",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "White Rg1",
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "Black Qe4+",
+              "check": true,
+              "afterwards": "7 points ahead"
+            },
+            {
+              "move": "White Kxd2",
+              "takes": "the knight on d2",
+              "afterwards": "4 points ahead"
+            }
+          ],
+          "endsWith": "4 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Nxd4",
+        "line": [
+          {
+            "move": "Black Nxd4",
+            "takes": "the knight on d4",
+            "afterwards": "3 points ahead"
+          },
+          {
+            "move": "White Qxd4",
+            "takes": "the knight on d4",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Qxd4",
+            "takes": "the queen on d4",
+            "afterwards": "9 points ahead"
+          },
+          {
+            "move": "White exd4",
+            "takes": "the queen on d4",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Bf4",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      }
+    }
+  },
+  {
+    "id": "f-0VuQ1",
+    "input": {
+      "fen": "1R6/3rkpp1/7p/2P5/4N2N/7P/1b3PP1/6K1 b - - 8 35",
+      "bestLine": ["d7d1", "g1h2", "b2e5", "g2g3", "e5b8"],
+      "gameMoveUci": "b2a1"
+    },
+    "lines": {
+      "defences": [["g1h2", "b2e5", "g2g3", "e5b8", "h4f5", "e7f8"]],
+      "game": [["h4f5", "e7e6", "g2g4", "g7g6"]]
+    },
+    "expected": {
+      "fen": "1R6/3rkpp1/7p/2P5/4N2N/7P/1b3PP1/6K1 b - - 8 35",
+      "youAre": "Black",
+      "materialNow": "4 points behind",
+      "previousMove": null,
+      "bestMove": "Rd1+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "king on g1"
+        }
+      ],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Rd1+", "Kh2", "Be5+", "g3", "Bxb8"],
+        "steps": [
+          {
+            "move": "Black Rd1+",
+            "check": true,
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "White Kh2",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "Black Be5+",
+            "check": true,
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "White g3",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "Black Bxb8",
+            "takes": "the rook on b8",
+            "afterwards": "1 point ahead"
+          }
+        ],
+        "endsWith": "1 point ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Kh2",
+          "line": [
+            {
+              "move": "White Kh2",
+              "afterwards": "4 points behind"
+            },
+            {
+              "move": "Black Be5+",
+              "check": true,
+              "afterwards": "4 points behind"
+            },
+            {
+              "move": "White g3",
+              "afterwards": "4 points behind"
+            },
+            {
+              "move": "Black Bxb8",
+              "takes": "the rook on b8",
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "White Nf5+",
+              "check": true,
+              "afterwards": "1 point ahead"
+            },
+            {
+              "move": "Black Kf8",
+              "afterwards": "1 point ahead"
+            }
+          ],
+          "endsWith": "1 point ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Ba1",
+        "line": [
+          {
+            "move": "Black Ba1",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "White Nf5+",
+            "check": true,
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "Black Ke6",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "White g4",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "Black g6",
+            "afterwards": "4 points behind"
+          }
+        ],
+        "endsWith": "4 points behind"
+      }
+    }
+  },
+  {
+    "id": "f-0Vcuv",
+    "input": {
+      "fen": "r5k1/1pq2bpp/p1p2p2/8/1P3PP1/1B2Q2P/8/4R1K1 w - - 0 27",
+      "bestLine": ["e3e8", "a8e8", "e1e8"],
+      "gameMoveUci": "e1e2"
+    },
+    "lines": {
+      "defences": [["a8e8", "e1e8"]],
+      "game": [["f7b3", "e3b3", "c7f7", "b3d3", "a8e8", "e2e8", "f7e8"]]
+    },
+    "expected": {
+      "fen": "r5k1/1pq2bpp/p1p2p2/8/1P3PP1/1B2Q2P/8/4R1K1 w - - 0 27",
+      "youAre": "White",
+      "materialNow": "2 points behind",
+      "previousMove": null,
+      "bestMove": "Qe8+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "rook on a8",
+          "defended": false
+        },
+        {
+          "target": "king on g8"
+        }
+      ],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Qe8+", "Rxe8", "Rxe8#"],
+        "steps": [
+          {
+            "move": "White Qe8+",
+            "check": true,
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black Rxe8",
+            "takes": "the queen on e8",
+            "afterwards": "11 points behind"
+          },
+          {
+            "move": "White Rxe8#",
+            "takes": "the rook on e8",
+            "check": true,
+            "afterwards": "6 points behind"
+          }
+        ],
+        "endsWith": "checkmate by White"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Rxe8",
+          "line": [
+            {
+              "move": "Black Rxe8",
+              "takes": "the queen on e8",
+              "afterwards": "11 points behind"
+            },
+            {
+              "move": "White Rxe8#",
+              "takes": "the rook on e8",
+              "check": true,
+              "afterwards": "6 points behind"
+            }
+          ],
+          "endsWith": "checkmate by White"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Re2",
+        "line": [
+          {
+            "move": "White Re2",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black Bxb3",
+            "takes": "the bishop on b3",
+            "afterwards": "5 points behind"
+          },
+          {
+            "move": "White Qxb3+",
+            "takes": "the bishop on b3",
+            "check": true,
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black Qf7",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "White Qd3",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black Re8",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "White Rxe8+",
+            "takes": "the rook on e8",
+            "check": true,
+            "afterwards": "3 points ahead"
+          },
+          {
+            "move": "Black Qxe8",
+            "takes": "the rook on e8",
+            "afterwards": "2 points behind"
+          }
+        ],
+        "endsWith": "2 points behind"
+      }
+    }
+  },
+  {
+    "id": "f-08r0d",
+    "input": {
+      "fen": "r3k2r/pp1qppbp/3p1np1/5b2/3P4/2NB1NP1/PPPQ1PP1/2KR3R w kq - 5 13",
+      "bestLine": ["d3b5", "d7b5", "c3b5", "e8g8", "g3g4"],
+      "gameMoveUci": "h1h7"
+    },
+    "lines": {
+      "threat": [
+        ["b5d7", "e8d7", "g3g4", "f6g4", "d2e1", "h8c8", "c1b1", "c8c3", "b2c3"]
+      ],
+      "defences": [
+        ["d7b5", "c3b5", "e8g8", "g3g4", "f6g4", "d2e1"],
+        ["a8c8", "b5d7", "e8d7", "h1e1", "h7h5", "f3e5"],
+        ["h7h5", "b5d7", "e8d7", "f3e5", "d7e8", "e5d3"]
+      ],
+      "game": [
+        [
+          "h8h7",
+          "d3b5",
+          "g7h6",
+          "b5d7",
+          "f6d7",
+          "f3g5",
+          "f7f6",
+          "f2f4",
+          "f6g5",
+          "f4g5"
+        ]
+      ]
+    },
+    "expected": {
+      "fen": "r3k2r/pp1qppbp/3p1np1/5b2/3P4/2NB1NP1/PPPQ1PP1/2KR3R w kq - 5 13",
+      "youAre": "White",
+      "materialNow": "level",
+      "previousMove": null,
+      "bestMove": "Bb5",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "queen on d7",
+          "defended": true
+        }
+      ],
+      "bestMoveLinesUp": [
+        {
+          "front": "queen on d7",
+          "behind": "king on e8"
+        }
+      ],
+      "threatAfterBestMove": {
+        "move": "Bxd7+",
+        "line": [
+          {
+            "move": "White Bxd7+",
+            "takes": "the queen on d7",
+            "check": true,
+            "afterwards": "9 points ahead"
+          },
+          {
+            "move": "Black Kxd7",
+            "takes": "the bishop on d7",
+            "afterwards": "6 points ahead"
+          },
+          {
+            "move": "White g4",
+            "afterwards": "6 points ahead"
+          },
+          {
+            "move": "Black Nxg4",
+            "takes": "the pawn on g4",
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "White Qe1",
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "Black Rhc8",
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "White Kb1",
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "Black Rxc3",
+            "takes": "the knight on c3",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "White bxc3",
+            "takes": "the rook on c3",
+            "afterwards": "7 points ahead"
+          }
+        ],
+        "endsWith": "7 points ahead"
+      },
+      "bestLine": {
+        "san": ["Bb5", "Qxb5", "Nxb5", "O-O", "g4"],
+        "steps": [
+          {
+            "move": "White Bb5",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Qxb5",
+            "takes": "the bishop on b5",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "White Nxb5",
+            "takes": "the queen on b5",
+            "afterwards": "6 points ahead"
+          },
+          {
+            "move": "Black O-O",
+            "afterwards": "6 points ahead"
+          },
+          {
+            "move": "White g4",
+            "afterwards": "6 points ahead"
+          }
+        ],
+        "endsWith": "6 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Qxb5",
+          "line": [
+            {
+              "move": "Black Qxb5",
+              "takes": "the bishop on b5",
+              "afterwards": "3 points behind"
+            },
+            {
+              "move": "White Nxb5",
+              "takes": "the queen on b5",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black O-O",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White g4",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black Nxg4",
+              "takes": "the pawn on g4",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White Qe1",
+              "afterwards": "5 points ahead"
+            }
+          ],
+          "endsWith": "5 points ahead"
+        },
+        {
+          "defence": "Rc8",
+          "line": [
+            {
+              "move": "Black Rc8",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Bxd7+",
+              "takes": "the queen on d7",
+              "check": true,
+              "afterwards": "9 points ahead"
+            },
+            {
+              "move": "Black Kxd7",
+              "takes": "the bishop on d7",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Rhe1",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black h5",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Ne5+",
+              "check": true,
+              "afterwards": "6 points ahead"
+            }
+          ],
+          "endsWith": "6 points ahead"
+        },
+        {
+          "defence": "h5",
+          "line": [
+            {
+              "move": "Black h5",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Bxd7+",
+              "takes": "the queen on d7",
+              "check": true,
+              "afterwards": "9 points ahead"
+            },
+            {
+              "move": "Black Kxd7",
+              "takes": "the bishop on d7",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Ne5+",
+              "check": true,
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "Black Ke8",
+              "afterwards": "6 points ahead"
+            },
+            {
+              "move": "White Nd3",
+              "afterwards": "6 points ahead"
+            }
+          ],
+          "endsWith": "6 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Rxh7",
+        "line": [
+          {
+            "move": "White Rxh7",
+            "takes": "the pawn on h7",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Rxh7",
+            "takes": "the rook on h7",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "White Bb5",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "Black Bh6",
+            "afterwards": "4 points behind"
+          },
+          {
+            "move": "White Bxd7+",
+            "takes": "the queen on d7",
+            "check": true,
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "Black Nxd7",
+            "takes": "the bishop on d7",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "White Ng5",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "Black f6",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "White f4",
+            "afterwards": "2 points ahead"
+          },
+          {
+            "move": "Black fxg5",
+            "takes": "the knight on g5",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White fxg5",
+            "takes": "the pawn on g5",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      }
+    }
+  },
+  {
+    "id": "f-0nhx6",
+    "input": {
+      "fen": "8/1pp2b2/p5nR/2b2k2/8/2P5/PPN3P1/7K w - - 8 45",
+      "bestLine": ["h6h5", "f5e4", "h5c5", "c7c6", "c5g5"],
+      "gameMoveUci": "c2d4"
+    },
+    "lines": {
+      "defences": [
+        [
+          "f5e4",
+          "h5c5",
+          "c7c6",
+          "c5g5",
+          "e4f4",
+          "g5h5",
+          "f7a2",
+          "h5h7",
+          "a2d5",
+          "h7b7"
+        ],
+        ["f5f4", "h5c5", "c7c6", "c5h5", "f7a2", "h5h7"],
+        ["f5f6", "h5c5", "c7c6", "c5a5", "f7d5", "c2e3", "d5g2"]
+      ],
+      "game": [["f5e4", "h6h7", "f7a2", "h7c7", "c5d4", "c3d4"]]
+    },
+    "expected": {
+      "fen": "8/1pp2b2/p5nR/2b2k2/8/2P5/PPN3P1/7K w - - 8 45",
+      "youAre": "White",
+      "materialNow": "level",
+      "previousMove": null,
+      "bestMove": "Rh5+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "king on f5"
+        }
+      ],
+      "bestMoveLinesUp": [
+        {
+          "front": "king on f5",
+          "behind": "bishop on c5"
+        }
+      ],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Rh5+", "Ke4", "Rxc5", "c6", "Rg5"],
+        "steps": [
+          {
+            "move": "White Rh5+",
+            "check": true,
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Ke4",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Rxc5",
+            "takes": "the bishop on c5",
+            "afterwards": "3 points ahead"
+          },
+          {
+            "move": "Black c6",
+            "afterwards": "3 points ahead"
+          },
+          {
+            "move": "White Rg5",
+            "afterwards": "3 points ahead"
+          }
+        ],
+        "endsWith": "3 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Ke4",
+          "line": [
+            {
+              "move": "Black Ke4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Rxc5",
+              "takes": "the bishop on c5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black c6",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Rg5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Kf4",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Rh5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Bxa2",
+              "takes": "the pawn on a2",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Rh7",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "Black Bd5",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Rxb7",
+              "takes": "the pawn on b7",
+              "afterwards": "3 points ahead"
+            }
+          ],
+          "endsWith": "3 points ahead"
+        },
+        {
+          "defence": "Kf4",
+          "line": [
+            {
+              "move": "Black Kf4",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Rxc5",
+              "takes": "the bishop on c5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black c6",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Rh5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Bxa2",
+              "takes": "the pawn on a2",
+              "afterwards": "2 points ahead"
+            },
+            {
+              "move": "White Rh7",
+              "afterwards": "2 points ahead"
+            }
+          ],
+          "endsWith": "2 points ahead"
+        },
+        {
+          "defence": "Kf6",
+          "line": [
+            {
+              "move": "Black Kf6",
+              "afterwards": "level"
+            },
+            {
+              "move": "White Rxc5",
+              "takes": "the bishop on c5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black c6",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Ra5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Bd5",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "White Ne3",
+              "afterwards": "3 points ahead"
+            },
+            {
+              "move": "Black Bxg2+",
+              "takes": "the pawn on g2",
+              "check": true,
+              "afterwards": "2 points ahead"
+            }
+          ],
+          "endsWith": "2 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Nd4+",
+        "line": [
+          {
+            "move": "White Nd4+",
+            "check": true,
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Ke4",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Rh7",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Bxa2",
+            "takes": "the pawn on a2",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Rxc7",
+            "takes": "the pawn on c7",
+            "afterwards": "level"
+          },
+          {
+            "move": "Black Bxd4",
+            "takes": "the knight on d4",
+            "afterwards": "3 points behind"
+          },
+          {
+            "move": "White cxd4",
+            "takes": "the bishop on d4",
+            "afterwards": "level"
+          }
+        ],
+        "endsWith": "level"
+      }
+    }
+  },
+  {
+    "id": "f-0wo6p",
+    "input": {
+      "fen": "4r3/5pkp/8/5R2/8/5K2/R1P3PP/3r4 b - - 6 40",
+      "bestLine": ["d1f1", "f3g4", "e8e4", "g4g3", "f1f5"],
+      "gameMoveUci": "e8c8"
+    },
+    "lines": {
+      "defences": [
+        ["f3g4", "e8e4", "g4g3", "f1f5", "h2h3", "f5g5"],
+        ["f3g3", "f1f5", "h2h3", "f5g5", "g3f3", "g7h8"]
+      ],
+      "game": [["f3e2", "d1h1", "f5g5", "g7f8"]]
+    },
+    "expected": {
+      "fen": "4r3/5pkp/8/5R2/8/5K2/R1P3PP/3r4 b - - 6 40",
+      "youAre": "Black",
+      "materialNow": "1 point behind",
+      "previousMove": null,
+      "bestMove": "Rf1+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "king on f3"
+        }
+      ],
+      "bestMoveLinesUp": [
+        {
+          "front": "king on f3",
+          "behind": "rook on f5"
+        }
+      ],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Rf1+", "Kg4", "Re4+", "Kg3", "Rxf5"],
+        "steps": [
+          {
+            "move": "Black Rf1+",
+            "check": true,
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Kg4",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Re4+",
+            "check": true,
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Kg3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Rxf5",
+            "takes": "the rook on f5",
+            "afterwards": "4 points ahead"
+          }
+        ],
+        "endsWith": "4 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Kg4",
+          "line": [
+            {
+              "move": "White Kg4",
+              "afterwards": "1 point behind"
+            },
+            {
+              "move": "Black Re4+",
+              "check": true,
+              "afterwards": "1 point behind"
+            },
+            {
+              "move": "White Kg3",
+              "afterwards": "1 point behind"
+            },
+            {
+              "move": "Black Rxf5",
+              "takes": "the rook on f5",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White h3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Rg5+",
+              "check": true,
+              "afterwards": "4 points ahead"
+            }
+          ],
+          "endsWith": "4 points ahead"
+        },
+        {
+          "defence": "Kg3",
+          "line": [
+            {
+              "move": "White Kg3",
+              "afterwards": "1 point behind"
+            },
+            {
+              "move": "Black Rxf5",
+              "takes": "the rook on f5",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White h3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Rg5+",
+              "check": true,
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Kf3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Kh8",
+              "afterwards": "4 points ahead"
+            }
+          ],
+          "endsWith": "4 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Rc8",
+        "line": [
+          {
+            "move": "Black Rc8",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Ke2",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Rh1",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Rg5+",
+            "check": true,
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Kf8",
+            "afterwards": "1 point behind"
+          }
+        ],
+        "endsWith": "1 point behind"
+      }
+    }
+  },
+  {
+    "id": "f-0IybA",
+    "input": {
+      "fen": "r4rk1/ppp2ppp/2nb4/8/3PN2q/4P3/PP2B1P1/R1BQ1RK1 b - - 3 15",
+      "bestLine": ["d6h2", "g1h1", "h2g3", "h1g1", "h4h2"],
+      "gameMoveUci": "h4e4"
+    },
+    "lines": {
+      "defences": [["g1h1", "h2g3", "h1g1", "h4h2"]],
+      "game": [["f1f3", "c6b4", "f3h3", "e4e6"]]
+    },
+    "expected": {
+      "fen": "r4rk1/ppp2ppp/2nb4/8/3PN2q/4P3/PP2B1P1/R1BQ1RK1 b - - 3 15",
+      "youAre": "Black",
+      "materialNow": "2 points behind",
+      "previousMove": null,
+      "bestMove": "Bh2+",
+      "bestMoveGivesCheck": true,
+      "bestMoveCaptures": null,
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [
+        {
+          "target": "king on g1"
+        }
+      ],
+      "bestMoveLinesUp": [],
+      "threatAfterBestMove": null,
+      "bestLine": {
+        "san": ["Bh2+", "Kh1", "Bg3+", "Kg1", "Qh2#"],
+        "steps": [
+          {
+            "move": "Black Bh2+",
+            "check": true,
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "White Kh1",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black Bg3+",
+            "check": true,
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "White Kg1",
+            "afterwards": "2 points behind"
+          },
+          {
+            "move": "Black Qh2#",
+            "check": true,
+            "afterwards": "2 points behind"
+          }
+        ],
+        "endsWith": "checkmate by Black"
+      },
+      "opponentDefences": [
+        {
+          "defence": "Kh1",
+          "line": [
+            {
+              "move": "White Kh1",
+              "afterwards": "2 points behind"
+            },
+            {
+              "move": "Black Bg3+",
+              "check": true,
+              "afterwards": "2 points behind"
+            },
+            {
+              "move": "White Kg1",
+              "afterwards": "2 points behind"
+            },
+            {
+              "move": "Black Qh2#",
+              "check": true,
+              "afterwards": "2 points behind"
+            }
+          ],
+          "endsWith": "checkmate by Black"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Qxe4",
+        "line": [
+          {
+            "move": "Black Qxe4",
+            "takes": "the knight on e4",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White Rf3",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Nb4",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "White Rh3",
+            "afterwards": "1 point ahead"
+          },
+          {
+            "move": "Black Qe6",
+            "afterwards": "1 point ahead"
+          }
+        ],
+        "endsWith": "1 point ahead"
+      }
+    }
+  },
+  {
+    "id": "f-0N3LV",
+    "input": {
+      "fen": "3q2k1/p3r1pp/1p3p2/3p4/2rQn3/5N2/P1P2PPP/3R1RK1 w - - 0 20",
+      "bestLine": ["d4c4", "d5c4", "d1d8", "g8f7", "f1a1"],
+      "gameMoveUci": "d4d3"
+    },
+    "lines": {
+      "threat": [["d1d5", "d8d5", "c4d5", "g8f8", "d5a8", "e7e8", "a8a7"]],
+      "defences": [
+        [
+          "d5c4",
+          "d1d8",
+          "g8f7",
+          "f1a1",
+          "g7g5",
+          "d8h8",
+          "f7g7",
+          "h8c8",
+          "e7d7",
+          "c8c4",
+          "g5g4",
+          "c4e4",
+          "g4f3"
+        ],
+        ["e7d7", "c4b3", "g8f8", "b3b4", "f8f7", "f1e1"],
+        ["g8f8", "c4d3", "d8d6", "c2c4", "d5d4", "d3d4", "d6d4", "d1d4"]
+      ],
+      "game": [["c4c3", "d3e2", "e4g3", "e2d2"]]
+    },
+    "expected": {
+      "fen": "3q2k1/p3r1pp/1p3p2/3p4/2rQn3/5N2/P1P2PPP/3R1RK1 w - - 0 20",
+      "youAre": "White",
+      "materialNow": "1 point behind",
+      "previousMove": null,
+      "bestMove": "Qxc4",
+      "bestMoveGivesCheck": false,
+      "bestMoveCaptures": {
+        "takes": "the rook on c4",
+        "isRecapture": false,
+        "canTakeBack": ["pawn on d5"],
+        "attackersThatArePinned": []
+      },
+      "bestMoveOpensLines": [],
+      "bestMoveAttacks": [],
+      "bestMoveLinesUp": [
+        {
+          "front": "pawn on d5",
+          "behind": "king on g8"
+        }
+      ],
+      "threatAfterBestMove": {
+        "move": "Rxd5",
+        "line": [
+          {
+            "move": "White Rxd5",
+            "takes": "the pawn on d5",
+            "afterwards": "5 points ahead"
+          },
+          {
+            "move": "Black Qxd5",
+            "takes": "the rook on d5",
+            "afterwards": "level"
+          },
+          {
+            "move": "White Qxd5+",
+            "takes": "the queen on d5",
+            "check": true,
+            "afterwards": "9 points ahead"
+          },
+          {
+            "move": "Black Kf8",
+            "afterwards": "9 points ahead"
+          },
+          {
+            "move": "White Qa8+",
+            "check": true,
+            "afterwards": "9 points ahead"
+          },
+          {
+            "move": "Black Re8",
+            "afterwards": "9 points ahead"
+          },
+          {
+            "move": "White Qxa7",
+            "takes": "the pawn on a7",
+            "afterwards": "10 points ahead"
+          }
+        ],
+        "endsWith": "10 points ahead"
+      },
+      "bestLine": {
+        "san": ["Qxc4", "dxc4", "Rxd8+", "Kf7", "Ra1"],
+        "steps": [
+          {
+            "move": "White Qxc4",
+            "takes": "the rook on c4",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "Black dxc4",
+            "takes": "the queen on c4",
+            "afterwards": "5 points behind"
+          },
+          {
+            "move": "White Rxd8+",
+            "takes": "the queen on d8",
+            "check": true,
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "Black Kf7",
+            "afterwards": "4 points ahead"
+          },
+          {
+            "move": "White Ra1",
+            "afterwards": "4 points ahead"
+          }
+        ],
+        "endsWith": "4 points ahead"
+      },
+      "opponentDefences": [
+        {
+          "defence": "dxc4",
+          "line": [
+            {
+              "move": "Black dxc4",
+              "takes": "the queen on c4",
+              "afterwards": "5 points behind"
+            },
+            {
+              "move": "White Rxd8+",
+              "takes": "the queen on d8",
+              "check": true,
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Kf7",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Ra1",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black g5",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Rh8",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Kg7",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Rc8",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Rd7",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Rxc4",
+              "takes": "the pawn on c4",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black g4",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "White Rxe4",
+              "takes": "the knight on e4",
+              "afterwards": "8 points ahead"
+            },
+            {
+              "move": "Black gxf3",
+              "takes": "the knight on f3",
+              "afterwards": "5 points ahead"
+            }
+          ],
+          "endsWith": "5 points ahead"
+        },
+        {
+          "defence": "Rd7",
+          "line": [
+            {
+              "move": "Black Rd7",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Qb3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Kf8",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Qb4+",
+              "check": true,
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Kf7",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Rfe1",
+              "afterwards": "4 points ahead"
+            }
+          ],
+          "endsWith": "4 points ahead"
+        },
+        {
+          "defence": "Kf8",
+          "line": [
+            {
+              "move": "Black Kf8",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Qd3",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black Qd6",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White c4",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "Black d4",
+              "afterwards": "4 points ahead"
+            },
+            {
+              "move": "White Qxd4",
+              "takes": "the pawn on d4",
+              "afterwards": "5 points ahead"
+            },
+            {
+              "move": "Black Qxd4",
+              "takes": "the queen on d4",
+              "afterwards": "4 points behind"
+            },
+            {
+              "move": "White Rxd4",
+              "takes": "the queen on d4",
+              "afterwards": "5 points ahead"
+            }
+          ],
+          "endsWith": "5 points ahead"
+        }
+      ],
+      "otherRecaptures": [],
+      "yourGameMove": {
+        "move": "Qd3",
+        "line": [
+          {
+            "move": "White Qd3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Rc3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Qe2",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "Black Ng3",
+            "afterwards": "1 point behind"
+          },
+          {
+            "move": "White Qd2",
+            "afterwards": "1 point behind"
+          }
+        ],
+        "endsWith": "1 point behind"
+      }
+    }
+  }
+]

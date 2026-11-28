@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  explainWhy,
+  type WhyWriter,
+} from "../../application/explain-why/explain-why";
 import { checkTry } from "../../application/run-moment/check-try";
 import { momentRecord } from "../../application/run-moment/moment-record";
 import { pickHint } from "../../application/route-question/pick-hint";
 import { readDanger } from "../../application/route-question/read-danger";
 import { routeQuestion } from "../../application/route-question/route-question";
 import type { QuestionRouter } from "../../application/route-question/question-router";
+import type { WhyInput } from "../../domain/analysis/why-packet";
 import type { ObservedMove } from "../../domain/curriculum/game-drill";
 import {
   followUpPackSchema,
@@ -125,6 +130,27 @@ function questionRouters() {
     })
     .catch(() => ({}));
   return routers;
+}
+
+let whyWriter: Promise<WhyWriter | undefined> | undefined;
+// Why the solved move is good: Stockfish's searches, Gemini Flash's words,
+// then the checker. undefined keeps the code caption.
+async function explainWhyOnline(
+  input: WhyInput,
+  signal: AbortSignal,
+): Promise<string | undefined> {
+  whyWriter ??= import("../../infrastructure/ai/why-gemini")
+    .then(({ createFlashWhyWriter }) => createFlashWhyWriter())
+    .catch(() => undefined);
+  const writer = await whyWriter;
+  if (!writer) return undefined;
+  const result = await explainWhy({
+    input,
+    analyze: analyzePosition,
+    writer,
+    signal,
+  });
+  return result.kind === "written" ? result.text : undefined;
 }
 
 function analyzePosition(fen: string, multiPv: number, signal: AbortSignal) {
@@ -490,6 +516,7 @@ export function BoardFirstScreens({
               checkTry({ position, uci, engine, signal })
             }
             analyzePosition={analyzePosition}
+            explainWhy={explainWhyOnline}
             readDanger={
               dangers && nanoReady
                 ? async (text, signal) =>

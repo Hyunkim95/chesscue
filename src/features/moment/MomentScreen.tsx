@@ -31,6 +31,7 @@ import {
 } from "../../domain/analysis/line-storyboard";
 import { PIECE_NAME } from "../../domain/analysis/board-relations";
 import { scanHint } from "../../domain/analysis/forcing-moves";
+import type { WhyInput } from "../../domain/analysis/why-packet";
 import {
   describedMoves,
   mentionedMove,
@@ -112,6 +113,11 @@ export interface MomentSpec extends MomentPosition {
   // Spot the danger: the player first finds what their game move left in
   // trouble, then the moment loop asks for a safe move.
   readonly danger?: DangerMoment | undefined;
+  // The opponent's move that led to this position, with the position before
+  // it, so a "why" can tell a move that only takes back a piece.
+  readonly previousMove?:
+    | { readonly fen: string; readonly uci: string }
+    | undefined;
 }
 
 interface BoardView {
@@ -308,6 +314,8 @@ function voiceCommand(text: string): VoiceCommand | undefined {
 
 // A reason only a Stockfish search can give.
 const SEARCH = Symbol("search");
+// SLO-013: a complete verified explanation within 20 seconds.
+const WHY_BUDGET_MS = 20_000;
 
 // The one option a reply to "Which move?" names, if exactly one fits.
 function pickedChoice<T extends { readonly move: SanMove }>(
@@ -398,6 +406,7 @@ export function MomentScreen({
   readsAloud = false,
   readDanger,
   pickHint,
+  explainWhy,
 }: {
   readonly moment: MomentSpec;
   readonly online: boolean;
@@ -447,6 +456,11 @@ export function MomentScreen({
   // hints code built for the position. Absent without an on-device model.
   readonly pickHint?:
     | ((text: string, signal: AbortSignal) => Promise<HintPick | undefined>)
+    | undefined;
+  // Online: why the move is good, written from checked facts and checked
+  // again before it is returned. undefined keeps the code caption.
+  readonly explainWhy?:
+    | ((input: WhyInput, signal: AbortSignal) => Promise<string | undefined>)
     | undefined;
 }) {
   const danger = moment.danger;
@@ -523,17 +537,26 @@ export function MomentScreen({
   // quiet line has no point: one frame shows the move and what it does.
   const point = pointStoryboard(moment.fen, solvedLine);
   const [quietFirst] = point ? [] : lineStoryboard(moment.fen, solvedLine);
+  const [opening, ...told] = point
+    ? point.frames
+    : quietFirst
+      ? [
+          {
+            ...quietFirst,
+            caption: `${quietFirst.caption} No tactic here, just a useful move.`,
+          },
+        ]
+      : [];
+  // Online, the opening frame says why the move is good in the checked
+  // words of the writer; the board keeps the frame's arrows and outlines.
+  const [why, setWhy] = useState<
+    { readonly uci: string; readonly text: string } | undefined
+  >();
+  const whyText = why?.uci === solvedUci ? why.text : undefined;
   const storyboard = [
-    ...(point
-      ? point.frames
-      : quietFirst
-        ? [
-            {
-              ...quietFirst,
-              caption: `${quietFirst.caption} No tactic here, just a useful move.`,
-            },
-          ]
-        : []),
+    ...(opening
+      ? [whyText ? { ...opening, caption: whyText } : opening, ...told]
+      : []),
     ...(alternative ? [alternative] : []),
   ];
   const answerStory: Story = {
@@ -577,6 +600,57 @@ export function MomentScreen({
     });
   }, [solved, afterSolution, analyzePosition, solvedLine]);
   const bestSan = sanFor(moment.fen, moment.bestUci) ?? moment.bestUci;
+
+  // Once solved or shown, and online, ask for the checked "why" in the
+  // background, so it is usually ready before "Why does it work?" is tapped.
+  // A late answer replaces the opening caption only if it is still shown.
+  const codeCaption = opening?.caption;
+  useEffect(() => {
+    if (!solved || !online || !explainWhy || codeCaption === undefined) return;
+    const uci = solvedLine[0];
+    if (uci === undefined) return;
+    const local = new AbortController();
+    const signal = AbortSignal.any([
+      controller.current.signal,
+      local.signal,
+      AbortSignal.timeout(WHY_BUDGET_MS),
+    ]);
+    void explainWhy(
+      {
+        fen: moment.fen,
+        bestLine: solvedLine,
+        gameMoveUci: moment.playedInGame?.uci,
+        previous: moment.previousMove,
+      },
+      signal,
+    )
+      .catch(() => undefined)
+      .then((text) => {
+        if (text === undefined || signal.aborted) return;
+        setWhy({ uci, text });
+        setStory((current) => {
+          const [first, ...rest] = current?.frames ?? [];
+          return current?.start === moment.fen && first?.caption === codeCaption
+            ? { ...current, frames: [{ ...first, caption: text }, ...rest] }
+            : current;
+        });
+        setSay((current) =>
+          current.text === codeCaption ? { ...current, text } : current,
+        );
+      });
+    return () => {
+      local.abort();
+    };
+  }, [
+    solved,
+    online,
+    explainWhy,
+    codeCaption,
+    solvedLine,
+    moment.fen,
+    moment.playedInGame?.uci,
+    moment.previousMove,
+  ]);
 
   // After the position is solved or shown, the player may try their own move
   // at the start or at any of their turns in a line they are stepping
