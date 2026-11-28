@@ -78,7 +78,11 @@ it("opens a saved report, compares the verified alternative, and reuses the repo
 
   window.history.replaceState(null, "", `/#review/${gameId}/report`);
   const view = render(<App />);
-  expect(await screen.findByText("White accuracy")).toBeVisible();
+  // The report screen loads lazily and checks the game first, which can
+  // take over a second when the whole suite runs at once.
+  expect(
+    await screen.findByText("White accuracy", {}, { timeout: 5_000 }),
+  ).toBeVisible();
   expect(screen.getByText("Black accuracy")).toBeVisible();
   const board = within(screen.getByRole("grid", { name: "Game report board" }));
   fireEvent.click(screen.getByRole("button", { name: /e5 · Mistake/ }));
@@ -99,6 +103,10 @@ it("opens a saved report, compares the verified alternative, and reuses the repo
 
   view.unmount();
   render(<App />);
-  expect(await screen.findByText("White accuracy")).toBeVisible();
+  // The report screen loads lazily and checks the game first, which can
+  // take over a second when the whole suite runs at once.
+  expect(
+    await screen.findByText("White accuracy", {}, { timeout: 5_000 }),
+  ).toBeVisible();
   expect(analyze).toHaveBeenCalledTimes(3);
 });
