@@ -71,6 +71,32 @@ describe("StockfishAnalysisEngine", () => {
     engine.dispose();
   });
 
+  it("reports each depth once every line has reached it", async () => {
+    const worker = new FakeWorker();
+    const engine = await readyEngine(worker);
+    const progress: number[][] = [];
+    const result = engine.analyze({
+      fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      timeBudgetMs: 100,
+      multiPv: 2,
+      signal: new AbortController().signal,
+      onProgress: ({ candidates }) => {
+        progress.push(candidates.map(({ depth }) => depth));
+      },
+    });
+
+    worker.emit("info depth 9 multipv 1 score cp 20 pv e2e4 e7e5");
+    worker.emit("info depth 9 multipv 2 score cp 18 pv d2d4 d7d5");
+    worker.emit("info depth 10 multipv 1 score cp 25 pv e2e4 e7e5");
+    expect(progress).toEqual([[9], [9, 9]]);
+    worker.emit("info depth 10 multipv 2 score cp 19 pv d2d4 d7d5");
+    worker.emit("bestmove e2e4");
+    await result;
+
+    expect(progress).toEqual([[9], [9, 9], [10, 10]]);
+    engine.dispose();
+  });
+
   it("searches a fixed depth from a cleared hash when asked", async () => {
     const worker = new FakeWorker();
     const engine = await readyEngine(worker);

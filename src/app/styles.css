@@ -175,6 +175,17 @@
 .game-mode-choice--coached::before {
   background-image: url("../assets/brand/rook.webp");
 }
+.game-mode-choice--next-move::before {
+  content: "♞";
+  display: grid;
+  place-items: center;
+  color: var(--cue-gold);
+  font:
+    2.6rem / 1 "Arial Unicode MS",
+    "Segoe UI Symbol",
+    "Noto Sans Symbols 2",
+    serif;
+}
 .game-mode-choice strong {
   font: 600 1.7rem/1.15 var(--cue-display);
 }
@@ -1782,5 +1793,27 @@ button.graphic-control {
 
   .board-first-tabs {
     width: 220px;
+  }
+}
+
+/* The next-move tool: focus mode in the side panel, the left rail on wide
+   screens. */
+.next-move-page__rail {
+  display: none;
+}
+
+@media (min-width: 720px) {
+  .next-move-page {
+    padding-left: 88px;
+  }
+
+  .next-move-page__rail {
+    display: block;
+  }
+}
+
+@media (min-width: 1100px) {
+  .next-move-page {
+    padding-left: 220px;
   }
 }

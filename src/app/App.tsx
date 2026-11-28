@@ -162,6 +162,7 @@ import { GameReviewExperience } from "../features/review/GameReviewExperience";
 import type { LessonContentProvider } from "../infrastructure/ai/lesson-content-provider";
 import { loadFirebaseClientConfig } from "../infrastructure/config/firebase-environment";
 import { StockfishAnalysisEngine } from "../infrastructure/engine/stockfish-analysis-engine";
+import { serialEngine } from "./board-first/serial-engine";
 import { StockfishGameEngine } from "../infrastructure/engine/stockfish-game-engine";
 import {
   PlayerHistory,
@@ -192,6 +193,17 @@ const RaceView = lazy(async () => ({
 const ShareWin = lazy(async () => ({
   default: (await import("../features/race/SharedWin")).ShareWin,
 }));
+const NextMoveScreen = lazy(async () => ({
+  default: (await import("../features/next-move/NextMoveScreen"))
+    .NextMoveScreen,
+}));
+// The next-move tool gets its own Stockfish for as long as it is open. Its
+// searches run to a depth, so the time cap only stops a stuck worker.
+function nextMoveEngine() {
+  return serialEngine(
+    new StockfishAnalysisEngine({ maximumSearchTimeMs: 120_000 }),
+  );
+}
 const SharedWinView = lazy(async () => ({
   default: (await import("../features/race/SharedWin")).SharedWinView,
 }));
@@ -208,6 +220,7 @@ type AppView =
   | "play"
   | "account"
   | "play-mode"
+  | "next-move"
   | "import"
   | "training"
   | "review"
@@ -506,6 +519,7 @@ function routeView(hash: string): AppView {
   )
     return "import";
   if (hash === "#play-mode") return "play-mode";
+  if (hash === "#next-move") return "next-move";
   return socialView(hash) ?? "play";
 }
 function routedGameId(hash: string) {
@@ -625,6 +639,7 @@ export function App() {
               current === "review" ||
               current === "review-home" ||
               current === "play-mode" ||
+              current === "next-move" ||
               current === "result"
                 ? current
                 : "play",
@@ -666,6 +681,7 @@ export function App() {
         account: "#account",
         ranks: "#rank-path",
         "play-mode": "#play-mode",
+        "next-move": "#next-move",
         practice: "#practice",
         race: "#races",
       };
@@ -1524,6 +1540,32 @@ function PlayerApp({
             }
           : null;
 
+  // Focus mode in the side panel (only ✕); on wide screens the left rail
+  // stays, as it does while playing a game.
+  if (view === "next-move")
+    return (
+      <div className="next-move-page">
+        <Suspense>
+          <NextMoveScreen
+            createEngine={nextMoveEngine}
+            onClose={() => {
+              setView("play-mode");
+            }}
+          />
+        </Suspense>
+        <div className="next-move-page__rail">
+          <TabBar
+            current="play"
+            onNavigate={(tab) => {
+              if (tab === "play") setView("play-mode");
+              else if (tab === "games") setView("review-home");
+              else setView(tab);
+            }}
+          />
+        </div>
+      </div>
+    );
+
   if (boardFirst && isBoardFirstView(view))
     return (
       <BoardFirstScreens
@@ -1917,6 +1959,9 @@ function PlayerApp({
               activeGameId={playEntry?.gameId}
               ready={profileReady}
               onOpen={openGame}
+              onNextMove={() => {
+                setView("next-move");
+              }}
             />
             {recentWin && (
               <div className="play-mode-social">

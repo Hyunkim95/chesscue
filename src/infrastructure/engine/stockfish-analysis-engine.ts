@@ -38,6 +38,13 @@ interface PendingAnalysis {
   readonly signal: AbortSignal;
   readonly onAbort: () => void;
   readonly candidates: Map<number, AnalysisCandidate>;
+  readonly onProgress: ((analysis: PositionAnalysis) => void) | undefined;
+}
+
+function sortedCandidates(candidates: ReadonlyMap<number, AnalysisCandidate>) {
+  return [...candidates.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([, candidate]) => candidate);
 }
 
 const DEFAULT_ASSET_URL = "/stockfish/stockfish-19-lite-single.js";
@@ -200,6 +207,7 @@ export class StockfishAnalysisEngine implements AnalysisEngine {
         signal: request.signal,
         onAbort,
         candidates: new Map(),
+        onProgress: request.onProgress,
       };
       request.signal.addEventListener("abort", onAbort, { once: true });
       worker.postMessage(
@@ -265,14 +273,15 @@ export class StockfishAnalysisEngine implements AnalysisEngine {
       const previous = this.analysis.candidates.get(info.multiPv);
       if (previous === undefined || info.candidate.depth >= previous.depth) {
         this.analysis.candidates.set(info.multiPv, info.candidate);
+        const candidates = sortedCandidates(this.analysis.candidates);
+        if (candidates.every(({ depth }) => depth === info.candidate.depth))
+          this.analysis.onProgress?.({ candidates });
       }
       return;
     }
 
     if (/^bestmove\s+/.test(line) && this.analysis !== null) {
-      const candidates = [...this.analysis.candidates.entries()]
-        .sort(([left], [right]) => left - right)
-        .map(([, candidate]) => candidate);
+      const candidates = sortedCandidates(this.analysis.candidates);
       if (candidates.length === 0) {
         this.finishAnalysis(
           err({

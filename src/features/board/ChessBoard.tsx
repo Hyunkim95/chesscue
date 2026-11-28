@@ -63,6 +63,9 @@ export interface ChessBoardProps {
   readonly spotSquare?: Square | undefined;
   // The Stockfish bar down the left edge. Never passed during a game.
   readonly balance?: BarReading | undefined;
+  // A board being set up by hand may have no king or an impossible position
+  // for a while; draw whatever is placed.
+  readonly setup?: boolean;
 }
 
 function squareCenter(square: Square, orientation: PlayerColor) {
@@ -149,6 +152,7 @@ export function ChessBoard({
   previewTag,
   spotSquare,
   balance,
+  setup = false,
 }: ChessBoardProps) {
   // The position shown before this one, kept only when it should animate.
   const [shown, setShown] = useState<{
@@ -166,7 +170,7 @@ export function ChessBoard({
   );
   let board: ReturnType<Chess["board"]>;
   try {
-    board = new Chess(fen).board();
+    board = new Chess(fen, { skipValidation: setup }).board();
   } catch {
     return <p role="alert">This position could not be displayed.</p>;
   }
