@@ -495,6 +495,18 @@ it("keeps a long point's goal on the piece as it moves", () => {
   expect(story?.frames[0]?.goal?.piece).toBe("queen");
 });
 
+it("plays past an even trade to the fork that wins", () => {
+  // Qxd8+ Kxd8 trades queens; Nf7+ then forks the king and the rook.
+  const story = pointStoryboard(
+    "r1bqk2r/ppp3pp/8/4N3/8/8/PPP2PPP/3Q2K1 w - - 0 1",
+    ["d1d8", "e8d8", "e5f7", "d8e7", "f7h8"],
+  );
+  expect(story?.frames[0]?.caption).toMatch(/^Qxd8\+ wins a rook\./);
+  expect(story?.frames.at(-1)?.caption).toBe("You've won a rook.");
+  expect(story?.frames).toHaveLength(6);
+  expect(story?.frames[0]?.goal).toEqual({ square: "h8", piece: "rook" });
+});
+
 it("plays on while Rook can win material straight back", () => {
   // Rxa7 wins the queen, but Bxe4 takes the loose knight at once.
   const story = pointStoryboard("6k1/q4ppp/2b5/8/4N3/8/5PPP/R5K1 w - - 0 1", [

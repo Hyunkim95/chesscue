@@ -1245,9 +1245,11 @@ export function refutationStoryboard({
 // moves[i]. Undefined when the line neither mates nor wins material once it
 // settles: a quiet line has no point to show.
 // Where a point lands in a line, and the piece it is after. The point is
-// the learner's most valuable capture or promotion, or mate. An immediate
-// recapture on the same square settles it, and the line plays on while
-// Rook can win material straight back, so the result is never overstated.
+// mate, else the learner's most valuable capture or promotion that leaves
+// them ahead once the material settles: a queen trade before a fork is not
+// the point, the fork is. An immediate recapture on the same square settles
+// it, and the line plays on while Rook can win material straight back, so
+// the result is never overstated.
 function pointLanding(
   fen: string,
   frames: readonly StoryFrame[],
@@ -1262,31 +1264,24 @@ function pointLanding(
   | undefined {
   const board = new Chess(fen);
   const moves: Move[] = [];
-  let gain = -1;
-  let gainValue = 0;
   for (const frame of frames) {
     const move = play(board, frame.moveUci);
     if (!move) break;
     moves.push(move);
     if (board.isCheckmate()) {
-      gain = moves.length - 1;
-      gainValue = Infinity;
-      break;
-    }
-    const value =
-      (move.captured ? PIECE_VALUE[move.captured] : 0) +
-      (move.promotion ? PIECE_VALUE[move.promotion] - PIECE_VALUE.p : 0);
-    if (move.color === learner && value > gainValue) {
-      gain = moves.length - 1;
-      gainValue = value;
+      const king = piecesOf(board, opponent(learner)).find(
+        ({ type }) => type === "k",
+      );
+      if (!king) return undefined;
+      const gain = moves.length - 1;
+      return { gain, end: gain, target: king.square, piece: "k" };
     }
   }
-  const landing = moves[gain];
-  if (!landing) return undefined;
-  let end = gain;
-  if (gainValue !== Infinity) {
+  // Where the material settles after the learner wins it at `gain`.
+  const settled = (gain: number): number => {
     const after = new Chess(fen);
-    for (const move of moves.slice(0, end + 1)) after.move(move);
+    for (const move of moves.slice(0, gain + 1)) after.move(move);
+    let end = gain;
     for (;;) {
       const next = moves[end + 1];
       const last = moves[end];
@@ -1297,23 +1292,29 @@ function pointLanding(
       after.move(next);
       end += 1;
     }
+    return end;
+  };
+  const gains = moves
+    .map((move, index) => ({
+      move,
+      index,
+      value:
+        (move.captured ? PIECE_VALUE[move.captured] : 0) +
+        (move.promotion ? PIECE_VALUE[move.promotion] - PIECE_VALUE.p : 0),
+    }))
+    .filter(({ move, value }) => move.color === learner && value > 0)
+    .toSorted((a, b) => b.value - a.value || a.index - b.index);
+  for (const { move, index } of gains) {
+    const end = settled(index);
+    if (payoffFrame(fen, frames.slice(0, end + 1)) === undefined) continue;
+    return {
+      gain: index,
+      end,
+      target: move.to,
+      piece: move.captured ?? move.promotion ?? "p",
+    };
   }
-  // The piece it is after: the king a mate traps, else the piece taken.
-  const mated = gainValue === Infinity;
-  let target: Square = landing.to;
-  const piece: PieceSymbol = mated
-    ? "k"
-    : (landing.captured ?? landing.promotion ?? "p");
-  if (mated) {
-    const final = new Chess(fen);
-    for (const move of moves.slice(0, gain + 1)) final.move(move);
-    const king = piecesOf(final, opponent(learner)).find(
-      ({ type }) => type === "k",
-    );
-    if (!king) return undefined;
-    target = king.square;
-  }
-  return { gain, end, target, piece };
+  return undefined;
 }
 
 const squareNamed = (name: string): Square | undefined =>
