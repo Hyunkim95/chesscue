@@ -26,7 +26,10 @@ it("says what a tried move costs from Rook's side, and draws it", () => {
   // A quiet try lets the forked rook walk away.
   const quiet = lineStoryboard(KNIGHT_FORK, ["b8b7", "b3b2"]);
   const kept = costFrame(KNIGHT_FORK, quiet, "w", KNIGHT_LINE);
-  expect(kept?.caption).toBe("I keep my rook.");
+  expect(kept?.caption).toBe("You missed a chance to win my rook. Try again.");
+  expect(
+    costFrame(KNIGHT_FORK, quiet, "w", KNIGHT_LINE, "level")?.caption,
+  ).toBe("That's safe, but you missed a chance to win my rook. Try again.");
   expect(kept?.outlines).toEqual([{ square: "b2", tone: "coral" }]);
   expect(costFrame(KNIGHT_FORK, quiet, "w")).toBeUndefined();
 
@@ -76,7 +79,7 @@ it("plays a refutation and names the line move only once the answer is known", (
   expect(before.map(({ caption }) => caption)).toEqual([
     "Rb7 attacks my pawn on g7, which nothing defends.",
     "I answer Rb2.",
-    "I keep my rook.",
+    "You missed a chance to win my rook. Try again.",
   ]);
   const after = refutationStoryboard({
     fen: KNIGHT_FORK,

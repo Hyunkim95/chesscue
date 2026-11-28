@@ -291,7 +291,9 @@ it("lets the player try another move at their turn and shows why it is not as go
   next();
   // dxc5 would win the rook back, so Rook claims no material: only that the
   // try lets his queen escape.
-  expect(bubble()).toHaveTextContent("I keep my queen.");
+  expect(bubble()).toHaveTextContent(
+    "You missed a chance to win my queen. Try again.",
+  );
   next();
   expect(bubble()).toHaveTextContent("Nxe6 instead wins the queen.");
 
@@ -317,7 +319,9 @@ it("asks why not the player's try and shows what it costs without the answer", a
   next();
   expect(bubble()).toHaveTextContent("I take your pawn with gxf4.");
   next();
-  expect(bubble()).toHaveTextContent("I keep my queen.");
+  expect(bubble()).toHaveTextContent(
+    "That's safe, but you missed a chance to win my queen. Try again.",
+  );
   expect(square("Black queen on e6").className).toContain("outline-coral");
   expect(stepper).toHaveTextContent("3 / 3");
   // Nothing names or draws the answer before it is found.

@@ -807,14 +807,17 @@ function mated(board: Chess, color: Color): boolean {
 
 // The last frame of a refutation, from Rook's side: what the tried move costs
 // the learner, drawn on the board. "That lets me mate.", "I win your knight."
-// or, against the line the learner could have played, "I keep my rook." None
-// when the line shows no such cost.
+// or, against the line the learner could have played, "You missed a chance
+// to win my rook. Try again." None when the line shows no such cost.
 export function costFrame(
   fen: string,
   frames: readonly StoryFrame[],
   learner: Color,
   // The line move and what follows it from the same position.
   instead?: readonly string[],
+  // How the game stands for Rook after the try. Only a level position is
+  // called safe.
+  standing?: Standing,
 ): StoryFrame | undefined {
   const last = frames.at(-1);
   const tried = replay(
@@ -885,7 +888,9 @@ export function costFrame(
     ...base,
     arrows: [],
     outlines: [{ square: kept, tone: "coral" }],
-    caption: `I keep my ${PIECE_NAME[prize.piece]}.`,
+    // Owner wording (28 November 2026): say what the try missed, never the
+    // move that wins it.
+    caption: `${standing === "level" ? "That's safe, but you" : "You"} missed a chance to win my ${PIECE_NAME[prize.piece]}. Try again.`,
   };
 }
 
@@ -988,7 +993,7 @@ export function refutationStoryboard({
   const [first] = frames;
   if (!last || !first) return [];
   const triedSan = play(new Chess(fen), first.moveUci)?.san ?? first.moveUci;
-  const cost = costFrame(fen, frames, learner, instead) ?? {
+  const cost = costFrame(fen, frames, learner, instead, standing) ?? {
     fen: last.fen,
     moveUci: "",
     by: "rook" as const,
