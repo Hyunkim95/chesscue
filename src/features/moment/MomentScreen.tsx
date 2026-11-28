@@ -266,7 +266,11 @@ function frameView(frame: StoryFrame): BoardView {
           ...frame.outlines.filter(
             ({ square }) => square !== frame.goal?.square,
           ),
-          { square: frame.goal.square, tone: "brass" },
+          // Rook's goal is what the player stands to lose: coral.
+          {
+            square: frame.goal.square,
+            tone: frame.goal.rook ? "coral" : "brass",
+          },
         ]
       : frame.outlines,
     control: frame.control,
@@ -279,23 +283,30 @@ function frameView(frame: StoryFrame): BoardView {
 function stepLabel(story: Story): {
   readonly step: string;
   readonly goal?: string;
+  readonly rook?: boolean;
 } {
   const steps = story.frames.filter(({ goal }) => goal !== undefined).length;
   const goal = story.frames.find((frame) => frame.goal !== undefined)?.goal;
   const frame = story.frames[story.step];
   const count = `${String(story.step + 1)} / ${String(story.frames.length)}`;
   if (!goal || !frame) return { step: count };
-  const named =
-    goal.piece === "king"
+  // Short enough for one line at 320 px; the board marks the square.
+  const named = goal.rook
+    ? goal.piece === "king"
+      ? "Rook wants mate"
+      : `Rook wants your ${goal.piece}`
+    : goal.piece === "king"
       ? "Goal: mate the king"
       : `Goal: the ${goal.piece} on ${goal.square}`;
+  const rook = goal.rook === true;
   if (frame.goal)
     return {
       step: `Step ${String(story.step + 1)} of ${String(steps)}`,
       goal: named,
+      rook,
     };
   return story.step === steps
-    ? { step: "Result", goal: named }
+    ? { step: "Result", goal: named, rook }
     : { step: count };
 }
 
@@ -2733,7 +2744,9 @@ export function MomentScreen({
                   {
                     square: view.goal.square,
                     text: "GOAL",
-                    tone: "brass" as const,
+                    tone: view.goal.rook
+                      ? ("coral" as const)
+                      : ("brass" as const),
                     label: `Goal: the ${view.goal.piece}`,
                   },
                 ]
@@ -2781,7 +2794,11 @@ export function MomentScreen({
             >
               {stepText?.step}
               {stepText?.goal && (
-                <small className="moment__goal">{stepText.goal}</small>
+                <small
+                  className={`moment__goal${stepText.rook ? " moment__goal--rook" : ""}`}
+                >
+                  {stepText.goal}
+                </small>
               )}
             </span>
             <Pill

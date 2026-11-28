@@ -52,6 +52,8 @@ export interface StoryFrame {
 export interface StoryGoal {
   readonly square: Square;
   readonly piece: string;
+  // Rook's goal: the learner's piece he wins, or the king he mates.
+  readonly rook?: true;
 }
 
 // The learner's moves a storyboard covers, matching the explanation reach.
@@ -1219,12 +1221,56 @@ export function refutationStoryboard({
   // Before the position is solved, the line move is never shown or named.
   readonly answerKnown: boolean;
 }): readonly StoryFrame[] {
-  const frames = lineStoryboard(fen, line, learner);
-  const last = frames.at(-1);
-  const [first] = frames;
-  if (!last || !first) return [];
+  const all = lineStoryboard(fen, line, learner);
+  const [first] = all;
+  if (!first) return [];
+  const closing = answerKnown
+    ? insteadFrame(fen, instead, learner, first)
+    : undefined;
+  const ending = (frames: readonly StoryFrame[], cost: StoryFrame) => [
+    ...frames,
+    cost,
+    ...(closing ? [closing] : []),
+  ];
+
+  // What the try costs: the line stops where Rook's point lands, and the
+  // piece he wins (or the king he mates) is his goal on every step.
+  const landing = pointLanding(fen, all, opponent(learner));
+  if (landing) {
+    const cut = all.slice(0, landing.end + 1);
+    const tried = replay(
+      fen,
+      cut.map(({ moveUci }) => moveUci),
+    );
+    const cost = costFrame(fen, cut, learner, instead, standing);
+    const rookWins =
+      tried !== undefined &&
+      (mated(tried.board, learner) ||
+        (worth(wonBy(tried, opponent(learner))) >
+          worth(wonBy(tried, learner)) &&
+          !pendingWin(tried.board)));
+    if (cost && rookWins) {
+      const goals = goalSquares(all, landing.target, landing.gain);
+      const piece = PIECE_NAME[landing.piece];
+      return ending(
+        cut.map((frame, index) => {
+          const square = goals[index];
+          return square
+            ? { ...frame, goal: { square, piece, rook: true as const } }
+            : frame;
+        }),
+        cost,
+      );
+    }
+  }
+
+  // A try that costs nothing: the try and Rook's answer, then what it
+  // missed, with the missed prize as the goal. The move that wins it is
+  // never named.
+  const short = all.slice(0, 2);
+  const last = short.at(-1) ?? first;
   const triedSan = play(new Chess(fen), first.moveUci)?.san ?? first.moveUci;
-  const cost = costFrame(fen, frames, learner, instead, standing) ?? {
+  const cost = costFrame(fen, short, learner, instead, standing) ?? {
     fen: last.fen,
     moveUci: "",
     by: "rook" as const,
@@ -1233,10 +1279,22 @@ export function refutationStoryboard({
     control: [],
     caption: STANDING[standing](triedSan),
   };
-  const closing = answerKnown
-    ? insteadFrame(fen, instead, learner, first)
+  const prize = cost.caption.includes("missed a chance")
+    ? cost.outlines[0]?.square
     : undefined;
-  return [...frames, cost, ...(closing ? [closing] : [])];
+  const prizePiece = prize ? new Chess(last.fen).get(prize) : undefined;
+  if (!prize || !prizePiece) return ending(short, cost);
+  // The prize may itself move on the last step, so trace back through all.
+  const goals = goalSquares(short, prize, short.length);
+  return ending(
+    short.map((frame, index) => {
+      const square = goals[index];
+      return square
+        ? { ...frame, goal: { square, piece: PIECE_NAME[prizePiece.type] } }
+        : frame;
+    }),
+    cost,
+  );
 }
 
 // "Why does it work?" (PRD §5.8): the first move's frame states the point,

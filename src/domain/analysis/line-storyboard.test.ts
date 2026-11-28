@@ -629,3 +629,61 @@ it("draws the fork to both targets even when it occurs on Rook’s move", () => 
     },
   });
 });
+
+it("stops Why not where Rook's point lands, with what Rook is after as the goal", () => {
+  // 0fVN0: 1...Qf3+ hands over the queen; the line then wanders on.
+  const frames = refutationStoryboard({
+    fen: QUEEN_FORK,
+    line: ["g4f3", "e2f3", "h3g5", "e1e8", "g8h7", "f3f5", "g7g6"],
+    learner: "b",
+    standing: "winning",
+    instead: QUEEN_FORK_LINE,
+    answerKnown: false,
+  });
+  expect(frames.map(({ caption }) => caption)).toEqual([
+    "Qf3+ checks my king.",
+    "I take your queen with Qxf3.",
+    "I win your queen.",
+  ]);
+  expect(frames.map(({ goal }) => goal)).toEqual([
+    { square: "f3", piece: "queen", rook: true },
+    { square: "f3", piece: "queen", rook: true },
+    undefined,
+  ]);
+});
+
+it("makes the king Rook's goal when a try allows mate", () => {
+  const frames = refutationStoryboard({
+    fen: "4r1k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
+    line: ["a1a7", "e8e1"],
+    learner: "w",
+    standing: "winning",
+    instead: ["a1e1"],
+    answerKnown: false,
+  });
+  expect(frames.at(-1)?.caption).toBe("That lets me mate.");
+  expect(frames[0]?.goal).toEqual({ square: "g1", piece: "king", rook: true });
+});
+
+it("shows a quiet try's missed prize as the goal, without naming the move", () => {
+  const frames = refutationStoryboard({
+    fen: KNIGHT_FORK,
+    line: ["b8b7", "b3b2", "b7b6", "e6e5"],
+    learner: "w",
+    standing: "winning",
+    instead: KNIGHT_LINE,
+    answerKnown: false,
+  });
+  expect(frames.map(({ caption }) => caption)).toEqual([
+    expect.stringMatching(/^Rb7/),
+    expect.stringMatching(/Rb2/),
+    "You missed a chance to win my rook. Try again.",
+  ]);
+  expect(frames.map(({ goal }) => goal?.square)).toEqual([
+    "b3",
+    "b2",
+    undefined,
+  ]);
+  expect(frames[0]?.goal?.rook).toBeUndefined();
+  expect(JSON.stringify(frames)).not.toMatch(/Nd4/);
+});
