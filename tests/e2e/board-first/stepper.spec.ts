@@ -29,7 +29,8 @@ test("a player steps through the answer, branches with their own move and asks a
   });
   await page.getByRole("button", { name: "Why not Rf2?" }).click();
   await expect(bubble).toContainText(/^Rf2/);
-  await expect(stepper).toContainText("1 /");
+  await expect(stepper).toContainText("Step 1 of");
+  await expect(stepper).toContainText("Rook wants your pawn");
   while (await next.isEnabled()) {
     await next.click();
     await expect(bubble).not.toContainText("Qxg5");
@@ -126,13 +127,12 @@ for (const offline of [false, true])
     const bubble = page.locator(".rook-bubble__text");
     const stepper = page.getByRole("group", { name: "Step through the line" });
     const next = page.getByRole("button", { name: "Next step" });
-    await page.getByRole("button", { name: "Show me" }).click();
-    await next.click();
-    await square(page, "White queen on g5").click();
-    await square(page, "Empty h6").click();
-    await expect(
-      page.getByRole("button", { name: "◀ Back to the answer" }),
-    ).toBeVisible({ timeout: 30_000 });
+    // Why not Rf2? plays on until Rook takes the pawn it is after, Qxe5.
+    await square(page, "White rook on f1").click();
+    await square(page, "Empty f2").click();
+    await page.getByRole("button", { name: "Why not Rf2?" }).click({
+      timeout: 30_000,
+    });
     while (!(await bubble.textContent())?.includes("Qxe5")) await next.click();
     if (offline) await context.setOffline(true);
     const at = await stepper.textContent();
@@ -154,9 +154,8 @@ for (const offline of [false, true])
       await ask.press("Enter");
       await page.waitForTimeout(1500);
       const said = await bubble.textContent();
-      expect(said).toBe(
-        "Nothing defends your pawn on e5, so I take it for free.",
-      );
+      // Qxe5 ends the story, so no "for free": nothing after it is shown.
+      expect(said).toBe("Nothing defends your pawn on e5.");
       await expect(page.getByText(/Did you mean/)).toHaveCount(0);
       expect(said).not.toBe("Qxe5 takes your pawn on e5.");
       expect(await stepper.textContent()).toBe(at);
@@ -212,7 +211,7 @@ test("a what-if in words shows the options on the board, then plays the one pick
   ).toBeVisible({ timeout: 30_000 });
   await expect(
     page.getByRole("group", { name: "Step through the line" }),
-  ).toContainText("1 /");
+  ).toContainText("Step 1 of 2");
 });
 
 test("once solved, any position on the board can be explored", async ({

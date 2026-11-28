@@ -288,7 +288,7 @@ it("lets the player try another move at their turn and shows why it is not as go
   expect(
     await screen.findByText("Nf3 adds control of d4 and e5."),
   ).toBeVisible();
-  expect(stepper).toHaveTextContent("1 / 4");
+  expect(stepper).toHaveTextContent("Step 1 of 2");
   next();
   expect(bubble()).toHaveTextContent("I take your bishop with Rbxc5.");
   next();
@@ -326,7 +326,7 @@ it("asks why not the player's try and shows what it costs without the answer", a
     "That's safe, but you missed a chance to win my queen. Try again.",
   );
   expect(square("Black queen on e6").className).toContain("outline-coral");
-  expect(stepper).toHaveTextContent("3 / 3");
+  expect(stepper).toHaveTextContent("Result");
   // Nothing names or draws the answer before it is found.
   expect(document.body).not.toHaveTextContent(/Ng5|Nxg5/);
   expect(document.querySelector("[data-move-cue-arrow='f3:g5']")).toBeNull();

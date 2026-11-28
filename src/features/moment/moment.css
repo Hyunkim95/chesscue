@@ -77,6 +77,10 @@
   text-overflow: ellipsis;
 }
 
+.moment__goal--rook {
+  color: var(--ui-color-coral);
+}
+
 .moment__tries {
   display: flex;
   flex-wrap: wrap;
