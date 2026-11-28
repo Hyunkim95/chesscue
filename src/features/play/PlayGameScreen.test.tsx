@@ -214,6 +214,42 @@ describe("PlayGameScreen", () => {
     expect(onGameCompleted).toHaveBeenCalledTimes(1);
   });
 
+  it("starts one game on a double tap of Start another game, with a spinner while it saves", async () => {
+    const repository = new MemoryRepository();
+    let ids = 0;
+    render(
+      <PlayGameScreen
+        engine={new ReadyEngine()}
+        repository={repository}
+        createGameId={() => gameId(`game-${String((ids += 1))}`)}
+        createPositionId={() => positionId("position")}
+        now={() => "2026-11-24T12:00:00Z"}
+      />,
+    );
+    await screen.findByText("Your move");
+    fireEvent.click(screen.getByRole("button", { name: "Resign game" }));
+    const start = await screen.findByRole("button", {
+      name: "Start another game",
+    });
+    // The next save waits, so the second tap lands while it runs.
+    let release: () => void = () => undefined;
+    const put = repository.put.bind(repository);
+    vi.spyOn(repository, "put").mockImplementation(
+      (record) =>
+        new Promise((resolve) => {
+          release = () => {
+            resolve(put(record));
+          };
+        }),
+    );
+    fireEvent.click(start);
+    expect(start).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(start);
+    release();
+    await screen.findByText("Your move");
+    expect(new Set(repository.records.map(({ id }) => id)).size).toBe(2);
+  });
+
   it("keeps the saved terminal state when the completion callback throws", async () => {
     const onGameCompleted = vi.fn(() => {
       throw new Error("analysis handoff failed");

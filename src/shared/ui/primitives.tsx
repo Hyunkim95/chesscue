@@ -22,8 +22,19 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   readonly busy?: boolean;
 };
 
-// What a busy control renders: the label kept for its width but hidden,
-// with a spinner over it.
+// For a feature's own button: its label while idle; while busy, the label
+// kept for its width but hidden, with a spinner over it. The button adds
+// the ui-busy class and aria-busy, and ignores taps.
+export function BusyLabel({
+  busy,
+  children,
+}: {
+  readonly busy: boolean;
+  readonly children: ReactNode;
+}) {
+  return busyContent(busy, children);
+}
+
 function busyContent(busy: boolean, children: ReactNode): ReactNode {
   if (!busy) return children;
   return (
