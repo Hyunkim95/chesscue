@@ -420,3 +420,52 @@
     gap: 32px;
   }
 }
+
+/* The Gemini key form opens in place of its row. */
+.profile-setting--key {
+  padding-block: 12px;
+}
+
+.profile-key {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.profile-key__label {
+  font-weight: 700;
+}
+
+.profile-key__input {
+  width: 100%;
+  min-height: var(--ui-space-target);
+  padding: 0.7rem;
+  font: inherit;
+  color: inherit;
+  background: var(--cue-canvas);
+  border: 1px solid var(--cue-line);
+  border-radius: var(--cue-radius-control);
+}
+
+.profile-key__input:focus-visible {
+  outline: 3px solid var(--ui-color-gold);
+  outline-offset: 2px;
+}
+
+.profile-key__input[aria-invalid="true"] {
+  border-color: var(--cue-coral);
+}
+
+.profile-key .profile-setting__note {
+  margin: 0;
+}
+
+.profile-key__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.profile-key .profile-key__error {
+  color: var(--cue-coral);
+}

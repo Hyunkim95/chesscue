@@ -196,12 +196,11 @@ export function StudyScreen({
       }
       const messages = {
         quota:
-          "Gemini search has reached its usage limit. Try again later or browse the offline examples.",
-        "app-check":
-          import.meta.env.DEV &&
-          import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG === "true"
-            ? "Firebase could not verify this browser. Register its App Check debug token, then reload and retry."
-            : "Firebase could not verify this browser. Reload and try again or browse the offline examples.",
+          "Your Gemini key has reached its usage limit. Try again later or browse the offline examples.",
+        "no-key":
+          "Add your Gemini key in Profile to search master games, or browse the offline examples.",
+        "key-rejected":
+          "Google did not accept your Gemini key. Check it in Profile, or browse the offline examples.",
         unavailable:
           "Gemini Cloud is unavailable. Try again later or browse the offline examples.",
         unverified:

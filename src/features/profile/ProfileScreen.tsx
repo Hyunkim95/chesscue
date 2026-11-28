@@ -7,6 +7,7 @@ import type { AchievementId, Progress } from "../../domain/progress/types";
 import type { SavedImportUsernames } from "../../infrastructure/persistence/import-usernames";
 import { Avatar, Pill, Toggle } from "../../shared/ui/primitives";
 import { achievementCopy, lockedAchievements } from "./achievement-copy";
+import { GeminiKeySetting, type GeminiKeyProps } from "./GeminiKeySetting";
 import "./profile-screen.css";
 
 // The rated ranks from src/domain/game/rank-path.ts.
@@ -34,6 +35,7 @@ export interface ProfileScreenProps {
   readonly onOpenAccount: () => void;
   readonly onOpenSky: () => void;
   readonly onImportFrom: (site: ImportProvider) => void;
+  readonly geminiKey: GeminiKeyProps;
 }
 
 const RANKS: readonly { readonly name: RankName; readonly art: string }[] = [
@@ -271,6 +273,7 @@ function Settings({
   syncState,
   onOpenAccount,
   onImportFrom,
+  geminiKey,
 }: ProfileScreenProps) {
   const sync = SYNC_COPY[syncState];
   return (
@@ -322,6 +325,7 @@ function Settings({
             </li>
           );
         })}
+        <GeminiKeySetting {...geminiKey} />
         <li className={`profile-setting profile-setting--sync-${syncState}`}>
           <span className="profile-setting__glyph" aria-hidden="true">
             {sync.glyph}

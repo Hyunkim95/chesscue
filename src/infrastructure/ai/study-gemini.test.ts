@@ -1,15 +1,17 @@
 import { Chess } from "chess.js";
-import { AIError, AIErrorCode } from "firebase/ai";
 import type * as FirebaseAI from "firebase/ai";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { cutoffFen } from "../../test/fixtures/study-position";
 import { boardFacts } from "../../domain/study/position";
 import { createStudyAI } from "./study-gemini";
-const { generate, model } = vi.hoisted(() => ({
+const { generate, model, request, cloud } = vi.hoisted(() => ({
   generate: vi.fn(),
   model: vi.fn(),
+  request: vi.fn(),
+  cloud: vi.fn(),
 }));
+vi.mock("./player-gemini", () => ({ playerGemini: cloud }));
 vi.mock("../firebase/firebase-client", () => ({
   initializeFirebaseClient: () => ({ status: "ready", services: { app: {} } }),
 }));
@@ -24,6 +26,7 @@ beforeEach(() => {
     vi.fn().mockResolvedValue(new Response("", { status: 503 })),
   );
   model.mockReturnValue({ generateContent: generate });
+  cloud.mockReturnValue({ request });
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -38,31 +41,22 @@ const locator = {
 };
 const score =
   '[Event "Rosenwald"]\n[Date "1956.10.17"]\n[White "Byrne, Donald"]\n[Black "Fischer, Robert James"]\n[Result "0-1"]\n\n1. Nf3 Nf6 2. c4 g6 0-1';
-const archiveCall = (candidate: typeof locator, requested = true) => ({
-  response: {
-    inferenceSource: "in_cloud",
-    functionCalls: () =>
-      requested ? [{ name: "searchChessArchive", args: candidate }] : [],
-  },
+// The player's key answers with JSON: a game locator, then one move.
+const located = (candidate: typeof locator) => ({
+  status: "ok",
+  text: JSON.stringify(candidate),
 });
 const selectMove = (notation: string, gameIndex = 0) => ({
-  response: {
-    inferenceSource: "in_cloud",
-    functionCalls: () => [
-      {
-        name: "openVerifiedPosition",
-        args: {
-          gameIndex,
-          notation,
-          question: "What possibilities would you consider?",
-        },
-      },
-    ],
-  },
+  status: "ok",
+  text: JSON.stringify({
+    gameIndex,
+    notation,
+    question: "What possibilities would you consider?",
+  }),
 });
 it("opens the position before the sourced move only after replaying the complete score", async () => {
-  generate
-    .mockResolvedValueOnce(archiveCall(locator))
+  request
+    .mockResolvedValueOnce(located(locator))
     .mockResolvedValueOnce(selectMove("1... Nf6"));
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(score)));
   const result = await createStudyAI(() => ({
@@ -96,30 +90,21 @@ it("opens the position before the sourced move only after replaying the complete
       },
     },
   });
-  expect(model.mock.calls[0]?.[1]).toMatchObject({
-    mode: "only_in_cloud",
-    inCloudParams: {
-      tools: [
-        {
-          functionDeclarations: [
-            { name: "searchChessArchive" },
-            { name: "openVerifiedPosition" },
-          ],
-        },
-      ],
-    },
+  expect(cloud.mock.calls[0]?.[0]).toMatchObject({
+    model: "gemini-3.5-flash-lite",
+    schema: { required: ["white", "black", "year"] },
   });
 });
 it.each([
-  [false, locator, score],
-  [true, { ...locator, year: 1960 }, score],
-  [true, { ...locator, san: "d5" }, score],
-  [true, locator, score.replace("2. c4", "2. Qa8")],
+  [{ status: "ok", text: "{}" }, locator, score],
+  [located({ ...locator, year: 1960 }), locator, score],
+  [located(locator), { ...locator, san: "d5" }, score],
+  [located(locator), locator, score.replace("2. c4", "2. Qa8")],
 ])(
   "rejects unsupported searches, mismatched sources and ambiguous or illegal scores",
-  async (searched, candidate, pgn) => {
-    generate
-      .mockResolvedValueOnce(archiveCall(candidate, searched))
+  async (search, candidate, pgn) => {
+    request
+      .mockResolvedValueOnce(search)
       .mockResolvedValueOnce(selectMove("1... " + candidate.san));
     vi.stubGlobal(
       "fetch",
@@ -133,37 +118,32 @@ it.each([
     ).toEqual({ ok: false, error: "unverified" });
   },
 );
-it("distinguishes a rejected App Check token from a failed source check", async () => {
-  generate.mockRejectedValue(
-    new AIError(
-      AIErrorCode.FETCH_ERROR,
-      "Firebase App Check token is invalid.",
-      { status: 401 },
-    ),
-  );
-  await expect(
-    createStudyAI()?.research("rook endings", new AbortController().signal),
-  ).resolves.toEqual({ ok: false, error: "app-check" });
-});
-it("reports exhausted Gemini search quota without substituting a historical example", async () => {
-  generate.mockRejectedValue(
-    new AIError(AIErrorCode.FETCH_ERROR, "Resource exhausted", { status: 429 }),
-  );
+it("asks for the player's own key before any cloud research", async () => {
+  cloud.mockReturnValue(undefined);
   expect(
     await createStudyAI()?.research(
-      "queen sacrifice",
+      "rook endings",
       new AbortController().signal,
     ),
-  ).toEqual({ ok: false, error: "quota" });
+  ).toEqual({ ok: false, error: "no-key" });
+  expect(request).not.toHaveBeenCalled();
 });
-it("reports other authorization failures as cloud unavailability", async () => {
-  generate.mockRejectedValue(
-    new AIError(AIErrorCode.FETCH_ERROR, "API access denied.", { status: 403 }),
-  );
-  await expect(
-    createStudyAI()?.research("rook endings", new AbortController().signal),
-  ).resolves.toEqual({ ok: false, error: "unavailable" });
-});
+it.each([
+  ["quota", "quota"],
+  ["rejected", "key-rejected"],
+  ["failed", "unavailable"],
+] as const)(
+  "reports a %s reply from the player's key without substituting an example",
+  async (status, error) => {
+    request.mockResolvedValue({ status });
+    expect(
+      await createStudyAI()?.research(
+        "queen sacrifice",
+        new AbortController().signal,
+      ),
+    ).toEqual({ ok: false, error });
+  },
+);
 it("renders coverage from the rules if the model invents an attacker", async () => {
   const provider = createStudyAI();
   const message = "Which rook covers h2?",
@@ -215,5 +195,5 @@ it("requires a genuinely on-device response for position chat", async () => {
   await expect(
     provider?.chat(input, new AbortController().signal),
   ).resolves.toMatchObject({ action: "answer" });
-  expect(model.mock.calls[1]?.[1]).toMatchObject({ mode: "only_on_device" });
+  expect(model.mock.calls[0]?.[1]).toMatchObject({ mode: "only_on_device" });
 });
