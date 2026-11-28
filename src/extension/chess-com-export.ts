@@ -20,6 +20,8 @@ const finishedGame = z.object({
   black: seat,
 });
 
+const archivedGame = finishedGame.extend({ url: z.url() });
+
 export class ChessComArchiveMiss extends Error {
   constructor(readonly hasOlder: boolean) {
     super(
@@ -33,9 +35,14 @@ async function readArchive(url: string, signal: AbortSignal): Promise<unknown> {
     signal,
     headers: { Accept: "application/json" },
     credentials: "omit",
+    cache: "no-cache",
     redirect: "error",
   });
   if (!response.ok) {
+    if (response.status === 404)
+      throw new Error(
+        "Chess.com couldn’t find that archive. Check the username.",
+      );
     throw new Error(
       response.status === 429
         ? "Chess.com is rate limiting requests. Try again shortly."
@@ -45,30 +52,14 @@ async function readArchive(url: string, signal: AbortSignal): Promise<unknown> {
   return response.json();
 }
 
-export async function fetchChessComGame(
-  route: string,
-  batch: number,
-  signal: AbortSignal,
-): Promise<CompletedGameExport> {
-  const [, kind, id, username] = route.split("/");
-  if (
-    (kind !== "live" && kind !== "daily") ||
-    !id ||
-    !isChessComUsername(username)
-  ) {
-    throw new Error("Open a finished Chess.com game and try again.");
-  }
-  const target = chessComGamePath(`/game/${kind}/${id}`);
-  if (!target) throw new Error("Open a finished Chess.com game and try again.");
-
+async function listArchives(username: string, request: AbortSignal) {
   const base = "/pub/player/" + username.toLowerCase() + "/games/";
-  const request = AbortSignal.any([signal, AbortSignal.timeout(15_000)]);
   const list = archivesList.safeParse(
     await readArchive(archiveOrigin + base + "archives", request),
   );
   if (!list.success)
     throw new Error("Chess.com returned an unreadable archive list.");
-  const archives = [...new Set(list.data.archives)]
+  return [...new Set(list.data.archives)]
     .filter((value) => {
       try {
         const url = new URL(value);
@@ -87,7 +78,62 @@ export async function fetchChessComGame(
     })
     .sort()
     .reverse();
+}
 
+export async function fetchRecentChessComGames(
+  username: string,
+  limit: number,
+  signal: AbortSignal,
+) {
+  if (!isChessComUsername(username))
+    throw new Error("Enter a Chess.com username.");
+  const archives = await listArchives(username, signal);
+  const games = new Map<string, { id: string; pgn: string }>();
+  for (const archive of archives.slice(0, lookupBatchSize)) {
+    const month = archiveGames.safeParse(await readArchive(archive, signal));
+    if (!month.success)
+      throw new Error("Chess.com returned an unreadable game archive.");
+    const finished = month.data.games
+      .flatMap((entry) => {
+        const game = archivedGame.safeParse(entry);
+        return game.success ? [game.data] : [];
+      })
+      .sort((left, right) => right.end_time - left.end_time);
+    for (const game of finished) {
+      const url = new URL(game.url);
+      if (
+        url.origin !== "https://www.chess.com" &&
+        url.origin !== "https://chess.com"
+      )
+        continue;
+      const path = chessComGamePath(url.pathname);
+      if (!path) continue;
+      const id = path.slice(path.lastIndexOf("/") + 1);
+      if (!games.has(id)) games.set(id, { id, pgn: game.pgn });
+      if (games.size >= limit) return [...games.values()];
+    }
+  }
+  return [...games.values()];
+}
+
+export async function fetchChessComGame(
+  route: string,
+  batch: number,
+  signal: AbortSignal,
+): Promise<CompletedGameExport> {
+  const [, kind, id, username] = route.split("/");
+  if (
+    (kind !== "live" && kind !== "daily") ||
+    !id ||
+    !isChessComUsername(username)
+  ) {
+    throw new Error("Open a finished Chess.com game and try again.");
+  }
+  const target = chessComGamePath(`/game/${kind}/${id}`);
+  if (!target) throw new Error("Open a finished Chess.com game and try again.");
+
+  const request = AbortSignal.any([signal, AbortSignal.timeout(15_000)]);
+  const archives = await listArchives(username, request);
   const offset = batch * lookupBatchSize;
   for (const archive of archives.slice(offset, offset + lookupBatchSize)) {
     const month = archiveGames.safeParse(await readArchive(archive, request));

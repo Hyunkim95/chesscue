@@ -20,15 +20,13 @@ describe("GamesEmpty", () => {
   });
 
   it.each([
-    ["Lichess", "lichess"],
-    ["Chess.com", "chess-com"],
-    ["PGN", "pgn"],
+    ["Import from Lichess", "lichess"],
+    ["Import from Chess.com", "chess-com"],
+    ["Import PGN", "pgn"],
   ] as const)("adds games from %s", (label, source) => {
     const onAdd = vi.fn();
     render(<GamesEmpty onImport={vi.fn()} onAdd={onAdd} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: `Add games from ${label}` }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: label }));
     expect(onAdd).toHaveBeenCalledWith(source);
   });
 });

@@ -294,3 +294,64 @@
   padding-block: 0.7rem;
   cursor: pointer;
 }
+
+.username-import__sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.username-import__sources button {
+  min-height: var(--ui-space-target);
+}
+
+.username-import__sources button[aria-current="page"] {
+  border-color: var(--cue-gold);
+  color: var(--cue-gold);
+}
+
+.username-import__input {
+  width: 100%;
+  min-height: var(--ui-space-target);
+  padding: 0.7rem;
+  font: inherit;
+  color: inherit;
+  background: var(--cue-canvas);
+  border: 1px solid var(--cue-line);
+  border-radius: var(--cue-radius-control);
+}
+
+.username-import--inline {
+  gap: 0.85rem;
+  padding: 0.9rem;
+}
+
+.username-import--inline h2 {
+  font-size: 1.25rem;
+}
+
+.username-import__buttons {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.username-import--inline .username-import__buttons {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.username-import__provider {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.username-import__provider button {
+  padding-inline: 0.45rem;
+}
+
+.username-import__provider small {
+  overflow-wrap: anywhere;
+  color: var(--cue-muted);
+  text-align: center;
+}

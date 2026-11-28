@@ -3,6 +3,7 @@ export type GameSite = "lichess" | "chesscom";
 export interface CompletedGameExport {
   readonly id: string;
   readonly pgn: string;
+  readonly localOnly?: true;
   readonly players: {
     readonly white: {
       readonly user?:
