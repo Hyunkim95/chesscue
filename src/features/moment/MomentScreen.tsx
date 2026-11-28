@@ -53,6 +53,7 @@ import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
 import { chipsFor, type SanMove } from "../../domain/session/chips";
 import type { MomentGoal } from "../../domain/session/moment-goal";
+import type { PositionInput } from "../../domain/analysis/position-packet";
 import type { DangerReading } from "../../application/route-question/read-danger";
 import {
   advanceSpot,
@@ -495,6 +496,9 @@ export function MomentScreen({
   readDanger,
   pickHint,
   explainWhy,
+  answerOpen,
+  models,
+  askFlash,
   assessPosition,
 }: {
   readonly moment: MomentSpec;
@@ -556,6 +560,35 @@ export function MomentScreen({
   readonly explainWhy?:
     | ((input: WhyInput, signal: AbortSignal) => Promise<string | undefined>)
     | undefined;
+  // Online on the player's own Gemini key: an open question while solving,
+  // answered from checked board facts that never name the answer and
+  // checked again before it is returned. undefined keeps the code answer.
+  readonly answerOpen?:
+    | ((
+        question: { readonly text: string } & PositionInput,
+        signal: AbortSignal,
+      ) => Promise<string | undefined>)
+    | undefined;
+  // Which models can read and answer right now, so Rook can say plainly
+  // when the one a question needs is missing instead of switching silently.
+  readonly models?:
+    | {
+        readonly nano: boolean;
+        readonly flash: "ready" | "no-key" | "offline";
+      }
+    | undefined;
+  // Re-reads a question with Gemini Flash only, for "Ask Flash".
+  readonly askFlash?:
+    | ((
+        question: {
+          text: string;
+          fen: string;
+          boardMoveUci?: string | undefined;
+          boardMoveSan?: string | undefined;
+        },
+        signal: AbortSignal,
+      ) => Promise<QuestionOutcome>)
+    | undefined;
   // Stockfish's reading of a position, for the bar beside the board. The bar
   // waits until the moment is solved or shown, so it never hints the answer.
   readonly assessPosition?: AssessPosition | undefined;
@@ -574,6 +607,10 @@ export function MomentScreen({
   // answer "Is something of yours in trouble?".
   const spotActive = danger !== undefined && spot.kind !== "finding";
   const looking = danger !== undefined && spotting(spot);
+  // The last question Nano read, while "Ask Flash" can re-read it.
+  const [flashRetry, setFlashRetry] = useState<
+    Parameters<typeof askRook>[0] | undefined
+  >();
   const [say, setSay] = useState<Say>({
     text: danger
       ? spotLine(danger, moment.fen, startSpot)
@@ -1354,6 +1391,49 @@ export function MomentScreen({
     setStory({ ...story, step: found.index });
     setView(frameView(frame));
     setSay({ text: reason, mood: "idle", understood });
+    return true;
+  }
+
+  // An open question ("what's going on here?") or a plan question. Solved:
+  // the "Why does it work?" story, whose first caption is the checked
+  // online why when there is one. Solving: Gemini Flash on the player's key
+  // from facts that never name the answer. false keeps the code answer.
+  async function openQuestion(text: string): Promise<boolean> {
+    if (!solving) {
+      if (answerStory.frames.length === 0) return false;
+      openStory(answerStory);
+      return true;
+    }
+    if (models && models.flash !== "ready") {
+      setSay({
+        text:
+          models.flash === "offline"
+            ? "Answering that in words needs internet. Ask about one move, like “why Qxg5?”"
+            : "I'd need your Gemini key to answer that in words. Add it in Profile, or ask about one move, like “why Qxg5?”",
+        mood: "idle",
+      });
+      return true;
+    }
+    if (!online || !answerOpen) return false;
+    setSay({ text: "Let me think…", mood: "think" });
+    const answer = await whileBusy(
+      answerOpen(
+        {
+          text,
+          fen: moment.fen,
+          learner: learnerColor,
+          goal: moment.goal.prompt,
+          hiddenUci: moment.bestUci,
+        },
+        controller.current.signal,
+      ),
+    );
+    if (answer === undefined) return false;
+    setSay({
+      text: answer,
+      mood: "idle",
+      understood: "Gemini Flash · checked against the board",
+    });
     return true;
   }
 
@@ -2282,17 +2362,66 @@ export function MomentScreen({
     }
     setSay({ text: "Let me think…", mood: "think" });
     const boardMove = resolved ?? onFrame;
+    const question = {
+      text,
+      fen: view.fen,
+      boardMoveUci: boardMove?.uci,
+      boardMoveSan: boardMove?.san,
+    };
     const outcome = await whileBusy(
-      askRook(
-        {
-          text,
-          fen: view.fen,
-          boardMoveUci: boardMove?.uci,
-          boardMoveSan: boardMove?.san,
-        },
-        controller.current.signal,
-      ),
+      askRook(question, controller.current.signal),
     );
+    await answer(question, outcome);
+  }
+
+  // "Ask Flash": the last question Nano read, read again by Gemini Flash on
+  // the player's key.
+  async function rereadWithFlash() {
+    const question = flashRetry;
+    if (!question || !askFlash) return;
+    setFlashRetry(undefined);
+    setSay({ text: "Let me think…", mood: "think" });
+    const outcome = await whileBusy(
+      askFlash(question, controller.current.signal),
+    );
+    await answer(question, outcome);
+  }
+
+  // Acts on what a model understood. A question Nano read can be re-read by
+  // Flash with "Ask Flash"; a question no model on hand can read gets a
+  // plain reason, never a silent switch of model.
+  async function answer(
+    question: Parameters<typeof askRook>[0],
+    outcome: QuestionOutcome,
+  ) {
+    const { text } = question;
+    const byNano =
+      outcome.kind !== "unrouted" &&
+      outcome.understood.startsWith("Gemini Nano");
+    setFlashRetry(
+      byNano && models?.flash === "ready" && askFlash ? question : undefined,
+    );
+    if (
+      outcome.kind === "unrouted" &&
+      models &&
+      !models.nano &&
+      models.flash !== "ready"
+    ) {
+      setSay({
+        text:
+          models.flash === "offline"
+            ? "Reading a question in words needs Gemini Nano on this device, or internet with your Gemini key. Name a move instead, like “why Qxg5?”"
+            : "Reading a question in words needs Gemini Nano on this device, or your Gemini key in Profile. Name a move instead, like “why Qxg5?”",
+        mood: "hmm",
+      });
+      return;
+    }
+    const open =
+      outcome.kind === "unrouted" ||
+      ((outcome.kind === "act" || outcome.kind === "confirm") &&
+        (outcome.action.kind === "something-else" ||
+          outcome.action.kind === "plan"));
+    if (open && (await openQuestion(text))) return;
     switch (outcome.kind) {
       case "act":
         if (movesBoard(outcome.action)) {
@@ -2377,7 +2506,7 @@ export function MomentScreen({
   }
 
   const lastMiss = attempts.findLast(({ tier }) => tier !== "best");
-  const chips: readonly Chip[] = confirm
+  const codeChips: readonly Chip[] = confirm
     ? []
     : chipsFor(kind, {
         fen: view.fen,
@@ -2395,6 +2524,13 @@ export function MomentScreen({
         opening: openingFrames.length > 0,
         spotTheDanger: danger !== undefined,
       });
+  const askFlashChip = {
+    id: "ask-flash",
+    label: "Ask Flash",
+    action: { kind: "ask-flash" },
+  } as const;
+  const chips: readonly (Chip | typeof askFlashChip)[] =
+    flashRetry && !confirm ? [...codeChips, askFlashChip] : codeChips;
   // The side to move on the board shown, for its label; the heading names
   // the player's side, which is the task, whatever frame is on the board.
   const turn = view.fen.split(" ")[1] === "w" ? "White" : "Black";
@@ -3018,7 +3154,11 @@ export function MomentScreen({
             onSelect={(chip) => {
               // Read by whileBusy when the chip's action starts slow work.
               pressedChip.current = chip.id;
-              act(chip.action);
+              if (chip.action.kind === "ask-flash") void rereadWithFlash();
+              else {
+                setFlashRetry(undefined);
+                act(chip.action);
+              }
               pressedChip.current = undefined;
             }}
           />

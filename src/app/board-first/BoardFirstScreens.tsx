@@ -17,6 +17,7 @@ import { checkTry } from "../../application/run-moment/check-try";
 import { momentRecord } from "../../application/run-moment/moment-record";
 import { pickHint } from "../../application/route-question/pick-hint";
 import { readDanger } from "../../application/route-question/read-danger";
+import { routeNanoFirst } from "../../application/route-question/route-nano-first";
 import { routeQuestion } from "../../application/route-question/route-question";
 import type { QuestionRouter } from "../../application/route-question/question-router";
 import type { WhyInput } from "../../domain/analysis/why-packet";
@@ -79,6 +80,9 @@ import {
 } from "./moment-specs";
 import type { BoardFirstView } from "./flag";
 import { readBar } from "./read-bar";
+import type { PositionInput } from "../../domain/analysis/position-packet";
+import type { createOpenQuestionWriter } from "../../infrastructure/ai/reasoning-gemini";
+import type { answerOpenQuestion } from "../../application/explain-why/explain-reasoning";
 import {
   forgetGeminiKey,
   GEMINI_KEY_CHANGE,
@@ -210,6 +214,44 @@ async function saveCheckedGeminiKey(text: string): Promise<GeminiKeySave> {
   const check = await checkGeminiKey(key.data, AbortSignal.timeout(10_000));
   if (check.status !== "ok") return check.status;
   return saveGeminiKey(key.data) ? "saved" : "unsaved";
+}
+
+let openModules:
+  | Promise<
+      readonly [
+        { readonly createOpenQuestionWriter: typeof createOpenQuestionWriter },
+        { readonly answerOpenQuestion: typeof answerOpenQuestion },
+      ]
+    >
+  | undefined;
+// An open question while solving: Gemini Flash on the player's own key,
+// from checked facts that never name the answer, then the checker.
+// undefined keeps Rook's code answer.
+async function answerOpenOnline(
+  { text, ...input }: { readonly text: string } & PositionInput,
+  signal: AbortSignal,
+): Promise<string | undefined> {
+  openModules ??= Promise.all([
+    import("../../infrastructure/ai/reasoning-gemini"),
+    import("../../application/explain-why/explain-reasoning"),
+  ]);
+  try {
+    const [writers, reasoning] = await openModules;
+    const writer = writers.createOpenQuestionWriter();
+    if (!writer) return undefined;
+    const result = await reasoning.answerOpenQuestion({
+      input,
+      question: text,
+      frames: [],
+      analyze: analyzePosition,
+      writer,
+      signal,
+    });
+    return result.kind === "written" ? result.text : undefined;
+  } catch {
+    openModules = undefined;
+    return undefined;
+  }
 }
 
 function analyzePosition(fen: string, multiPv: number, signal: AbortSignal) {
@@ -640,6 +682,26 @@ export function BoardFirstScreens({
             }
             analyzePosition={analyzePosition}
             explainWhy={explainWhyOnline}
+            answerOpen={canUse("open-chat") ? answerOpenOnline : undefined}
+            models={{
+              nano: nanoReady,
+              flash: !online
+                ? "offline"
+                : geminiKey !== undefined && canUse("open-chat")
+                  ? "ready"
+                  : "no-key",
+            }}
+            askFlash={async (question, signal) => {
+              const { cloud } = await questionRouters();
+              return routeQuestion({
+                ...question,
+                learnerPlayed: active.playedInGame?.san,
+                online,
+                cloud,
+                device: undefined,
+                signal,
+              });
+            }}
             assessPosition={readBar}
             readDanger={
               dangers && nanoReady
@@ -675,7 +737,7 @@ export function BoardFirstScreens({
             }}
             askRook={async (question, signal) => {
               const available = await questionRouters();
-              return routeQuestion({
+              return routeNanoFirst({
                 ...question,
                 learnerPlayed: active.playedInGame?.san,
                 online,

@@ -969,7 +969,15 @@ export function costFrame(
   const missed = line.captures
     .filter(({ by }) => by === learner)
     .toSorted((a, b) => PIECE_VALUE[b.piece] - PIECE_VALUE[a.piece]);
-  const [prize] = missed;
+  // Name the net gain: a queen for a queen cancels out, so Qxc4 dxc4
+  // Rxd8+ wins a rook, not a queen.
+  const lost = [...wonBy(line, rook)];
+  const [prize] = missed.filter(({ piece }) => {
+    const at = lost.indexOf(piece);
+    if (at === -1) return true;
+    lost.splice(at, 1);
+    return false;
+  });
   const gain =
     worth(missed.map(({ piece }) => piece)) - worth(wonBy(line, rook));
   if (!prize || gain <= 0 || worth(yours) - worth(mine) >= gain)

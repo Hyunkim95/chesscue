@@ -130,7 +130,15 @@ export function Pill({
   );
 }
 
-export function Chip({
+// Any chip a screen offers: the code-chosen suggestion chips, or a screen's
+// own, such as the moment's "Ask Flash".
+interface RowChip {
+  readonly id: string;
+  readonly label: string;
+  readonly action: { readonly kind: string };
+}
+
+export function Chip<C extends RowChip = SuggestionChip>({
   chip,
   onSelect,
   primary = false,
@@ -138,8 +146,8 @@ export function Chip({
   disabled = false,
   busy = false,
 }: {
-  readonly chip: SuggestionChip;
-  readonly onSelect: (chip: SuggestionChip) => void;
+  readonly chip: C;
+  readonly onSelect: (chip: C) => void;
   readonly primary?: boolean;
   // Its place in the row, which staggers the pop-in.
   readonly index?: number;
@@ -165,15 +173,15 @@ export function Chip({
 }
 
 // Suggestion chips chosen by code. A "done" chip is drawn as the primary one.
-export function ChipRow({
+export function ChipRow<C extends RowChip = SuggestionChip>({
   chips,
   onSelect,
   label = "Ask Rook",
   disabled = false,
   busyId,
 }: {
-  readonly chips: readonly SuggestionChip[];
-  readonly onSelect: (chip: SuggestionChip) => void;
+  readonly chips: readonly C[];
+  readonly onSelect: (chip: C) => void;
   readonly label?: string;
   // While Rook works: every chip is dimmed, and the one that started the
   // work, if any, shows the spinner.

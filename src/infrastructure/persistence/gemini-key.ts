@@ -6,8 +6,10 @@ import { z } from "zod";
 export const GEMINI_KEY_STORAGE = "gemini-api-key";
 export const GEMINI_KEY_CHANGE = "chesscue:gemini-key";
 
-// Google API keys are "AIza" and 35 more URL-safe characters.
-export const geminiKey = z.string().regex(/^AIza[0-9A-Za-z_-]{35}$/);
+// Only rules out what is plainly not a key (a sentence, a URL, a fragment):
+// Google issues keys in more than one shape, and checks every key itself
+// before it is kept.
+export const geminiKey = z.string().regex(/^[0-9A-Za-z._-]{30,200}$/);
 
 export function readGeminiKey(): string | undefined {
   try {

@@ -42,6 +42,21 @@ it("keeps only a well-formed key, and says when it changes", () => {
   window.removeEventListener(GEMINI_KEY_CHANGE, changes);
 });
 
+it("keeps a key in any shape Google issues, and refuses obvious non-keys", () => {
+  // Newer AI Studio keys are not the classic 39-character AIza form.
+  const newer = "AQ." + "Ab8RN6".repeat(9) + "-x_Y";
+  expect(saveGeminiKey(newer)).toBe(true);
+  expect(readGeminiKey()).toBe(newer);
+  for (const text of [
+    "",
+    "my key",
+    "short",
+    "https://aistudio.google.com/apikey",
+  ])
+    expect(saveGeminiKey(text)).toBe(false);
+  expect(readGeminiKey()).toBe(newer);
+});
+
 it("has no cloud model without a key", () => {
   expect(playerGemini(options)).toBeUndefined();
 });

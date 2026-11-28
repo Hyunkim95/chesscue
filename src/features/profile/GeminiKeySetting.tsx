@@ -21,7 +21,8 @@ type Editing =
   | { readonly status: "open" | "checking"; readonly error?: string };
 
 const ERRORS: Record<Exclude<GeminiKeySave, "saved">, string> = {
-  invalid: "That doesn't look like a Gemini key. It starts with AIza.",
+  invalid:
+    "That doesn't look like a whole key. Copy it again from Google AI Studio.",
   rejected: "Google didn't accept this key. Check it and try again.",
   unreachable: "Couldn't reach Google. Check your connection and try again.",
   unsaved: "This browser blocked saving the key. Check its site settings.",
