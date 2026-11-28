@@ -18,6 +18,7 @@ import { momentRecord } from "../../application/run-moment/moment-record";
 import { pickHint } from "../../application/route-question/pick-hint";
 import { readDanger } from "../../application/route-question/read-danger";
 import { routeNanoFirst } from "../../application/route-question/route-nano-first";
+import { routeQuestion } from "../../application/route-question/route-question";
 import type { QuestionRouter } from "../../application/route-question/question-router";
 import type { WhyInput } from "../../domain/analysis/why-packet";
 import type { ObservedMove } from "../../domain/curriculum/game-drill";
@@ -682,6 +683,25 @@ export function BoardFirstScreens({
             analyzePosition={analyzePosition}
             explainWhy={explainWhyOnline}
             answerOpen={canUse("open-chat") ? answerOpenOnline : undefined}
+            models={{
+              nano: nanoReady,
+              flash: !online
+                ? "offline"
+                : geminiKey !== undefined && canUse("open-chat")
+                  ? "ready"
+                  : "no-key",
+            }}
+            askFlash={async (question, signal) => {
+              const { cloud } = await questionRouters();
+              return routeQuestion({
+                ...question,
+                learnerPlayed: active.playedInGame?.san,
+                online,
+                cloud,
+                device: undefined,
+                signal,
+              });
+            }}
             assessPosition={readBar}
             readDanger={
               dangers && nanoReady

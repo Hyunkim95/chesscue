@@ -22,6 +22,20 @@ Online with the player's key, after a moment is solved or shown, "Why does it wo
 
 Evidence, 28 November 2026 (`research_notes/why-explanations/scorecard.md`, 20 positions, two blind model graders): Flash gave a true answer with the real reason in 16 of 20 positions and no false claim. Code-only text scored 8 of 20 and Flash-Lite 7 of 20, with 3 false. Nano was not measured for this task.
 
+## Who reads a typed question (owner decision, 28 November 2026)
+
+Each task goes to the model measured to do it, and Rook says plainly when that model is missing; models never switch silently.
+
+| The player asks                            | Read by                                                                              | Why                                                  |
+| ------------------------------------------ | ------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| A question naming a move ("why not Qxg5?") | Code                                                                                 | Notation is read without a model                     |
+| A clear question in words ("any hints?")   | Gemini Nano, then Flash on the player's key only if Nano is missing or has no answer | Nano routed 28/30 (research_notes/rook-intent-spike) |
+| A threat question                          | Code's threat scan                                                                   | Checked on the board                                 |
+| An open question ("what's going on here?") | Gemini Flash on the player's key                                                     | Reasoning Nano cannot do                             |
+| Spot the danger, picking a hint            | Gemini Nano                                                                          | A choice from a list code built                      |
+
+Every answer's label names the model. After a question Nano read, an "Ask Flash" chip re-reads it with Flash when the key is saved and the player is online. Without the model a question needs, Rook says so ("I'd need your Gemini key to answer that in words…").
+
 ## Open questions: Flash from the board's facts
 
 With the player's key and online, an open question ("what's going on here?", "what's the plan?") that no chip or move answers goes to Gemini 3.8 Flash while the player is solving. Code sends a position packet (`domain/analysis/position-packet.ts`): the material, the moment's goal, what Rook threatens (minus any threat on the answer's squares) and the approach, never a move for the player. `validate-why.ts` checks the answer against it. Once solved or shown, the same question opens the "Why does it work?" story instead. Evidence, 28 November 2026 (`research_notes/reasoning-answers/scorecard.md`, 20 positions, two blind graders, round 3): 18/20 true with the real reason, 0 false, 0 giving the answer away. "Why not X?" stays with the board's own storyboard: Flash scored 0/20 there with 8 false, the storyboard 16/20.
