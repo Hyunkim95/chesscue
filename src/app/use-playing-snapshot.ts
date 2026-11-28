@@ -12,6 +12,7 @@ import {
   buildPlayingSnapshot,
   snapshotGames,
 } from "../domain/curriculum/playing-snapshot";
+import { detectOnDeviceCapability } from "../infrastructure/ai/on-device-capability";
 import { ANALYSIS_VERSION } from "./adaptive-profile";
 import {
   boardSequence,
@@ -189,11 +190,8 @@ export function usePlayingSnapshot(
         }
       }
       const nano = newMoves.some(({ drill }) => drill.mateInOne)
-        ? await import("../infrastructure/ai/on-device-capability")
-            .then(
-              async ({ detectOnDeviceCapability }) =>
-                (await detectOnDeviceCapability()).status === "available",
-            )
+        ? await detectOnDeviceCapability()
+            .then(({ status }) => status === "available")
             .catch(() => false)
         : false;
       for (const [index, entry] of newMoves.entries()) {
