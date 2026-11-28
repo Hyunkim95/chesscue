@@ -101,7 +101,10 @@ export default defineConfig(({ mode }) => ({
           },
           workbox: {
             cleanupOutdatedCaches: true,
-            clientsClaim: false,
+            // The first install takes control of the open page, so Stockfish
+            // and the other precached files load offline in that same visit.
+            // Updates still wait for the player (registerType "prompt").
+            clientsClaim: true,
             skipWaiting: false,
             navigateFallback: "/index.html",
             navigateFallbackDenylist: [/^\/__\/auth\//],

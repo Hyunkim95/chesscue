@@ -58,8 +58,9 @@ test("opens the same profile from Today and Games", async () => {
         "aria-current",
         "page",
       );
+      // Saved usernames are offered for a refresh, within reach.
       await expect(
-        page.getByRole("textbox", { name: "Username", exact: true }),
+        page.getByRole("button", { name: "Refresh Chess.com games" }),
       ).toBeInViewport();
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
@@ -93,7 +94,7 @@ test("opens the same profile from Today and Games", async () => {
 
     await account.click();
     await expect(
-      page.getByRole("heading", { name: "Account", exact: true }),
+      page.getByRole("heading", { level: 1, name: "Guest player" }),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Cross-device sync" }),
@@ -139,29 +140,33 @@ test("opens the same profile from Today and Games", async () => {
     }
     await cards.first().press("Enter");
     await expect(page).toHaveURL(/#review\//);
-    await page.getByRole("button", { name: "Full replay" }).click();
+    // The game plays as one replay that is also its report.
     await expect(
-      page.getByRole("heading", { name: "Full replay" }),
+      page.getByRole("heading", { level: 1, name: /You beat A_long/ }),
     ).toBeVisible();
-    const board = page.getByRole("grid", { name: "Review board, Black side" });
-    const controls = page.getByRole("group", { name: "Replay controls" });
-    await controls.getByRole("button", { name: "Play game move" }).click();
-    await expect(
-      board.getByRole("gridcell", { name: /White pawn on f3/ }),
-    ).toBeVisible();
+    const board = page.getByRole("grid", { name: /You beat A_long/ });
+    await page
+      .getByRole("button", { name: "Move 2: a chance you took" })
+      .click({ timeout: 30_000 });
     for (const width of [320, 420]) {
       await page.setViewportSize({ width, height: 760 });
       await expect(board).toBeInViewport();
-      await expect(controls).toBeInViewport();
+      await expect(
+        page.getByRole("group", { name: "This moment" }),
+      ).toBeInViewport();
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(width);
       await page.screenshot({
-        path: test.info().outputPath(`full-replay-${String(width)}.png`),
+        path: test.info().outputPath(`watch-${String(width)}.png`),
+        animations: "disabled",
       });
     }
     await page.setViewportSize({ width: 320, height: 760 });
-    await page.getByRole("button", { name: "Analyze next move" }).click();
+    await page.getByRole("button", { name: "Keep watching" }).click();
+    await page.getByRole("button", { name: "Watch again" }).click();
+    await page.getByRole("button", { name: "Pause" }).click();
+    await page.getByRole("button", { name: "Analyze this position" }).click();
     await expect(
       page.getByRole("grid", { name: "Next move board" }),
     ).toBeInViewport();
@@ -171,9 +176,8 @@ test("opens the same profile from Today and Games", async () => {
     });
     await page.getByRole("button", { name: "Back to replay" }).click();
     await expect(
-      board.getByRole("gridcell", { name: /White pawn on f3/ }),
+      page.getByRole("button", { name: "Analyze this position" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Back to Review" }).click();
     await page.getByRole("button", { name: "Back to Games" }).click();
     await expect(cards).toHaveCount(2);
   } finally {
