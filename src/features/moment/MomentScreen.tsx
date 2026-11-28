@@ -44,7 +44,7 @@ import {
 import {
   describedMoves,
   mentionedMove,
-  writtenMove,
+  movesInWords,
 } from "../../domain/game/exploration-intent";
 import type { MomentAttemptRecord } from "../../domain/progress/types";
 import { attemptXp } from "../../domain/progress/xp";
@@ -393,9 +393,21 @@ function pickedChoice<T extends { readonly move: SanMove }>(
     : undefined;
 }
 
+// The legal moves the words mean at a position, read by code.
+function inWords(
+  text: string,
+  fen: string,
+): (SanMove & { readonly captured: string | undefined })[] {
+  return movesInWords(text, fen).map((move) => ({
+    san: move.san,
+    uci: move.lan,
+    captured: move.captured,
+  }));
+}
+
 // "What if…" about another move, played out once the move is known.
 const WHAT_IF_QUESTION =
-  /^\s*(?:what if|what about|why not|could (?:you|i) (?:have )?)/i;
+  /^\s*(?:(?:wh?at|and) if|what about|what happens if|how about|why not|could (?:you|i) (?:have )?)/i;
 
 // Questions asking for a reason, answered by code once the move is known.
 const WHY_QUESTION =
@@ -1922,6 +1934,42 @@ export function MomentScreen({
   // describe, from the position on screen back through the line, at the
   // first position where any fit. Rook's turns become his alternatives; the
   // player's become branches.
+  // Several moves fit the words: show them where they would be played, as
+  // arrows with the landing squares outlined, and let the player pick one.
+  function offerMoves(
+    fen: string,
+    options: readonly SanMove[],
+    play: (move: SanMove) => void,
+  ) {
+    setStory(undefined);
+    setView({
+      fen,
+      arrows: options.flatMap((move) => {
+        const from = SQUARES.find((sq) => sq === move.uci.slice(0, 2));
+        const to = SQUARES.find((sq) => sq === move.uci.slice(2, 4));
+        return from && to ? [{ from, to, kind: "preview" as const }] : [];
+      }),
+      // A one-square arrow is hard to see: outline where each lands.
+      outlines: options.flatMap((move) => {
+        const to = SQUARES.find((sq) => sq === move.uci.slice(2, 4));
+        return to ? [{ square: to, tone: "jade" as const }] : [];
+      }),
+    });
+    setChoices(
+      options.map((move) => ({
+        label: `What if ${move.san}?`,
+        move,
+        run: () => {
+          play(move);
+        },
+      })),
+    );
+    setSay({
+      text: `Which one: ${options.map(({ san }) => san).join(" or ")}? They're drawn on the board.`,
+      mood: "hmm",
+    });
+  }
+
   function whatIf(text: string):
     | {
         readonly fen: string;
@@ -1935,11 +1983,7 @@ export function MomentScreen({
       const frame = index >= 0 ? story.frames[index] : undefined;
       if (index >= 0 && frame?.moveUci !== line[index]) continue;
       const fen = frame ? frame.fen : story.start;
-      const legal = legalMoves(fen);
-      const written = writtenMove(text, fen);
-      const moves = written
-        ? legal.filter((move) => move.uci === written.lan)
-        : describedMoves(text, legal, fen);
+      const moves = inWords(text, fen);
       if (moves.length === 0) continue;
       const chosen =
         index === -1 && story.played ? story.played : line[index + 1];
@@ -2008,6 +2052,29 @@ export function MomentScreen({
       (candidates.length === 0 && WHY_QUESTION.test(text)
         ? onFrame
         : undefined);
+    // While solving, a "what if" is played out at once from the start as a
+    // preview, never a try (owner, 28 November 2026): typed or spoken, the
+    // player never has to make the move on the board first.
+    if (solving && !danger && WHAT_IF_QUESTION.test(text)) {
+      const moves = inWords(text, moment.fen);
+      const [only] = moves;
+      if (only && moves.length === 1) {
+        act(
+          { kind: "what-if", uci: only.uci },
+          `Rook understood · what-if · ${only.san}`,
+        );
+        return;
+      }
+      if (moves.length > 1 && moves.length <= 3) {
+        offerMoves(moment.fen, moves, (move) => {
+          act(
+            { kind: "what-if", uci: move.uci },
+            `Rook understood · what-if · ${move.san}`,
+          );
+        });
+        return;
+      }
+    }
     if (!solving && WHAT_IF_QUESTION.test(text)) {
       const found = whatIf(text);
       const [only] = found?.moves ?? [];
@@ -2016,34 +2083,8 @@ export function MomentScreen({
         return;
       }
       if (found && found.moves.length > 1) {
-        const options = found.moves.slice(0, 3);
-        // Show the options where they would be played, as arrows.
-        setStory(undefined);
-        setView({
-          fen: found.fen,
-          arrows: options.flatMap((move) => {
-            const from = SQUARES.find((sq) => sq === move.uci.slice(0, 2));
-            const to = SQUARES.find((sq) => sq === move.uci.slice(2, 4));
-            return from && to ? [{ from, to, kind: "preview" as const }] : [];
-          }),
-          // A one-square arrow is hard to see: outline where each lands.
-          outlines: options.flatMap((move) => {
-            const to = SQUARES.find((sq) => sq === move.uci.slice(2, 4));
-            return to ? [{ square: to, tone: "jade" as const }] : [];
-          }),
-        });
-        setChoices(
-          options.map((move) => ({
-            label: `What if ${move.san}?`,
-            move,
-            run: () => {
-              found.play(move.uci);
-            },
-          })),
-        );
-        setSay({
-          text: `Which one: ${options.map(({ san }) => san).join(" or ")}? They're drawn on the board.`,
-          mood: "hmm",
+        offerMoves(found.fen, found.moves.slice(0, 3), (move) => {
+          found.play(move.uci);
         });
         return;
       }
