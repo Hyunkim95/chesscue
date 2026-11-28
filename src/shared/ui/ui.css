@@ -95,6 +95,7 @@
 
 .ui-pill:disabled,
 .ui-pill[aria-disabled="true"]:not(.ui-busy),
+.ui-chip:disabled,
 .ui-chip[aria-disabled="true"]:not(.ui-busy) {
   cursor: default;
   opacity: 0.55;
@@ -166,7 +167,7 @@
   animation-delay: calc(var(--ui-chip-index, 0) * 50ms);
 }
 
-.ui-chip:active:not([aria-disabled="true"]) {
+.ui-chip:active:not(:disabled):not([aria-disabled="true"]) {
   transform: scale(0.95);
   background-color: color-mix(in srgb, var(--ui-color-ink) 12%, transparent);
   transition-duration: 0s;

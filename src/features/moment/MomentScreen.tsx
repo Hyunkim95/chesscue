@@ -498,6 +498,21 @@ export function MomentScreen({
   const [story, setStory] = useState<Story | undefined>();
   const [selected, setSelected] = useState<Square | undefined>();
   const [busy, setBusy] = useState(false);
+  // The chip whose tap started the running work, which shows the spinner.
+  const [busyChip, setBusyChip] = useState<string | undefined>();
+  const pressedChip = useRef<string | undefined>(undefined);
+  // Slow work (Stockfish, a model) with the controls marked busy. Busy is
+  // always cleared, even when the work fails.
+  async function whileBusy<T>(work: Promise<T>): Promise<T> {
+    setBusyChip(pressedChip.current);
+    setBusy(true);
+    try {
+      return await work;
+    } finally {
+      setBusy(false);
+      setBusyChip(undefined);
+    }
+  }
   const [reply, setReply] = useState<SanMove | undefined>();
   // Stockfish's line after each try, for "Why not {move}?".
   const [tryLines, setTryLines] = useState<
@@ -829,12 +844,10 @@ export function MomentScreen({
 
   async function tryMove(uci: string) {
     setSelected(undefined);
-    setBusy(true);
     const before = view;
     showPlayed(uci);
     setSay({ text: "Let me see…", mood: "think" });
-    const checked = await checkMove(uci, controller.current.signal);
-    setBusy(false);
+    const checked = await whileBusy(checkMove(uci, controller.current.signal));
     if (!checked.ok) {
       setView(before);
       setSay({
@@ -900,22 +913,22 @@ export function MomentScreen({
     const san = sanFor(from.fen, uci);
     if (lineUci === undefined || san === undefined) return;
     send({ kind: "explore", key: `branch:${from.fen}:${uci}` });
-    setBusy(true);
     const before = view;
     showPlayed(uci, undefined, from.fen);
     setSay({ text: "Let me see…", mood: "think", understood });
     const signal = controller.current.signal;
-    const top = await analyzePosition(from.fen, 1, signal);
-    const bestCp = top.ok
-      ? top.value.candidates[0]?.evaluationCpFromSideToMove
-      : undefined;
-    const checked =
-      bestCp === undefined
+    const checked = await whileBusy(checkBranch(lineUci));
+    async function checkBranch(bestUci: string) {
+      const top = await analyzePosition(from.fen, 1, signal);
+      const bestCp = top.ok
+        ? top.value.candidates[0]?.evaluationCpFromSideToMove
+        : undefined;
+      return bestCp === undefined
         ? undefined
         : await checkFrom(
             {
               fen: from.fen,
-              bestUci: lineUci,
+              bestUci,
               bestCp,
               solutionLine: from.line,
               ...(moment.toleranceCp === undefined
@@ -925,7 +938,7 @@ export function MomentScreen({
             uci,
             signal,
           );
-    setBusy(false);
+    }
     if (signal.aborted) return;
     if (!checked?.ok) {
       setView(before);
@@ -1002,18 +1015,18 @@ export function MomentScreen({
     }
     if (!altSan || !chosenSan) return;
     send({ kind: "explore", key: `rook-alt:${from.fen}:${uci}` });
-    setBusy(true);
     showPlayed(uci, undefined, from.fen);
     setSay({ text: "Let me see…", mood: "think", understood });
     const signal = AbortSignal.any([
       controller.current.signal,
       AbortSignal.timeout(8_000),
     ]);
-    const [before, after] = await Promise.all([
-      analyzePosition(from.fen, 1, signal),
-      analyzePosition(afterFen, 1, signal),
-    ]);
-    setBusy(false);
+    const [before, after] = await whileBusy(
+      Promise.all([
+        analyzePosition(from.fen, 1, signal),
+        analyzePosition(afterFen, 1, signal),
+      ]),
+    );
     const best = before.ok ? before.value.candidates[0] : undefined;
     const answer = after.ok ? after.value.candidates[0] : undefined;
     const replySan = answer?.principalVariation[0]
@@ -1092,13 +1105,13 @@ export function MomentScreen({
       const top = analysis.ok ? analysis.value.candidates[0] : undefined;
       return top ? -top.evaluationCpFromSideToMove : undefined;
     };
-    setBusy(true);
     setSay({ text: "Let me check both with Stockfish…", mood: "think" });
-    const [a, b] = await Promise.all([
-      scored(better).catch(() => undefined),
-      scored(worse).catch(() => undefined),
-    ]);
-    setBusy(false);
+    const [a, b] = await whileBusy(
+      Promise.all([
+        scored(better).catch(() => undefined),
+        scored(worse).catch(() => undefined),
+      ]),
+    );
     const betterSan =
       solving && better === moment.bestUci
         ? "the best move"
@@ -1126,14 +1139,17 @@ export function MomentScreen({
     setSelected(undefined);
     const back: Story | "start" = story ?? "start";
     send({ kind: "explore", key: `explore:${fen}:${uci}` });
-    setBusy(true);
     setSay({ text: "Let me see…", mood: "think" });
-    const top = await analyzePosition(
-      fen,
-      1,
-      AbortSignal.any([controller.current.signal, AbortSignal.timeout(8_000)]),
+    const top = await whileBusy(
+      analyzePosition(
+        fen,
+        1,
+        AbortSignal.any([
+          controller.current.signal,
+          AbortSignal.timeout(8_000),
+        ]),
+      ),
     );
-    setBusy(false);
     const best = top.ok ? top.value.candidates[0] : undefined;
     if (!best) {
       setSay({
@@ -1212,12 +1228,10 @@ export function MomentScreen({
     if (solving) send({ kind: "help" });
     send({ kind: "explore", key: `preview:${uci}` });
     setStory(undefined);
-    setBusy(true);
     const before = view;
     showPlayed(uci, "Preview · not played");
     setSay({ text: "Let me see…", mood: "think", understood });
-    const checked = await checkMove(uci, controller.current.signal);
-    setBusy(false);
+    const checked = await whileBusy(checkMove(uci, controller.current.signal));
     if (!checked.ok) {
       setView(before);
       setSay({
@@ -1300,11 +1314,9 @@ export function MomentScreen({
       setSay({ text: fallback, mood: "hmm" });
       return;
     }
-    setBusy(true);
     setSay({ text: "Let me think…", mood: "think" });
     const signal = controller.current.signal;
-    const reading = await readDanger(text, signal);
-    setBusy(false);
+    const reading = await whileBusy(readDanger(text, signal));
     if (signal.aborted) return;
     if (reading.kind === "unrouted") {
       setSay({ text: fallback, mood: "hmm" });
@@ -1768,17 +1780,15 @@ export function MomentScreen({
         if (found === SEARCH) {
           setChoices(undefined);
           setConfirm(undefined);
-          setBusy(true);
           setSay({
             text: "Let me check what else I could do…",
             mood: "think",
             understood,
           });
           const uci = action.uci;
-          void searchedReason(uci)
+          void whileBusy(searchedReason(uci))
             .catch(() => undefined)
             .then((found) => {
-              setBusy(false);
               if (found?.story) {
                 openStory(found.story, understood);
                 return;
@@ -1812,19 +1822,19 @@ export function MomentScreen({
             }
           })();
           if (end) {
-            setBusy(true);
             setSay({ text: "Let me check that…", mood: "think", understood });
-            void analyzePosition(
-              end,
-              1,
-              AbortSignal.any([
-                controller.current.signal,
-                AbortSignal.timeout(8_000),
-              ]),
+            void whileBusy(
+              analyzePosition(
+                end,
+                1,
+                AbortSignal.any([
+                  controller.current.signal,
+                  AbortSignal.timeout(8_000),
+                ]),
+              ),
             )
               .catch(() => undefined)
               .then((analysis) => {
-                setBusy(false);
                 const top = analysis?.ok
                   ? analysis.value.candidates[0]
                   : undefined;
@@ -2030,20 +2040,20 @@ export function MomentScreen({
         return;
       }
     }
-    setBusy(true);
     setSay({ text: "Let me think…", mood: "think" });
     const boardMove =
       resolved ?? played.find((move) => move.uci === frame?.moveUci);
-    const outcome = await askRook(
-      {
-        text,
-        fen: view.fen,
-        boardMoveUci: boardMove?.uci,
-        boardMoveSan: boardMove?.san,
-      },
-      controller.current.signal,
+    const outcome = await whileBusy(
+      askRook(
+        {
+          text,
+          fen: view.fen,
+          boardMoveUci: boardMove?.uci,
+          boardMoveSan: boardMove?.san,
+        },
+        controller.current.signal,
+      ),
     );
-    setBusy(false);
     switch (outcome.kind) {
       case "act":
         if (movesBoard(outcome.action)) {
@@ -2411,6 +2421,7 @@ export function MomentScreen({
               <button
                 type="button"
                 className="ui-chip ui-chip--primary"
+                disabled={busy}
                 onClick={() => {
                   act(confirm.action, confirm.understood);
                 }}
@@ -2423,6 +2434,7 @@ export function MomentScreen({
                   key={option.label}
                   type="button"
                   className="ui-chip ui-chip--primary"
+                  disabled={busy}
                   onClick={() => {
                     setChoices(undefined);
                     option.run();
@@ -2435,6 +2447,7 @@ export function MomentScreen({
             <button
               type="button"
               className="ui-chip"
+              disabled={busy}
               onClick={() => {
                 setConfirm(undefined);
                 setChoices(undefined);
@@ -2447,8 +2460,13 @@ export function MomentScreen({
         ) : (
           <ChipRow
             chips={chips}
+            disabled={busy}
+            busyId={busy ? busyChip : undefined}
             onSelect={(chip) => {
+              // Read by whileBusy when the chip's action starts slow work.
+              pressedChip.current = chip.id;
               act(chip.action);
+              pressedChip.current = undefined;
             }}
           />
         )}
