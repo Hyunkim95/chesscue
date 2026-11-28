@@ -315,6 +315,7 @@ describe("adaptive IndexedDB records", () => {
     database.close();
     expect(storeNames).toEqual([
       "analyses",
+      "gameOrder",
       "games",
       "guestClaims",
       "momentAttempts",

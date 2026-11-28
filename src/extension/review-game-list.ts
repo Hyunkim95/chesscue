@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { playedOrder } from "../domain/game/played-order";
 import { tutorGameMode, type GameRecord } from "../domain/game/types";
 
 const isoDay = z.iso.date();
@@ -95,6 +96,8 @@ export function reviewGameSummary(game: GameRecord) {
     stamp = pgnStamp(tags, game.completedAt);
     source = pgnSource(tags.get("Site"));
   }
+  // The same order the storage index pages by.
+  stamp = { ...stamp, order: playedOrder(game) ?? -Infinity };
   const result =
     game.result === "draw"
       ? "Draw"
@@ -119,5 +122,15 @@ export function reviewGameSummary(game: GameRecord) {
 export function reviewGameList(games: readonly GameRecord[]) {
   return games
     .flatMap((game) => reviewGameSummary(game) ?? [])
-    .sort((a, b) => b.stamp.order - a.stamp.order || a.id.localeCompare(b.id));
+    .sort(newestFirst);
+}
+
+// Newest first; ties by id, highest first, as the storage index walks back.
+export function newestFirst(
+  a: { readonly id: string; readonly stamp: { readonly order: number } },
+  b: { readonly id: string; readonly stamp: { readonly order: number } },
+) {
+  if (a.stamp.order !== b.stamp.order)
+    return a.stamp.order < b.stamp.order ? 1 : -1;
+  return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
 }

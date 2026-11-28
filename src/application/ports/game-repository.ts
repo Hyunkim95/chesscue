@@ -18,3 +18,26 @@ export interface GameRepository {
   ): Promise<Result<GameRecord | null, RepositoryFailure>>;
   listCompleted(): Promise<Result<readonly GameRecord[], RepositoryFailure>>;
 }
+
+// Where the next page of completed games starts: after this game.
+export interface GamePageCursor {
+  readonly order: number;
+  readonly id: string;
+}
+
+// Completed games newest first, a page at a time, so a long history never has
+// to be read whole to show its first rows.
+export interface CompletedGamePages {
+  listCompletedPage(
+    after: GamePageCursor | null,
+    limit: number,
+  ): Promise<
+    Result<
+      {
+        readonly games: readonly GameRecord[];
+        readonly next: GamePageCursor | null;
+      },
+      RepositoryFailure
+    >
+  >;
+}
