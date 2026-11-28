@@ -52,7 +52,14 @@ import {
 import { usePlayingSnapshot } from "./use-playing-snapshot";
 import { queueImportAnalysis, useImportAnalysis } from "./use-import-analysis";
 import { BoardFirstScreens } from "./board-first/BoardFirstScreens";
-import { gameMomentId, pickGameReviewMoment } from "./board-first/moment-specs";
+import { gameMomentId } from "./board-first/moment-specs";
+import { useGameReport } from "./use-game-report";
+import { watchMarkers } from "../domain/session/game-watch";
+import {
+  GameWatchScreen,
+  type WatchMarkers,
+  type WatchResume,
+} from "../features/game-watch/GameWatchScreen";
 import { finalPosition } from "../features/result/final-position";
 import {
   ResultScreen,
@@ -205,6 +212,33 @@ const RaceView = lazy(async () => ({
 const ShareWin = lazy(async () => ({
   default: (await import("../features/race/SharedWin")).ShareWin,
 }));
+// Where each watched game was left for a moment or the next-move tool, so
+// coming back picks the replay up there.
+const watchResume = new Map<string, WatchResume>();
+
+function watchTitle(summary: ReturnType<typeof reviewGameSummary>): string {
+  if (!summary) return "Your game";
+  const { opponent, result, title } = summary;
+  if (!opponent) return title;
+  if (result === "Win") return `You beat ${opponent}`;
+  if (result === "Loss") return `You lost to ${opponent}`;
+  if (result === "Draw") return `You drew with ${opponent}`;
+  return title;
+}
+
+function watchSubtitle(
+  game: GameRecord,
+  summary: ReturnType<typeof reviewGameSummary>,
+): string {
+  const side =
+    game.playerColor === null
+      ? undefined
+      : `you played ${game.playerColor === "white" ? "White" : "Black"}`;
+  return [summary?.stamp.shortLabel, summary?.source, side]
+    .filter((part) => part !== undefined)
+    .join(" · ");
+}
+
 const GameReportScreen = lazy(async () => ({
   default: (await import("../features/game-report/GameReportScreen"))
     .GameReportScreen,
@@ -1362,8 +1396,14 @@ function PlayerApp({
   const recentImportSite = usernameImportSite(gameRoute);
   const reviewRoute =
     view === "review"
-      ? gameRoute.replace(/\/(?:replay|report)$/, "")
+      ? gameRoute.replace(/\/(?:replay|report|moment\/\d+)$/, "")
       : gameRoute;
+  // Board-first: a moment tried from the game's replay, by the ply of the
+  // player's move.
+  const reviewMomentPly =
+    view === "review"
+      ? Number(/\/moment\/(\d+)$/.exec(gameRoute)?.[1] ?? Number.NaN)
+      : Number.NaN;
   const reviewReplay = view === "review" && gameRoute.endsWith("/replay");
   const reviewReport = view === "review" && gameRoute.endsWith("/report");
   const sideSegment = reviewRoute.split("/")[2];
@@ -1393,7 +1433,8 @@ function PlayerApp({
         ? { ...record.value, playerColor: reviewPerspective }
         : record.value;
       setAnalysis({ status: "running", route: reviewRoute, game });
-      if (reviewReport) return;
+      // Board-first's report is the replay, which marks the game's moments.
+      if (reviewReport && !boardFirst) return;
       const result = reviewPerspective
         ? await loadPerspectiveAnalysis(game, request.signal)
         : await loadGameAnalysis(history, game);
@@ -1568,7 +1609,7 @@ function PlayerApp({
   const reviewFromPlay =
     reviewParent === "#play" || (!extensionPanel && reviewParent === "");
   const reviewBackLabel =
-    reviewReplay || reviewReport
+    (reviewReplay || reviewReport) && !boardFirst
       ? "Back to Review"
       : reviewParent?.startsWith("#result/")
         ? "Back to game result"
@@ -1581,19 +1622,48 @@ function PlayerApp({
     () =>
       boardFirst &&
       view === "review" &&
-      !reviewReplay &&
-      !reviewReport &&
+      Number.isInteger(reviewMomentPly) &&
       analysis.status === "ready" &&
       analysis.route === reviewRoute
-        ? pickGameReviewMoment(analysis.game, analysis.analysis)
+        ? observedGameMoves(analysis.game, analysis.analysis).find(
+            ({ ply }) => ply === reviewMomentPly,
+          )
         : undefined,
-    [view, reviewReplay, reviewReport, analysis, reviewRoute],
+    [view, reviewMomentPly, analysis, reviewRoute],
   );
+  const unknownMoment =
+    Number.isInteger(reviewMomentPly) &&
+    analysis.status === "ready" &&
+    analysis.route === reviewRoute &&
+    reviewPosition === undefined;
+  useEffect(() => {
+    if (unknownMoment) setView("review", reviewRoute);
+  }, [unknownMoment, reviewRoute, setView]);
+  // Board-first: the game's moments, marked on its replay.
+  const watchMarkerState: WatchMarkers = useMemo(() => {
+    if (analysis.status === "idle" || analysis.route !== reviewRoute)
+      return { kind: "checking" };
+    if (analysis.status === "failed") return { kind: "failed" };
+    if (analysis.status !== "ready") return { kind: "checking" };
+    return {
+      kind: "ready",
+      markers: watchMarkers(
+        observedGameMoves(analysis.game, analysis.analysis),
+        analysis.analysis.moments,
+      ),
+    };
+  }, [analysis, reviewRoute]);
   const reviewRecord =
     analysis.status !== "idle" && analysis.route === reviewRoute
       ? analysis.game
       : undefined;
   const reviewMatchup = reviewRecord ? reviewGameSummary(reviewRecord) : null;
+  const watching =
+    boardFirst && view === "review" && !Number.isInteger(reviewMomentPly);
+  const watchReport = useGameReport(
+    watching ? reviewRecord : undefined,
+    history.name,
+  );
   const reportOpening = useOpeningReview(
     reviewReport ? reviewRecord : undefined,
   );
@@ -1785,7 +1855,8 @@ function PlayerApp({
     openPractice({ id: exercise.id, exercise, goal });
   }
   function backFromReview() {
-    if (reviewReplay || reviewReport) {
+    watchResume.delete(reviewRoute);
+    if ((reviewReplay || reviewReport) && !boardFirst) {
       if (reviewParent === reviewRoute)
         returnToParent(() => {
           setView("review", reviewRoute);
@@ -1847,7 +1918,7 @@ function PlayerApp({
       />
     );
 
-  if (reviewReport)
+  if (reviewReport && !boardFirst)
     return (
       <AppShell
         mode={{
@@ -1888,7 +1959,7 @@ function PlayerApp({
       </AppShell>
     );
 
-  if (reviewReplay)
+  if (reviewReplay && !boardFirst)
     return (
       <AppShell
         mode={{
@@ -1928,6 +1999,49 @@ function PlayerApp({
       </AppShell>
     );
 
+  if (watching)
+    return (
+      <AppShell
+        mode={{
+          kind: "focus",
+          exitLabel: reviewBackLabel,
+          onExit: backFromReview,
+        }}
+      >
+        {missingGame ? (
+          <p role="alert">This game is unavailable in this player’s history.</p>
+        ) : reviewRecord ? (
+          <GameWatchScreen
+            key={reviewRoute}
+            game={reviewRecord}
+            title={watchTitle(reviewMatchup)}
+            subtitle={watchSubtitle(reviewRecord, reviewMatchup)}
+            opponent={reviewMatchup?.opponent}
+            markers={watchMarkerState}
+            evaluations={
+              watchReport.kind === "ready"
+                ? {
+                    kind: "ready",
+                    evaluations: watchReport.report.evaluations,
+                  }
+                : watchReport
+            }
+            resume={watchResume.get(reviewRoute)}
+            onTry={(ply) => {
+              watchResume.set(reviewRoute, { kind: "marker", ply });
+              setView("review", `${reviewRoute}/moment/${String(ply)}`);
+            }}
+            onAnalyze={(fen, ply) => {
+              watchResume.set(reviewRoute, { kind: "paused", ply });
+              exploreReviewPosition(fen, reviewRecord.playerColor ?? "white");
+            }}
+          />
+        ) : (
+          <PositionLoading>Opening your game…</PositionLoading>
+        )}
+      </AppShell>
+    );
+
   if (
     boardFirst &&
     view === "review" &&
@@ -1942,15 +2056,9 @@ function PlayerApp({
           kind: "focus",
           exitLabel: reviewBackLabel,
           onExit: backFromReview,
-          top: reviewRecord && (
-            <>
-              <Pill onClick={openFullReplay}>Full replay</Pill>
-              <Pill onClick={openFullReport}>Full report</Pill>
-            </>
-          ),
         }}
       >
-        <PositionLoading>Finding a moment from this game…</PositionLoading>
+        <PositionLoading>Opening this moment…</PositionLoading>
       </AppShell>
     );
 
@@ -2012,10 +2120,10 @@ function PlayerApp({
           reviewPosition && {
             position: reviewPosition,
             alternateSide: reviewPerspective !== undefined,
-            exitLabel: reviewBackLabel,
-            onExit: backFromReview,
-            onReplay: openFullReplay,
-            onReport: openFullReport,
+            exitLabel: "Back to the game",
+            onExit: () => {
+              setView("review", reviewRoute);
+            },
           }
         }
         navigate={navigateBoardFirst}

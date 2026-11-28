@@ -155,6 +155,9 @@ export function SidePanelReview({
     setLibrary({ status: "loading" });
     setAttempt((n) => n + 1);
   };
+  // Board-first: games waiting for Rook's check can be watched at once; the
+  // first in the queue is the one being checked.
+  const queue = boardFirst ? [...(pendingAnalysis ?? [])] : [];
   const gameList = library.status === "ready" && library.games.length > 0 && (
     <ol
       className={boardFirst ? "games-history" : "review-history"}
@@ -166,7 +169,7 @@ export function SidePanelReview({
           <li key={id}>
             <button
               type="button"
-              disabled={pending}
+              disabled={pending && !boardFirst}
               aria-busy={pending || undefined}
               onClick={() => {
                 openSavedGame("#review/" + encodeURIComponent(id));
@@ -177,11 +180,21 @@ export function SidePanelReview({
                   <span className="games-history__details">
                     <strong title={title}>{title}</strong>
                     <small>
-                      {source}
-                      <span aria-hidden="true"> · </span>
-                      <time dateTime={stamp.dateTime} title={stamp.label}>
-                        {stamp.shortLabel}
-                      </time>
+                      {pending ? (
+                        queue[0] === id ? (
+                          "Checking now · you can watch it"
+                        ) : (
+                          "Waiting to be checked · you can watch it"
+                        )
+                      ) : (
+                        <>
+                          {source}
+                          <span aria-hidden="true"> · </span>
+                          <time dateTime={stamp.dateTime} title={stamp.label}>
+                            {stamp.shortLabel}
+                          </time>
+                        </>
+                      )}
                     </small>
                   </span>
                   <span className="games-history__result" data-result={result}>
@@ -196,7 +209,7 @@ export function SidePanelReview({
                   <time dateTime={stamp.dateTime}>{stamp.label}</time>
                 </>
               )}
-              {pending && (
+              {pending && !boardFirst && (
                 <span className="games-history__pending">
                   <LoadingMark />
                   <span className="ui-visually-hidden">Analysis pending</span>
@@ -247,6 +260,14 @@ export function SidePanelReview({
         {importForm ?? <GameImportSources onAdd={addFrom} />}
         {activeGame}
         {loading}
+        {queue.length > 0 && (
+          <p className="games-queue" role="status">
+            <LoadingMark />
+            {queue.length === 1
+              ? "Checking 1 game on your device"
+              : `Checking ${String(queue.length)} games on your device`}
+          </p>
+        )}
         {library.status === "failed" && (
           <div className="games-state__notice">
             <p role="alert">Your saved games could not be loaded.</p>

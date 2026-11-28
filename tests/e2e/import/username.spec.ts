@@ -53,54 +53,35 @@ test("imports from Profile into Games and deduplicates on refresh", async ({
   await expect(imported).toBeEnabled({ timeout: 30_000 });
   await imported.click();
   await expect(page).toHaveURL(/#review\//);
+  // The game plays as one replay that is also its report.
   await expect(
-    page.getByRole("heading", { name: /Black to move/ }),
+    page.getByRole("heading", { level: 1, name: /You beat Mira/ }),
   ).toBeVisible({ timeout: 30_000 });
-  await expect(
-    page.getByRole("button", { name: "Show me", exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Ask Rook" })).toBeVisible();
-  await page.getByRole("button", { name: "Full replay" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Full replay" }),
-  ).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Primary navigation" }),
   ).toHaveCount(0);
-  const slider = page.getByRole("slider", { name: "Move through the game" });
-  await expect(slider).toBeHidden();
-  const advance = page.getByRole("button", { name: "Play game move" });
-  await advance.click();
-  await expect(page.getByText("f3", { exact: true })).toBeVisible();
-  await expect(
-    page.getByRole("gridcell", { name: /White pawn on f3/ }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Analyze next move" }).click();
+  await page
+    .getByRole("button", { name: "Move 2: a chance you took" })
+    .click({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Keep watching" }).click();
+  await page.getByRole("button", { name: "Watch again" }).click();
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("button", { name: "Analyze this position" }).click();
   const analysisBoard = page.getByRole("grid", { name: "Next move board" });
   await expect(
-    analysisBoard.getByRole("gridcell", { name: /White pawn on f3/ }),
+    analysisBoard.getByRole("gridcell", { name: /White pawn on f2/ }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Back to replay" }).click();
+  // It comes back paused where it was left.
   await expect(
-    page.getByRole("heading", { name: "Full replay" }),
+    page.getByRole("button", { name: "Analyze this position" }),
   ).toBeVisible();
-  await expect(page.getByText("f3", { exact: true })).toBeVisible();
-  await page.getByText("Jump to position", { exact: true }).click();
-  await slider.press("End");
-  await expect(advance).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Analyze next move" }),
-  ).toBeDisabled();
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(slider).toBeInViewport();
   await page.screenshot({
-    path: test.info().outputPath("full-replay-desktop.png"),
+    path: test.info().outputPath("watch-desktop.png"),
+    animations: "disabled",
   });
   await page.setViewportSize({ width: 320, height: 760 });
-  await page.getByRole("button", { name: "Back to Review" }).click();
-  await expect(
-    page.getByRole("button", { name: "Show me", exact: true }),
-  ).toBeVisible();
   await page.getByRole("button", { name: "Back to Games" }).click();
   const savedGame = page
     .getByRole("list", { name: "Completed games" })

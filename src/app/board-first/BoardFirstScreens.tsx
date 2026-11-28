@@ -227,7 +227,7 @@ export function BoardFirstScreens({
         readonly alternateSide: boolean;
         readonly exitLabel: string;
         readonly onExit: () => void;
-        readonly onReplay: () => void;
+        readonly onReplay?: () => void;
         readonly onReport?: () => void;
       }
     | undefined;
@@ -511,7 +511,9 @@ export function BoardFirstScreens({
             <>
               {review ? (
                 <>
-                  <Pill onClick={review.onReplay}>Full replay</Pill>
+                  {review.onReplay && (
+                    <Pill onClick={review.onReplay}>Full replay</Pill>
+                  )}
                   {review.onReport && (
                     <Pill onClick={review.onReport}>Full report</Pill>
                   )}
@@ -609,7 +611,8 @@ export function BoardFirstScreens({
               setAttemptsRevision((revision) => revision + 1);
             }}
             onContinue={() => {
-              if (review?.alternateSide) review.onExit();
+              // A moment from a game's replay goes back to the game.
+              if (review) review.onExit();
               else navigate("recap");
             }}
             trackProgress={!alternateSide}

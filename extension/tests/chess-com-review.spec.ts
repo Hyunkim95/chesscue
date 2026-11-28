@@ -114,17 +114,16 @@ for (const [source, width] of [
       });
       await panel.getByRole("button", { name: "White · Mira" }).click();
       await expect(panel).toHaveURL(/#review\//);
+      // The game plays as one replay that is also its report.
       await expect(
-        panel.getByRole("textbox", { name: "Ask Rook" }),
+        panel.getByRole("heading", { level: 1, name: /You lost to Sam/ }),
       ).toBeVisible();
       await expect(
-        panel.getByRole("heading", { name: /White to move/ }),
-      ).toBeVisible();
-      await expect(
-        panel.getByRole("button", { name: "Full replay" }),
+        panel.getByRole("grid", { name: /You lost to Sam/ }),
       ).toBeVisible();
       await panel.screenshot({
-        path: test.info().outputPath("review-moment.png"),
+        path: test.info().outputPath("watch.png"),
+        animations: "disabled",
       });
       expect(
         await panel.evaluate(() => document.documentElement.scrollWidth),

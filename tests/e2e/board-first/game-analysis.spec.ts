@@ -31,18 +31,24 @@ test("the game list opens before queued analysis and a review is reusable offlin
   const games = page.getByRole("list", { name: "Completed games" });
   await expect(games.getByRole("button")).toHaveCount(2);
   const maya = games.getByRole("button", { name: /vs\. Maya/ });
-  await expect(maya).toBeDisabled();
+  // Queued games can be watched before Rook checks them.
+  await expect(maya).toContainText("you can watch it");
+  await expect(page.getByRole("status")).toHaveText(
+    "Checking 2 games on your device",
+  );
   await staysIdle;
 
   await page.evaluate(() => {
     sessionStorage.setItem("test-enable-import-analysis", "true");
   });
   await page.reload();
-  await expect(maya).toBeEnabled({ timeout: 30_000 });
+  await expect(maya).not.toContainText("you can watch it", {
+    timeout: 30_000,
+  });
   await page.setViewportSize({ width: 420, height: 760 });
   await maya.click();
   await expect(
-    page.getByRole("heading", { name: /Black to move/ }),
+    page.getByRole("heading", { level: 1, name: /You beat Maya/ }),
   ).toBeVisible({
     timeout: 20_000,
   });
@@ -50,7 +56,7 @@ test("the game list opens before queued analysis and a review is reusable offlin
   await page.getByRole("button", { name: "Back to Games" }).click();
   await maya.click();
   await expect(
-    page.getByRole("heading", { name: /Black to move/ }),
+    page.getByRole("heading", { level: 1, name: /You beat Maya/ }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Back to Games" }).click();
   await page.getByRole("button", { name: "Sky", exact: true }).click();

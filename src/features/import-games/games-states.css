@@ -258,3 +258,15 @@
   grid-area: auto / 2;
   justify-self: end;
 }
+
+/* Board-first: one line for the import queue, above the games. */
+.games-state > .games-queue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--ui-radius-card);
+  color: var(--ui-color-ink);
+  background: var(--ui-color-surface);
+  font-size: 13px;
+}

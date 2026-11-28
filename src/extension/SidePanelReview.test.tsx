@@ -48,19 +48,23 @@ it("shows a compact result, source and date on each saved-game row and opens tha
   );
   const gameList = render(panel(new Set([gameId])));
 
+  // A game still in the queue can be watched while Rook checks it.
   const row = await screen.findByRole("button", { name: /vs\. Maya.*Win/ });
   expect(within(row).getByText("W", { exact: true })).toBeVisible();
-  expect(within(row).getByText("Lichess", { exact: true })).toBeVisible();
-  expect(row.querySelector("time")).toHaveAttribute("datetime", "2026-11-28");
-  expect(row).toBeDisabled();
+  expect(
+    within(row).getByText("Checking now · you can watch it"),
+  ).toBeVisible();
   expect(row).toHaveAttribute("aria-busy", "true");
-  expect(within(row).getByText("Analysis pending")).toBeInTheDocument();
-  fireEvent.click(row);
-  expect(openSavedGame).not.toHaveBeenCalled();
-  gameList.rerender(panel(new Set()));
-  await waitFor(() => {
-    expect(row).toBeEnabled();
-  });
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "Checking 1 game on your device",
+  );
   fireEvent.click(row);
   expect(openSavedGame).toHaveBeenCalledWith("#review/lichess-review");
+  gameList.rerender(panel(new Set()));
+  await waitFor(() => {
+    expect(within(row).getByText("Lichess", { exact: true })).toBeVisible();
+  });
+  expect(row.querySelector("time")).toHaveAttribute("datetime", "2026-11-28");
+  expect(row).not.toHaveAttribute("aria-busy");
+  expect(screen.queryByRole("status")).toBeNull();
 });
